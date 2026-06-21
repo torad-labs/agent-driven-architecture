@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seam 04 · Projection and surface — the humble object split</title>
+<meta name="description" content="The view projection and the surface: the Humble Object split, point for point. project(state) is the Presenter — pure, testable, pre-computing every presentational flag. render(view) is the View — humble, applying flags, deciding nothing." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="agentd.css" />
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <span class="mark"></span>
+      <span><b>Agent-Driven</b><small>Worked Example</small></span>
+    </a>
+    <details class="nav-wrap" open>
+      <summary>Contents</summary>
+      <nav class="nav" id="nav">
+        <div class="group">Orient</div>
+        <a href="index.html"><span class="n">00</span><span>Overview</span></a>
+        <div class="group">The seams</div>
+        <a href="01-state-and-fold.html"><span class="n">01</span><span>State &amp; the fold</span></a>
+        <a href="02-the-boundary.html"><span class="n">02</span><span>The boundary adapter</span></a>
+        <a href="03-tools-and-context.html"><span class="n">03</span><span>Tools &amp; context</span></a>
+        <a href="04-projection-and-surface.html" class="here"><span class="n">04</span><span>Projection &amp; surface</span></a>
+        <a href="05-ports-and-swap.html"><span class="n">05</span><span>Ports &amp; the swap</span></a>
+        <a href="06-blocks-and-root.html"><span class="n">06</span><span>Blocks &amp; the root</span></a>
+        <a href="07-replay-and-advanced.html"><span class="n">07</span><span>Replay &amp; advanced</span></a>
+        <div class="group">Reference</div>
+        <a href="../index.html"><span class="n">↗</span><span>The full architecture</span></a>
+      </nav>
+    </details>
+  </aside>
+
+  <main>
+  <div class="wrap">
+
+    <div class="crumb">
+      <a href="index.html">Overview</a><span class="sep">›</span>
+      <span>The seams</span><span class="sep">›</span>
+      <span class="cur">04 · Projection &amp; surface</span>
+    </div>
+
+    <header class="hero" style="padding-top:34px">
+      <span class="kicker">Seam 04 · The humble object</span>
+      <h1>Projection and <span class="em">surface</span>.</h1>
+      <p class="stand">The pure formatter that decides every presentational flag, and the dumb shell that only moves fields to widgets. This is the <b>Humble Object split</b> — Clean Architecture's Presenter / View / View-Model, point for point. All the logic on the side you can inspect; an empty shell on the side that drifts.</p>
+    </header>
+
+    <section id="slots" class="rv">
+      <div class="sec-head"><span class="num">▸</span><h2>The seam at a glance</h2></div>
+      <p class="lede">The eight slots, the same shape as every other seam. Read these, then the deep-dive below.</p>
+      <div class="slots">
+        <div class="slot"><div class="k">The seam</div><div class="v">The split between <code>project</code> — pure, pre-computing <em>every</em> presentational flag — and the <code>render</code> surface, which applies those flags and decides nothing. One half holds all the logic; the other holds none.</div></div>
+        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> <a class="x" href="01-state-and-fold.html"><code>State</code></a> — the truth. <strong>Middle:</strong> <code>project</code> — the testable formatter that turns truth into primitives. <strong>Outer:</strong> <code>render</code> — the dumb shell that moves a <code>TicketRow</code>'s fields onto widgets.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> the <code>State</code>. <strong>Out:</strong> a <code>ConsoleView</code> of <code>TicketRow</code>s — formatted primitives only: <code>badge</code> text, <code>canEscalate</code> bool, <code>escalating</code> bool. <strong>Forbidden:</strong> the surface computing a flag (<code>if t.status == Open</code>) itself; <code>project</code> doing any I/O.</div></div>
+        <div class="slot"><div class="k">Direction</div><div class="v"><code>project</code> depends on <code>State</code> only; the surface depends on the <code>ConsoleView</code> only. Neither imports the <a class="x" href="01-state-and-fold.html">fold</a> or an adapter — the formatter knows nothing of the screen, the screen knows nothing of the truth.</div></div>
+        <div class="slot"><div class="k">The inversion</div><div class="v">Every decision is pre-computed in <code>project</code>; <code>render</code> only applies it. The View-Model is a polymorphic plain-data buffer between them — the surface reads it and obeys, never reaches behind it to the <code>State</code>.</div></div>
+        <div class="slot"><div class="k">Why it exists</div><div class="v">To put <em>all</em> presentational logic on the side you can inspect by value (the View-Model) and leave an <em>empty</em> shell on the volatile side. The view becomes trivially testable and holds nothing that can drift.</div></div>
+        <div class="slot"><div class="k">What breaks</div><div class="v">Let the surface decide <code>canEscalate</code> itself and you mint a <em>second</em> source of truth that drifts from <code>State</code> — and you cannot test it without rendering the screen. <code>render()</code> with an <code>if</code> over <code>t.status</code> is the collapse.</div></div>
+        <div class="slot"><div class="k">The test</div><div class="v">A pure call, no screen: <code>project(stateWithHigh).rows[0].badge == "HIGH"</code>, and <code>.canEscalate == false</code> once the ticket is <code>Escalating</code>. Inspect the View-Model; never render to assert.</div></div>
+      </div>
+    </section>
+
+    <section id="what" class="rv">
+      <div class="sec-head"><span class="num">A</span><h2>What it is — a Presenter and a humble View</h2></div>
+      <p>The seam carries one conversation: how does the current <a class="x" href="01-state-and-fold.html"><code class="i">State</code></a> become pixels? It splits that conversation in two. On the testable side, <code class="i">project</code> reads the <code class="i">State</code> and returns a <code class="i">ConsoleView</code> — a bag of formatted primitives in which <em>every</em> presentational decision has already been made. On the humble side, <code class="i">render</code> takes that view and walks it, moving each field onto a widget. Here is both halves, verbatim from the assembled program:</p>
+
+      <div class="code"><div class="bar"><span class="path">the view projection — the Presenter, pure</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">project(state) -&gt; ConsoleView:
+  ConsoleView {
+    rows: state.tickets.values.map(t -&gt; TicketRow {
+      ticket:      t.id,
+      badge:       badgeFor(t.priority),        // "HIGH" + colour, pre-computed
+      canEscalate: t.status == Open,            // the flag is decided HERE, not in the view
+      escalating:  t.status is Escalating }),
+    banner: bannerFor(state.run)
+  }</code></pre></div>
+
+      <div class="code"><div class="bar"><span class="path">the surface — the View, humble</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">render(view: ConsoleView):
+  for row in view.rows: drawRow(row)            // no `if` over data, no computed flag
+onAction(intent) -&gt; dispatch(intent)            // one sink; the boundary signs it</code></pre></div>
+
+      <p>Look at what each side touches. <code class="i">project</code> evaluates <code class="i">t.status == Open</code>, runs <code class="i">badgeFor</code>, asks <code class="i">t.status is Escalating</code> — it makes <em>all</em> the calls a human eye would call &ldquo;deciding how this looks.&rdquo; <code class="i">render</code> makes none: it iterates rows and draws. There is no <code class="i">if</code> over the data in <code class="i">render</code>, no comparison, no derived boolean — only <code class="i">drawRow</code>. The whole presentational policy lives in the first block; the second block is a courier.</p>
+
+      <p>This is Clean Architecture's <em>Humble Object</em> pattern, point for point. That book's argument runs like this, in our own words: behaviours that are hard to test get separated from behaviours that are easy to test, with a thin <em>humble</em> object holding the hard-to-test part and as little logic as can be managed. For a screen, what is hard to test is the act of painting widgets; what is easy to test is computing the strings and flags that the painting will use. So you cleave the painting in a humble View that does nothing but copy fields, and you move the computation into a <em>Presenter</em> that produces a <em>View-Model</em> of plain primitives. Our <code class="i">render</code> is that humble View; our <code class="i">project</code> is that Presenter; our <code class="i">ConsoleView</code> / <code class="i">TicketRow</code> is that View-Model. (See <em>Clean Architecture</em>, Ch. 23, &ldquo;Presenters and Humble Objects.&rdquo;) The mapping is not an analogy here — it is the same three objects.</p>
+
+      <div class="note steel">
+        <span class="lab">The Humble Object rule</span>
+        <p><strong>The View-Model contains nothing but formatted primitives, and the surface contains no logic that produces them.</strong> Every string, every flag, every boolean a widget needs is computed in <code class="i">project</code> and placed in the <code class="i">ConsoleView</code> by value. <code class="i">render</code> may read those fields and place them; it may not derive one. If a decision is being made on the surface, the split has already failed.</p>
+      </div>
+    </section>
+
+    <section id="crosses" class="rv">
+      <div class="sec-head"><span class="num">B</span><h2>What crosses it — formatted primitives, never the entity</h2></div>
+      <p>One data structure crosses this seam, and it is plain data: a <code class="i">ConsoleView</code> holding a list of <code class="i">TicketRow</code>. What it carries is the entire point — it carries <em>conclusions</em>, not the material to draw them from:</p>
+
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Field on TicketRow</th><th>Type</th><th>What it already decided</th></tr></thead>
+          <tbody>
+            <tr><td><code>ticket</code></td><td>TicketId</td><td>which row this is — an opaque id, not the <code>Ticket</code> entity</td></tr>
+            <tr><td><code>badge</code></td><td>Text</td><td>the literal label, e.g. <code>"HIGH"</code> — <code>badgeFor(priority)</code> already ran</td></tr>
+            <tr><td><code>canEscalate</code></td><td>Bool</td><td>whether the escalate control is live — <code>t.status == Open</code>, already evaluated</td></tr>
+            <tr><td><code>escalating</code></td><td>Bool</td><td>whether to show the in-flight affordance — <code>t.status is Escalating</code>, already evaluated</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>What does <em>not</em> cross is as load-bearing as what does. The <code class="i">TicketRow</code> never carries the <code class="i">Ticket</code> entity, never the <code class="i">TicketStatus</code> union, never the <code class="i">State</code>. If the raw <code class="i">status</code> crossed, the surface would be <em>able</em> to ask <code class="i">if row.status == Open</code> — and the temptation would, eventually, be taken. By handing across <code class="i">canEscalate: Bool</code> instead of <code class="i">status: TicketStatus</code>, the projection removes the surface's <em>capacity</em> to decide. The View-Model is deliberately impoverished: it gives the surface exactly enough to paint and not one field more.</p>
+
+      <p>And the forbidden direction on the other side: <strong><code class="i">project</code> does no I/O.</strong> It reads a <code class="i">State</code> value and returns a <code class="i">ConsoleView</code> value. It does not read a clock, open a socket, touch the <a class="x" href="02-the-boundary.html">bus</a>, or perform an <a class="x" href="01-state-and-fold.html"><code class="i">Effect</code></a>. Time and identity belong to the <a class="x" href="02-the-boundary.html">boundary</a>, which already read them before the fold ran; by the time <code class="i">project</code> sees the <code class="i">State</code>, everything in it is settled data. That is why <code class="i">project</code> is a pure function of one argument — and therefore testable by direct call.</p>
+
+      <figure>
+        <div class="diagram"><pre class="mermaid">
+flowchart LR
+  S["State<br/>(the truth)"] --> P["project(state)"]
+  P --> VM["ConsoleView<br/>TicketRow[]<br/>(formatted primitives)"]
+  VM --> R["render(view)"]
+  R --> W["widgets<br/>(the screen)"]
+  style S fill:#1a1012,stroke:#f23a48,color:#ffd7da
+  style P fill:#101218,stroke:#9ed99a,color:#dff5db
+  style VM fill:#14161d,stroke:#3a3f4a,color:#cdd5e0
+  style R fill:#0c0e13,stroke:#7c8aa0,color:#a2a8b4
+  style W fill:#0c0e13,stroke:#7c8aa0,color:#a2a8b4
+        </pre></div>
+        <figcaption><b>Figure.</b> The testable half is <b>project</b> (green outline): all the logic, pure, inspected by value. The humble half is <b>render</b> (steel outline): no logic, just fields onto widgets. The <code>ConsoleView</code> between them carries conclusions, not raw status.</figcaption>
+      </figure>
+    </section>
+
+    <section id="direction" class="rv">
+      <div class="sec-head"><span class="num">C</span><h2>The direction — and the one sink back</h2></div>
+      <p>Two dependencies, both pointing the same way, neither reaching past its neighbour. <code class="i">project</code> imports the <a class="x" href="01-state-and-fold.html"><code class="i">State</code></a> and nothing else — it does not know a screen exists, does not name <code class="i">render</code>, does not name a widget toolkit. The surface imports the <code class="i">ConsoleView</code> and nothing else — it does not know the <code class="i">State</code> exists, does not name the <a class="x" href="01-state-and-fold.html">fold</a>, does not name an adapter. Source dependencies point inward at the View-Model and the truth; the screen sits furthest out and is named by no one inner.</p>
+
+      <p>The split has a second edge that is easy to miss: the surface emits exactly one thing back, and it emits it without deciding anything. <code class="i">onAction(intent) -&gt; dispatch(intent)</code> is a single sink. A tap does not run a handler that branches on state; it hands an <code class="i">intent</code> to <code class="i">dispatch</code>, and the <a class="x" href="02-the-boundary.html">boundary</a> is what signs it into a <a class="x" href="02-the-boundary.html"><code class="i">Command</code></a> with the <code class="i">Actor</code> stamp. So the surface decides nothing on the way <em>in</em> (it draws pre-computed flags) and nothing on the way <em>out</em> (it forwards one intent). It is humble in both directions.</p>
+
+      <p>That is what makes a human tap and an agent tool-call peers at this seam too. The surface that a host taps emits the same <code class="i">intent</code> the agent's path would; the boundary stamps the only difference. The View is not a special &ldquo;human&rdquo; entry point with its own logic — it is a courier that happens to be driven by fingers.</p>
+    </section>
+
+    <section id="why" class="rv">
+      <div class="sec-head"><span class="num">D</span><h2>Why the logic sits on the testable side</h2></div>
+      <p>The reason to split here is not tidiness; it is testability and drift. State the property the split buys you in one sentence: <strong>all presentational logic lives where you can inspect it by value, and the volatile half holds nothing that can be wrong.</strong></p>
+
+      <p>Consider the two halves as test subjects. <code class="i">project</code> is a pure function from <code class="i">State</code> to <code class="i">ConsoleView</code>; you call it with a constructed state and read the returned struct. No screen, no toolkit, no event loop — a value in, a value out, asserted by equality. <code class="i">render</code>, by contrast, is the part that genuinely needs a screen to exercise, and is therefore expensive and flaky to test. The Humble Object move is to make that expensive-to-test object hold <em>so little</em> that there is nothing in it worth testing: it copies fields, and copying fields cannot be subtly wrong in a way a presentational test would catch. You concentrate the logic on the cheap side and starve the costly side of logic.</p>
+
+      <p>Drift is the second payoff, and it follows from there being one source of truth. Every flag the screen shows is computed once, in <code class="i">project</code>, from the <code class="i">State</code>. There is no parallel computation in the surface that could fall out of step. When the rule for <code class="i">canEscalate</code> changes — say it becomes <code class="i">t.status == Open and t.priority &gt;= High</code> — you change one line in <code class="i">project</code>, and every surface that renders a <code class="i">TicketRow</code> is correct by construction, because none of them ever decided <code class="i">canEscalate</code> for themselves. The view holds nothing that can drift because the view holds no policy at all.</p>
+
+      <div class="note">
+        <span class="lab">A View-Model is data, not a viewer onto the State</span>
+        <p>The <code class="i">ConsoleView</code> is a snapshot of conclusions, computed at one instant from one <code class="i">State</code>. It is not a live window the surface peeks through to ask the <code class="i">State</code> questions. That distinction is the whole guarantee: because the surface holds <em>values</em> and not a reference back to the truth, it <em>cannot</em> re-derive a flag, and so it cannot disagree with the projection that produced it.</p>
+      </div>
+    </section>
+
+    <section id="breaks" class="rv">
+      <div class="sec-head"><span class="num">E</span><h2>What breaks without it</h2></div>
+      <p>The seam earns its keep against the version that omits it. The tempting violation is to skip the View-Model and let the surface read the entity and decide for itself — it looks shorter, and on the happy path it works:</p>
+
+      <div class="note bad">
+        <span class="lab">Collapsed — the surface decides the flag itself</span>
+        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">render(tickets):<br>
+        &nbsp;&nbsp;for t in tickets:<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;drawRow(t)<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;if t.status == Open: drawEscalateButton(t)&nbsp;&nbsp;<span style="color:var(--accent)">// a flag, decided on the surface</span></p>
+        <p>Now the rule &ldquo;you may escalate an Open ticket&rdquo; lives in <em>two</em> places: in <code class="i">project</code> (if it still exists) and here, inside <code class="i">render</code>. That is a <strong>second source of truth</strong>, and the two will drift the first time the rule changes in one and not the other — the projection says <code class="i">canEscalate: false</code> for an <code class="i">Escalating</code> ticket while the surface, reading only <code class="i">status == Open</code>, quietly does its own thing. <strong>The test that dies:</strong> <code class="i">project(stateWithHigh).rows[0].canEscalate == false</code> still passes against the projection — and tells you <em>nothing</em>, because the surface is no longer obeying it. To check the actual behaviour you now have to <em>render the screen</em> and inspect a drawn button, which is exactly the expensive, flaky test the Humble Object split existed to delete. You did not save a struct; you moved a decision somewhere it can neither be inspected by value nor trusted to match the truth.</p>
+      </div>
+
+      <p>The shape of the failure is the same one every seam guards against: a responsibility that belongs on the inner, testable side leaked to the outer, volatile side, where it can be neither audited by value nor kept in step. The projection exists precisely so that the only honest way to know what the screen will show is to read a <code class="i">ConsoleView</code> — never to render one.</p>
+
+      <div class="pager">
+        <a class="prev" href="03-tools-and-context.html"><span class="d">← Seam 03</span>Tools &amp; context</a>
+        <a class="next" href="05-ports-and-swap.html"><span class="d">Seam 05 →</span>Ports &amp; the swap</a>
+      </div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="agentd.js"></script>
+</body>
+</html>
