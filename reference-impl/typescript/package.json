@@ -1,0 +1,22 @@
+{
+  "name": "agent-driven-architecture-ts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Functional TypeScript reference implementation of the Agent-Driven Architecture, on the Vercel AI SDK.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "demo": "tsx src/demo.ts"
+  },
+  "dependencies": {
+    "ai": "^6.0.208",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.0.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
+  }
+}
