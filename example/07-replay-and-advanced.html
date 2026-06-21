@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seam 07 · Replay and advanced — tests are the outer ring</title>
+<meta name="description" content="The replay harness: because the bus is append-only and the fold is pure, you fold the recorded command stream twice and assert an identical State and identical golden effects — with no model, no network, no clock, no surface. This is the cash value of every seam before it. Plus three opt-in advanced seams." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="agentd.css" />
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <span class="mark"></span>
+      <span><b>Agent-Driven</b><small>Worked Example</small></span>
+    </a>
+    <details class="nav-wrap" open>
+      <summary>Contents</summary>
+      <nav class="nav" id="nav">
+        <div class="group">Orient</div>
+        <a href="index.html"><span class="n">00</span><span>Overview</span></a>
+        <div class="group">The seams</div>
+        <a href="01-state-and-fold.html"><span class="n">01</span><span>State &amp; the fold</span></a>
+        <a href="02-the-boundary.html"><span class="n">02</span><span>The boundary adapter</span></a>
+        <a href="03-tools-and-context.html"><span class="n">03</span><span>Tools &amp; context</span></a>
+        <a href="04-projection-and-surface.html"><span class="n">04</span><span>Projection &amp; surface</span></a>
+        <a href="05-ports-and-swap.html"><span class="n">05</span><span>Ports &amp; the swap</span></a>
+        <a href="06-blocks-and-root.html"><span class="n">06</span><span>Blocks &amp; the root</span></a>
+        <a href="07-replay-and-advanced.html" class="here"><span class="n">07</span><span>Replay &amp; advanced</span></a>
+        <div class="group">Reference</div>
+        <a href="../index.html"><span class="n">↗</span><span>The full architecture</span></a>
+      </nav>
+    </details>
+  </aside>
+
+  <main>
+  <div class="wrap">
+
+    <div class="crumb">
+      <a href="index.html">Overview</a><span class="sep">›</span>
+      <span>The seams</span><span class="sep">›</span>
+      <span class="cur">07 · Replay and advanced</span>
+    </div>
+
+    <header class="hero" style="padding-top:34px">
+      <span class="kicker">Seam 07 · The payoff, and more boundaries</span>
+      <h1>Replay and the <span class="em">advanced seams</span>.</h1>
+      <p class="stand">The cash value of every seam before it. Because the bus is append-only and the fold is pure, you fold the recorded command stream <b>twice</b> and assert an identical <code class="i">State</code> and identical golden effects — with no model, no network, no clock, no surface. This is the outermost circle: <b>the test that proves every other seam held.</b></p>
+    </header>
+
+    <section id="slots" class="rv">
+      <div class="sec-head"><span class="num">▸</span><h2>The seam at a glance</h2></div>
+      <p class="lede">The eight slots, the same shape as every other seam — the last time you read them. This is where seams 01&ndash;06 get cashed.</p>
+      <div class="slots">
+        <div class="slot"><div class="k">The seam</div><div class="v">The harness that proves every other seam holds. Its job: re-derive the whole session from the recorded stream alone, twice, and show the two derivations are <em>identical</em>.</div></div>
+        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> <code>foldAll</code> over the recorded stream — pure, the same <a class="x" href="01-state-and-fold.html">fold</a> the live path runs. <strong>Outer:</strong> the recorded commands plus the captured fixtures — a file, not a world.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> the <code>recorded</code> log — signed <code>Command</code>s plus captured <code>ToolResult</code> fixtures. <strong>Out:</strong> a <code>State</code> and a list of <code>Effect</code>s, compared to golden. <strong>Forbidden:</strong> re-hitting a live source on re-fold — a tool result that depends on the world must be a <em>recorded fixture</em>, never recomputed.</div></div>
+        <div class="slot"><div class="k">Direction</div><div class="v">All dependency points <em>inward</em> at the fold; nothing points out to a clock, a model, or a sink. There is no control flowing outward here at all — <code>REPLAY</code> mode performs nothing on the world.</div></div>
+        <div class="slot"><div class="k">The inversion</div><div class="v">The fake port sits <em>behind</em> the domain port: where the live root wired <code>HttpModel</code> and a clock, the harness wires recorded fixtures and a fixed clock. The core cannot tell — it was always handed values, never a world.</div></div>
+        <div class="slot"><div class="k">Why it exists</div><div class="v">Replay is the concrete payoff of purity: debugging <em>is</em> replay, there is no hidden mutable state to reproduce, and a regression is a stored stream that re-folds wrong. Every prior seam exists so this one can.</div></div>
+        <div class="slot"><div class="k">What breaks</div><div class="v">ANY impurity leak from seams 01&ndash;06 makes this test impossible. If a tool or the fold read the clock, hit the network, or mutated shared state, folding the same stream twice <em>diverges</em> — and <code>replayTest</code> cannot exist.</div></div>
+        <div class="slot"><div class="k">The test</div><div class="v"><code>foldAll(initialState, recorded)</code> twice; assert the two <code>State</code>s are equal (determinism), and assert the replayed effects equal <code>recorded.goldenEffects</code>. No doubles beyond the recording itself. (<code>foldAll</code> is just the step-level <code>fold</code> run over the whole timeline.)</div></div>
+      </div>
+    </section>
+
+    <section id="what" class="rv">
+      <div class="sec-head"><span class="num">A</span><h2>What it is</h2></div>
+      <p>Clean Architecture's last word on the rings is a quiet one: <em>tests are the outermost circle.</em> They depend inward on everything and nothing depends on them, so they are free to be ruthless. This architecture takes that literally and hands you the sharpest possible instance of it. The whole session was committed to an append-only bus at the <a class="x" href="02-the-boundary.html">boundary</a> — signed <code class="i">Command</code>s and their <code class="i">ToolResult</code> payloads, in order, off the record nowhere. That recording is everything you need to re-derive the run. So the test is brutally short:</p>
+
+      <div class="code"><div class="bar"><span class="path">the replay harness — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">replayTest(recorded):                           // recorded = signed commands + fixtures
+  a = foldAll(initialState, recorded)
+  b = foldAll(initialState, recorded)
+  assert a.state == b.state                      // determinism (G9)
+  assert collectPerform(recorded, mode = REPLAY) == recorded.goldenEffects</code></pre></div>
+
+      <p>Four lines, and there is no model in them, no network, no clock, no surface. <code class="i">foldAll</code> threads the recorded results through the same pure <a class="x" href="01-state-and-fold.html">fold</a> the live path runs — the one that takes <code class="i">now</code> as an ordinary value — starting from a fixed <code class="i">initialState</code>. Run it once, run it again: if seams 01&ndash;06 held, the two <code class="i">State</code>s are bit-identical, and the effects the run <em>would have</em> performed, collected in <code class="i">REPLAY</code> mode (described, never fired), match the golden list captured the first time. That is the entire payoff of every earlier seam, made executable.</p>
+
+      <figure>
+        <div class="diagram"><pre class="mermaid">
+flowchart TB
+  REC["recorded log<br/>(signed Commands plus fixtures)"]
+  REC --> A["foldAll(initialState, recorded)<br/>fold number one"]
+  REC --> B["foldAll(initialState, recorded)<br/>fold number two"]
+  A --> SA["state a"]
+  B --> SB["state b"]
+  SA --> EQ{"state a equals state b"}
+  SB --> EQ
+  EQ --> EFF{"REPLAY effects equal goldenEffects"}
+  EFF --> PASS["pass — every seam held"]
+  style REC fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
+  style A fill:#14161d,stroke:#f23a48,color:#e7e8ec
+  style B fill:#14161d,stroke:#f23a48,color:#e7e8ec
+  style EQ fill:#1a1012,stroke:#f23a48,color:#ffd7da
+  style EFF fill:#1a1012,stroke:#f23a48,color:#ffd7da
+  style PASS fill:#101a12,stroke:#9ed99a,color:#d7ffd9
+        </pre></div>
+        <figcaption><b>Figure.</b> One recorded stream, folded twice. The two folds must agree, and the replayed effects must equal golden — with no model, no clock, no sink touched.</figcaption>
+      </figure>
+    </section>
+
+    <section id="crosses" class="rv">
+      <div class="sec-head"><span class="num">B</span><h2>What crosses it — recorded data, never a live world</h2></div>
+      <p>Exactly one thing crosses into the harness: the <code class="i">recorded</code> log. It is plain data — signed <code class="i">Command</code>s and the <code class="i">ToolResult</code> fixtures captured beside them at commit time — and it is the same <code class="i">append(bus, signed, results)</code> record the boundary wrote at line (4) on page&nbsp;02. Nothing else may cross. The forbidden payload here is not an entity or a live handle; it is subtler and more tempting: <strong>re-hitting a live source on re-fold.</strong></p>
+
+      <p>The rule is a single sentence. <em>A tool result that depends on the world must be a recorded fixture, not recomputed.</em> If <code class="i">focusTicket</code> returned <code class="i">Focused(ticket, known)</code> by querying a live index the first time, replay must read the <em>captured</em> <code class="i">Focused</code> value back from the stream — it must not re-run the query. The fold never sees the difference, because the fold only ever consumed <code class="i">ToolResult</code> data; whether that data came from a live tool or from the recording is a fact about the outer ring, settled at composition. This is the same inversion as seam 05, one notch deeper: where the <a class="x" href="06-blocks-and-root.html">root</a> swapped <code class="i">HttpModel</code> for <code class="i">ScriptedModel</code>, replay swaps the entire sensing-and-tool surface for a recording, and the pure core is none the wiser.</p>
+
+      <div class="note steel">
+        <span class="lab">Why &ldquo;commit before perform&rdquo; is what makes this possible</span>
+        <p>Recall the boundary's fixed order: <strong>commit (4), then perform (6)</strong>. Because the signed command and its results are appended <em>before</em> any effect fires, the recording is a complete and faithful account of every decision — including ones whose live effects later failed. Replay folds that account and <em>stubs</em> the effects entirely; it does not need them to have happened, only to have been <em>recorded as intended</em>. (Dedup-on-<code class="i">key</code> belongs to <em>recovery</em>, which re-drives real effects after a crash; replay performs nothing, so it has nothing to dedupe.) The append-only bus is not a log you keep for forensics; it is the input to the test.</p>
+      </div>
+    </section>
+
+    <section id="why" class="rv">
+      <div class="sec-head"><span class="num">C</span><h2>Why replay is the whole point</h2></div>
+      <p>Most architectures earn testability seam by seam and then test against a thicket of doubles: a fake clock here, a stub gateway there, a recording sink somewhere else, each standing in for a piece of the world the code reaches out to touch. This architecture spent six seams pushing every reach-for-the-world into one auditable place so that the test at the end needs <em>none</em> of that scaffolding. The clock was injected, so a fixed clock reproduces time. Identity was minted at one seam, so the recorded ids are the ids. Effects are descriptors, so <code class="i">REPLAY</code> mode collects them without firing them. The fold is pure, so it is a mathematical function of <code class="i">(initialState, recorded)</code> — and a function called twice on the same input returns the same output, by definition.</p>
+
+      <p>That is why the payoff is stated as <em>debugging is replay</em>. A production incident is not a mystery to be reconstructed from logs and intuition; it is a recorded stream you fold on your laptop, deterministically, until the line that misbehaves reveals itself. A regression test is not a hand-built fixture; it is yesterday's stream, asserted to still re-fold to the same <code class="i">State</code>. There is no hidden mutable state to reproduce, because the architecture forbade hidden mutable state at every seam that came before. Replay is not a feature bolted on at the end — it is the shadow that purity casts.</p>
+    </section>
+
+    <section id="breaks" class="rv">
+      <div class="sec-head"><span class="num">D</span><h2>What breaks without it</h2></div>
+      <p>This seam is unusual: it has no &ldquo;collapsed version of itself&rdquo; to show, because the failure is never <em>here</em>. The harness is four pure lines; there is nothing in it to get wrong. What breaks <code class="i">replayTest</code> is an impurity leaked into <em>any earlier seam</em> — and this page is where that leak finally gets cashed as a failing assertion. Here is the most common one, the same temptation seam 02 warned against, now viewed from the test that dies for it:</p>
+
+      <div class="note bad">
+        <span class="lab">Collapsed — a tool reads the world instead of returning a fixture</span>
+        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">UI_TOOL focusTicket {<br>
+        &nbsp;&nbsp;run(input, ctx) -&gt; Focused { ticket: input.ticket,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;known: liveIndex.query(input.ticket) }&nbsp;&nbsp;<span style="color:var(--accent)">// reads the world, not ctx</span><br>
+        }</p>
+        <p>It looks harmless — it just answers truthfully from the freshest source. But <code class="i">known</code> is now a function of the live index, not of recorded data. <strong>The test that dies:</strong> <code class="i">replayTest</code>. On re-fold, <code class="i">foldAll</code> re-runs the tool against a <code class="i">liveIndex</code> that has since changed (or is simply absent off-target), so fold number two produces a different <code class="i">Focused</code> than fold number one — <code class="i">a.state == b.state</code> fails. Even with a stable index, the harness can no longer run with <em>no network</em>, which was the whole promise. You have not made the tool more accurate; you have deleted replay.</p>
+      </div>
+
+      <p>The shape generalizes to every prior seam. If the <a class="x" href="01-state-and-fold.html">fold</a> read the clock instead of taking <code class="i">now</code> as a value, the two folds time-stamp differently and <code class="i">a.state == b.state</code> fails. If the boundary stamped the <a class="x" href="02-the-boundary.html"><code class="i">Actor</code></a> from a live source rather than recording it, replay reconstructs the wrong authorship. If two folds were allowed to interleave (see § E below), <code class="i">State</code> is corrupted before it is ever compared. Every &ldquo;what breaks&rdquo; on every earlier page was, in the end, a sentence about this test. That is why it is the outermost circle: it is the single assertion that every inner seam was telling the truth.</p>
+    </section>
+
+    <section id="advanced" class="rv">
+      <div class="sec-head"><span class="num">E</span><h2>More boundaries — advanced, optional</h2></div>
+      <p class="lede">Three further seams, each an <strong>opt-in rung</strong>, not part of the core. The seven seams you have read are the architecture; these are what you add when the load demands it. Each gets the same four-line treatment — and each, note, is ultimately defended by the same replay test above.</p>
+
+      <p>These are deliberately compact. Reach for them when a concrete pressure appears — a slow deep model, bursty input, generated code at volume — and not before. None of them changes the rings; each one earns its place by protecting the very purity that <code class="i">replayTest</code> depends on.</p>
+
+      <div class="slots">
+        <div class="slot"><div class="k">Seam · the tiered relay</div><div class="v">A slow <em>deep</em> tier and the <em>fast</em> tier communicate only through an append-only relay store, recalled by the fast tier through one bounded tool. <strong>What crosses:</strong> recorded relay entries — data, read back, never a shared handle. <strong>Why:</strong> two cognitive speeds without one stalling the other, and the relay is itself replayable. <strong>What breaks:</strong> shared mutable state between the tiers kills replay — the deep tier mutating the fast tier's <code>State</code> directly is exactly the interleaving the harness can no longer reproduce.</div></div>
+        <div class="slot"><div class="k">Seam · the barge-in mailbox</div><div class="v">A serial consumer with newest-input-wins conflation and interrupt-preemption (cancel-and-join): a new input cancels the in-flight turn and joins on it before starting, so two folds never overlap. <strong>What crosses:</strong> one staged event at a time into a read-only <code>ctx</code>. <strong>Why:</strong> bursty or interrupting input without dropping the single-writer guarantee. <strong>What breaks:</strong> concurrent folds corrupt <code>State</code> — without cancel-and-join, two turns write the same <code>State</code> and <code>a.state == b.state</code> stops being meaningful.</div></div>
+        <div class="slot"><div class="k">Seam · the enforcement gate</div><div class="v">The invariants checked as blocking build gates: <em>actor-stamped at the boundary</em>, <em>tool purity</em>, <em>dependencies point inward</em>, <em>irreversible action gated behind a confirm</em>. <strong>What crosses:</strong> nothing at runtime — it is a compile-time fence around the seams. <strong>Why:</strong> the other seams must survive generated code at volume, where a leak is one careless line away. <strong>What breaks:</strong> without the gate the seams erode silently — an ungated <code>perform</code> or a forged <code>Actor</code> ships, and the first symptom is <code>replayTest</code> going red weeks later.</div></div>
+      </div>
+
+      <p>Read those once for awareness, not mastery. The point is the asymmetry: the core seven seams are load-bearing and you cannot skip them; these three are rungs you climb only when a real pressure asks for them. And every one of them is, in the end, in service of the four pure lines at the top of this page — the test that says the whole session re-derives, deterministically, from a recording alone.</p>
+
+      <p>That closes the worked example. One command, traced through every seam; one impure boundary; one law — source dependencies point inward; and one test that cashes them all. Return to the <a class="x" href="index.html">overview</a> to walk the seams again, or open the <a class="x" href="../index.html">full architecture reference</a> the example was built to teach.</p>
+
+      <div class="pager">
+        <a class="prev" href="06-blocks-and-root.html"><span class="d">← Seam 06</span>Blocks and the root</a>
+        <a class="next" href="index.html"><span class="d">Back to start →</span>Overview</a>
+      </div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="agentd.js"></script>
+</body>
+</html>

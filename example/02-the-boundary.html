@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seam 02 · The boundary adapter — the one impure ring</title>
+<meta name="description" content="The boundary adapter: the single place the pure core touches the world, and the only object in the system allowed to be impure. It mints identity, reads the clock, stamps the Actor, commits to the bus, and performs effects — and nothing else does." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="agentd.css" />
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <span class="mark"></span>
+      <span><b>Agent-Driven</b><small>Worked Example</small></span>
+    </a>
+    <details class="nav-wrap" open>
+      <summary>Contents</summary>
+      <nav class="nav" id="nav">
+        <div class="group">Orient</div>
+        <a href="index.html"><span class="n">00</span><span>Overview</span></a>
+        <div class="group">The seams</div>
+        <a href="01-state-and-fold.html"><span class="n">01</span><span>State &amp; the fold</span></a>
+        <a href="02-the-boundary.html" class="here"><span class="n">02</span><span>The boundary adapter</span></a>
+        <a href="03-tools-and-context.html"><span class="n">03</span><span>Tools &amp; context</span></a>
+        <a href="04-projection-and-surface.html"><span class="n">04</span><span>Projection &amp; surface</span></a>
+        <a href="05-ports-and-swap.html"><span class="n">05</span><span>Ports &amp; the swap</span></a>
+        <a href="06-blocks-and-root.html"><span class="n">06</span><span>Blocks &amp; the root</span></a>
+        <a href="07-replay-and-advanced.html"><span class="n">07</span><span>Replay &amp; advanced</span></a>
+        <div class="group">Reference</div>
+        <a href="../index.html"><span class="n">↗</span><span>The full architecture</span></a>
+      </nav>
+    </details>
+  </aside>
+
+  <main>
+  <div class="wrap">
+
+    <div class="crumb">
+      <a href="index.html">Overview</a><span class="sep">›</span>
+      <span>The seams</span><span class="sep">›</span>
+      <span class="cur">02 · The boundary adapter</span>
+    </div>
+
+    <header class="hero" style="padding-top:34px">
+      <span class="kicker">Seam 02 · The one impure ring</span>
+      <h1>The <span class="em">boundary</span> adapter.</h1>
+      <p class="stand">The single place the pure core touches the world — and the <b>only object in the system allowed to be impure</b>. It mints identity, reads the clock, stamps the <code class="i">Actor</code>, commits to the bus, and performs effects. Nothing else does any of those things.</p>
+    </header>
+
+    <section id="slots" class="rv">
+      <div class="sec-head"><span class="num">▸</span><h2>The seam at a glance</h2></div>
+      <p class="lede">The eight slots, the same shape as every other seam. Read these, then the deep-dive below.</p>
+      <div class="slots">
+        <div class="slot"><div class="k">The seam</div><div class="v">The membrane between the pure core and the impure world. Its job: turn a finished agent step into <em>committed, signed, performed</em> reality.</div></div>
+        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> the <a class="x" href="01-state-and-fold.html">fold</a> and <code>State</code> decide what is true. <strong>Outer:</strong> the clock, the id source, the append-only log, the effect sinks. The boundary is the one thing that touches both.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> a finished <code>step</code> (tool calls + <code>ToolResult</code> payloads). <strong>Out:</strong> signed <code>Command</code>s to the bus, and <code>Effect</code> descriptors performed on the world. <strong>Forbidden:</strong> the fold never receives the clock, an id, or a live sink; a tool never performs an effect.</div></div>
+        <div class="slot"><div class="k">Direction</div><div class="v">Source dependency points <em>inward</em> — the boundary names the fold; the fold names nothing out here. Control flows <em>outward</em> — the boundary drives the world only after the fold has decided.</div></div>
+        <div class="slot"><div class="k">The inversion</div><div class="v">The fold returns <code>Effect</code> <em>descriptors</em> (plain data); the boundary is the adapter that knows how to <code>perform</code> them. The core reaches the world through data it returns, never through a reference to a sink it holds.</div></div>
+        <div class="slot"><div class="k">Why it exists</div><div class="v">To confine <em>all</em> impurity — identity, clock, actor-stamping, commit, effects — to one auditable place, so everything else is pure and the whole session replays deterministically.</div></div>
+        <div class="slot"><div class="k">What breaks</div><div class="v">Mint an id, read the clock, or perform an effect anywhere else and re-fold stops being deterministic — <code>replayTest</code> diverges. Stamp the <code>Actor</code> anywhere else and it can be forged.</div></div>
+        <div class="slot"><div class="k">The test</div><div class="v">The boundary is the <em>one</em> object you test with doubles: a fake clock, a fake id-sequence, a recording sink — then assert the order <em>commit → perform</em>. Everything else is pure and needs none.</div></div>
+      </div>
+    </section>
+
+    <section id="what" class="rv">
+      <div class="sec-head"><span class="num">A</span><h2>What it is</h2></div>
+      <p>When an agent step finishes, the runtime hands the boundary one thing: the <code class="i">step</code> — the tool calls the model made and the <code class="i">ToolResult</code> payloads they returned. The boundary turns that into reality, in a fixed order, and this is the whole of it:</p>
+
+      <div class="code"><div class="bar"><span class="path">the one impure seam — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">boundary.onStepFinish(step):
+  now     = clock.read()                                   // (1) injected clock — G9
+  results = step.toolResults
+  (s, fx) = fold(state, results, now)                      // (2) pure call — decide
+  signed  = step.calls.map(c -&gt; sign(c, by = Actor.Agent, id = nextId()))  // (3) mint id + stamp the literal actor
+  append(bus, signed, results)                             // (4) COMMIT to the append-only log
+  state   = s                                              // (5) adopt the new truth
+  for f in fx: perform(f, mode = LIVE, key = f.id)         // (6) the only place effects run</code></pre></div>
+
+      <p>Six lines, and every impure capability in the system is in them: the <em>clock</em> (1), <em>identity</em> and the <em>actor stamp</em> (3), the <em>commit</em> (4), and <em>effects</em> (6). Step (2) — the decision — is a call into the pure <a class="x" href="01-state-and-fold.html">fold</a>, which touches none of those things. The boundary is the adapter; the fold is the policy.</p>
+
+      <figure>
+        <div class="diagram"><pre class="mermaid">
+flowchart LR
+  subgraph PURE["pure core"]
+    F["fold(state, results, now)"]
+  end
+  CLK["clock"] -. now .-> B
+  IDS["id source"] -. id .-> B
+  B["boundary adapter"] --> F
+  F -. "(state', effects)" .-> B
+  B --> BUS["command bus<br/>(append-only)"]
+  B --> SINK["effect sinks<br/>(world)"]
+  style PURE fill:#14161d,stroke:#f23a48,color:#e7e8ec
+  style F fill:#1a1012,stroke:#f23a48,color:#ffd7da
+  style B fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
+        </pre></div>
+        <figcaption><b>Figure.</b> The clock and the id source feed <b>only</b> the boundary. The fold is called with <code>now</code> already read — it never reaches for it.</figcaption>
+      </figure>
+    </section>
+
+    <section id="crosses" class="rv">
+      <div class="sec-head"><span class="num">B</span><h2>What crosses it — and the rule that makes a human override free</h2></div>
+      <p>Two data structures leave the boundary, and both are plain data — never an entity, never a live handle. Outbound to the bus: a <strong>signed <code class="i">Command</code></strong>. Outbound to the world: <strong><code class="i">Effect</code> descriptors</strong>, performed. The <code class="i">Command</code> is where identity and authorship are minted:</p>
+
+      <div class="code"><div class="bar"><span class="path">the signed action — what crosses to the bus</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">enum Actor { Human, Agent }
+sealed Command(by: Actor) {
+  SetPriority(by, id: CmdId, ticket: TicketId, level: Priority)
+  RequestEscalation(by, id: CmdId, ticket: TicketId)    // a request — reversible
+  ConfirmEscalation(by, id: CmdId, ticket: TicketId)    // irreversible — pages only when by is a separate authority (host), never the requesting agent
+}</code></pre></div>
+
+      <p><strong>The <code class="i">Actor</code> is stamped here, at the boundary, and nowhere else.</strong> This is the rule that makes the architecture's headline move real: because a human tap and an agent tool-call both become a <code class="i">Command</code> at this one seam — identical but for <code class="i">by: Human</code> vs. <code class="i">by: Agent</code> — they flow through the <em>same</em> bus, the <em>same</em> fold, the <em>same</em> replay path. Letting a human do what the agent does is therefore not new code; it is the same command with a different stamp. In <em>A Typical Scenario</em>, swap step 4's <code class="i">Actor.Agent</code> for <code class="i">Actor.Human</code> and every other step is byte-for-byte identical.</p>
+
+      <p>The bus the command lands on is append-only and observable — a committed, replayable record. &ldquo;Commit&rdquo; at line (4) means exactly this: the signed command and its results are durably appended <em>before</em> any effect fires at line (6). That ordering is not cosmetic; it is what guarantees no effect is ever performed for a decision that was not recorded.</p>
+    </section>
+
+    <section id="why" class="rv">
+      <div class="sec-head"><span class="num">C</span><h2>Why exactly one impure seam</h2></div>
+      <p>Clean Architecture puts impurity all around its outer ring: the controller talks to the web, the presenter to the screen, the gateway to the database. Each is a separate place where the world leaks in. This architecture makes a sharper promise: collapse every one of those into a <em>single</em> object, and make it the <em>only</em> impure object in the system.</p>
+
+      <p>The payoff is that purity becomes a property you can state in one sentence and check at one place. Identity and time — the two things most likely to make a program non-reproducible — are <em>injected into</em> the boundary (the clock is read at line 1, ids are minted at line 3) and <em>passed into</em> the fold as ordinary values. The fold cannot reach for a clock or a random id because it was never handed the means to. That single discipline is what lets the recorded command stream re-fold to a bit-identical state every time.</p>
+
+      <div class="note">
+        <span class="lab">The order is the contract</span>
+        <p>Read lines (4)→(5)→(6) again: <strong>commit, then adopt, then perform</strong>. If a crash happens between commit and perform, recovery re-reads the committed stream, re-folds to the same state, and re-issues the same effects — which the sinks dedupe by <code class="i">key = f.id</code>. The boundary's job is not just to be the one impure place; it is to be impure <em>in a fixed, recoverable order</em>.</p>
+      </div>
+    </section>
+
+    <section id="breaks" class="rv">
+      <div class="sec-head"><span class="num">D</span><h2>What breaks without it</h2></div>
+      <p>The seam earns its keep only against the version that omits it. Here is the most tempting violation — a tool that just does the work itself:</p>
+
+      <div class="note bad">
+        <span class="lab">Collapsed — the tool performs the effect</span>
+        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">DOMAIN_TOOL setPriority {<br>
+        &nbsp;&nbsp;run(input, ctx) -&gt; { db.write(input); pager.page(input) }&nbsp;&nbsp;<span style="color:var(--accent)">// impure!</span><br>
+        }</p>
+        <p>It looks shorter and it works on the happy path. But the tool now performs an effect, so it is no longer a pure function of its input. <strong>The test that dies:</strong> <code class="i">replayTest</code> can no longer run off-target — re-folding the recorded stream re-hits <code class="i">db</code> and <code class="i">pager</code>, double-writing and re-paging, and the &ldquo;fold twice, assert identical&rdquo; check is meaningless because folding now has side effects. You have not saved code; you have deleted replay.</p>
+      </div>
+
+      <div class="note bad">
+        <span class="lab">Collapsed — the surface stamps the actor</span>
+        <p>If the UI mints <code class="i">Command.SetPriority(by = Agent, ...)</code> for an action a person took — or vice-versa — the <code class="i">Actor</code> is now forgeable. The audit log says &ldquo;the agent did this&rdquo; when the host did, replay reconstructs the wrong authorship, and the &ldquo;human override is free&rdquo; guarantee collapses into &ldquo;human override is a second, untrusted code path.&rdquo; Stamping at one seam is what keeps authorship honest.</p>
+      </div>
+
+      <p>Both failures share a shape: a capability that belongs to the boundary leaked somewhere it can be neither audited nor replayed. The seam exists precisely to make that leak impossible to write by accident.</p>
+    </section>
+
+    <section id="test" class="rv">
+      <div class="sec-head"><span class="num">E</span><h2>The test that the seam makes possible</h2></div>
+      <p>Because the boundary is the only impure object, it is also the only one you ever test with doubles. Inject a fake clock, a fake id-sequence, and a recording sink, then assert the <em>order</em> of what came out:</p>
+
+      <div class="code"><div class="bar"><span class="path">testing the one impure object</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">test "commit precedes perform, actor is stamped once":
+  clock = FakeClock(t0); ids = FakeIds([c1]); sink = RecordingSink()
+  boundary.onStepFinish(step = oneCall(setPriority, ticket = 4118, level = High,
+                                       actor = Agent))
+  assert sink.log == [
+    Append(Command.SetPriority(by = Agent, id = c1, ticket = 4118, level = High), result = PrioritySet(4118, High)),  // commit = command + its result
+    Perform(Effect.Log("priority", 4118, High, at = t0))      // commit BEFORE perform
+  ]</code></pre></div>
+
+      <p>Everything else in the program — the <a class="x" href="01-state-and-fold.html">fold</a>, the <a class="x" href="03-tools-and-context.html">tools</a>, the <a class="x" href="04-projection-and-surface.html">projection</a> — is pure and is tested by direct call, with no doubles at all. That asymmetry is the whole point: <strong>one object is hard to test, so it is made small and tested carefully; everything else is made pure, so it is trivial to test.</strong> That is the Humble Object pattern, and the boundary adapter is its sharpest instance in this architecture.</p>
+
+      <div class="pager">
+        <a class="prev" href="01-state-and-fold.html"><span class="d">← Seam 01</span>State &amp; the fold</a>
+        <a class="next" href="03-tools-and-context.html"><span class="d">Seam 03 →</span>Tools &amp; context</a>
+      </div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="agentd.js"></script>
+</body>
+</html>

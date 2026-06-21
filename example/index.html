@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A Worked Example — The Agent-Driven Architecture, Seam by Seam</title>
+<meta name="description" content="One running example — a support-ticket triage console — traced through every seam of the Agent-Driven Architecture, explained the way Clean Architecture teaches boundaries: what each seam is, what crosses it, why it exists, and what breaks without it." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="agentd.css" />
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <span class="mark"></span>
+      <span><b>Agent-Driven</b><small>Worked Example</small></span>
+    </a>
+    <details class="nav-wrap" open>
+      <summary>Contents</summary>
+      <nav class="nav" id="nav">
+        <div class="group">Orient</div>
+        <a href="index.html" class="here"><span class="n">00</span><span>Overview</span></a>
+        <a href="#the-law"><span class="n">·</span><span>The rings &amp; the law</span></a>
+        <a href="#mapping"><span class="n">·</span><span>If you know Clean Architecture</span></a>
+        <a href="#scenario"><span class="n">·</span><span>A typical scenario</span></a>
+        <a href="#assembled"><span class="n">·</span><span>The whole example</span></a>
+        <a href="#how-to-read"><span class="n">·</span><span>How to read a seam</span></a>
+        <div class="group">The seams</div>
+        <a href="01-state-and-fold.html"><span class="n">01</span><span>State &amp; the fold</span></a>
+        <a href="02-the-boundary.html"><span class="n">02</span><span>The boundary adapter</span></a>
+        <a href="03-tools-and-context.html"><span class="n">03</span><span>Tools &amp; context</span></a>
+        <a href="04-projection-and-surface.html"><span class="n">04</span><span>Projection &amp; surface</span></a>
+        <a href="05-ports-and-swap.html"><span class="n">05</span><span>Ports &amp; the swap</span></a>
+        <a href="06-blocks-and-root.html"><span class="n">06</span><span>Blocks &amp; the root</span></a>
+        <a href="07-replay-and-advanced.html"><span class="n">07</span><span>Replay &amp; advanced</span></a>
+        <div class="group">Reference</div>
+        <a href="../index.html"><span class="n">↗</span><span>The full architecture</span></a>
+      </nav>
+    </details>
+  </aside>
+
+  <main>
+  <div class="wrap">
+
+    <header class="hero">
+      <span class="kicker">Worked Example · Every Seam Explained · Clean-Architecture Style</span>
+      <h1>One command, traced through<br><span class="em">every seam.</span></h1>
+      <p class="stand">This is a worked example of the <a class="x" href="../index.html">Agent-Driven Architecture</a>, built the way Robert C. Martin's <em>Clean Architecture</em> teaches boundaries: <b>one running example, every seam explained the same way</b> — what it is, what crosses it, which way the dependency points, why it exists, and what breaks the moment you violate it.</p>
+
+      <div class="facts">
+        <div class="f"><div class="v"><span>1</span> example</div><div class="l">a support-ticket triage console</div></div>
+        <div class="f"><div class="v"><span>1</span> command</div><div class="l">traced through every seam, end to end</div></div>
+        <div class="f"><div class="v"><span>1</span> impure seam</div><div class="l">the boundary adapter — everything else pure</div></div>
+        <div class="f"><div class="v"><span>1</span> law</div><div class="l">source dependencies point inward</div></div>
+      </div>
+      <p class="stand" style="margin-top:18px;font-size:.98rem;color:var(--text-faint)">Read this overview top to bottom, then walk the seams 01&ndash;07 in order. Each seam page is short and identically shaped, so once you learn the shape here you pattern-match it everywhere. The code is one continuous program: the <code class="i">Command</code> built on page 02 is the one folded on page 01 and replayed on page 07 — same identifiers throughout.</p>
+    </header>
+
+    <section id="overview" class="rv">
+      <div class="sec-head"><span class="num">00</span><h2>What this is, and how it teaches</h2></div>
+      <p class="lede">A single small application, documented seam by seam. The application is a teaching device; the <em>method</em> is the point — borrowed, deliberately, from the most widely-read book on software boundaries.</p>
+
+      <p><strong>The running example.</strong> A <em>support-ticket triage console</em>. An agent reads an incoming ticket stream, drafts replies, sets priority, and can request escalation; a rare human operator — the <em>host</em> — can take the same actions through the same commands; and the customer receives a resolution without ever touching the interface. It is the same illustrative scenario the <a class="x" href="../index.html">reference</a> uses. Nothing in the architecture depends on it — substitute your own domain freely.</p>
+
+      <p><strong>The method, borrowed from Clean Architecture.</strong> That book does not catalogue boundaries abstractly; it traces a single request across each one in turn, names a concrete participant at every hop, and hands a simple data structure across each seam. We do the same. First the picture and the one law (<a class="x" href="#the-law">below</a>); then, for readers who already know Clean Architecture, the exact mapping of its vocabulary onto ours (<a class="x" href="#mapping">§ mapping</a>); then a single command traced end to end (<a class="x" href="#scenario">§ a typical scenario</a>); then the whole program assembled (<a class="x" href="#assembled">§ the whole example</a>); and finally the seam pages, each running the same eight-slot template (<a class="x" href="#how-to-read">§ how to read a seam</a>).</p>
+
+      <div class="note">
+        <span class="lab">The one move worth holding in mind</span>
+        <p>A human action and an agent action are the <em>same</em> signed <code class="i">Command</code> on one append-only, replayable stream, differing only by an <code class="i">Actor</code> label. Every seam below exists to keep that true. When a seam's purpose is unclear, ask: <em>what would stop being replayable, or pure, or overridable, if this seam were removed?</em> That question — &ldquo;what breaks without it&rdquo; — is the eighth slot of every seam page.</p>
+      </div>
+    </section>
+
+    <section id="the-law" class="rv">
+      <div class="sec-head"><span class="num">01</span><h2>The rings, and the one law</h2></div>
+      <p class="lede">Clean Architecture draws concentric rings and asserts a single rule over them: source-code dependencies may only point inward, toward higher-level, more stable policy. This architecture keeps that rule and sharpens it.</p>
+
+      <figure>
+        <div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph OUTER["OUTER RING — impure, swappable: boundary adapter · command bus · ports' adapters · composition root"]
+    direction TB
+    subgraph MIDDLE["MIDDLE RING — pure translators: tools · view projection · port interfaces"]
+      direction TB
+      subgraph INNER["INNER RING — pure policy"]
+        CORE["State (entities)<br/>fold (use cases)"]
+      end
+    end
+  end
+  OUTER -. "every source dependency points inward" .-> INNER
+  style INNER fill:#14161d,stroke:#f23a48,color:#e7e8ec
+  style MIDDLE fill:#101218,stroke:#3a3f4a,color:#cdd5e0
+  style OUTER fill:#0c0e13,stroke:#7c8aa0,color:#a2a8b4
+  style CORE fill:#1a1012,stroke:#f23a48,color:#ffd7da
+        </pre></div>
+        <figcaption><b>Figure 1.</b> Three rings. The inner ring is pure policy; the middle ring is pure translation; only the outer ring is impure — and within it, only one object actually performs effects.</figcaption>
+      </figure>
+
+      <p><strong>The law, in one sentence.</strong> Purity points inward, and only the <a class="x" href="02-the-boundary.html">boundary adapter</a> is impure. Concretely: the <code class="i">State</code> and the <code class="i">fold</code> import nothing foreign; tools, the <code class="i">projection</code>, and the port <em>interfaces</em> are pure and depend only on the core; and every impure act — minting identity, reading the clock, stamping the actor, committing to the bus, performing an effect — is confined to a single seam. Clean Architecture scatters impurity across its entire outer ring (controllers, presenters, gateways, the database, the web). This architecture collapses all of it into one named place. That is the sharper, more teachable invariant, and it is the spine of everything that follows.</p>
+
+      <div class="note steel">
+        <span class="lab">Dependency direction vs. flow of control</span>
+        <p>The two run opposite ways, and the difference is the whole trick. At runtime, <em>control</em> flows outward — the fold hands effect descriptors out to the boundary, which performs them on the world. But every <em>source dependency</em> points inward — the boundary names the fold; the fold names nothing outer. The device that lets control go one way while the compile-time arrow goes the other is a polymorphic interface declared on the inner side: our <a class="x" href="05-ports-and-swap.html">ports</a> and our <a class="x" href="01-state-and-fold.html">effect descriptors</a>. Hold this; it recurs at every seam.</p>
+      </div>
+    </section>
+
+    <section id="mapping" class="rv">
+      <div class="sec-head"><span class="num">02</span><h2>If you already know Clean Architecture</h2></div>
+      <p class="lede">Then you already know most of this — the names differ, the shapes do not. Here is the dictionary. Every row is a seam you will meet in the pages that follow.</p>
+
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Clean Architecture</th><th>This example</th><th>Seam page</th></tr></thead>
+          <tbody>
+            <tr><td>Entities (enterprise rules)</td><td><code>State</code>, <code>Ticket</code>, <code>Priority</code> — a discriminated union</td><td class="r">01</td></tr>
+            <tr><td>Use Case Interactor</td><td><code>fold(state, results, now)</code> — the pure reducer</td><td class="r">01</td></tr>
+            <tr><td>Output Port (Interactor pushes out)</td><td><code>Effect</code> descriptors + <code>Runtime.observe</code></td><td class="r">01 · 05</td></tr>
+            <tr><td>Controller (builds the Request Model)</td><td>the <strong>boundary adapter</strong> — mints id, reads clock, stamps <code>Actor</code>, builds the <code>Command</code></td><td class="r">02</td></tr>
+            <tr><td>Request / Response Models (DTOs)</td><td><code>Command</code> in · <code>ToolResult</code> / <code>Effect</code> out — simple data, never an entity</td><td class="r">02 · 01</td></tr>
+            <tr><td>Input Port (Controller calls in)</td><td>a tool's <code>run(input, ctx)</code> + <code>Runtime.dispatch</code></td><td class="r">03 · 05</td></tr>
+            <tr><td>Presenter (testable: formats)</td><td><code>project(state) -&gt; ConsoleView</code> — the pure view projection</td><td class="r">04</td></tr>
+            <tr><td>View Model (formatted primitives)</td><td><code>ConsoleView</code> / <code>TicketRow</code></td><td class="r">04</td></tr>
+            <tr><td>View (Humble Object)</td><td>the <strong>surface</strong> — <code>render(view)</code> + one <code>onAction</code></td><td class="r">04</td></tr>
+            <tr><td>Gateway / repository interfaces</td><td><code>ModelProvider</code>, <code>EventSource</code> ports</td><td class="r">05</td></tr>
+            <tr><td>Frameworks &amp; Drivers / Main</td><td>boundary adapter · the spine · <code>wireApp(env)</code></td><td class="r">02 · 06</td></tr>
+            <tr><td>Partial boundary / vertical slice</td><td>a <strong>block</strong> (a self-contained mini-hexagon)</td><td class="r">06</td></tr>
+            <tr><td>&ldquo;Tests are the outermost circle&rdquo;</td><td><code>replayTest</code> over the append-only bus</td><td class="r">07</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Three identifications are worth stating plainly. One is <em>exact, point for point</em>: our <a class="x" href="04-projection-and-surface.html"><code class="i">project</code> is the Presenter and our surface is the View</a> — the Humble Object split, unchanged. The other two map onto Clean Architecture and then <em>sharpen</em> it: our <a class="x" href="05-ports-and-swap.html">domain port and effect descriptors play the role of the Input/Output Ports</a> — the polymorphic interfaces that make the source dependency oppose the flow of control, though the reference models them as one <code class="i">DomainPort</code> rather than a split pair; and our <a class="x" href="02-the-boundary.html">boundary adapter collapses the whole outer adapter ring into one seam</a> — the only impure one, a deliberate <em>divergence</em> from Clean Architecture's scattered outer ring rather than an analogy to it.</p>
+    </section>
+
+    <section id="scenario" class="rv">
+      <div class="sec-head"><span class="num">03</span><h2>A typical scenario</h2></div>
+      <p class="lede">One event, traced across every seam in sequence, a named data structure handed across each crossing. This is the spine the seam pages then deepen, one crossing at a time.</p>
+
+      <p><strong>The event:</strong> a new ticket, <code class="k">#4118</code>, arrives in the queue. The agent reads it and sets its priority to <code class="k">High</code>. Follow the thread:</p>
+
+      <figure>
+        <div class="diagram"><pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant Q as EventSource<br/>(TicketQueue)
+  participant B as boundary adapter
+  participant T as setPriority<br/>(domain tool)
+  participant F as fold
+  participant V as project → surface
+  Q->>B: TicketArrived(4118, body)
+  B->>T: run a step · ctx exposes #4118 (read-only)
+  T-->>B: PrioritySet(4118, High)
+  Note over B: mint id · read clock · stamp Actor.Agent
+  B->>B: append(bus, Command.SetPriority, result)
+  B->>F: fold(state, [PrioritySet(4118,High)], now)
+  F-->>B: (state', [Effect.Log(...)])
+  Note over B: the ONLY impure step
+  B->>B: perform(Effect.Log, LIVE)
+  B->>V: project(state') → render
+        </pre></div>
+        <figcaption><b>Figure 2.</b> The same command would arrive from a human tap with <b>Actor.Human</b> in place of <b>Actor.Agent</b> — and nothing else on the path would change.</figcaption>
+      </figure>
+
+      <ol>
+        <li><strong>Sensing (<a class="x" href="05-ports-and-swap.html">EventSource port</a>).</strong> The <code class="i">TicketQueue</code> adapter receives a raw event and normalizes it to a typed domain event, <code class="i">TicketArrived(4118, body)</code>. Raw event in; no domain logic here.</li>
+        <li><strong>The step + <a class="x" href="03-tools-and-context.html">agent context</a>.</strong> The boundary stages the event into a read-only <code class="i">ctx</code> for the next step; the serial consumer runs one turn. The agent reasons and chooses a tool.</li>
+        <li><strong>The <a class="x" href="03-tools-and-context.html">tool</a> crossing.</strong> It calls <code class="i">setPriority(ticket=4118, level=High)</code>. The tool's <code class="i">run(input, ctx)</code> reads <code class="i">ctx</code>, returns the payload <code class="i">PrioritySet(4118, High)</code>, and mutates nothing. <span class="tag good">pure</span></li>
+        <li><strong>Identity &amp; actor (<a class="x" href="02-the-boundary.html">boundary adapter</a>).</strong> The boundary mints an id, reads the injected clock, and <em>stamps</em> <code class="i">Actor.Agent</code>, building <code class="i">Command.SetPriority(by=Agent, id, 4118, High)</code>. The actor is stamped here and nowhere else.</li>
+        <li><strong>The <a class="x" href="02-the-boundary.html">command bus</a>.</strong> <code class="i">append(bus, signed, result)</code> commits the command and its result to the append-only, observable log. Nothing happens off the record.</li>
+        <li><strong>The <a class="x" href="01-state-and-fold.html">fold</a>.</strong> <code class="i">fold(state, [PrioritySet(4118,High)], now)</code> returns <code class="i">(state', [Effect.Log(...)])</code> — a new immutable state and an effect <em>descriptor</em>. It performs nothing. <span class="tag good">pure</span></li>
+        <li><strong>The <a class="x" href="01-state-and-fold.html">effect</a>, performed (<a class="x" href="02-the-boundary.html">boundary adapter</a>).</strong> <code class="i">perform(Effect.Log(...), LIVE)</code>. The one impure act in the whole trace.</li>
+        <li><strong>The <a class="x" href="04-projection-and-surface.html">projection</a> &amp; surface.</strong> <code class="i">project(state')</code> recomputes the view: ticket 4118's row now reads <code class="i">badge:"HIGH"</code>, <code class="i">canEscalate:true</code>. The surface renders it. It decides nothing — it applies flags already decided. <span class="tag good">pure</span></li>
+      </ol>
+
+      <p>Notice the asymmetry made concrete: at steps 4&ndash;7 control flows <em>outward</em> (tool → boundary → world), while every source dependency along the way points <em>inward</em> at the fold and the State. That is the law of <a class="x" href="#the-law">§01</a>, walked.</p>
+    </section>
+
+    <section id="assembled" class="rv">
+      <div class="sec-head"><span class="num">04</span><h2>The whole example, assembled</h2></div>
+      <p class="lede">Every fragment the seam pages dissect, in one place, in neutral pseudocode. This is the canonical source: the names here are the names everywhere. Copy it, then read the seams to learn why each line sits where it does.</p>
+
+      <div class="code"><div class="bar"><span class="path">support-ticket triage console — the whole program</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">// ───────── Entities · the inner ring · pure, no I/O (seam 01) ─────────
+enum Priority { Low, Normal, High, Urgent }
+sealed TicketStatus { Open | Escalating(by: Actor) | Escalated | Resolved }
+type  Ticket = { id: TicketId, body: Text, priority: Priority, status: TicketStatus }
+sealed State = Console { tickets: Map&lt;TicketId, Ticket&gt;, run: RunStatus }
+sealed RunStatus { Idle | Working(step) | Degraded(cause) | Error(fault) }
+
+// ───────── The signed action · the DTO that crosses the bus (seam 02) ─────────
+enum Actor { Human, Agent }
+sealed Command(by: Actor) {
+  SetPriority(by, id: CmdId, ticket: TicketId, level: Priority)
+  RequestEscalation(by, id: CmdId, ticket: TicketId)    // a request — reversible
+  ConfirmEscalation(by, id: CmdId, ticket: TicketId)    // irreversible — pages only when by is a separate authority (host), never the requesting agent
+}
+
+// ───────── Tool results · the DTOs a tool returns (seam 03) ─────────
+sealed ToolResult {
+  PrioritySet(ticket: TicketId, level: Priority)
+  EscalationRequested(ticket: TicketId, by: Actor)
+  EscalationConfirmed(ticket: TicketId, by: Actor)     // carries WHO confirmed — the gate reads it
+  Focused(ticket: TicketId, known: Bool)
+}
+
+// A DOMAIN TOOL — pure. Reads read-only ctx, returns a payload, mutates nothing.
+DOMAIN_TOOL setPriority {
+  input = { ticket: TicketId, level: Priority }
+  run(input, ctx) -&gt; PrioritySet { ticket: input.ticket, level: input.level }
+}
+// A UI TOOL — also pure, also returns a payload. Drives the surface, decides nothing.
+UI_TOOL focusTicket {
+  input = { ticket: TicketId }
+  run(input, ctx) -&gt; Focused { ticket: input.ticket, known: ctx.tickets.has(input.ticket) }
+}
+
+// ───────── The fold · the Use-Case Interactor · pure (seam 01) ─────────
+// Returns (newState, effects). It RETURNS effect descriptors; it never performs them.
+fold(state, results, now) -&gt; (State, [Effect]):
+  for r in results:
+    match r:
+      PrioritySet(ticket, level) -&gt;
+        ( state.withPriority(ticket, level),
+          [ Effect.Log("priority", ticket, level, at = now) ] )
+      EscalationRequested(ticket, by) -&gt;
+        ( state.withStatus(ticket, Escalating(by)),
+          [] )                                  // a request commits no irreversible effect
+      EscalationConfirmed(ticket, by) -&gt;                        // the gate: only a host confirm pages
+        by == Human
+          ? ( state.withStatus(ticket, Escalated), [ Effect.PageOncall(ticket, at = now) ] )
+          : ( state, [ Effect.Diag("denied: agent self-confirm") ] )   // agent-stamped confirm → no page
+      else -&gt;
+        ( state.withUnhandled(r), [ Effect.Diag(r) ] )
+
+// Effect descriptors — plain data. Performed only at the boundary (seam 01 → 02).
+sealed Effect { Log(...) | PageOncall(...) | Diag(...) }
+
+// ───────── The boundary adapter · the ONE impure seam (seam 02) ─────────
+boundary.onStepFinish(step):
+  now     = clock.read()                                   // injected clock (G9)
+  results = step.toolResults
+  (s, fx) = fold(state, results, now)                      // pure call
+  signed  = step.calls.map(c -&gt; sign(c, by = Actor.Agent, id = nextId()))  // Actor minted HERE (a literal) — a human tap dispatches with Actor.Human
+  append(bus, signed, results)                             // COMMIT to the append-only log
+  state   = s
+  for f in fx: perform(f, mode = LIVE, key = f.id)         // the only place effects run
+
+// ───────── The view projection · the Presenter · pure (seam 04) ─────────
+project(state) -&gt; ConsoleView:
+  ConsoleView {
+    rows: state.tickets.values.map(t -&gt; TicketRow {
+      ticket:      t.id,
+      badge:       badgeFor(t.priority),        // "HIGH" + colour, pre-computed
+      canEscalate: t.status == Open,            // the flag is decided HERE, not in the view
+      escalating:  t.status is Escalating }),
+    banner: bannerFor(state.run)
+  }
+
+// ───────── The surface · the View · humble (seam 04) ─────────
+render(view: ConsoleView):
+  for row in view.rows: drawRow(row)            // no `if` over data, no computed flag
+onAction(intent) -&gt; dispatch(intent)            // one sink; the boundary signs it
+
+// ───────── The ports · interfaces the core owns (seam 05) ─────────
+PORT Runtime       { dispatch(Command); observe() -&gt; Stream&lt;State&gt; }   // the domain port
+PORT ModelProvider { step(prompt, tools) -&gt; StepResult }              // the model backend
+PORT EventSource   { events() -&gt; Stream&lt;RawEvent&gt; }                    // sensing (tickets in)
+
+// ───────── The composition root · the only wiring site (seam 06) ─────────
+wireApp(env):
+  bus     = Bus()
+  store   = LogStore(env.path)
+  model   = env.live ? HttpModel(env.url) : ScriptedModel(env.fixtures)   // ← the swap
+  sensing = TicketQueue(env.queue)
+  runtime = Runtime(model, bus, store, boundary)
+  return App(runtime, sensing)
+
+// ───────── The replay harness · tests are the outer ring (seam 07) ─────────
+replayTest(recorded):                           // recorded = signed commands + fixtures
+  a = foldAll(initialState, recorded)
+  b = foldAll(initialState, recorded)
+  assert a.state == b.state                      // determinism (G9)
+  assert collectPerform(recorded, mode = REPLAY) == recorded.goldenEffects</code></pre></div>
+
+      <p>Read it once for shape, not detail. The seam pages take it apart one crossing at a time — and every snippet they show is lifted verbatim from here, so the program always chains.</p>
+    </section>
+
+    <section id="how-to-read" class="rv">
+      <div class="sec-head"><span class="num">05</span><h2>How to read a seam</h2></div>
+      <p class="lede">Every seam page — all seven — runs the same eight-slot template. Learn the slots once; then each page is a five-minute read and the uniformity does the teaching.</p>
+
+      <div class="slots">
+        <div class="slot"><div class="k">The seam</div><div class="v">Its name, and a one-line statement of the conversation it carries.</div></div>
+        <div class="slot"><div class="k">Each side</div><div class="v">The responsibility on the inner side and on the outer side — policy vs. mechanism, in one sentence each.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v">The exact data structure that may cross — and, loudly, the forbidden payload that may <em>not</em> (an entity, a live handle, the clock).</div></div>
+        <div class="slot"><div class="k">Direction</div><div class="v">Which way the source dependency points (inward) and which way control flows (often outward).</div></div>
+        <div class="slot"><div class="k">The inversion</div><div class="v">The polymorphic interface, declared on the inner side, that lets control oppose the dependency.</div></div>
+        <div class="slot"><div class="k">Why it exists</div><div class="v">The volatility it quarantines, or the property (replay, purity, override) it protects.</div></div>
+        <div class="slot"><div class="k">What breaks</div><div class="v">The concrete failure if you violate it — shown as a collapsed anti-example, with the test that dies.</div></div>
+        <div class="slot"><div class="k">The swap / the test</div><div class="v">What becomes testable once the seam exists — usually: the whole session replays off-target.</div></div>
+      </div>
+
+      <p>Start at <a class="x" href="01-state-and-fold.html">seam 01 — State &amp; the fold</a> and walk through to 07. The pages assume you have read this overview; they do not re-explain the law or the example, they apply them.</p>
+
+      <div class="foot">
+        <p>A worked companion to <a href="../index.html">the Agent-Driven Architecture reference</a>. One example, one law, eight slots per seam.</p>
+        <p class="files">files · <span>index.html</span> · 01–07 seam pages · agentd.css · agentd.js</p>
+      </div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="agentd.js"></script>
+</body>
+</html>

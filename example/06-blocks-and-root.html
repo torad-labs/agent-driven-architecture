@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seam 06 · Blocks and the root — the vertical slice and Main</title>
+<meta name="description" content="Two seams at once: a block — a self-contained feature, a mini-hexagon, Clean Architecture's partial boundary — and the composition root wireApp(env), the single cross-layer wiring site where concrete adapters are chosen. A block contributes typed pieces up into one shared spine; the root passes concrete adapters down. Neither imports a sibling; neither stands up a second bus." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="agentd.css" />
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <span class="mark"></span>
+      <span><b>Agent-Driven</b><small>Worked Example</small></span>
+    </a>
+    <details class="nav-wrap" open>
+      <summary>Contents</summary>
+      <nav class="nav" id="nav">
+        <div class="group">Orient</div>
+        <a href="index.html"><span class="n">00</span><span>Overview</span></a>
+        <div class="group">The seams</div>
+        <a href="01-state-and-fold.html"><span class="n">01</span><span>State &amp; the fold</span></a>
+        <a href="02-the-boundary.html"><span class="n">02</span><span>The boundary adapter</span></a>
+        <a href="03-tools-and-context.html"><span class="n">03</span><span>Tools &amp; context</span></a>
+        <a href="04-projection-and-surface.html"><span class="n">04</span><span>Projection &amp; surface</span></a>
+        <a href="05-ports-and-swap.html"><span class="n">05</span><span>Ports &amp; the swap</span></a>
+        <a href="06-blocks-and-root.html" class="here"><span class="n">06</span><span>Blocks &amp; the root</span></a>
+        <a href="07-replay-and-advanced.html"><span class="n">07</span><span>Replay &amp; advanced</span></a>
+        <div class="group">Reference</div>
+        <a href="../index.html"><span class="n">↗</span><span>The full architecture</span></a>
+      </nav>
+    </details>
+  </aside>
+
+  <main>
+  <div class="wrap">
+
+    <div class="crumb">
+      <a href="index.html">Overview</a><span class="sep">›</span>
+      <span>The seams</span><span class="sep">›</span>
+      <span class="cur">06 · Blocks &amp; the root</span>
+    </div>
+
+    <header class="hero" style="padding-top:34px">
+      <span class="kicker">Seam 06 · Slices and wiring</span>
+      <h1>Blocks and the <span class="em">root</span>.</h1>
+      <p class="stand">Two seams in one page. A <b>block</b> is a self-contained feature — a mini-hexagon, Clean Architecture's <em>partial</em> boundary — whose only public symbol is its tool registration. The <b>composition root</b> <code class="i">wireApp(env)</code> is Main: the single place, in the whole program, where concrete adapters are chosen. A block contributes typed pieces <em>up</em> into one shared spine; the root passes concrete adapters <em>down</em>.</p>
+    </header>
+
+    <section id="slots" class="rv">
+      <div class="sec-head"><span class="num">▸</span><h2>The seam at a glance</h2></div>
+      <p class="lede">The eight slots — but read as two seams that frame each other: the block (a bundle of seams behind one registration) and the root (the one dirty wiring place). Read these, then the deep-dive below.</p>
+      <div class="slots">
+        <div class="slot"><div class="k">The seam</div><div class="v">A <strong>block</strong>: a vertical slice that bundles many seams behind a <em>single</em> public symbol — its tool registration. And the <strong>root</strong>: the one site, <code>wireApp(env)</code>, where concrete adapters are chosen. The seam is the line a block draws around itself; the root is the line Main draws across all layers.</div></div>
+        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> the <em>spine</em> — one bus, one <a class="x" href="01-state-and-fold.html">fold</a>, one <a class="x" href="02-the-boundary.html">boundary</a> (the trunk). <strong>Outer / leaf:</strong> the <em>block</em> — a namespaced <code>State</code> slice, its fold arms, a projection, a port and its private adapter (the leaves). A block plugs into the trunk; it is never the trunk.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>Up (block → spine):</strong> a tool, a <code>State</code>-slice <em>shape</em>, fold arms, and <code>Command</code> cases — typed pieces, contributed into the shared spine. <strong>Down (root → block):</strong> concrete adapters, chosen once. <strong>Forbidden:</strong> a block importing a sibling's internals, or instantiating a second bus, fold, or boundary — a second baseplate.</div></div>
+        <div class="slot"><div class="k">Direction</div><div class="v">A block depends <em>only</em> on shared domain types, the bus, and the folded <code>State</code> — never on a sibling, never outward at all. Only the <strong>root</strong> spans layers: it alone names <code>HttpModel</code>, <code>LogStore</code>, <code>TicketQueue</code>. Everything else points inward.</div></div>
+        <div class="slot"><div class="k">The inversion</div><div class="v">Two blocks couple <em>only</em> through shared <code>State</code> and the bus — never by import. The escalation block reads &ldquo;ticket #4118 is High&rdquo; from the folded <code>State</code> the priority block wrote; it never reaches into the priority block to ask. State is the wire; import is forbidden.</div></div>
+        <div class="slot"><div class="k">Why it exists</div><div class="v">A block is a <em>partial</em> boundary you can promote to a hard one later — a place held open for change at low cost. The root is the one deliberately dirty seam (Main), so that dirt is named and contained instead of smeared across every feature.</div></div>
+        <div class="slot"><div class="k">What breaks</div><div class="v">A block that reaches into a sibling's slice by import couples them into one unit that can no longer move. A block that stands up its own bus creates a <em>second mutation path</em> — a write replay never sees. The check that dies: <code>replayTest</code>, because the recorded stream no longer reconstructs the truth.</div></div>
+        <div class="slot"><div class="k">The test</div><div class="v">A block is tested <em>in isolation</em> against its contract: feed its tool, fold its arms, assert its slice and effects — no siblings, no root, no live adapters. The <strong>root</strong> is exercised by the <a class="x" href="07-replay-and-advanced.html">replay harness</a>, which wires the whole graph and folds the recorded stream end to end.</div></div>
+      </div>
+    </section>
+
+    <section id="what" class="rv">
+      <div class="sec-head"><span class="num">A</span><h2>What a block is — a mini-hexagon behind one symbol</h2></div>
+      <p>The seam pages so far have dissected the spine: one <a class="x" href="01-state-and-fold.html"><code class="i">State</code> and fold</a>, one <a class="x" href="02-the-boundary.html">boundary</a>, one bus. But a real application is not one feature — it is many, and they must be added, tested, and removed without each touching the others. The unit that makes that possible is the <strong>block</strong>: a self-contained feature, a <em>mini-hexagon</em>, whose entire public surface is a single symbol — its <em>tool registration</em>. Everything else it owns is private.</p>
+
+      <p>A block contributes four typed pieces into the shared spine, and nothing more: <strong>a tool</strong> (or a small set), <strong>a namespaced <code class="i">State</code> slice</strong> it alone writes, <strong>fold arms</strong> that translate its <code class="i">ToolResult</code>s into that slice, and the <strong><code class="i">Command</code> cases</strong> its actions sign. It owns, privately, a projection over its slice and — when it reaches the world — a <a class="x" href="05-ports-and-swap.html">port</a> with a private adapter behind it. Siblings see none of that. They see one registered tool name.</p>
+
+      <p>Treat <em>escalation</em> as a block. Its public symbols are the tools <code class="i">requestEscalation</code> and <code class="i">confirmEscalation</code>; its slice is the per-ticket <code class="i">TicketStatus</code>; its fold arms turn <code class="i">EscalationRequested</code> / <code class="i">EscalationConfirmed</code> into status transitions; and behind a private <code class="i">PageOncall</code> port sits the adapter that actually pages. It plugs into the <em>same</em> spine as <a class="x" href="03-tools-and-context.html"><code class="i">setPriority</code></a> — same bus, same fold, same boundary — and it knows nothing about the priority block at all.</p>
+
+      <div class="code"><div class="bar"><span class="path">an escalation block — only its registration is public; everything else is private to the block</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">// ── BLOCK: escalation ─────────────────────────────────────────────
+//   public surface = ONE symbol: register(). Everything below is private.
+
+block Escalation {
+
+  // (1) PUBLIC — the only export. Contributes tools UP into the spine.
+  register(spine):
+    spine.addTools([ requestEscalation, confirmEscalation ])   // tools
+    spine.addFoldArms(escalationArms)                          // fold arms
+    spine.addCommandCases([ RequestEscalation, ConfirmEscalation ])  // Command cases
+    spine.declareSlice(status: Map&lt;TicketId, TicketStatus&gt;)    // a State-slice SHAPE
+
+  // (2) PRIVATE — the block's own tools. Pure; return payloads (seam 03).
+  private requestEscalation { input = { ticket }
+    run(input, ctx) -&gt; EscalationRequested { ticket: input.ticket, by: ctx.actor } }
+  private confirmEscalation { input = { ticket }                // GATED: host-only (Actor.Human), never agent-self-served
+    run(input, ctx) -&gt; EscalationConfirmed { ticket: input.ticket, by: ctx.actor } }   // records the confirmer
+
+  // (3) PRIVATE — fold arms over THIS block's slice only (seam 01).
+  private escalationArms(state, r, now):
+    match r:
+      EscalationRequested(ticket, by) -&gt; ( state.withStatus(ticket, Escalating(by)), [] )
+      EscalationConfirmed(ticket, by) -&gt; by == Human                                            // the gate — agent self-confirm denied
+                                           ? ( state.withStatus(ticket, Escalated), [ Effect.PageOncall(ticket, at = now) ] )
+                                           : ( state, [ Effect.Diag("denied: agent self-confirm") ] )
+
+  // (4) PRIVATE — the block's port + its own adapter (seam 05). Siblings never see it.
+  private PORT PageOncall { page(ticket) }
+  private adapter LivePager implements PageOncall { ... }   // chosen by the ROOT, not here
+}</code></pre></div>
+
+      <p>Read what is and is not exported. Out of the block: a tool name, a slice shape, fold arms, <code class="i">Command</code> cases. Kept inside: the tool bodies, the fold arms' internals, the projection, the port, the adapter. A sibling cannot name <code class="i">escalationArms</code> or <code class="i">PageOncall</code> — they do not exist outside the block. That asymmetry is the partial boundary: a feature you can reason about, test, and later harden as a unit.</p>
+    </section>
+
+    <section id="spine" class="rv">
+      <div class="sec-head"><span class="num">B</span><h2>How blocks plug into one spine</h2></div>
+      <p>A block never stands up its own infrastructure. It does not <code class="i">new Bus()</code>, it does not write its own fold loop, it does not own a boundary. Those are the spine — one each, shared — and the block <em>plugs into</em> them through the typed pieces it registers. The priority block and the escalation block both contribute up into the <em>same</em> trunk; the root reaches down and hands the trunk its concrete adapters.</p>
+
+      <figure>
+        <div class="diagram"><pre class="mermaid">
+flowchart TB
+  subgraph SPINE["the spine — one each, shared (the trunk)"]
+    direction LR
+    BUS["bus<br/>(append-only)"]
+    FOLD["fold<br/>(one loop)"]
+    BND["boundary<br/>(one impure seam)"]
+  end
+  subgraph PRIO["BLOCK: priority (leaf)"]
+    PT["tool setPriority"]
+    PS["slice: priority"]
+    PA["fold arms"]
+  end
+  subgraph ESC["BLOCK: escalation (leaf)"]
+    ET["tools request / confirm"]
+    ES["slice: status"]
+    EA["fold arms"]
+    EP["port PageOncall"]
+  end
+  PRIO -- "tool, slice, arms, Command cases (UP)" --> SPINE
+  ESC  -- "tool, slice, arms, Command cases (UP)" --> SPINE
+  ROOT["wireApp(env) — the root (Main)"] -- "concrete adapters (DOWN)" --> SPINE
+  ROOT -- "LivePager into PageOncall (DOWN)" --> ESC
+  style SPINE fill:#14161d,stroke:#f23a48,color:#e7e8ec
+  style BUS fill:#1a1012,stroke:#f23a48,color:#ffd7da
+  style FOLD fill:#1a1012,stroke:#f23a48,color:#ffd7da
+  style BND fill:#1a1012,stroke:#f23a48,color:#ffd7da
+  style PRIO fill:#101218,stroke:#3a3f4a,color:#cdd5e0
+  style ESC fill:#101218,stroke:#3a3f4a,color:#cdd5e0
+  style ROOT fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
+        </pre></div>
+        <figcaption><b>Figure.</b> Two blocks plug typed pieces <b>up</b> into one spine; the root wires concrete adapters <b>down</b>. No arrow runs block-to-block — the only path between them is the shared, folded <code>State</code>.</figcaption>
+      </figure>
+
+      <p>The slice is the heart of it. Each block owns a namespaced region of the one <code class="i">State</code>: the priority block writes <code class="i">tickets[id].priority</code>, the escalation block writes <code class="i">tickets[id].status</code>. They share the same <code class="i">State</code> value and the same fold loop, but their fold arms touch <em>disjoint</em> fields. So a block reads what a sibling produced the only honest way — off the folded <code class="i">State</code> — and writes only its own region. The bus carries the signed commands; the <code class="i">State</code> carries the result; neither block ever imports the other.</p>
+
+      <div class="note steel">
+        <span class="lab">A block is a partial boundary — by design</span>
+        <p>Clean Architecture distinguishes a <em>full</em> boundary (a polymorphic interface with two implementations, fully decoupled) from a <em>partial</em> one (a slice you have isolated but not yet fully inverted). A block is the partial kind on purpose: it is held open at the seam — one public symbol, a private interior — so that <em>if</em> the feature earns it, you promote it to a hard boundary later. You do not pay for the full boundary up front. You pay for the line that lets you draw the full one cheaply when the day comes.</p>
+      </div>
+    </section>
+
+    <section id="root" class="rv">
+      <div class="sec-head"><span class="num">C</span><h2>The composition root — the one place adapters are chosen</h2></div>
+      <p>If a block never names a concrete adapter, someone must. That someone is the <strong>composition root</strong>, <code class="i">wireApp(env)</code> — this architecture's <em>Main</em>. It is the single function in the program that spans layers: it constructs the spine, picks each port's concrete implementation from the environment, and hands them down. Every <code class="i">new</code> of an impure thing lives here and nowhere else.</p>
+
+      <div class="code"><div class="bar"><span class="path">the composition root — verbatim from the assembled program (seam 06)</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">wireApp(env):
+  bus     = Bus()
+  store   = LogStore(env.path)
+  model   = env.live ? HttpModel(env.url) : ScriptedModel(env.fixtures)   // ← the swap
+  sensing = TicketQueue(env.queue)
+  runtime = Runtime(model, bus, store, boundary)
+  return App(runtime, sensing)</code></pre></div>
+
+      <p>Six lines, and they are the <em>only</em> six allowed to be dirty. Notice what they do. They build the spine once — one <code class="i">Bus</code>, one <code class="i">LogStore</code>, one <code class="i">Runtime</code> wrapping the one <code class="i">boundary</code>. They make <a class="x" href="05-ports-and-swap.html">the swap</a> — <code class="i">HttpModel</code> live, <code class="i">ScriptedModel</code> under test — at the one site a swap is legal. And they choose the sensing adapter, <code class="i">TicketQueue</code>, for the <code class="i">EventSource</code> port. A block's private <code class="i">PageOncall</code> would be satisfied here too: the root is where <code class="i">LivePager</code> meets the escalation block's port. The blocks declared the ports; the root, alone, decides what fills them.</p>
+
+      <p>This is the whole reason the rest of the program can be pure. Push every construction decision to one function and the dependency arrows everywhere else point inward — toward interfaces and shared types — because nothing else is allowed to know a concrete name. The root is the sink for all the impurity that the seams quarantined: it spans layers <em>so that nothing else has to</em>.</p>
+    </section>
+
+    <section id="breaks" class="rv">
+      <div class="sec-head"><span class="num">D</span><h2>What breaks without it</h2></div>
+      <p>Two violations dissolve the block boundary, and both are tempting because they look like less work. The first reaches sideways; the second builds a second trunk.</p>
+
+      <div class="note bad">
+        <span class="lab">Collapsed — the escalation block imports the priority block's internals</span>
+        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">block Escalation {<br>
+        &nbsp;&nbsp;import Priority.priorityArms&nbsp;&nbsp;<span style="color:var(--accent)">// reaches into a sibling's interior</span><br>
+        &nbsp;&nbsp;run(input, ctx) -&gt; if Priority.levelOf(ctx, input.ticket) == Urgent: ...<br>
+        }</p>
+        <p>It compiles, and it even reads naturally. But the two blocks are now <em>one</em> unit: you cannot test escalation without dragging priority in, cannot move or delete either, and the &ldquo;single public symbol&rdquo; line is gone. The block was a partial boundary you could promote; now it is a knot you must first untie. The honest path was already available — read the level off the shared, folded <code class="i">State</code>, which the priority block wrote there for exactly this. <strong>The test that dies:</strong> the block-in-isolation test — escalation can no longer be exercised against its contract alone, because its contract now secretly includes the priority block.</p>
+      </div>
+
+      <div class="note bad">
+        <span class="lab">Collapsed — the block stands up its own bus (a second baseplate)</span>
+        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">block Escalation {<br>
+        &nbsp;&nbsp;private bus2 = Bus()&nbsp;&nbsp;<span style="color:var(--accent)">// a second mutation path</span><br>
+        &nbsp;&nbsp;run(input, ctx) -&gt; bus2.commit(EscalationConfirmed(input.ticket))<br>
+        }</p>
+        <p>Now there are two append-only logs, and the truth is split across both. The <a class="x" href="07-replay-and-advanced.html">replay harness</a> reads the <em>one</em> recorded stream — the spine's bus — folds it, and gets a <code class="i">State</code> that is missing every escalation the block committed to <code class="i">bus2</code>. <strong>The test that dies:</strong> <code class="i">replayTest</code> — <code class="i">foldAll(initialState, recorded)</code> no longer reconstructs the live state, because a second baseplate created a write the recording never saw. One bus is what makes the session a single replayable fact; a second bus deletes that guarantee.</p>
+      </div>
+
+      <p>Both failures share the spine's shape inverted: a capability that belongs to the one trunk — a sibling's interior, or the single bus — got duplicated or breached inside a leaf. The block boundary exists precisely so neither is writable by accident: a block can only reach a sibling through <code class="i">State</code>, and can only commit through the spine it was handed.</p>
+    </section>
+
+    <section id="test" class="rv">
+      <div class="sec-head"><span class="num">E</span><h2>The two tests the seam makes possible</h2></div>
+      <p>The block and the root are tested at opposite scales, and that split is the payoff. A <strong>block</strong> is tested in <em>isolation</em> against its contract — feed its tool, fold its arms, assert its slice and the effects it emitted — with no siblings, no root, and no live adapters in sight:</p>
+
+      <div class="note steel">
+        <span class="lab">The confirm is gated — the agent may request, only a separate authority confirms</span>
+        <p>One fidelity point the block must honour: <code class="i">requestEscalation</code> is agent-callable and reversible, but <code class="i">confirmEscalation</code> fires the irreversible <code class="i">PageOncall</code>, so it is <strong>gated</strong>. Because the <code class="i">Actor</code> is stamped at the <a class="x" href="02-the-boundary.html">boundary</a> (seam 02), an agent acting through its own step is stamped <code class="i">Actor.Agent</code> and <em>cannot</em> mint a host confirm. The fold's confirm arm then pages only when <code class="i">by == Human</code> — a <em>separate</em> confirming authority (the host here; in an unattended deployment a policy tier or reviewer on the same bus) — and folds an agent-stamped confirm to a no-op <code class="i">Diag</code>, never a page. A single bad inference can <em>ask</em> to page on-call, but cannot page on-call. The test below exercises both directions.</p>
+      </div>
+
+      <div class="code"><div class="bar"><span class="path">a block tested against its contract — no siblings, no root, no live adapters</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">test "escalation block: a HOST confirm transitions to Escalated and pages once":
+  r       = confirmEscalation.run({ ticket: 4118 }, ctx = { actor: Human })   // out-of-band host confirm
+  (s, fx) = escalationArms(stateWith(4118, Escalating(Agent)), r, now = t0)    // the agent had requested
+  assert s.statusOf(4118) == Escalated                         // its slice, alone
+  assert fx == [ Effect.PageOncall(4118, at = t0) ]            // its effect descriptor
+  // and the gate holds the other way — an agent-stamped confirm pages nobody:
+  rA       = confirmEscalation.run({ ticket: 4118 }, ctx = { actor: Agent })
+  (_, fxA) = escalationArms(stateWith(4118, Escalating(Agent)), rA, now = t0)
+  assert fxA == [ Effect.Diag("denied: agent self-confirm") ]   // no PageOncall — self-confirm denied
+  // no priority block, no bus, no wireApp — the block stands on its own contract</code></pre></div>
+
+      <p>The <strong>root</strong>, by contrast, is the seam the <a class="x" href="07-replay-and-advanced.html">replay harness</a> exercises: it is the only thing that wires the whole graph, so it is verified by folding the whole recorded stream and asserting the session reconstructs. The two scales never overlap — a block proves <em>its</em> contract; the root proves the <em>composition</em>.</p>
+
+      <p>That is the same Clean-Architecture lesson the spine taught, applied one level up. There, one object was made impure so the rest could be pure. Here, one function — Main — is made cross-layer so every block can stay a single-symbol, inward-pointing slice. <strong>Concentrate the spanning in one named place, and everything around it gets small, testable, and free to move.</strong> A block is the vertical slice; <code class="i">wireApp(env)</code> is Main; and keeping them honest is what lets the program grow feature by feature without the features fusing.</p>
+
+      <div class="pager">
+        <a class="prev" href="05-ports-and-swap.html"><span class="d">← Seam 05</span>Ports and the swap</a>
+        <a class="next" href="07-replay-and-advanced.html"><span class="d">Seam 07 →</span>Replay and advanced</a>
+      </div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="agentd.js"></script>
+</body>
+</html>

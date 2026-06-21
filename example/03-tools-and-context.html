@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Seam 03 · Tools and context — the input port</title>
+<meta name="description" content="The tool boundary: run(input, ctx) -> a ToolResult payload, pure. The agent context is a read-only ambient input — the pre-staged request. A domain tool and a UI tool have the same pure shape: everything is a tool, even the UI. Results leave via the return value and are folded at the boundary, never written back into ctx." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="agentd.css" />
+</head>
+<body>
+<div class="shell">
+
+  <aside class="sidebar">
+    <a class="brand" href="index.html">
+      <span class="mark"></span>
+      <span><b>Agent-Driven</b><small>Worked Example</small></span>
+    </a>
+    <details class="nav-wrap" open>
+      <summary>Contents</summary>
+      <nav class="nav" id="nav">
+        <div class="group">Orient</div>
+        <a href="index.html"><span class="n">00</span><span>Overview</span></a>
+        <div class="group">The seams</div>
+        <a href="01-state-and-fold.html"><span class="n">01</span><span>State &amp; the fold</span></a>
+        <a href="02-the-boundary.html"><span class="n">02</span><span>The boundary adapter</span></a>
+        <a href="03-tools-and-context.html" class="here"><span class="n">03</span><span>Tools &amp; context</span></a>
+        <a href="04-projection-and-surface.html"><span class="n">04</span><span>Projection &amp; surface</span></a>
+        <a href="05-ports-and-swap.html"><span class="n">05</span><span>Ports &amp; the swap</span></a>
+        <a href="06-blocks-and-root.html"><span class="n">06</span><span>Blocks &amp; the root</span></a>
+        <a href="07-replay-and-advanced.html"><span class="n">07</span><span>Replay &amp; advanced</span></a>
+        <div class="group">Reference</div>
+        <a href="../index.html"><span class="n">↗</span><span>The full architecture</span></a>
+      </nav>
+    </details>
+  </aside>
+
+  <main>
+  <div class="wrap">
+
+    <div class="crumb">
+      <a href="index.html">Overview</a><span class="sep">›</span>
+      <span>The seams</span><span class="sep">›</span>
+      <span class="cur">03 · Tools &amp; context</span>
+    </div>
+
+    <header class="hero" style="padding-top:34px">
+      <span class="kicker">Seam 03 · The tool boundary</span>
+      <h1>Tools and <span class="em">context.</span></h1>
+      <p class="stand">A tool is the unit of work the agent invokes: <code class="i">run(input, ctx)</code> returns a <code class="i">ToolResult</code> payload, and that is the whole of it — <b>pure</b>. The agent context <code class="i">ctx</code> is a read-only ambient input — the <em>pre-staged request</em>, written once by the boundary and never written back to. A <em>domain</em> tool and a <em>UI</em> tool have the identical shape: everything is a tool, even the UI.</p>
+    </header>
+
+    <section id="slots" class="rv">
+      <div class="sec-head"><span class="num">▸</span><h2>The seam at a glance</h2></div>
+      <p class="lede">The eight slots, the same shape as every other seam. Read these, then the deep-dive below.</p>
+      <div class="slots">
+        <div class="slot"><div class="k">The seam</div><div class="v">A <strong>tool</strong> — the unit of work the agent invokes. Its job: <code>run(input, ctx)</code> turns the agent's intent into a <code>ToolResult</code> payload, a pure function of <code>input</code> and a read of <code>ctx</code>.</div></div>
+        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> the <code>ctx</code> — a read-only staged slice of observation/state — plus the agent's intent expressed as <code>input</code>. <strong>Outer:</strong> the <a class="x" href="02-the-boundary.html">boundary</a> that folds the returned payload. Same on both: a <em>domain</em> tool (<code>setPriority</code>) and a <em>UI</em> tool (<code>focusTicket</code>) are the same pure shape.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> the <code>input</code> the agent supplies, plus a <em>read</em> of <code>ctx</code>. <strong>Out:</strong> a <code>ToolResult</code> DTO, returned. <strong>Forbidden:</strong> a tool that mutates <code>ctx</code>, returns a live handle / entity / socket, or performs an effect. None of those may cross.</div></div>
+        <div class="slot"><div class="k">Direction</div><div class="v">Source dependency points <em>inward</em> — a tool depends only on <code>ctx</code>'s read-only shape and on the result types; <code>ctx</code> names nothing about the tool. Results flow <em>outward</em> as a returned payload — never written back into <code>ctx</code>.</div></div>
+        <div class="slot"><div class="k">The inversion</div><div class="v"><code>ctx</code> is <em>written-once-by-the-boundary, read-only-to-tools</em>; the result <em>leaves via the return value</em> and is folded at the boundary. The agent reaches state through data it returns, never through a reference to a store it holds and mutates.</div></div>
+        <div class="slot"><div class="k">Why it exists</div><div class="v">So a tool is tested by a <em>direct call</em> — no model, no surface, no mock of a mutable context. And so adding a capability is one tool plus one fold arm: a closed, local edit, not a thread pulled through the system.</div></div>
+        <div class="slot"><div class="k">What breaks</div><div class="v">A tool that writes its result into <code>ctx</code> (or a shared store) instead of returning it: the fold never sees it, the bus never records it, and re-fold diverges — <em>Hidden State Coupling</em>. <code>replayTest</code> dies.</div></div>
+        <div class="slot"><div class="k">The test</div><div class="v"><code>setPriority.run({4118, High}, ctx) == PrioritySet(4118, High)</code> — by direct call, no doubles. The result depends only on <code>input</code>; <code>ctx</code> is read, never written.</div></div>
+      </div>
+    </section>
+
+    <section id="what" class="rv">
+      <div class="sec-head"><span class="num">A</span><h2>What it is</h2></div>
+      <p>The seam is a <strong>tool</strong>: the unit of work the agent invokes. The model emits an intent — &ldquo;set ticket 4118 to High&rdquo; — as a structured <code class="i">input</code>, and the seam answers with a payload. The whole of a tool is one pure function, <code class="i">run(input, ctx)</code>, that takes the agent's <code class="i">input</code> and a read-only context and returns a <code class="i">ToolResult</code>. It reads; it computes; it returns. It does not mutate, it does not reach out, it does not record:</p>
+
+      <div class="code"><div class="bar"><span class="path">a tool — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">// A DOMAIN TOOL — pure. Reads read-only ctx, returns a payload, mutates nothing.
+DOMAIN_TOOL setPriority {
+  input = { ticket: TicketId, level: Priority }
+  run(input, ctx) -&gt; PrioritySet { ticket: input.ticket, level: input.level }
+}
+// A UI TOOL — also pure, also returns a payload. Drives the surface, decides nothing.
+UI_TOOL focusTicket {
+  input = { ticket: TicketId }
+  run(input, ctx) -&gt; Focused { ticket: input.ticket, known: ctx.tickets.has(input.ticket) }
+}</code></pre></div>
+
+      <p>Two tools, one shape. <code class="i">setPriority</code> derives its payload purely from <code class="i">input</code>. <code class="i">focusTicket</code> reaches a little further — it <em>reads</em> <code class="i">ctx.tickets</code> to set <code class="i">known</code> — but the read is the only contact it has with the world, and it is a read, not a write. Both return a <code class="i">ToolResult</code> and stop. The payloads they may return are the closed set of result types:</p>
+
+      <div class="code"><div class="bar"><span class="path">tool results — the DTOs a tool may return</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">sealed ToolResult {
+  PrioritySet(ticket: TicketId, level: Priority)
+  EscalationRequested(ticket: TicketId, by: Actor)
+  EscalationConfirmed(ticket: TicketId, by: Actor)
+  Focused(ticket: TicketId, known: Bool)
+}</code></pre></div>
+
+      <p>The agent <em>context</em> — <code class="i">ctx</code> — is the other half of the seam, and the more easily mistaken one. It is a <strong>read-only ambient input</strong>: a staged slice of observation and state, written <em>once</em> by the boundary before the step runs, and exposed to the tool as immutable. It is the <em>pre-staged Request Model</em>: in Clean Architecture the controller hands a Request Model across the Input Port at call time; here the boundary has already deposited everything the tool needs as ambient data <em>before</em> the step, so the tool merely <em>reads</em> it. The Input Port proper is the tool's <code class="i">run</code> signature — the inner-side seam the agent invokes; <code class="i">ctx</code> is the request <em>data</em>, staged rather than passed across at call time.</p>
+
+      <figure>
+        <div class="diagram"><pre class="mermaid">
+flowchart LR
+  AG["agent (model)"] -- "input" --> T
+  CTX["ctx (staged slice)"] -. "read-only" .-> T
+  T["tool.run(input, ctx)"] -- "ToolResult (returned)" --> B
+  B["boundary adapter"] --> FOLD["fold(...)"]
+  B -. "writes ctx once, before the step" .-> CTX
+  style AG fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
+  style CTX fill:#101218,stroke:#3a3f4a,color:#cdd5e0
+  style T fill:#1a1012,stroke:#f23a48,color:#ffd7da
+  style B fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
+  style FOLD fill:#14161d,stroke:#f23a48,color:#e7e8ec
+        </pre></div>
+        <figcaption><b>Figure.</b> The boundary writes <code>ctx</code> once before the step; the tool only <b>reads</b> it (dashed). The result leaves the tool as a <b>returned</b> payload and is handed to the fold — it is never written back into <code>ctx</code>.</figcaption>
+      </figure>
+    </section>
+
+    <section id="symmetry" class="rv">
+      <div class="sec-head"><span class="num">B</span><h2>A UI action is a tool too — the symmetry</h2></div>
+      <p>The headline of this architecture is that <em>everything is a tool, even the UI</em>, and this seam is where that claim is either true or hollow. It is true here, exactly, because <code class="i">setPriority</code> and <code class="i">focusTicket</code> have the <strong>same pure shape</strong>. One mutates domain meaning (a ticket's priority); the other drives the surface (which row is focused). Yet neither performs the change. Both compute a <code class="i">ToolResult</code> and return it; both leave the actual change — updating the model, or marking the focused row — to the <a class="x" href="01-state-and-fold.html">fold</a> and the <a class="x" href="04-projection-and-surface.html">projection</a> downstream.</p>
+
+      <div class="cols">
+        <div class="card">
+          <h4>setPriority · a domain tool</h4>
+          <p>Input is the agent's intent over the domain. <code class="i">run</code> returns <code class="i">PrioritySet(ticket, level)</code> — a fact, not a write. The fold turns that fact into a new <code class="i">State</code> and a <code class="i">Log</code> effect.</p>
+        </div>
+        <div class="card steel">
+          <h4>focusTicket · a UI tool</h4>
+          <p>Input is the agent's intent over the <em>surface</em>. <code class="i">run</code> reads <code class="i">ctx.tickets</code> for <code class="i">known</code> and returns <code class="i">Focused(ticket, known)</code> — also a fact, not a write. The same fold path carries it; the projection reflects it.</p>
+        </div>
+      </div>
+
+      <p>Because the shape is identical, a UI action and a domain action are <em>peers</em>: each is a tool, each returns a <code class="i">ToolResult</code>, each is folded the same way and recorded on the same bus. There is no second code path for &ldquo;the UI doing something&rdquo; — the surface emits an intent, the agent (or the host's tap) invokes a tool, and the payload joins the one stream. This is why the slogan is a data model and not a metaphor: the UI tool is not <em>like</em> a domain tool, it <em>is</em> one. Map this to Clean Architecture and each is invoked across the same kind of <strong>Input Port</strong> — the <code class="i">run</code> seam a caller crosses to reach a use case — the only difference being which kind of intent the caller is expressing.</p>
+
+      <div class="note">
+        <span class="lab">The same DTO law as seam 02</span>
+        <p>What crosses <em>out</em> of a tool is a <code class="i">ToolResult</code> — plain data, a member of a closed sealed set. Never an entity, never a live <code class="i">Ticket</code> object the boundary could mutate, never a socket or a file handle. The tool answers the question &ldquo;what happened?&rdquo; with a value, and hands that value back. Everything that <em>acts</em> on the value happens later, at one seam, where it can be recorded and replayed.</p>
+      </div>
+    </section>
+
+    <section id="why" class="rv">
+      <div class="sec-head"><span class="num">C</span><h2>Why the context is read-only, and the result returned</h2></div>
+      <p>The discipline has two halves and they are the same idea seen from both ends. <strong>Inbound:</strong> <code class="i">ctx</code> is written once by the boundary and is read-only to tools. <strong>Outbound:</strong> the result leaves by the return value and is folded at the boundary. Put together, a tool has exactly one channel in (read <code class="i">ctx</code> + take <code class="i">input</code>) and exactly one channel out (return a payload). No hidden side channel exists, because none is reachable: the tool was never handed a mutable reference to anything.</p>
+
+      <p>This is the inversion. Naively, a tool that needs to &ldquo;set priority&rdquo; would hold the store and write to it. Here it cannot — it is given a read-only <code class="i">ctx</code> and asked to <em>describe</em> the outcome as data. The capability to actually change state is not in the tool's hands; it is in the fold's, reached only through the value the tool returns. Control flows outward (the boundary acts on the result), but the source dependency points inward (the tool depends on result types and on <code class="i">ctx</code>'s shape, and on nothing outer).</p>
+
+      <p>The payoff is two properties stated plainly. <strong>Testing collapses to a function call:</strong> with no mutable context to mock and no effects to intercept, you assert <code class="i">run(input, ctx) == expected</code> and you are done — no model in the loop, no surface, no doubles. <strong>Extension is local:</strong> a new capability is one new tool plus one new arm in the fold's <code class="i">match</code>. You do not thread a new method through a store, a controller, and a presenter; you add a result type, a tool that returns it, and a fold arm that consumes it.</p>
+
+      <div class="note steel">
+        <span class="lab">The Input Port, and the pre-staged request</span>
+        <p>In Clean Architecture the Input Port is the interface the controller calls to <em>pass the Request Model in</em>. The example keeps that split but stages it: the tool's <code class="i">run</code> signature is the Input Port — the inner-side seam the agent invokes — and <code class="i">ctx</code> is the Request Model, deposited as ambient data <em>before</em> the step rather than handed across at call time. That staging is exactly what makes a tool a pure function: there is nothing to call back through, only data to read and a value to return.</p>
+      </div>
+    </section>
+
+    <section id="breaks" class="rv">
+      <div class="sec-head"><span class="num">D</span><h2>What breaks without it</h2></div>
+      <p>The seam earns its keep only against the version that omits it. Here is the most tempting violation — a tool that writes its result where it stands, into the context, instead of returning it:</p>
+
+      <div class="note bad">
+        <span class="lab">Collapsed — the tool writes its result into ctx</span>
+        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">DOMAIN_TOOL setPriority {<br>
+        &nbsp;&nbsp;run(input, ctx) -&gt; { ctx.tickets[input.ticket].priority = input.level }&nbsp;&nbsp;<span style="color:var(--accent)">// mutates ctx, returns nothing</span><br>
+        }</p>
+        <p>It looks shorter — but <code class="i">ctx</code> is <em>read-only</em> (the seam's one rule), so the write lands on the staged copy the boundary discards when the step ends: the priority never actually changes, and nothing is recorded. <strong>The test that dies:</strong> <code class="i">replayTest</code>. The fold receives an empty <code class="i">step.toolResults</code>, so it produces no new state and no <code class="i">Log</code> effect; the boundary appends nothing meaningful to the bus, so the append-only log no longer contains the priority change. Re-folding the recorded stream yields a <em>different</em> state than the live run had — the &ldquo;fold twice, assert identical&rdquo; check fails, and worse, replay silently diverges from reality. This is <strong>Hidden State Coupling</strong>: the result took a side channel the recorder cannot see. You did not save a line; you deleted replay.</p>
+      </div>
+
+      <div class="note bad">
+        <span class="lab">Collapsed — the tool returns a live handle</span>
+        <p>If <code class="i">run</code> returns the live <code class="i">Ticket</code> object (or a socket, or a file handle) instead of a <code class="i">ToolResult</code> value, the boundary now holds something it can mutate and the world can change underneath. The payload is no longer a record of <em>what happened</em>; it is a leak of <em>where it happened</em>. Replay cannot reconstruct it — a handle is not data — and two folds of the same stream can disagree because the thing behind the handle moved. The DTO rule exists to make this impossible: a tool may return only a closed, inert value.</p>
+      </div>
+
+      <p>Both failures share a shape: the tool tried to <em>act</em> — to write, or to hand out a live thing — instead of <em>describing the outcome as data it returns</em>. The seam exists precisely to make that the only move available, so the recorder sees everything and replay never diverges.</p>
+    </section>
+
+    <section id="test" class="rv">
+      <div class="sec-head"><span class="num">E</span><h2>The test that the seam makes possible</h2></div>
+      <p>Because a tool is a pure function of <code class="i">input</code> and a read of <code class="i">ctx</code>, it is tested by direct call — no model, no surface, no mock of a mutable context, no doubles at all:</p>
+
+      <div class="code"><div class="bar"><span class="path">testing a pure tool — a direct call</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">test "setPriority is a pure function of its input":
+  ctx = stagedContext(tickets = { 4118: ticket(4118) })
+  assert setPriority.run({ ticket: 4118, level: High }, ctx)
+         == PrioritySet(ticket: 4118, level: High)        // returned, not written
+
+test "focusTicket reads ctx, mutates nothing":
+  ctx = stagedContext(tickets = { 4118: ticket(4118) })
+  assert focusTicket.run({ ticket: 4118 }, ctx) == Focused(ticket: 4118, known: true)
+  assert focusTicket.run({ ticket: 9001 }, ctx) == Focused(ticket: 9001, known: false)
+  assert ctx.tickets == { 4118: ticket(4118) }            // ctx unchanged — read-only held</code></pre></div>
+
+      <p>The first test is the canonical one: <code class="i">setPriority.run({4118, High}, ctx) == PrioritySet(4118, High)</code>, a plain equality on values. The <code class="i">focusTicket</code> case shows the symmetry — the UI tool is tested identically, reading <code class="i">ctx</code> to compute <code class="i">known</code> and asserting that <code class="i">ctx</code> came out unchanged. No model emits the call; no boundary commits anything; no effect fires. That is the whole gift of the seam: <strong>the unit of work the agent invokes is a value-in, value-out function, so the test is an equation.</strong> The impure work — recording the payload, folding it into state, performing effects — lives one seam outward, at the <a class="x" href="02-the-boundary.html">boundary adapter</a>, which is the one object tested with doubles. Everything here is pure, and pure things are tested by asking them a question and checking the answer.</p>
+
+      <div class="pager">
+        <a class="prev" href="02-the-boundary.html"><span class="d">← Seam 02</span>The boundary adapter</a>
+        <a class="next" href="04-projection-and-surface.html"><span class="d">Seam 04 →</span>Projection &amp; surface</a>
+      </div>
+    </section>
+
+  </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+<script src="agentd.js"></script>
+</body>
+</html>
