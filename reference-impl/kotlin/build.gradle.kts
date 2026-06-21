@@ -5,7 +5,8 @@ plugins {
 }
 
 repositories {
-    mavenLocal() // the aisdk-kotlin snapshot is published here (./gradlew publishToMavenLocal)
+    // ai.torad:torad-aisdk is published on Maven Central, so a fresh checkout
+    // resolves the runtime with no local setup (no publishToMavenLocal needed).
     mavenCentral()
 }
 
