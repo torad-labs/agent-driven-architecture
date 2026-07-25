@@ -25,8 +25,15 @@ rule:
           kind: switch_default
     - not:
         has:
+          # stopBy: end at every level. `has` looks at DIRECT children, and the guard
+          # normally sits inside a block — `default: { const _never: never = r; ... }`
+          # — so the nested form was invisible and 34 of 34 hits in examples/typescript
+          # were switches that already carried the check.
           kind: switch_body
+          stopBy: end
           has:
             kind: switch_default
+            stopBy: end
             has:
+              stopBy: end
               pattern: "const $_: never = $VAR"

@@ -1,0 +1,25 @@
+id: no-module-state
+valid:
+  # REGRESSION: a function-local accumulator. The rule's `inside` had no stopBy, so it
+  # only saw `statement_block` as the parent and reported every one of these as module
+  # state — 9 of 9 hits in examples/typescript were this shape.
+  - |
+    export function refold<S>(initial: S): S {
+      let state = initial;
+      return state;
+    }
+  - |
+    export function movingClock(start: number, step: number): Clock {
+      let t = start - step;
+      return { now: () => { t += step; return t; } };
+    }
+  - |
+    const handler = () => {
+      let inner = 1;
+      return inner;
+    };
+  - |
+    const x = 1;
+invalid:
+  - |
+    let realModuleState = 0;
