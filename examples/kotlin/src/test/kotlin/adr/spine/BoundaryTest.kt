@@ -17,7 +17,7 @@ import adr.driveCanonicalSession
 import adr.human
 import adr.spine.boundary.MovingClock
 import adr.spine.pure.Timestamp
-import adr.spine.replay.refold
+import adr.spine.replay.Replay
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -65,7 +65,8 @@ class BoundaryTest {
         assertEquals(liveStamps.distinct().size > 1, true, "the clock really moved across the run")
 
         // Re-fold from NOTHING BUT the committed bytes: no clock is available here.
-        val (_, effects2) = refold(app.initial, app.bus.records(), ::foldApp)
+        // The fold is the replay host's constructor state; the timeline is the argument.
+        val (_, effects2) = Replay(::foldApp).refold(app.initial, app.bus.records())
 
         assertEquals(liveStamps, effects2.map { it.effect.at }, "measured OLD: live at:1001 -> re-folded at:0")
         assertEquals(liveEffects, effects2, "…and the keys round-trip with them")

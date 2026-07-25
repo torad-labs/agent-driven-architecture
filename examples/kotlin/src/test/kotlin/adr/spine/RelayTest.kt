@@ -56,8 +56,8 @@ import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.Timestamp
 import adr.spine.pure.rawOf
-import adr.spine.replay.assertReplayFaithful
-import adr.spine.replay.refold
+import adr.spine.replay.Replay
+import adr.spine.replay.ReplayFaithfulness
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
@@ -128,7 +128,7 @@ class RelayTest {
         assertEquals("actually it is gateway C", relay.published().last().text)
 
         val records = tier.app.bus.records()
-        val replayed = refold(tier.app.initial, records, ::foldApp)
+        val replayed = Replay(::foldApp).refold(tier.app.initial, records)
 
         assertEquals(
             Recall.Fresh("refunds spike on gateway B", Timestamp(500)),
@@ -139,15 +139,19 @@ class RelayTest {
         assertContentEquals(tier.app.performed, replayed.effects)
 
         // The BRANCH replays too, because the staged `Recalled` rides the record and
-        // the digest is re-derived from it.
-        assertReplayFaithful(
+        // the digest is re-derived from it. ONE harness, built from the three values
+        // that are constant for this app, then CALLED twice below — so the only thing
+        // that differs between the passing run and the failing one is the timeline.
+        val faithfulness = ReplayFaithfulness(
+            fold = ::foldApp,
+            projectContext = ::projectContextApp,
+            promptVersion = "triage-prompt@1",
+        )
+        faithfulness.assertFaithful(
             initial = tier.app.initial,
             records = records,
             liveState = tier.app.state,
             liveEffects = tier.app.performed,
-            fold = ::foldApp,
-            projectContext = ::projectContextApp,
-            promptVersion = "triage-prompt@1",
         )
 
         // …AND THAT CHECK IS NOT VACUOUS. Swap ONLY the variant — same text, same
@@ -167,14 +171,11 @@ class RelayTest {
             )
         }
         assertFailsWith<IllegalStateException> {
-            assertReplayFaithful(
+            faithfulness.assertFaithful(
                 initial = tier.app.initial,
                 records = tampered,
                 liveState = tier.app.state,
                 liveEffects = tier.app.performed,
-                fold = ::foldApp,
-                projectContext = ::projectContextApp,
-                promptVersion = "triage-prompt@1",
             )
         }
     }

@@ -29,7 +29,7 @@ src/main/kotlin/adr/
 │   ├── agent/                 the ONLY file in spine/ that imports the agent-loop runtime
 │   ├── surface/               ONE ViewModel stream + ONE onAction(Action) sink
 │   ├── concurrency/           the BARGE-IN loop (12) and the relay's read side: consumer · in-memory
-│   └── replay/                refold · collectPerform · assertReplayFaithful
+│   └── replay/                Replay: refold · collectPerform — ReplayFaithfulness: assertFaithful
 ├── blocks/                    THE LEAVES — one folder per feature; `register` is the public symbol
 │   ├── triage/                domain block          contract·slice·tools·fold·project·register
 │   ├── escalation/            domain block + gated verb          … + port·adapter
