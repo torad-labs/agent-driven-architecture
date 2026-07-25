@@ -37,6 +37,7 @@ class EscalationTools<S>(private val lens: (S) -> EscalationSlice) {
             decode = ::decodeTicket,
             run = { input, _ -> EscalationResult.RequestEscalation(REQUEST_ESCALATION, input.ticket) },
             sign = { r, sig, id -> EscalationCommand.RequestEscalation(r.tool, sig, id, r.ticket) },
+            narrow = { it as? EscalationResult.RequestEscalation },
         ),
         Verb.Irreversible(
             name = CONFIRM_ESCALATION,
@@ -44,6 +45,7 @@ class EscalationTools<S>(private val lens: (S) -> EscalationSlice) {
             decode = ::decodeTicket,
             run = { input, _ -> EscalationResult.ConfirmEscalation(CONFIRM_ESCALATION, input.ticket) },
             sign = { r, sig, id -> EscalationCommand.ConfirmEscalation(r.tool, sig, id, r.ticket) },
+            narrow = { it as? EscalationResult.ConfirmEscalation },
             requestedBy = { state, result ->
                 (result as? EscalationResult.ConfirmEscalation)
                     ?.let { lens(state).statusOf(it.ticket) }

@@ -51,6 +51,7 @@ class AnalysisTools<S>(private val lens: (S) -> AnalysisSlice) {
             decode = ::decodeNothing,
             run = { _, ctx -> AnalysisResult.RecallAnalysis(RECALL_ANALYSIS, recallIn(ctx.context)) },
             sign = { r, sig, id -> AnalysisCommand.RecallAnalysis(r.tool, sig, id, r.recall) },
+            narrow = { it as? AnalysisResult.RecallAnalysis },
         ),
     )
 
@@ -62,6 +63,7 @@ class AnalysisTools<S>(private val lens: (S) -> AnalysisSlice) {
             decode = ::decodePublish,
             run = { input, _ -> AnalysisResult.PublishAnalysis(PUBLISH_ANALYSIS, input.text) },
             sign = { r, sig, id -> AnalysisCommand.PublishAnalysis(r.tool, sig, id, r.text) },
+            narrow = { it as? AnalysisResult.PublishAnalysis },
         ),
     )
 

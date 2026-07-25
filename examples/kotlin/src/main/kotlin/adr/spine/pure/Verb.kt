@@ -76,16 +76,28 @@ sealed interface Verb<S, I, R : ToolResult> {
         resolve(input, ctx)?.toString() ?: DECODE_FAILED
 
     /**
-     * Sign a result whose static type has been erased by the registry's star projection.
+     * Narrow an erased result back to THIS verb's own case.
      *
-     * This is the ONE unchecked cast in the system, and D3 is its proof: a result
-     * reaches this verb only because its `tool` name looked this verb up, and one
-     * name means one result case. Gate check C13 re-proves that mapping mechanically
-     * for every case in the system, so the cast is total by test, not by luck.
+     * Supplied at construction, where R is concrete, so it is an ordinary CHECKED
+     * `as?` against a named type — `{ it as? TriageResult.SetPriority }`. It replaces
+     * the system's one unchecked cast, `sign(result as R, …)`, which the compiler could
+     * not verify because the registry star-projects R away, and which therefore needed
+     * a @Suppress. Nothing is suppressed now; the check is real and happens at runtime.
      */
-    @Suppress("UNCHECKED_CAST")
-    fun signOf(result: ToolResult, sig: Signature, id: CommandId): Command =
-        sign(result as R, sig, id)
+    val narrow: (ToolResult) -> R?
+
+    /**
+     * Sign a result whose static type the registry erased.
+     *
+     * Null means the result did not belong to this verb, which D3 says cannot happen: a
+     * result reaches this verb only because its `tool` name looked this verb up, and one
+     * name means one result case. Gate check C13 re-proves that mapping mechanically for
+     * every case in the system. So the null branch is unreachable by proof — and it is
+     * now a branch the caller must answer for, rather than a cast the compiler was told
+     * to stop checking.
+     */
+    fun signOf(result: ToolResult, sig: Signature, id: CommandId): Command? =
+        narrow(result)?.let { sign(it, sig, id) }
 
     /** The verb's own answer to "must the boundary gate this?" */
     fun gating(state: S, result: ToolResult): Gating
@@ -97,6 +109,7 @@ sealed interface Verb<S, I, R : ToolResult> {
         override val decode: (RawInput) -> I?,
         override val run: (I, Ctx<S>) -> R,
         override val sign: (R, Signature, CommandId) -> Command,
+        override val narrow: (ToolResult) -> R?,
     ) : Verb<S, I, R> {
         override fun gating(state: S, result: ToolResult): Gating = Gating.Ungated
     }
@@ -112,6 +125,7 @@ sealed interface Verb<S, I, R : ToolResult> {
         override val decode: (RawInput) -> I?,
         override val run: (I, Ctx<S>) -> R,
         override val sign: (R, Signature, CommandId) -> Command,
+        override val narrow: (ToolResult) -> R?,
         val requestedBy: (S, ToolResult) -> Authority?,
     ) : Verb<S, I, R> {
         override fun gating(state: S, result: ToolResult): Gating =

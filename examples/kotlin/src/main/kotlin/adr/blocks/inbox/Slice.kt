@@ -20,12 +20,27 @@ import adr.spine.pure.SourceName
  * L1-correct: the spine does not name the block, the block does not name the
  * consumer, and the composition root is the one place allowed to know both.
  */
-sealed interface DropReason {
+enum class DropReason {
     /** Newest-input-wins superseded it while a turn was in flight (12.2). */
-    data object Conflated : DropReason
+    Conflated,
 
     /** A redelivered lease whose source key had already been folded (12.2). */
-    data object Duplicate : DropReason
+    Duplicate,
+    ;
+
+    /**
+     * The ONE seam from an external token to this closed set — the `fromToken()` the
+     * stringly-dispatch law asks for. It replaces a `when` over string literals, which
+     * is open-world dispatch: adding a variant there was a silent fall-through to
+     * `else -> null` rather than a compile error. Derived from `entries`, so a new
+     * variant is admitted automatically and cannot be forgotten.
+     *
+     * Still guarded, and still total: an unrecognised word is a decode failure (null),
+     * never a default.
+     */
+    fun interface Parser {
+        fun parse(token: String): DropReason?
+    }
 }
 
 data class InboxSlice(
