@@ -64,13 +64,3 @@ data class AppView(
     val analysis: AnalysisView,
     val inbox: InboxView,
 )
-
-/** Only the blocks that start non-empty are seeded; the rest take their own defaults. */
-fun initialState(
-    tickets: List<Ticket> = emptyList(),
-    panels: List<PanelId> = listOf(PanelId("queue"), PanelId("detail"), PanelId("audit")),
-): State = State(
-    triage = TriageBlock().slice(tickets),
-    escalation = EscalationBlock().slice(tickets.map { it.id }),
-    console = ConsoleBlock().slice(panels),
-)

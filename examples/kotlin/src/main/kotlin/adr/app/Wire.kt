@@ -309,7 +309,7 @@ class Wiring {
 
         val log = mutableListOf<String>()
         val sink = RecordingSink(AppSink(env.oncall, env.delivery, env.relay, log))
-        val initial = initialState(env.tickets)
+        val initial = Assembly().initialState(env.tickets)
 
         val boundary = Boundary(
             clock = env.clock,
@@ -319,15 +319,15 @@ class Wiring {
             authority = env.authority,
             policy = env.policy,
             registry = registry,
-            fold = ::foldApp,
-            projectContext = ::projectContextApp,
+            fold = Assembly()::fold,
+            projectContext = Assembly()::context,
             promptVersion = env.promptVersion,
             session = env.session,
             initial = initial,
         )
 
         val controller = Controller(
-            viewOf = { projectApp(boundary.state) },
+            viewOf = { Assembly().view(boundary.state) },
             submit = boundary::onStepFinish,
         )
 
