@@ -14,6 +14,10 @@ ignores:
   - "**/dist/**"
   - "**/*.gradle.kts"
   # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
 message: "no-todo-throws: TODO() throws NotImplementedError at runtime. Implement the code or remove the placeholder."
 rule:
   any:
