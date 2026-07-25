@@ -13,23 +13,17 @@
 
 package adr.app
 
-import adr.blocks.analysis.Analysis
 import adr.blocks.analysis.AnalysisSlice
 import adr.blocks.analysis.AnalysisView
-import adr.blocks.artifact.Artifact
 import adr.blocks.artifact.ArtifactSlice
 import adr.blocks.artifact.ArtifactView
-import adr.blocks.console.Console
 import adr.blocks.console.ConsoleSlice
 import adr.blocks.console.ConsoleView
-import adr.blocks.escalation.Escalation
 import adr.blocks.escalation.EscalationSlice
 import adr.blocks.escalation.EscalationView
-import adr.blocks.inbox.Inbox
 import adr.blocks.inbox.InboxSlice
 import adr.blocks.inbox.InboxView
 import adr.blocks.triage.Ticket
-import adr.blocks.triage.Triage
 import adr.blocks.triage.TriageSlice
 import adr.blocks.triage.TriageView
 import adr.spine.pure.PanelId
@@ -37,19 +31,24 @@ import adr.spine.pure.SpineSlice
 import adr.spine.pure.ViewModel
 
 /**
- * Every slice defaults to its own block's `initial`, so plugging a block in is ONE
+ * Every slice defaults to its own SLICE's `empty`, so plugging a block in is ONE
  * appended field here — a seeding line is needed only for a block that starts non-empty.
+ *
+ * The default names the slice shape rather than the block, because a data-class default
+ * is evaluated before any block exists and a block is now a CONSTRUCTED type rather than
+ * a loose `object` standing by at file scope. Nothing is lost: `empty` was already the
+ * idiom in inbox, artifact and analysis.
  */
 data class State(
     val spine: SpineSlice = SpineSlice.initial,
-    val triage: TriageSlice = Triage.initial,
-    val escalation: EscalationSlice = Escalation.initial,
-    val console: ConsoleSlice = Console.initial,
-    val artifact: ArtifactSlice = Artifact.initial,
+    val triage: TriageSlice = TriageSlice.empty,
+    val escalation: EscalationSlice = EscalationSlice.empty,
+    val console: ConsoleSlice = ConsoleSlice.empty,
+    val artifact: ArtifactSlice = ArtifactSlice.empty,
     /** The tiering rung (11): what this tier recalled, and what it published. */
-    val analysis: AnalysisSlice = Analysis.initial,
+    val analysis: AnalysisSlice = AnalysisSlice.empty,
     /** The barge-in rung (12): what was shed while busy, and what failed. */
-    val inbox: InboxSlice = Inbox.initial,
+    val inbox: InboxSlice = InboxSlice.empty,
 )
 
 /** The block views composed onto the spine's ViewModel root. */
@@ -68,7 +67,7 @@ fun initialState(
     tickets: List<Ticket> = emptyList(),
     panels: List<PanelId> = listOf(PanelId("queue"), PanelId("detail"), PanelId("audit")),
 ): State = State(
-    triage = Triage.slice(tickets),
-    escalation = Escalation.slice(tickets.map { it.id }),
-    console = Console.slice(panels),
+    triage = TriageSlice.of(tickets),
+    escalation = EscalationSlice.of(tickets.map { it.id }),
+    console = ConsoleSlice.of(panels),
 )

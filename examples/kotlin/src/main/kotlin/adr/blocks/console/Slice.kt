@@ -19,6 +19,9 @@ data class ConsoleSlice(
         copy(panels = panels + (panel to visible))
 
     companion object {
+        /** The starting slice, on the SHAPE — `State`'s field default needs it before any block exists. */
+        val empty = ConsoleSlice(focused = null, panels = emptyMap())
+
         fun of(panels: List<PanelId>): ConsoleSlice =
             ConsoleSlice(focused = null, panels = panels.associateWith { false })
     }

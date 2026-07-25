@@ -9,15 +9,23 @@
 // Every dispatcher is an EXHAUSTIVE match with NO else arm. Adding a block adds one
 // branch to each, and the compiler names every one. Adding a VERB adds nothing here
 // at all — that edit lands entirely inside the block (§11.1).
+//
+// THE BLOCKS ARE CONSTRUCTED HERE, per call. A block used to be a loose `object`, so
+// there was nothing to build and nothing that could be built in a test; now each
+// dispatcher stands its blocks up itself. The three signatures are UNCHANGED on
+// purpose — `::foldApp` and `::projectContextApp` are passed to the Boundary against
+// `typealias Fold<S>` and `ProjectContext<S>`, and an extra parameter here would break
+// nine call sites. When these three dispatchers become a class in their own right, the
+// locals below hoist to constructor state with no other rework.
 
 package adr.app
 
-import adr.blocks.analysis.Analysis
-import adr.blocks.artifact.Artifact
-import adr.blocks.console.Console
-import adr.blocks.escalation.Escalation
-import adr.blocks.inbox.Inbox
-import adr.blocks.triage.Triage
+import adr.blocks.analysis.AnalysisBlock
+import adr.blocks.artifact.ArtifactBlock
+import adr.blocks.console.ConsoleBlock
+import adr.blocks.escalation.EscalationBlock
+import adr.blocks.inbox.InboxBlock
+import adr.blocks.triage.TriageBlock
 import adr.contract.AnalysisResult
 import adr.contract.ArtifactResult
 import adr.contract.ConsoleResult
@@ -42,43 +50,50 @@ fun foldApp(
     now: Timestamp,
     sig: Signature,
 ): Pair<State, List<Effect>> {
+    val triage = TriageBlock()
+    val escalation = EscalationBlock()
+    val console = ConsoleBlock()
+    val artifact = ArtifactBlock()
+    val analysis = AnalysisBlock()
+    val inbox = InboxBlock()
+
     var s = state
     val effects = mutableListOf<Effect>()
     val notices = mutableListOf<Notice>()
 
     for (result in results) {
         when (result) {
-            is TriageResult -> Triage.arm(s.triage, result, now, sig).let {
+            is TriageResult -> triage.arm(s.triage, result, now, sig).let {
                 s = s.copy(triage = it.slice)
                 effects += it.effects
                 notices += it.notices
             }
 
-            is EscalationResult -> Escalation.arm(s.escalation, result, now, sig).let {
+            is EscalationResult -> escalation.arm(s.escalation, result, now, sig).let {
                 s = s.copy(escalation = it.slice)
                 effects += it.effects
                 notices += it.notices
             }
 
-            is ConsoleResult -> Console.arm(s.console, result, now, sig).let {
+            is ConsoleResult -> console.arm(s.console, result, now, sig).let {
                 s = s.copy(console = it.slice)
                 effects += it.effects
                 notices += it.notices
             }
 
-            is ArtifactResult -> Artifact.arm(s.artifact, result, now, sig).let {
+            is ArtifactResult -> artifact.arm(s.artifact, result, now, sig).let {
                 s = s.copy(artifact = it.slice)
                 effects += it.effects
                 notices += it.notices
             }
 
-            is AnalysisResult -> Analysis.arm(s.analysis, result, now, sig).let {
+            is AnalysisResult -> analysis.arm(s.analysis, result, now, sig).let {
                 s = s.copy(analysis = it.slice)
                 effects += it.effects
                 notices += it.notices
             }
 
-            is InboxResult -> Inbox.arm(s.inbox, result, now, sig).let {
+            is InboxResult -> inbox.arm(s.inbox, result, now, sig).let {
                 s = s.copy(inbox = it.slice)
                 effects += it.effects
                 notices += it.notices
@@ -103,12 +118,12 @@ fun foldApp(
 
 fun projectApp(state: State): AppView = AppView(
     root = spineView(state.spine),
-    triage = Triage.view(state.triage),
-    escalation = Escalation.view(state.escalation),
-    console = Console.view(state.console),
-    artifact = Artifact.view(state.artifact),
-    analysis = Analysis.view(state.analysis),
-    inbox = Inbox.view(state.inbox),
+    triage = TriageBlock().view(state.triage),
+    escalation = EscalationBlock().view(state.escalation),
+    console = ConsoleBlock().view(state.console),
+    artifact = ArtifactBlock().view(state.artifact),
+    analysis = AnalysisBlock().view(state.analysis),
+    inbox = InboxBlock().view(state.inbox),
 )
 
 /**
@@ -118,13 +133,13 @@ fun projectApp(state: State): AppView = AppView(
  */
 fun projectContextApp(state: State, staged: List<StagedInput>): Context = Context(
     staged = staged,
-    lines = Triage.contextLines(state.triage) +
-        Escalation.contextLines(state.escalation) +
-        Console.contextLines(state.console) +
-        Analysis.contextLines(state.analysis) +
-        Inbox.contextLines(state.inbox),
+    lines = TriageBlock().contextLines(state.triage) +
+        EscalationBlock().contextLines(state.escalation) +
+        ConsoleBlock().contextLines(state.console) +
+        AnalysisBlock().contextLines(state.analysis) +
+        InboxBlock().contextLines(state.inbox),
     notices = state.spine.notices
         .takeLast(MAX_CONTEXT_NOTICES)
         .map { "${it.tool.value}: ${it.reason}" },
-    artifactLineCount = Artifact.lineCount(state.artifact),
+    artifactLineCount = ArtifactBlock().lineCount(state.artifact),
 )

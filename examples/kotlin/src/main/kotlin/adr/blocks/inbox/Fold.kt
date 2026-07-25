@@ -13,25 +13,28 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
-fun inboxArm(
-    slice: InboxSlice,
-    result: InboxResult,
-    now: Timestamp,
-    sig: Signature,
-): ArmOut<InboxSlice> = when (result) {
-    is InboxResult.NoteDrop ->
-        if (result.dropped <= 0) {
-            // RULE 1: the arm validates against reality before it decides. "Zero
-            // dropped" is not a drop, and recording it would inflate the counter the
-            // operator uses to decide whether the tier is overloaded.
-            ArmOut(
-                slice = slice,
-                notices = listOf(Notice.Rejected(now, result.tool, "a drop count must be positive")),
-            )
-        } else {
-            ArmOut(slice = slice.withDrop(result.source, result.reason, result.dropped))
-        }
+class InboxArm {
 
-    is InboxResult.NoteFault ->
-        ArmOut(slice = slice.withFault("${result.source.value}: ${result.fault}"))
+    fun arm(
+        slice: InboxSlice,
+        result: InboxResult,
+        now: Timestamp,
+        sig: Signature,
+    ): ArmOut<InboxSlice> = when (result) {
+        is InboxResult.NoteDrop ->
+            if (result.dropped <= 0) {
+                // RULE 1: the arm validates against reality before it decides. "Zero
+                // dropped" is not a drop, and recording it would inflate the counter the
+                // operator uses to decide whether the tier is overloaded.
+                ArmOut(
+                    slice = slice,
+                    notices = listOf(Notice.Rejected(now, result.tool, "a drop count must be positive")),
+                )
+            } else {
+                ArmOut(slice = slice.withDrop(result.source, result.reason, result.dropped))
+            }
+
+        is InboxResult.NoteFault ->
+            ArmOut(slice = slice.withFault("${result.source.value}: ${result.fault}"))
+    }
 }

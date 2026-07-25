@@ -23,33 +23,37 @@ data class FindingInput(val text: String)
 
 data object NoInput
 
-private fun decodeFinding(raw: RawInput): FindingInput? = raw.text("text")?.let { FindingInput(it) }
+class ArtifactTools<S>(private val lens: (S) -> ArtifactSlice) {
 
-private fun decodeNothing(raw: RawInput): NoInput = NoInput
+    fun verbs(): List<Verb<S, *, *>> = listOf(
+        Verb.Reversible(
+            name = RECORD_FINDING,
+            describe = "Record one finding as a line in the session's work product.",
+            decode = ::decodeFinding,
+            run = { input, _ -> ArtifactResult.RecordFinding(RECORD_FINDING, input.text) },
+            sign = { r, sig, id -> ArtifactCommand.RecordFinding(r.tool, sig, id, r.text) },
+        ),
+        Verb.Reversible(
+            name = REQUEST_SEAL,
+            describe = "Request that the work product be sealed and delivered. Reversible.",
+            decode = ::decodeNothing,
+            run = { _, _ -> ArtifactResult.RequestSeal(REQUEST_SEAL) },
+            sign = { r, sig, id -> ArtifactCommand.RequestSeal(r.tool, sig, id) },
+        ),
+        Verb.Irreversible(
+            name = CONFIRM_SEAL,
+            describe = "Confirm the seal. IRREVERSIBLE: it delivers the work product.",
+            decode = ::decodeNothing,
+            run = { _, _ -> ArtifactResult.ConfirmSeal(CONFIRM_SEAL) },
+            sign = { r, sig, id -> ArtifactCommand.ConfirmSeal(r.tool, sig, id) },
+            requestedBy = { state, _ ->
+                (lens(state).seal as? SealStatus.Sealing)?.requestedBy
+            },
+        ),
+    )
 
-fun <S> artifactVerbs(lens: (S) -> ArtifactSlice): List<Verb<S, *, *>> = listOf(
-    Verb.Reversible(
-        name = RECORD_FINDING,
-        describe = "Record one finding as a line in the session's work product.",
-        decode = ::decodeFinding,
-        run = { input, _ -> ArtifactResult.RecordFinding(RECORD_FINDING, input.text) },
-        sign = { r, sig, id -> ArtifactCommand.RecordFinding(r.tool, sig, id, r.text) },
-    ),
-    Verb.Reversible(
-        name = REQUEST_SEAL,
-        describe = "Request that the work product be sealed and delivered. Reversible.",
-        decode = ::decodeNothing,
-        run = { _, _ -> ArtifactResult.RequestSeal(REQUEST_SEAL) },
-        sign = { r, sig, id -> ArtifactCommand.RequestSeal(r.tool, sig, id) },
-    ),
-    Verb.Irreversible(
-        name = CONFIRM_SEAL,
-        describe = "Confirm the seal. IRREVERSIBLE: it delivers the work product.",
-        decode = ::decodeNothing,
-        run = { _, _ -> ArtifactResult.ConfirmSeal(CONFIRM_SEAL) },
-        sign = { r, sig, id -> ArtifactCommand.ConfirmSeal(r.tool, sig, id) },
-        requestedBy = { state, _ ->
-            (lens(state).seal as? SealStatus.Sealing)?.requestedBy
-        },
-    ),
-)
+    private fun decodeFinding(raw: RawInput): FindingInput? =
+        raw.text("text")?.let { FindingInput(it) }
+
+    private fun decodeNothing(raw: RawInput): NoInput = NoInput
+}

@@ -30,41 +30,44 @@ data class NoteDropInput(val source: SourceName, val reason: DropReason, val dro
 
 data class NoteFaultInput(val source: SourceName, val fault: String)
 
-/** OPEN input, guarded: an unrecognised word is a decode failure, never a default. */
-private fun dropReasonOf(name: String): DropReason? = when (name) {
-    "Conflated" -> DropReason.Conflated
-    "Duplicate" -> DropReason.Duplicate
-    else -> null
-}
+class InboxTools<S>(private val lens: (S) -> InboxSlice) {
 
-private fun decodeNoteDrop(raw: RawInput): NoteDropInput? {
-    val source = raw.text("source") ?: return null
-    val reason = raw.text("reason")?.let(::dropReasonOf) ?: return null
-    val dropped = raw.text("dropped")?.toIntOrNull() ?: return null
-    return NoteDropInput(SourceName(source), reason, dropped)
-}
+    fun verbs(): List<Verb<S, *, *>> = listOf(
+        Verb.Reversible(
+            name = NOTE_DROP,
+            describe = "Record that inputs from a source were dropped while the agent was busy.",
+            decode = ::decodeNoteDrop,
+            run = { input, _ ->
+                InboxResult.NoteDrop(NOTE_DROP, input.source, input.reason, input.dropped)
+            },
+            sign = { r, sig, id -> InboxCommand.NoteDrop(r.tool, sig, id, r.source, r.reason, r.dropped) },
+        ),
+        Verb.Reversible(
+            name = NOTE_FAULT,
+            describe = "Record that a turn failed or was abandoned, with its cause.",
+            decode = ::decodeNoteFault,
+            run = { input, _ -> InboxResult.NoteFault(NOTE_FAULT, input.source, input.fault) },
+            sign = { r, sig, id -> InboxCommand.NoteFault(r.tool, sig, id, r.source, r.fault) },
+        ),
+    )
 
-private fun decodeNoteFault(raw: RawInput): NoteFaultInput? {
-    val source = raw.text("source") ?: return null
-    val fault = raw.text("fault") ?: return null
-    return NoteFaultInput(SourceName(source), fault)
-}
+    private fun decodeNoteDrop(raw: RawInput): NoteDropInput? {
+        val source = raw.text("source") ?: return null
+        val reason = raw.text("reason")?.let(::dropReasonOf) ?: return null
+        val dropped = raw.text("dropped")?.toIntOrNull() ?: return null
+        return NoteDropInput(SourceName(source), reason, dropped)
+    }
 
-fun <S> inboxVerbs(lens: (S) -> InboxSlice): List<Verb<S, *, *>> = listOf(
-    Verb.Reversible(
-        name = NOTE_DROP,
-        describe = "Record that inputs from a source were dropped while the agent was busy.",
-        decode = ::decodeNoteDrop,
-        run = { input, _ ->
-            InboxResult.NoteDrop(NOTE_DROP, input.source, input.reason, input.dropped)
-        },
-        sign = { r, sig, id -> InboxCommand.NoteDrop(r.tool, sig, id, r.source, r.reason, r.dropped) },
-    ),
-    Verb.Reversible(
-        name = NOTE_FAULT,
-        describe = "Record that a turn failed or was abandoned, with its cause.",
-        decode = ::decodeNoteFault,
-        run = { input, _ -> InboxResult.NoteFault(NOTE_FAULT, input.source, input.fault) },
-        sign = { r, sig, id -> InboxCommand.NoteFault(r.tool, sig, id, r.source, r.fault) },
-    ),
-)
+    private fun decodeNoteFault(raw: RawInput): NoteFaultInput? {
+        val source = raw.text("source") ?: return null
+        val fault = raw.text("fault") ?: return null
+        return NoteFaultInput(SourceName(source), fault)
+    }
+
+    /** OPEN input, guarded: an unrecognised word is a decode failure, never a default. */
+    private fun dropReasonOf(name: String): DropReason? = when (name) {
+        "Conflated" -> DropReason.Conflated
+        "Duplicate" -> DropReason.Duplicate
+        else -> null
+    }
+}

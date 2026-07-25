@@ -12,6 +12,11 @@
 //   confirm on a ticket absent from State       → PageOncall("nope") fired AND run → Degraded
 // Both are structurally impossible now: the gate refuses the first before the fold ever
 // sees it, and the arm reads state before it decides for the second.
+//
+// Derived from blocks/triage/fold, and the same rule applies: the arm is a member of a
+// CONSTRUCTED type, and `reject` is a PRIVATE member of the one arm that uses it rather
+// than a file-scope helper nothing owns. The constructor is empty because every
+// argument varies per call.
 
 package adr.blocks.escalation
 
@@ -22,58 +27,61 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
-fun escalationArm(
-    slice: EscalationSlice,
-    result: EscalationResult,
-    now: Timestamp,
-    sig: Signature,
-): ArmOut<EscalationSlice> {
-    // RULE 1: read current state before deciding.
-    val status = slice.statusOf(result.ticket)
-        ?: return reject(slice, now, result, "unknown ticket ${result.ticket.value}")
+class EscalationArm {
 
-    // What this verb wants the ticket to become. Exhaustive over the block's sub-union.
-    val intent = when (result) {
-        is EscalationResult.RequestEscalation ->
-            TicketStatus.Escalating(result.ticket, sig.authority)
+    fun arm(
+        slice: EscalationSlice,
+        result: EscalationResult,
+        now: Timestamp,
+        sig: Signature,
+    ): ArmOut<EscalationSlice> {
+        // RULE 1: read current state before deciding.
+        val status = slice.statusOf(result.ticket)
+            ?: return reject(slice, now, result, "unknown ticket ${result.ticket.value}")
 
-        is EscalationResult.ConfirmEscalation ->
-            TicketStatus.Escalated(result.ticket, sig.authority)
+        // What this verb wants the ticket to become. Exhaustive over the block's sub-union.
+        val intent = when (result) {
+            is EscalationResult.RequestEscalation ->
+                TicketStatus.Escalating(result.ticket, sig.authority)
+
+            is EscalationResult.ConfirmEscalation ->
+                TicketStatus.Escalated(result.ticket, sig.authority)
+        }
+
+        // Whether the ticket may move there FROM WHERE IT ACTUALLY IS. Exhaustive over TicketStatus.
+        val permitted = when (status) {
+            is TicketStatus.Open -> intent is TicketStatus.Escalating
+            is TicketStatus.Escalating -> intent is TicketStatus.Escalated
+            is TicketStatus.Escalated -> false
+            is TicketStatus.Resolved -> false
+        }
+
+        if (!permitted) {
+            return reject(
+                slice,
+                now,
+                result,
+                "ticket ${result.ticket.value} is not in a state that allows ${result.tool.value}",
+            )
+        }
+
+        // RULE 2: the irreversible effect lives INSIDE the success branch, and only for the
+        // transition that actually reaches Escalated.
+        val effects = if (intent is TicketStatus.Escalated) {
+            listOf(EscalationEffect.PageOncall(now, result.ticket))
+        } else {
+            emptyList()
+        }
+
+        return ArmOut(slice = slice.with(intent), effects = effects)
     }
 
-    // Whether the ticket may move there FROM WHERE IT ACTUALLY IS. Exhaustive over TicketStatus.
-    val permitted = when (status) {
-        is TicketStatus.Open -> intent is TicketStatus.Escalating
-        is TicketStatus.Escalating -> intent is TicketStatus.Escalated
-        is TicketStatus.Escalated -> false
-        is TicketStatus.Resolved -> false
-    }
-
-    if (!permitted) {
-        return reject(
-            slice,
-            now,
-            result,
-            "ticket ${result.ticket.value} is not in a state that allows ${result.tool.value}",
-        )
-    }
-
-    // RULE 2: the irreversible effect lives INSIDE the success branch, and only for the
-    // transition that actually reaches Escalated.
-    val effects = if (intent is TicketStatus.Escalated) {
-        listOf(EscalationEffect.PageOncall(now, result.ticket))
-    } else {
-        emptyList()
-    }
-
-    return ArmOut(slice = slice.with(intent), effects = effects)
+    // RULE 3: a rejection folds a per-item Notice — never RunStatus, never a mutation.
+    private fun reject(
+        slice: EscalationSlice,
+        now: Timestamp,
+        result: EscalationResult,
+        reason: String,
+    ): ArmOut<EscalationSlice> =
+        ArmOut(slice = slice, notices = listOf(Notice.Rejected(now, result.tool, reason)))
 }
-
-// RULE 3: a rejection folds a per-item Notice — never RunStatus, never a mutation.
-private fun reject(
-    slice: EscalationSlice,
-    now: Timestamp,
-    result: EscalationResult,
-    reason: String,
-): ArmOut<EscalationSlice> =
-    ArmOut(slice = slice, notices = listOf(Notice.Rejected(now, result.tool, reason)))

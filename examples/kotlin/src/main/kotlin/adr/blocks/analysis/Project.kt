@@ -20,41 +20,44 @@ data class AnalysisRow(val at: Long, val freshness: String, val text: String)
 
 data class AnalysisView(val recalls: List<AnalysisRow>, val published: List<String>)
 
-fun analysisView(slice: AnalysisSlice): AnalysisView = AnalysisView(
-    recalls = slice.notes.map { note ->
-        AnalysisRow(
-            at = note.at.value,
-            freshness = freshnessOf(note.recall),
-            text = note.recall.text,
-        )
-    },
-    published = slice.published,
-)
+class AnalysisProjection {
 
-/** The operator's word for the branch. Closed match, no else arm. */
-private fun freshnessOf(recall: Recall): String = when (recall) {
-    is Recall.Fresh -> "fresh"
-    is Recall.LastKnown -> "stale (last known)"
-    Recall.Empty -> "none published"
-}
+    fun view(slice: AnalysisSlice): AnalysisView = AnalysisView(
+        recalls = slice.notes.map { note ->
+            AnalysisRow(
+                at = note.at.value,
+                freshness = freshnessOf(note.recall),
+                text = note.recall.text,
+            )
+        },
+        published = slice.published,
+    )
 
-fun analysisContextLines(slice: AnalysisSlice): List<String> =
-    slice.notes
-        .takeLast(MAX_CONTEXT_LINES_PER_BLOCK)
-        .map { "recalled: ${contextWordFor(it.recall)}" }
+    fun contextLines(slice: AnalysisSlice): List<String> =
+        slice.notes
+            .takeLast(MAX_CONTEXT_LINES_PER_BLOCK)
+            .map { "recalled: ${contextWordFor(it.recall)}" }
 
-/**
- * The model's word for the branch. A SEPARATE closed match from the view's, because
- * the reasoner needs the caveat spelled out ("do not act on this as current") where
- * an operator only needs a badge.
- */
-private fun contextWordFor(recall: Recall): String = when (recall) {
-    is Recall.Fresh ->
-        "the deep tier's conclusion, current as of ${recall.publishedAt.value} — ${recall.text}"
+    /** The operator's word for the branch. Closed match, no else arm. */
+    private fun freshnessOf(recall: Recall): String = when (recall) {
+        is Recall.Fresh -> "fresh"
+        is Recall.LastKnown -> "stale (last known)"
+        Recall.Empty -> "none published"
+    }
 
-    is Recall.LastKnown ->
-        "the deep tier's LAST KNOWN conclusion from ${recall.publishedAt.value}; it may be out of " +
-            "date — ${recall.text}"
+    /**
+     * The model's word for the branch. A SEPARATE closed match from the view's, because
+     * the reasoner needs the caveat spelled out ("do not act on this as current") where
+     * an operator only needs a badge.
+     */
+    private fun contextWordFor(recall: Recall): String = when (recall) {
+        is Recall.Fresh ->
+            "the deep tier's conclusion, current as of ${recall.publishedAt.value} — ${recall.text}"
 
-    Recall.Empty -> "the deep tier has published no conclusion yet"
+        is Recall.LastKnown ->
+            "the deep tier's LAST KNOWN conclusion from ${recall.publishedAt.value}; it may be out of " +
+                "date — ${recall.text}"
+
+        Recall.Empty -> "the deep tier has published no conclusion yet"
+    }
 }

@@ -23,52 +23,55 @@ data class EscalationRow(
 
 data class EscalationView(val rows: List<EscalationRow>)
 
-fun escalationView(slice: EscalationSlice): EscalationView = EscalationView(
-    rows = slice.status.values.map { status ->
-        when (status) {
-            is TicketStatus.Open -> EscalationRow(
-                ticket = status.ticket.value,
-                state = "open",
-                canEscalate = true,
-                escalating = false,
-                escalated = false,
-            )
+class EscalationProjection {
 
-            is TicketStatus.Escalating -> EscalationRow(
-                ticket = status.ticket.value,
-                state = "escalating (asked by ${status.requestedBy.id})",
-                canEscalate = false,
-                escalating = true,
-                escalated = false,
-            )
+    fun view(slice: EscalationSlice): EscalationView = EscalationView(
+        rows = slice.status.values.map { status ->
+            when (status) {
+                is TicketStatus.Open -> EscalationRow(
+                    ticket = status.ticket.value,
+                    state = "open",
+                    canEscalate = true,
+                    escalating = false,
+                    escalated = false,
+                )
 
-            is TicketStatus.Escalated -> EscalationRow(
-                ticket = status.ticket.value,
-                state = "escalated (confirmed by ${status.confirmedBy.id})",
-                canEscalate = false,
-                escalating = false,
-                escalated = true,
-            )
+                is TicketStatus.Escalating -> EscalationRow(
+                    ticket = status.ticket.value,
+                    state = "escalating (asked by ${status.requestedBy.id})",
+                    canEscalate = false,
+                    escalating = true,
+                    escalated = false,
+                )
 
-            is TicketStatus.Resolved -> EscalationRow(
-                ticket = status.ticket.value,
-                state = "resolved",
-                canEscalate = false,
-                escalating = false,
-                escalated = false,
-            )
+                is TicketStatus.Escalated -> EscalationRow(
+                    ticket = status.ticket.value,
+                    state = "escalated (confirmed by ${status.confirmedBy.id})",
+                    canEscalate = false,
+                    escalating = false,
+                    escalated = true,
+                )
+
+                is TicketStatus.Resolved -> EscalationRow(
+                    ticket = status.ticket.value,
+                    state = "resolved",
+                    canEscalate = false,
+                    escalating = false,
+                    escalated = false,
+                )
+            }
+        },
+    )
+
+    fun contextLines(slice: EscalationSlice): List<String> =
+        slice.status.values.take(MAX_CONTEXT_LINES_PER_BLOCK).map { status ->
+            when (status) {
+                is TicketStatus.Open -> "ticket ${status.ticket.value} is open"
+                is TicketStatus.Escalating ->
+                    "ticket ${status.ticket.value} has a PENDING escalation request"
+
+                is TicketStatus.Escalated -> "ticket ${status.ticket.value} is escalated; on-call paged"
+                is TicketStatus.Resolved -> "ticket ${status.ticket.value} is resolved"
+            }
         }
-    },
-)
-
-fun escalationContextLines(slice: EscalationSlice): List<String> =
-    slice.status.values.take(MAX_CONTEXT_LINES_PER_BLOCK).map { status ->
-        when (status) {
-            is TicketStatus.Open -> "ticket ${status.ticket.value} is open"
-            is TicketStatus.Escalating ->
-                "ticket ${status.ticket.value} has a PENDING escalation request"
-
-            is TicketStatus.Escalated -> "ticket ${status.ticket.value} is escalated; on-call paged"
-            is TicketStatus.Resolved -> "ticket ${status.ticket.value} is resolved"
-        }
-    }
+}

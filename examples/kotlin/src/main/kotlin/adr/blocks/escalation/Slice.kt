@@ -36,6 +36,9 @@ data class EscalationSlice(val status: Map<TicketId, TicketStatus>) {
     fun with(next: TicketStatus): EscalationSlice = copy(status = status + (next.ticket to next))
 
     companion object {
+        /** The starting slice, on the SHAPE — `State`'s field default needs it before any block exists. */
+        val empty = EscalationSlice(status = emptyMap())
+
         fun of(tickets: List<TicketId>): EscalationSlice =
             EscalationSlice(tickets.associateWith { TicketStatus.Open(it) })
     }
