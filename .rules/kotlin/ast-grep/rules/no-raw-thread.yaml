@@ -1,0 +1,25 @@
+# TENET: No raw Thread creation.
+# Rationale: Use coroutines for async work. Raw threads bypass structured concurrency,
+# can't be cancelled, and don't propagate context.
+id: no-raw-thread
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/test/**"
+  - "**/*Test/**"
+  - "**/testFixtures/**"
+  # grandfather entries are per-repo; installs append their own
+message: "Use coroutines instead of raw Thread. Threads bypass structured concurrency."
+rule:
+  any:
+    - pattern: Thread($$$ARGS)
+    - pattern: Thread { $$$BODY }
+    - pattern: thread($$$ARGS)
+    - pattern: thread { $$$BODY }

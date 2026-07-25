@@ -1,0 +1,32 @@
+# TENET: Exhaustive switch on discriminated unions.
+# Rationale: Use never check in default case to catch missing variants at compile time.
+# Pattern:
+#   switch (action.kind) {
+#     case 'increment': return ...;
+#     case 'decrement': return ...;
+#     default: const _exhaustive: never = action; throw new Error(`Unhandled: ${_exhaustive}`);
+#   }
+id: exhaustive-switch
+language: typescript
+severity: error
+message: "Add exhaustive check in switch default: const _exhaustive: never = value;"
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+rule:
+  kind: switch_statement
+  all:
+    - has:
+        kind: switch_body
+        has:
+          kind: switch_default
+    - not:
+        has:
+          kind: switch_body
+          has:
+            kind: switch_default
+            has:
+              pattern: "const $_: never = $VAR"

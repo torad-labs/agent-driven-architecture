@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "toolkit": "^1.2.0",
+  "packs": [
+    "kotlin"
+  ],
+  "vendor": true,
+  "configs": [
+    "kotlin-rules",
+    "typescript-rules"
+  ]
+}

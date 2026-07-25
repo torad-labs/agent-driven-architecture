@@ -1,0 +1,20 @@
+# TENET: Use `as const` for literal objects and arrays.
+# Rationale: `as const` narrows to literal types and makes objects readonly.
+# Enables exhaustive checking on object keys.
+id: prefer-const-assertion
+language: typescript
+severity: error
+message: "Consider `as const` for literal objects to get literal types."
+files:
+  - "**/constants.ts"
+  - "**/config.ts"
+ignores:
+  - "**/test/**"
+rule:
+  kind: variable_declarator
+  all:
+    - has:
+        kind: object
+    - not:
+        has:
+          kind: as_expression

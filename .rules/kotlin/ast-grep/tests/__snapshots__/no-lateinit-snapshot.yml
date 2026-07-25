@@ -1,0 +1,9 @@
+id: no-lateinit
+snapshots:
+  ? |
+    class A { lateinit var dep: Dep }
+  : labels:
+    - source: 'lateinit var dep: Dep'
+      style: primary
+      start: 10
+      end: 31

@@ -1,0 +1,15 @@
+id: backend-no-openclaw-sdk-import
+valid:
+  - |
+    package good
+
+    import torad.openclaw.platform.Platform
+
+    class UsesPlatform
+invalid:
+  - |
+    package bad
+
+    import torad.openclaw.sdk.Plugin
+
+    class UsesSdk

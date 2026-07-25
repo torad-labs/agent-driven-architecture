@@ -1,0 +1,14 @@
+# TENET: Don't throw strings, throw Error objects.
+# Rationale: Error objects have stack traces and are catchable by type.
+# throw "message" loses debugging information.
+id: no-throw-string
+language: typescript
+severity: error
+message: "Throw Error objects, not strings. Use `throw new Error('...')`."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+rule:
+  kind: throw_statement
+  has:
+    kind: string

@@ -1,0 +1,21 @@
+id: no-child-process-in-src
+snapshots:
+  ? |
+    @file:JsModule("node:child_process")
+
+    package bad
+
+    external fun spawn(): dynamic
+  : labels:
+    - source: JsModule("node:child_process")
+      style: primary
+      start: 6
+      end: 36
+    - source: JsModule
+      style: secondary
+      start: 6
+      end: 14
+    - source: node:child_process
+      style: secondary
+      start: 16
+      end: 34

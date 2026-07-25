@@ -1,0 +1,56 @@
+{
+  "summary": {
+    "total": 9,
+    "passed": 7,
+    "failed": 2,
+    "pass_rate": 0.78
+  },
+  "expectations": [
+    {
+      "text": "Flags that `runCatching` wraps a suspend call and swallows CancellationException.",
+      "passed": false,
+      "evidence": "not mentioned. Finding #4 discusses `runCatching` but only that it 'only guards the fetch + parse' and that code after the `isFailure` check is unguarded — it never identifies that `runCatching` wrapping a suspend call captures/swallows `CancellationException`. The CancellationException discussion (finding #2) is about the `catch (Exception)` in `stream()`, not the `runCatching` in `latest()`."
+    },
+    {
+      "text": "Flags the empty `catch (e: Exception) {}` in stream() swallowing cancellation.",
+      "passed": true,
+      "evidence": "Finding #2: \"`catch (Exception)` swallows `CancellationException` -> the flow can't be cancelled ('prices freeze') ... `CancellationException` is an `Exception`. When the watchlist screen ... is cancelled, the cancellation is delivered by throwing `CancellationException` ... This `catch` eats it and the `while (true)` loop keeps running.\""
+    },
+    {
+      "text": "Flags constructing `Json {}` per call instead of reusing one.",
+      "passed": true,
+      "evidence": "Finding #8: \"`Json { ignoreUnknownKeys = true }` is allocated on every `latest()` call ... A new `Json` instance is constructed per call inside the hot path. `Json` is designed to be created once and reused. Hoist it to a top-level/companion `private val json`.\""
+    },
+    {
+      "text": "Flags returning cached/0.0 on failure as masking the outage (fake success), and the 0.0 sentinel as dangerous.",
+      "passed": true,
+      "evidence": "Finding #5: \"`0.0` as a 'no data' sentinel is dangerous for prices ... In a trading app, `0.0` is a real, catastrophic price — it can trip alerts, show a free instrument, or feed a P&L calc as a 100% loss. A sentinel that collides with a legitimate value is a latent incident.\" Also finding #4 notes the fallback masks a successful-but-malformed response."
+    },
+    {
+      "text": "Flags `GlobalScope.launch` in prefetch().",
+      "passed": true,
+      "evidence": "Finding #6: \"`GlobalScope.launch` in `prefetch()` — leaked, uncancellable work ... `GlobalScope` is unbounded and not tied to any lifecycle ... can't be cancelled when the screen/repo is torn down ... `GlobalScope` should essentially never appear in app/library code.\""
+    },
+    {
+      "text": "Flags the hardcoded `Dispatchers.IO` as hurting testability.",
+      "passed": false,
+      "evidence": "not mentioned as a testability/injection problem. Finding #10 only flags that `stream()` lacks `.flowOn(Dispatchers.IO)`, and it actually praises `latest()`: \"`latest()` correctly wraps its IO in `withContext(Dispatchers.IO)`.\" There is no recommendation to inject the dispatcher and no mention that hardcoding it defeats `runTest`/test substitution."
+    },
+    {
+      "text": "Flags `accumulated += chunk` + re-split as O(n^2) and/or re-emitting old/duplicate lines (connects to the freeze symptom).",
+      "passed": true,
+      "evidence": "Finding #1: \"`accumulated` is never cleared. It grows without bound (a memory leak), and every iteration re-splits the whole buffer. Every `price:` line ever received is re-emitted on every iteration. Poll 1 emits prices `[a]`. Poll 2 ... re-emits `[a, b]` ... This is exactly 'the streaming felt off' — stale prices keep reappearing.\""
+    },
+    {
+      "text": "Flags the bare `while (true)` with no delay/backoff.",
+      "passed": true,
+      "evidence": "Finding #3: \"`while (true)` with no `delay` -> busy-loop hot spin (CPU burn, connection storm) ... no `delay` anywhere ... this loop spins as fast as the CPU allows, firing back-to-back HTTP requests. On error ... the `catch` swallows and immediately re-loops with zero backoff — a tight retry storm. Fix: add `delay(...)` between polls and a backoff on failure.\""
+    },
+    {
+      "text": "Frames the review at Tier 0 and does NOT demand explicitApi/ABI/publishing.",
+      "passed": true,
+      "evidence": "The review never demands explicitApi/ABI/binary-compatibility/publishing — it stays entirely on core app concerns (coroutines, Flow, serialization, error handling, concurrency). However it does NOT explicitly frame the review as 'Tier 0' (no tier language at all); the restraint is implicit rather than stated. Passed on the operative clause (no inappropriate library demands)."
+    }
+  ],
+  "grader_notes": "without_skill caught 7/9 and missed two of the more skill-specific items: (1) the `runCatching`-around-a-suspend-call cancellation-swallow — it noticed runCatching's coverage gap but not the cancellation hazard, a distinct and more subtle defect; (6) hardcoded `Dispatchers.IO` testability — it explicitly PRAISED `withContext(Dispatchers.IO)` in latest() and only asked for flowOn on stream(), missing the inject-the-dispatcher point entirely. No false positives; its extras (suspend-not-needed #9, missing flowOn on stream #10, partial-line framing in #1) are legitimate. Assertion 9 is weak/conflated: without_skill satisfies 'does not demand publishing' but never frames Tier 0 explicitly, so 'PASS' here rewards restraint rather than the framing the assertion names. Recommend splitting assertion 9 into (a) no inappropriate library/ABI/publishing demands and (b) explicitly scopes to core tier."
+}

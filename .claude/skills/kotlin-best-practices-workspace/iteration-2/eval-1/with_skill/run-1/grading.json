@@ -1,0 +1,78 @@
+{
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "expectations": [
+    {
+      "text": "Public surface uses explicit return/property types throughout (no inferred public return types)",
+      "passed": true,
+      "evidence": "Every public member carries an explicit type: WeatherClient.create(...): WeatherClient, currentForecast(...): Forecast, forecastUpdates(...): Flow<Forecast>, Location.ofCoordinates(...): Location, all WeatherError vals (isRetryable: Boolean, status: Int, retryAfterSeconds: Long?), config vars (baseUrl: String, requestTimeout: Duration, maxRetries: Int, logger: Logger). Transcript confirms compile under '-Xexplicit-api=strict ... exit 0, zero warnings', the gate that fails on any inferred public return type."
+    },
+    {
+      "text": "Errors modeled as a sealed hierarchy (not a growable public data class, not a bare RuntimeException/IllegalStateException)",
+      "passed": true,
+      "evidence": "WeatherError.kt: 'public sealed class WeatherError(message, cause) : Exception(message, cause)' with subtypes Network/Timeout/Http/Authentication/Decoding/Unexpected. Sealed (not open), no data class, not a bare RuntimeException/IllegalStateException; carries machine-readable isRetryable + Http.status fields."
+    },
+    {
+      "text": "Forecast result type is NOT a growable public `data class` (interface, regular class, or sealed) to preserve binary compatibility",
+      "passed": true,
+      "evidence": "Forecast.kt: 'public class Forecast internal constructor(...)' — a regular class with an internal constructor, not a data class. KDoc: 'Deliberately a regular class with a private constructor, not a public data class ... so it is modelled to grow additively: future fields arrive as new vals with the constructor staying internal.'"
+    },
+    {
+      "text": "Construction goes through a factory or builder; NO public constructor whose JVM descriptor will move as config grows (no public defaulted-param constructor planned to gain params) -- the binary-compat trap",
+      "passed": true,
+      "evidence": "WeatherClientConfig has an 'internal constructor(apiKey)'; all config knobs are public 'var' properties that grow additively (the 'designated growth point'), never new params on a public constructor. create(apiKey, configure: WeatherClientConfig.() -> Unit = {}) is documented as having a frozen descriptor: 'new knobs are added as new builder methods, never as new parameters on this factory ... appending a parameter here (even a defaulted one) would move the descriptor and throw NoSuchMethodError.' No public defaulted-param constructor is planned to gain params; the builder is the explicit growth mechanism. Verified against Kotlin docs (api-guidelines-backward-compatibility) and Jake Wharton's public-api-challenges: this is the correct way to dodge the trap."
+    },
+    {
+      "text": "commonMain stays platform-free: no java.*/android.*/platform.Foundation.* in the public surface",
+      "passed": true,
+      "evidence": "All imports across the 5 files are multiplatform-common: kotlinx.coroutines.flow.*, kotlinx.serialization.*, kotlin.time.{Instant,Duration}, kotlin.concurrent.atomics.*. No java.*/android.*/platform.* anywhere. The only NSLog/os_log/Log.d strings are in doc comments naming sinks the library deliberately avoids, not code. Transcript: 'commonMain-clean [multiplatform §2]: no java.* / platform.* / System.*. Time is kotlin.time.Instant; the close flag is a kotlin.concurrent atomic.'"
+    },
+    {
+      "text": "Names a CONCRETE publishing/iOS-interop mechanism (api() for ABI-visible deps, single-macOS publish, XCFramework, or SKIE) -- not just generic Swift-bridging prose",
+      "passed": true,
+      "evidence": "Names ALL FOUR enumerated mechanisms and more. api(): 'Declare kotlinx-coroutines-core and kotlinx-serialization-* as api(), not implementation() — their types (Flow, @Serializable) are in the public ABI, so an implementation() scope makes them runtime in the POM and breaks consumer resolution.' SKIE: repeatedly, with specific bridging ('suspend -> Swift async throws', 'cold Flow -> AsyncSequence'). XCFramework + single-macOS publish: 'reserve the macOS leg for the XCFramework + Darwin engine.' Also Central Portal + com.vanniktech.maven.publish (OSSRH sunset), binary-compatibility-validator/abiValidation, Dokka -javadoc jar. Far beyond generic Swift-bridging prose."
+    }
+  ],
+  "execution_metrics": {
+    "total_tokens": 127036,
+    "files_produced": 5,
+    "output_kt_files": ["WeatherClient.kt", "Forecast.kt", "WeatherError.kt", "WeatherClientConfig.kt", "DefaultWeatherClient.kt"]
+  },
+  "timing": {
+    "executor_duration_seconds": 426.1
+  },
+  "claims": [
+    {
+      "claim": "Compiled with kotlinc 2.3.21 against coroutines 1.10.2 + serialization-core 1.9.0 under -Xexplicit-api=strict with exit 0, zero warnings",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript 'Compile evidence' block shows the kotlinc invocation with -Xexplicit-api=strict and '=== exit: 0 ===   # zero warnings, all serializers generated'. Consistent with the source: every public decl has explicit visibility + type, which strict mode requires. Not independently re-run by grader but internally consistent."
+    },
+    {
+      "claim": "Adding a parameter to create() — even defaulted — would throw NoSuchMethodError in already-compiled callers",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Confirmed against kotlinlang.org/docs/api-guidelines-backward-compatibility ('even adding default arguments can break compatibility ... a NoSuchMethodError occurs ... signature of the method changed in the bytecode') and Jake Wharton's public-api-challenges-in-kotlin. The claim is technically correct."
+    },
+    {
+      "claim": "First compile failed because Forecast was @Serializable but Location was not; fixed by making Location @Serializable with invariant in init",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript Verification section documents the iteration; final Location.kt is @Serializable with require(...) checks inside an init block as described."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Forecast result type is NOT a growable public `data class`",
+        "reason": "The assertion is satisfiable by a class that is non-data but still binary-fragile (e.g. a public primary constructor that will gain params). Here assertion 4 backstops it, but the two could be merged or assertion 3 strengthened to require an internal/private constructor so 'not a data class' can't pass on a technicality."
+      }
+    ],
+    "overall": "Assertions are well-targeted; 4 and 6 are genuinely discriminating and this run cleanly satisfies both with correct underlying reasoning (verified against Kotlin's own backward-compat docs). 6/6 reflects real substance, not surface compliance."
+  },
+  "grader_notes": "Perfect 6/6. The two discriminating assertions are the differentiators vs the baseline. Assertion 4: WeatherClientConfig uses an internal constructor and grows via public var properties; create()'s descriptor is explicitly kept frozen with the configure-lambda as the growth point — exactly the binary-compat-safe pattern (verified against kotlinlang.org backward-compat guidelines and Jake Wharton). Assertion 6: names api() vs implementation() with the correct ABI rationale, SKIE with specific suspend->async-throws / Flow->AsyncSequence bridging, XCFramework, single-macOS leg, Central Portal + vanniktech publish plugin, and ABI-validation tooling — comprehensively concrete, not generic prose. Cost ~2.4x the baseline in tokens and time (127k tokens / 426s vs 82k / 181s)."
+}

@@ -1,0 +1,9 @@
+id: tests-no-mockk-static
+snapshots:
+  ? |
+    class T { init { mockkStatic(Clock::class) } }
+  : labels:
+    - source: mockkStatic(Clock::class)
+      style: primary
+      start: 17
+      end: 42

@@ -1,0 +1,148 @@
+id: no-deadline-less-recursive-self-poll
+valid:
+  # The W7/F4 fix itself: Dispatch.kt's waitForSettled -- Date.now() appears in the recursive
+  # check()'s own body, so a permanently wedged inFlight still force-settles at the deadline.
+  - |
+    package good
+
+    private fun waitForSettled(): Promise<dynamic> = Promise { resolve, _ ->
+        val deadline = Date.now() + quiesceDeadlineMs
+        fun check() {
+            when {
+                inFlight <= 1 -> resolve(jsObj("quiesced" to true))
+                Date.now() > deadline -> resolve(jsObj("quiesced" to true, "forced" to true))
+                else -> js("setTimeout")(::check, QUIESCE_POLL_MS)
+            }
+        }
+        check()
+    }
+  # ClosedLoop.kt's own established idiom: a delay-then-recurse Promise chain (poll().then{poll()})
+  # bounded by the same Date.now()-deadline shape, pre-dating this tenet.
+  - |
+    package good
+
+    private fun waitFor(timeoutMs: Int, intervalMs: Int, predicate: () -> Boolean): Promise<Boolean> {
+        val deadline = Date.now() + timeoutMs
+        fun poll(): Promise<Boolean> =
+            when {
+                predicate() -> Promise.resolve(true)
+                Date.now() >= deadline -> Promise.resolve(predicate())
+                else -> sleep(intervalMs).then { poll() }.unsafeCast<Promise<Boolean>>()
+            }
+        return poll()
+    }
+  # RealBackendUnderTest.kt's waitForFixtureResponse/tick: the same bound expressed via
+  # kotlin.js.Date().getTime() instead of Date.now() -- both are recognized deadline idioms.
+  - |
+    package good
+
+    private fun waitForFixtureResponse(seat: String): Promise<Unit> {
+        val deadline = kotlin.js.Date().getTime() + WRITE_SETTLE_TIMEOUT_MS
+        return Promise { resolve, reject ->
+            fun tick() {
+                val frame = SeatAttach.screenFor(seat)?.frame()?.frame.orEmpty()
+                when {
+                    frame.contains(GYM_FIXTURE_RESPONSE) -> resolve(Unit)
+                    kotlin.js.Date().getTime() > deadline ->
+                        reject(RuntimeException("fixture response never landed for $seat"))
+                    else -> setTimeout(::tick, WRITE_SETTLE_POLL_MS)
+                }
+            }
+            tick()
+        }
+    }
+  # AUDIT-W7-TENET-LAMBDA: the SAME lambda-wrapped setTimeout shape as the invalid case below, but
+  # bounded -- proves the extended rule does not blanket-flag every lambda self-poll, only the
+  # deadline-less ones. Mirrors SocketDuplex.kt's doPoll, hypothetically hardened with a deadline.
+  - |
+    package good
+
+    private fun doPoll() {
+        val deadline = Date.now() + pollTimeoutMs
+        val pollPromise = Promise<Unit> { resolve, _ ->
+            if (!polling || Date.now() > deadline) {
+                resolve(Unit)
+                return
+            }
+            client.sendFrame(payload).then { resp: dynamic ->
+                js("setTimeout")({ doPoll() }, pollIntervalMs)
+                null
+            }
+        }
+    }
+  # Same bounded-lambda proof via the plain (non-js-interop) setTimeout({ name() }, ms) form.
+  - |
+    package good
+
+    private fun pump() {
+        if (!done && Date.now() < deadline) {
+            setTimeout({ pump() }, POLL_MS)
+        }
+    }
+invalid:
+  # THE VERIFY CASE: Dispatch.kt's waitForSettled, pre-W7/F4 -- polls forever while inFlight>1
+  # with no deadline branch at all. A single wedged in-flight handler spun quiesce forever.
+  - |
+    package bad
+
+    private fun waitForSettled(): Promise<dynamic> = Promise { resolve, _ ->
+        fun check() {
+            when {
+                inFlight <= 1 -> resolve(jsObj("quiesced" to true))
+                else -> js("setTimeout")(::check, QUIESCE_POLL_MS)
+            }
+        }
+        check()
+    }
+  # Same shape via the typed platform.setTimeout(::name, ...) callable-reference idiom, no bound.
+  - |
+    package bad
+
+    private fun pump() {
+        if (!done) {
+            setTimeout(::pump, POLL_MS)
+        }
+    }
+  # Same shape via a delay-then-recurse Promise chain (ClosedLoop.kt's own idiom) with the
+  # deadline branch missing -- structurally identical to the valid ClosedLoop.kt case above, minus
+  # the bound (predicate captured by closure, matching the real waitFor/poll's own parameterless
+  # recursive inner function).
+  - |
+    package bad
+
+    private fun waitFor(predicate: () -> Boolean): Promise<Boolean> {
+        fun poll(): Promise<Boolean> =
+            when {
+                predicate() -> Promise.resolve(true)
+                else -> sleep(intervalMs).then { poll() }.unsafeCast<Promise<Boolean>>()
+            }
+        return poll()
+    }
+  # AUDIT-W7-TENET-LAMBDA (THE VERIFY CASE): the exact missed-path gap the audit found --
+  # SocketDuplex.kt's own doPoll shape (js("setTimeout")({ name() }, ms), no Date.now() anywhere in
+  # the body). Before this fix, the rule matched only setTimeout(::name) and .then{name()}, so this
+  # lambda-wrapped form slipped the wall undetected.
+  - |
+    package bad
+
+    private fun doPoll() {
+        val pollPromise = Promise<Unit> { resolve, _ ->
+            if (!polling) {
+                resolve(Unit)
+                return
+            }
+            client.sendFrame(payload).then { resp: dynamic ->
+                js("setTimeout")({ doPoll() }, pollIntervalMs)
+                null
+            }
+        }
+    }
+  # Same missed-path gap via the plain (non-js-interop) setTimeout({ name() }, ms) form.
+  - |
+    package bad
+
+    private fun pump() {
+        if (!done) {
+            setTimeout({ pump() }, POLL_MS)
+        }
+    }

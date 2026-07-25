@@ -1,0 +1,15 @@
+id: no-dynamic-code-in-src
+snapshots:
+  ? |
+    package bad
+
+    external fun eval(code: String): dynamic
+
+    fun compute(expr: String) {
+        eval(expr)
+    }
+  : labels:
+    - source: eval(expr)
+      style: primary
+      start: 87
+      end: 97

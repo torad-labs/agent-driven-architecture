@@ -1,0 +1,28 @@
+# TENET: Discriminated unions should use 'kind' field.
+# Rationale: TypeScript's discriminated unions work best with a literal field.
+# Standardize on 'kind' (not 'type', 'tag', 'variant') for consistency.
+# Pattern: type Action = { kind: 'increment' } | { kind: 'decrement', amount: number }
+id: discriminated-union-kind
+language: typescript
+severity: error
+message: "Use 'kind' as the discriminator field for unions (not 'type', 'tag', 'variant')."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+rule:
+  kind: type_alias_declaration
+  has:
+    kind: union_type
+    has:
+      kind: object_type
+      has:
+        kind: property_signature
+        has:
+          kind: property_identifier
+          any:
+            - regex: "^type$"
+            - regex: "^tag$"
+            - regex: "^variant$"

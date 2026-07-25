@@ -1,0 +1,26 @@
+id: no-child-process-in-src
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/src/*Test/kotlin/**"
+  - "**/src/test/kotlin/**"
+  # grandfather entries are per-repo; installs append their own
+message: "no-child-process-in-src: OpenClaw's install scanner blocks dist/ containing child_process (dangerous-exec). Process/tmux execution is confined to the host/ seam (a standalone, never-scanned Node process) via the host client over the unix socket."
+rule:
+  all:
+    - kind: constructor_invocation
+    - has:
+        kind: type_identifier
+        regex: "^JsModule$"
+        stopBy: end
+    - has:
+        kind: string_content
+        regex: "^(node:)?child_process$"
+        stopBy: end

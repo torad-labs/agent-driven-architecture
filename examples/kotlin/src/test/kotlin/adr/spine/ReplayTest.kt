@@ -17,8 +17,8 @@ import adr.app.offlineEnv
 import adr.app.projectContextApp
 import adr.app.wireApp
 import adr.driveCanonicalSession
+import adr.spine.boundary.MovingClock
 import adr.spine.boundary.RecordingSink
-import adr.spine.boundary.movingClock
 import adr.spine.replay.assertReplayFaithful
 import adr.spine.replay.collectPerform
 import adr.spine.replay.refold
@@ -37,7 +37,7 @@ class ReplayTest {
             offlineEnv(
                 world = world,
                 authority = authority,
-                clock = movingClock(start = 1000, step = 7),
+                clock = MovingClock(start = 1000, step = 7),
             ),
         )
 

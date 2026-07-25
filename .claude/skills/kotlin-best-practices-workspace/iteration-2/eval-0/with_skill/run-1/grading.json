@@ -1,0 +1,46 @@
+{
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "expectations": [
+    {
+      "text": "Stream exposed as a cold Flow from a NON-suspend function.",
+      "passed": true,
+      "evidence": "PriceWatch.kt:143 `public fun priceTicks(symbol: Symbol): Flow<PriceTick> = channelFlow { ... }` — non-suspend fun returning a cold channelFlow; collection starts the GET (KDoc line 127-130)."
+    },
+    {
+      "text": "Cancellation correct: CancellationException not swallowed; clean shutdown via scope cancellation; no GlobalScope.",
+      "passed": true,
+      "evidence": "PriceWatch.kt:167-170 `catch (e: CancellationException) { throw e }` is FIRST in the catch chain; line 180 `coroutineContext.ensureActive()` re-checks in the broad catch. ViewModel.kt:37 uses injected `CoroutineScope(SupervisorJob())` and line 64 `scope.cancel()` for clean shutdown; no GlobalScope anywhere."
+    },
+    {
+      "text": "Retries ONLY transient failures with capped + jittered backoff; not a bare while(true) with no delay; doesn't retry terminal 4xx.",
+      "passed": true,
+      "evidence": "PriceWatch.kt:77-82 `delayForAttempt` returns `random.nextLong(ceiling+1)` with `ceiling = min(maxDelayMs, baseDelayMs shl exp)` — full jitter, capped, exponent capped at 32 to avoid overflow. isRetryable (266-267) = 408/425/429/5xx only; terminal 4xx throws (171-175). delay(backoff) at line 192 inside the loop. Test fails_fast_on_terminal_status asserts `calls == 1` for a 403."
+    },
+    {
+      "text": "HttpClient/engine AND dispatcher injected for testability.",
+      "passed": true,
+      "evidence": "PriceWatch.kt:118-125 constructor injects `client: HttpClient`, `streamDispatcher: CoroutineDispatcher = Dispatchers.Default`, plus retryPolicy/logger/random. Pinned via `.flowOn(streamDispatcher)` (line 194). Test gatewayWith swaps MockEngine client AND `Dispatchers.Unconfined` (PriceWatchGatewayTest.kt:47-55)."
+    },
+    {
+      "text": "No fake/last-known value returned on failure that masks the outage.",
+      "passed": true,
+      "evidence": "Terminal status re-throws GatewayStreamException (PriceWatch.kt:171-175); exhausted retries throw (184-189). ViewModel.catch maps to `PriceWatchUiState.Failed`, never a stale price (ViewModel.kt:50-55). No sentinel/default-tick emission on the failure path."
+    },
+    {
+      "text": "Frames incrementally by reading the body channel line-by-line over a retained buffer; does NOT accumulate the whole response and re-split per read (no O(n^2)/re-emit).",
+      "passed": true,
+      "evidence": "PriceWatch.kt:225-232 `val channel = response.bodyAsChannel(); while(true){ val line = channel.readLine() ?: break; ... onTick(tick) }` — one allocation per complete line off the channel's own buffer. KDoc explicitly avoids `bodyAsText()` on success path (line 206-208) to prevent O(n) buffering of the infinite body."
+    },
+    {
+      "text": "Stays Tier 0: no explicitApi/ABI/publishing noise.",
+      "passed": true,
+      "evidence": "No explicitApi{} DSL, no api.dump/ABI file, no Maven coordinates or publishing block in any of the 3 .kt deliverables (grep confirmed none). `public` modifiers on types are ordinary Kotlin, not publishing config. Transcript tier table marks Tier 1/3 = No."
+    }
+  ],
+  "grader_notes": "Assertions 1, 2, 5, 7 are non-discriminating here: both configs pass them, so they don't separate skill from baseline. The discriminating assertions in this run were 3 (jitter) and 4 (dispatcher injection) — with_skill passes both cleanly; baseline fails both (capped-but-unjittered backoff, no dispatcher param). Assertion 6 is now equally satisfied by both since manual framing is forced by the prompt, so it lost most of its discriminating power for THIS pair — both used a per-line channel read. Assertion 7 is weak: it could pass for an output that simply forgot publishing config rather than deliberately staying Tier 0; consider asserting the deliverable contains no build.gradle/.api file AND that the transcript shows an explicit tier decision. with_skill additionally verified compile on JVM + linuxX64 + metadata and ran 11 tests green per transcript, which no assertion rewards."
+}

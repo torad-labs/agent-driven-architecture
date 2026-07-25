@@ -1,0 +1,7 @@
+id: tests-no-mockk-static
+valid:
+  - |
+    class T { private val dep = mockk<Dep>() }
+invalid:
+  - |
+    class T { init { mockkStatic(Clock::class) } }

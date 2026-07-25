@@ -31,22 +31,20 @@ class InMemoryBus : Bus {
     override fun records(): List<StepRecord> = recorded.toList()
 }
 
-/** A clock that never moves — for tests that care about a value, not about ordering. */
-fun fixedClock(at: Long): Clock = object : Clock {
-    override fun now(): Timestamp = Timestamp(at)
-}
-
 /** A clock that advances by `step` on every read. First read returns start + step. */
-fun movingClock(start: Long, step: Long): Clock = object : Clock {
+class MovingClock(start: Long, private val step: Long) : Clock {
     private var t = start
+
     override fun now(): Timestamp {
         t += step
         return Timestamp(t)
     }
 }
 
-fun sequentialIds(prefix: String = "c"): IdSource = object : IdSource {
+/** Mints c1, c2, c3… — the deterministic stand-in for the boundary's id seam. */
+class SequentialIds(private val prefix: String = "c") : IdSource {
     private var n = 0
+
     override fun next(): CommandId = CommandId("$prefix${++n}")
 }
 

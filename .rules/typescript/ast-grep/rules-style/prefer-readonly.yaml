@@ -1,0 +1,18 @@
+# TENET: Prefer readonly properties — immutability by default.
+# Rationale: Class properties should be readonly unless mutation is required.
+# Catches public class properties without readonly modifier.
+id: prefer-readonly
+language: typescript
+severity: error
+message: "Consider making this property readonly for immutability."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+rule:
+  kind: public_field_definition
+  not:
+    has:
+      kind: readonly_type

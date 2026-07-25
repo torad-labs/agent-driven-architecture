@@ -1,0 +1,11 @@
+{
+  "name": "deprecated-ctor-to-factory",
+  "version": "1.0.0",
+  "targets": {
+    "languages": [
+      "typescript"
+    ]
+  },
+  "category": "reference",
+  "installsLaw": "no-deprecated-foo-constructor"
+}

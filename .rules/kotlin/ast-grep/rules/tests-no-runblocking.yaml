@@ -1,0 +1,23 @@
+# TENET: Use runTest, not runBlocking in tests.
+# Rationale: runBlocking pins the thread, runs delays in real time, and lets leaked coroutines pass silently.
+# runTest gives virtual time + leak detection. Live-IO tests are exempt.
+id: tests-no-runblocking
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/*Live*Test.kt"
+  - "**/*Integration*Test.kt"
+  # grandfather entries are per-repo; installs append their own
+message: "Use runTest (kotlinx.coroutines.test), not runBlocking. runBlocking uses real time and hides leaks."
+rule:
+  any:
+    - pattern: runBlocking { $$$BODY }
+    - pattern: runBlocking($$$ARGS) { $$$BODY }
+    - pattern: import kotlinx.coroutines.runBlocking

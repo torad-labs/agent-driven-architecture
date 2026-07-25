@@ -1,0 +1,18 @@
+# TENET: Prefer type aliases over interfaces for object types.
+# Rationale: Types are more flexible (unions, mapped types, tuples).
+# Interfaces are for extension points and class contracts.
+id: prefer-type-over-interface
+language: typescript
+severity: error
+message: "Consider using `type` instead of `interface` for data shapes."
+files:
+  - "**/*State.ts"
+  - "**/*Props.ts"
+  - "**/*Model.ts"
+ignores:
+  - "**/test/**"
+rule:
+  kind: interface_declaration
+  has:
+    kind: type_identifier
+    regex: "(State|Props|Model)$"

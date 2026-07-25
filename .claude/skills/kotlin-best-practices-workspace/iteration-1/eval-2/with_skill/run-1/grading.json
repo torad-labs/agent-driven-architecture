@@ -1,0 +1,56 @@
+{
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "expectations": [
+    {
+      "text": "Flags that `runCatching` wraps a suspend call and swallows CancellationException.",
+      "passed": true,
+      "evidence": "Finding #5: \"`runCatching { ... }` wraps a suspend call — captures cancellation into `Result.failure` ... wraps suspending I/O ... `runCatching` around a suspend call captures `CancellationException` into `Result.failure` — so a cancelled `latest()` looks like a failed network call instead of propagating. The skill names this exactly ('Never wrap a suspend call in stdlib `runCatching`').\""
+    },
+    {
+      "text": "Flags the empty `catch (e: Exception) {}` in stream() swallowing cancellation.",
+      "passed": true,
+      "evidence": "Finding #3: \"`catch (e: Exception)` swallows `CancellationException` — the watchlist Flow cannot be cancelled ... `CancellationException` is an `Exception`, so this catch eats it and the loop keeps going ... the cooperative-cancellation signal is swallowed and the loop never stops — a leaked coroutine still polling the gateway.\""
+    },
+    {
+      "text": "Flags constructing `Json {}` per call instead of reusing one.",
+      "passed": true,
+      "evidence": "Finding #6: \"`Json { ignoreUnknownKeys = true }` constructed inline per call ... a fresh `Json { ... }` builder is allocated on every `latest()` invocation. Each `Json {}` discards the per-class serializer/descriptor cache ... Fix. Hoist one reused `Json` to a top-level/`object val` (or inject it).\""
+    },
+    {
+      "text": "Flags returning cached/0.0 on failure as masking the outage (fake success), and the 0.0 sentinel as dangerous.",
+      "passed": true,
+      "evidence": "Finding #5: \"Returning a default on failure masks outages. On a real network error this returns the stale cached price, or `0.0` if the symbol was never cached. A `0.0` price silently flowing into a trading watchlist / alerts service is a correctness-and-money bug ... the alerts service could fire on a fake zero. The skill is blunt: 'never return a mock/default on failure (it fakes success).'\""
+    },
+    {
+      "text": "Flags `GlobalScope.launch` in prefetch().",
+      "passed": true,
+      "evidence": "Finding #4: \"`GlobalScope.launch` in `prefetch()` — orphaned, uncancellable, untestable work ... `GlobalScope` work has no parent, is never cancelled, and outlives any caller ... This is an explicit Core blocking smell.\""
+    },
+    {
+      "text": "Flags the hardcoded `Dispatchers.IO` as hurting testability.",
+      "passed": true,
+      "evidence": "Finding #8: \"Hardcoded `Dispatchers.IO` inside the class ... Nondeterministic and untestable — `runTest`'s virtual time can't drive it, and you can't substitute a test dispatcher. The skill requires injecting the dispatcher with a prod default. Fix. Constructor-inject `private val io: CoroutineDispatcher = Dispatchers.IO`.\""
+    },
+    {
+      "text": "Flags `accumulated += chunk` + re-split as O(n^2) and/or re-emitting old/duplicate lines (connects to the freeze symptom).",
+      "passed": true,
+      "evidence": "Finding #2: \"`stream()` re-parses the entire accumulated buffer every iteration and re-emits every past price ... `accumulated += chunk` then `for (line in accumulated.split(\"\\n\"))` ... every loop re-splits and re-emits all prices seen since the stream opened ... O(n²) re-scan + unbounded memory ... `+=` on a `String` accumulator inside the loop is the GC-pressure anti-pattern.\" Explicitly connected to 'the streaming felt off' symptom."
+    },
+    {
+      "text": "Flags the bare `while (true)` with no delay/backoff.",
+      "passed": true,
+      "evidence": "Finding #1: \"`stream()` busy-loops with no `delay`, hammering the endpoint and starving the dispatcher — this is the freeze ... `while (true) { http.get(...).bodyAsText(); ... }` with no `delay()` and no backoff ... a polling loop needs a paced `delay()` and, on error, jittered capped backoff — never a free-running `while(true)`.\""
+    },
+    {
+      "text": "Frames the review at Tier 0 and does NOT demand explicitApi/ABI/publishing.",
+      "passed": true,
+      "evidence": "Tier classification section: \"Internal app data-layer class ... No published API surface, no `commonMain`/`expect`/`actual`, no publishing block. → Tier 0 (Core) only. I am deliberately not raising ABI / `explicitApi` / multiplatform / publishing concerns; they don't apply here and would bury the real feedback.\" The review raises zero library/publishing demands."
+    }
+  ],
+  "grader_notes": "with_skill caught all 9 planted issues plus correct extras (data race on `cache` #7, unguarded `!!`/cast/`toDouble` parse path #9). No false positives observed — every finding maps to a real defect in the source. The Tier-0 framing is explicit and exemplary: it names why ABI/explicitApi/publishing are out of scope rather than just omitting them, which is the strongest possible form of that assertion. Assertions are well-discriminating for a planted-bug review; assertion 9 is the only one that conflates two clauses (explicit Tier framing vs. restraint from library demands) and could be split."
+}

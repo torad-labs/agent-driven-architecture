@@ -1,0 +1,16 @@
+id: negated-equals-to-not-equals
+snapshots:
+  'fun changed(old: String, new: String): Boolean = !(old == new)':
+    fixed: 'fun changed(old: String, new: String): Boolean = old != new'
+    labels:
+    - source: '!(old == new)'
+      style: primary
+      start: 49
+      end: 62
+  'fun same(a: Int, b: Int): Boolean = !(a == b)':
+    fixed: 'fun same(a: Int, b: Int): Boolean = a != b'
+    labels:
+    - source: '!(a == b)'
+      style: primary
+      start: 36
+      end: 45

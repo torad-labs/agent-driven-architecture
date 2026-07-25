@@ -1,0 +1,16 @@
+# TENET: No non-null assertion (!) — handle nullability explicitly.
+# Rationale: ! throws at runtime. Use optional chaining (?.), nullish coalescing (??),
+# or proper null checks.
+id: no-non-null-assertion
+language: typescript
+severity: error
+message: "Don't use '!'. Use optional chaining (?.), nullish coalescing (??), or proper null checks."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/test/**"
+rule:
+  kind: non_null_expression

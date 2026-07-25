@@ -1,0 +1,5 @@
+id: array-type-to-shorthand
+valid:
+  - "export const xs: string[] = [];"
+invalid:
+  - "export const xs: Array<string> = [];"

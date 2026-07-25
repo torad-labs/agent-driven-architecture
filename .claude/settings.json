@@ -1,0 +1,64 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/marcos/Documents/dev/opensource/agent-driven-architecture/repo/.claude/hooks/orchestrator/pretooluse.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/marcos/Documents/dev/opensource/agent-driven-architecture/repo/.claude/hooks/orchestrator/posttooluse.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/marcos/Documents/dev/opensource/agent-driven-architecture/repo/.claude/hooks/orchestrator/stop.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/marcos/Documents/dev/opensource/agent-driven-architecture/repo/.claude/hooks/orchestrator/sessionstart.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/marcos/Documents/dev/opensource/agent-driven-architecture/repo/.claude/hooks/orchestrator/userpromptsubmit.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

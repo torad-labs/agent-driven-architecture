@@ -1,0 +1,15 @@
+id: runtime-no-direct-persistence-import
+valid:
+  - |
+    package good
+
+    import ai.torad.fleet.app.service.FleetStateStore
+
+    class UsesBoundary
+invalid:
+  - |
+    package bad
+
+    import ai.torad.fleet.persistence.SqliteStateRepo
+
+    class UsesPersistence

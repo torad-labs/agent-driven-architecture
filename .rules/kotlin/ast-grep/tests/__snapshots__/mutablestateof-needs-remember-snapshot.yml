@@ -1,0 +1,9 @@
+id: mutablestateof-needs-remember
+snapshots:
+  ? |
+    @Composable fun S() { val checked = mutableStateOf(false) }
+  : labels:
+    - source: val checked = mutableStateOf(false)
+      style: primary
+      start: 22
+      end: 57

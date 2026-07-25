@@ -1,0 +1,11 @@
+{
+  "eval_id": 4,
+  "eval_name": "review-respects-tiers",
+  "prompt": "Quick review of SettingsViewModel.kt? It's an internal screen in our Android app — nothing outside the app module touches it. Just want a sanity check before I commit: is it idiomatic, anything sloppy?",
+  "assertions": [
+    "Correctly identifies the code as internal/app-module (Tier 0) and scopes the review to the rules that actually apply",
+    "Does NOT raise published-API / binary-compatibility / ABI / explicitApi / @since / Maven-publishing concerns (there is no binary contract)",
+    "Does NOT flag the `data class SettingsUiState` as a 'growable public data class' problem (that rule is cross-module ABI and does not apply here)",
+    "Findings stay proportionate (e.g. suggests injecting Dispatchers.IO for testability) and the overall verdict is that the code is basically solid / commit-ready"
+  ]
+}

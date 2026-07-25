@@ -1,0 +1,38 @@
+id: no-reflection-in-production
+snapshots:
+  ? |
+    package bad
+
+    fun clazz(): Class<*> = String::class.java
+  : labels:
+    - source: String::class.java
+      style: primary
+      start: 37
+      end: 55
+  ? |
+    package bad
+
+    fun load(name: String): Class<*> = Class.forName(name)
+  : labels:
+    - source: Class.forName(name)
+      style: primary
+      start: 48
+      end: 67
+  ? |
+    package bad
+
+    fun qualifiedName(): String? = String::class.qualifiedName
+  : labels:
+    - source: String::class.qualifiedName
+      style: primary
+      start: 44
+      end: 71
+  ? |
+    package bad
+
+    fun runtimeClass(x: Any): Class<*> = x.javaClass
+  : labels:
+    - source: x.javaClass
+      style: primary
+      start: 50
+      end: 61

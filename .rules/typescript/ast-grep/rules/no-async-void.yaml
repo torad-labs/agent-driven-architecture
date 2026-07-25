@@ -1,0 +1,21 @@
+# TENET: Async functions should return Promise, not void.
+# Rationale: async void functions can't be awaited and errors are uncatchable.
+# Use async Promise<void> to enable proper error handling.
+id: no-async-void
+language: typescript
+severity: error
+message: "Async functions should return Promise<T>, not void. Errors in async void are uncatchable."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/test/**"
+rule:
+  kind: function_declaration
+  all:
+    - regex: "\\basync\\b"
+    - has:
+        kind: type_annotation
+        has:
+          kind: type_identifier
+          regex: "^void$"

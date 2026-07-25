@@ -1,0 +1,13 @@
+id: no-loose-top-level-fun
+valid:
+  - |
+    package good
+
+    class Worker {
+        fun run(): String = "ok"
+    }
+invalid:
+  - |
+    package bad
+
+    fun runWork(): String = "bad"

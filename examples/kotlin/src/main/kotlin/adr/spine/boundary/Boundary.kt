@@ -62,6 +62,15 @@ class Boundary<S>(
     var state: S = initial
         private set
 
+    /**
+     * Built here, not injected: the boundary must remain the SINGLE production site of
+     * every ToolResult (gate check C7), which an outside-bound resolver would break.
+     */
+    private val actions = ActionResolution(registry)
+
+    /** Built here for the same reason, and a stronger one: a bindable gate is bypassable. */
+    private val irreversibility = IrreversibilityGate(registry, policy)
+
     /** The bounded projection the reasoner sees right now — the loop stages it per step. */
     fun context(staged: List<StagedInput> = emptyList()): Context = projectContext(state, staged)
 
@@ -73,13 +82,13 @@ class Boundary<S>(
         val ctx = Ctx(state, projectContext(state, step.staged))
 
         // 3 — the ONE closed name→ToolResult map (F1), before anything is stamped.
-        val results = step.actions.map { resolveAction(registry, it, ctx) }
+        val results = step.actions.map { actions.resolve(it, ctx) }
 
         // 4 — stamp WHO acted and resolve UNDER WHOSE PERMISSION, together, once (G1, F3).
         val sig = Signature(by = step.by, authority = authority.authorityOf(step.by, session))
 
         // 5 — the gate, PRE-FOLD, keyed on the authority (F2/F3/F13).
-        val gated = results.map { gate(it, sig, state, registry, policy) }
+        val gated = results.map { irreversibility.check(it, sig, state) }
 
         // 6 — the pure decision. The only decider in the system.
         val (next, effects) = fold(state, gated, now, sig)
@@ -93,7 +102,7 @@ class Boundary<S>(
                 staged = step.staged,
                 actions = step.actions,
                 results = gated,
-                commands = gated.map { signResult(registry, it, sig, ids.next()) },
+                commands = gated.map { actions.sign(it, sig, ids.next()) },
                 context = ContextFixture(promptVersion, render(ctx.context)),
             ),
         )

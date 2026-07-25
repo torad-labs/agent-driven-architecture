@@ -1,0 +1,15 @@
+id: no-retired-route-setters
+valid:
+  - |
+    package good
+
+    fun configure() {
+        registerInboundRuntime()
+    }
+invalid:
+  - |
+    package bad
+
+    fun configure() {
+        setPasteEnqueuer(null)
+    }

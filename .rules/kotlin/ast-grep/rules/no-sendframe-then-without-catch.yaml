@@ -1,0 +1,62 @@
+id: no-sendframe-then-without-catch
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+message: >-
+  no-sendframe-then-without-catch: a sendFrame(...).then {} chain with no trailing .catch
+  risks an unhandled promise rejection (crashes Node by default) and, when nothing else
+  consumes its result, can leave whatever the caller is waiting on hanging forever (W5/F3 --
+  SocketDuplex.kt's attachOverSocket poll loop had exactly this shape: a transient sendFrame
+  rejection stopped doPoll's reschedule silently AND never resolved pollPromise, since both
+  only happened inside the .then's success branch). This targets the fire-and-forget SWALLOW --
+  a discarded block-statement sendFrame().then{} whose rejection escapes unhandled. A chain that
+  is RETURNED (a function's expression body) is NOT this: the returned promise carries its
+  rejection to the caller for free, so it needs no trailing .catch (AUDIT-W5-TENET-FENCE:
+  SeatdWireChannel.kt's authenticate() returns its chain, and SeatdClient.connect() depends on
+  that denied-auth rejection -- adding a `.catch { throw it }` there is a semantic no-op that
+  only broke type inference). The exemptions below are the real safe shapes already in this
+  codebase: a .then{} chained onto its OWN .catch (SocketDuplex's doPoll fix, explicit or
+  receiverless receiver), the unsafeCast<Promise<Unit>>() bridge (attach/Cli.kt's attachCliMain,
+  where the value is the tail of an outer lambda whose OWN chain carries the .catch), and a chain
+  that is a function's RETURNED expression body (authenticate).
+rule:
+  all:
+    - any:
+        - pattern: $RECV.sendFrame($$$ARGS).then { $$$BODY }
+        # SeatdWireChannel.kt's authenticate() calls its OWN class's sendFrame() with no
+        # receiver at all -- a bare $RECV. prefix pattern never matches this call shape.
+        - pattern: sendFrame($$$ARGS).then { $$$BODY }
+    - not:
+        any:
+          - inside:
+              stopBy: end
+              pattern: $RECV.sendFrame($$$ARGS).then { $$$BODY }.catch { $$$CATCHBODY }
+          - inside:
+              stopBy: end
+              pattern: sendFrame($$$ARGS).then { $$$BODY }.catch { $$$CATCHBODY }
+    - not:
+        any:
+          - inside:
+              stopBy: end
+              pattern: $RECV.sendFrame($$$ARGS).then { $$$BODY }.unsafeCast<$T>()
+          - inside:
+              stopBy: end
+              pattern: sendFrame($$$ARGS).then { $$$BODY }.unsafeCast<$T>()
+    # AUDIT-W5-TENET-FENCE refinement: a chain that is RETURNED as a function's expression body
+    # propagates its rejection to the caller for free (SeatdWireChannel.authenticate()) -- so it needs
+    # no trailing .catch, and a bare `.catch { throw it }` is a semantic no-op that only breaks type
+    # inference. This rule targets the genuinely fire-and-forget SWALLOW: a discarded block-statement
+    # sendFrame().then{} whose rejection escapes. Validated with test_match_code_rule: still flags
+    # doPoll's fire-and-forget statement, no longer flags authenticate()'s returned expression body.
+    - not:
+        inside:
+          stopBy: end
+          pattern: "fun $FNAME($$$FPARAMS): $FRET = $FBODY"

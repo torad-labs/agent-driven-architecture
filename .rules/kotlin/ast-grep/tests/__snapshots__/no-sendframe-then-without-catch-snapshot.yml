@@ -1,0 +1,44 @@
+id: no-sendframe-then-without-catch
+snapshots:
+  ? |
+    package bad
+
+    fun doPoll(client: SeatdClient, payload: dynamic, pollIntervalMs: Int) {
+        client.sendFrame(payload).then { resp: dynamic ->
+            if (resp.ok == true) {
+                doSomething(resp)
+            }
+            js("setTimeout")({ doPoll(client, payload, pollIntervalMs) }, pollIntervalMs)
+            null
+        }
+    }
+  : labels:
+    - source: |-
+        client.sendFrame(payload).then { resp: dynamic ->
+                if (resp.ok == true) {
+                    doSomething(resp)
+                }
+                js("setTimeout")({ doPoll(client, payload, pollIntervalMs) }, pollIntervalMs)
+                null
+            }
+      style: primary
+      start: 90
+      end: 315
+  ? |
+    package bad
+
+    fun login(token: String) {
+        sendFrame(buildJsonObject { put("token", token) }).then { response ->
+            val ok = response["ok"]?.jsonPrimitive?.booleanOrNull ?: false
+            if (!ok) throw SeatdClientError("PRINCIPAL_DENIED", "seatd authentication failed")
+        }.then { it }
+    }
+  : labels:
+    - source: |-
+        sendFrame(buildJsonObject { put("token", token) }).then { response ->
+                val ok = response["ok"]?.jsonPrimitive?.booleanOrNull ?: false
+                if (!ok) throw SeatdClientError("PRINCIPAL_DENIED", "seatd authentication failed")
+            }
+      style: primary
+      start: 44
+      end: 281

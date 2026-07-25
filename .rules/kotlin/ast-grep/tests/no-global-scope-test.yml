@@ -1,0 +1,7 @@
+id: no-global-scope
+valid:
+  - |
+    class A(private val scope: CoroutineScope) { fun go() { scope.launch { work() } } }
+invalid:
+  - |
+    fun go() { GlobalScope.launch { work() } }

@@ -1,0 +1,46 @@
+id: no-companion-objects
+valid:
+  # The remedy: a constructed host. The factory has an instance, so a test can bind
+  # a different one.
+  - |
+    package good
+
+    fun interface SliceFactory {
+        fun of(tickets: List<Ticket>): Slice
+    }
+  # State that used to be `companion object { val initial }` — a constructor default
+  # on the type itself.
+  - |
+    package good
+
+    class Worker(private val name: String = "worker") {
+        fun run(): String = name
+    }
+invalid:
+  # The factory with no instance.
+  - |
+    package bad
+
+    class Slice {
+        companion object {
+            fun of(tickets: List<Ticket>): Slice = Slice()
+        }
+    }
+  # A constant hidden behind a class body is the same disease — still no instance.
+  - |
+    package bad
+
+    class Slice {
+        companion object {
+            val initial = Slice()
+        }
+    }
+  # Named companions do not escape it.
+  - |
+    package bad
+
+    class Slice {
+        companion object Factory {
+            fun of(): Slice = Slice()
+        }
+    }

@@ -1,0 +1,18 @@
+id: domain-no-framework-import
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/src/*Test/kotlin/**"
+  - "**/src/test/kotlin/**"
+  # grandfather entries are per-repo; installs append their own
+message: "domain-no-framework-import: common domain code must not import framework, transport, I/O, or platform types. Keep I/O at named boundaries and pass pure values inward."
+rule:
+  kind: import_header
+  regex: 'io\.ktor|org\.springframework|java\.(io|net|nio|sql|time)|javax\.|jakarta\.|io\.grpc|org\.jetbrains\.exposed|com\.zaxxer|software\.amazon|com\.google\.cloud'

@@ -1,0 +1,16 @@
+# TENET: Prefer async iterables over promise arrays for streaming.
+# Rationale: AsyncIterable composes like Flow — lazy, composable, backpressure-aware.
+# Promise.all([...promises]) loads everything into memory.
+# Use for-await-of with async generators for streaming patterns.
+id: async-stream-pattern
+language: typescript
+severity: error
+message: "Consider AsyncIterable for streaming instead of Promise.all for batch processing."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+rule:
+  pattern: Promise.all($ARRAY.map($$$ARGS))

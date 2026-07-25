@@ -1,0 +1,22 @@
+id: no-loose-top-level-fun
+snapshots:
+  ? |
+    package bad
+
+    fun runWork(): String = "bad"
+  : labels:
+    - source: 'fun runWork(): String = "bad"'
+      style: primary
+      start: 13
+      end: 42
+    - source: |
+        package bad
+
+        fun runWork(): String = "bad"
+      style: secondary
+      start: 0
+      end: 43
+    - source: = "bad"
+      style: secondary
+      start: 35
+      end: 42

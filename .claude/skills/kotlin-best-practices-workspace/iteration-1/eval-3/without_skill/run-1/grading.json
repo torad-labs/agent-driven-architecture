@@ -1,0 +1,26 @@
+{
+  "summary": {"total": 4, "passed": 4, "failed": 0, "pass_rate": 1.0},
+  "expectations": [
+    {
+      "text": "Correctly identifies the code as internal/app-module (Tier 0) and scopes the review to rules that apply.",
+      "passed": true,
+      "evidence": "Opening 'Context:' line: 'Internal app-module ViewModel backing the Settings screen. Not a published library, no external consumers. This is the right framing — it means binary-compatibility / public-API concerns... do **not** apply here. I'm reviewing it as ordinary app code.' No explicit 'Tier 0' label is used, but the equivalent scoping is correct and stated up front."
+    },
+    {
+      "text": "Does NOT raise published-API / binary-compatibility / ABI / explicitApi / @since / Maven-publishing concerns.",
+      "passed": true,
+      "evidence": "No such concern raised as a finding. The review affirmatively excludes them: 'binary-compatibility / public-API concerns (explicit API mode, ABI stability, @PublishedApi, deprecation cycles) do **not** apply here.' All six findings are Tier-0 (dispatcher placement, update{}, race/debounce, load() lifecycle, naming, default-flash) — none invoke library/ABI rules."
+    },
+    {
+      "text": "Does NOT flag the `data class SettingsUiState` as a 'growable public data class' problem.",
+      "passed": true,
+      "evidence": "No such concern raised. The data class is listed under 'What's already good': 'data class SettingsUiState with sensible defaults.' It is treated as correct, never flagged as a growable/ABI-fragile public data class."
+    },
+    {
+      "text": "Findings stay proportionate (e.g. suggest injecting Dispatchers.IO) and the verdict is the code is basically solid / commit-ready.",
+      "passed": true,
+      "evidence": "Finding #2 raises the hardcoded Dispatchers.IO / lack of injection seam (main-safety belongs in the repo); other findings are idiom/nit level (update{}, naming, default-flash). Verdict: 'Solid, idiomatic Android ViewModel... no correctness landmines.' Closing: 'Nothing here blocks a commit. The file is fundamentally sound; these are polish items.'"
+    }
+  ],
+  "grader_notes": "without_skill (baseline) PASSED all four, including both absence checks — it did NOT improperly impose any library/ABI/publishing rule and did NOT flag the data class. However, it was LESS explicit about tier scoping than with_skill: it states the correct framing in a single Context sentence rather than the skill run's structured, tier-by-tier enumeration of which published-library rules are being withheld and why. The skill's value-add here is not a different verdict (both are correct) but auditable, explicit tier discipline; the baseline reached the same right answer with implicit, prose-level scoping."
+}
