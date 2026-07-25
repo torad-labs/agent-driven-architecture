@@ -35,7 +35,10 @@ class Driver {
 
     /** The human path: one Action through the surface. */
     fun human(
-        app: App,tool: ToolName, vararg fields: Pair<String, String>) {
+        app: App,
+        tool: ToolName,
+        vararg fields: Pair<String, String>,
+    ) {
         app.controller.onAction(Action(tool, RawInput(*fields)))
     }
 
