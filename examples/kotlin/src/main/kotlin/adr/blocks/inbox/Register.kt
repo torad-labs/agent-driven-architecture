@@ -12,6 +12,7 @@ import adr.contract.InboxResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
@@ -20,7 +21,7 @@ class InboxBlock : Block<InboxSlice, InboxResult, InboxView> {
     private val armImpl = InboxArm()
     private val projection = InboxProjection()
 
-    fun <S> register(lens: (S) -> InboxSlice): BlockRegistration<S> =
+    fun <S> register(lens: Lens<S, InboxSlice>): BlockRegistration<S> =
         BlockRegistration(block = "inbox", verbs = InboxTools(lens).verbs())
 
     override fun arm(

@@ -22,6 +22,7 @@ import adr.contract.AnalysisResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
@@ -31,17 +32,17 @@ class AnalysisBlock : Block<AnalysisSlice, AnalysisResult, AnalysisView> {
     private val projection = AnalysisProjection()
 
     /** Both halves — the single-process default, where one agent does both jobs. */
-    fun <S> register(lens: (S) -> AnalysisSlice): BlockRegistration<S> =
+    fun <S> register(lens: Lens<S, AnalysisSlice>): BlockRegistration<S> =
         AnalysisTools(lens).let {
             BlockRegistration(block = "analysis", verbs = it.fastVerbs() + it.deepVerbs())
         }
 
     /** The hot loop: it may RECALL and may not publish. */
-    fun <S> registerFast(lens: (S) -> AnalysisSlice): BlockRegistration<S> =
+    fun <S> registerFast(lens: Lens<S, AnalysisSlice>): BlockRegistration<S> =
         BlockRegistration(block = "analysis", verbs = AnalysisTools(lens).fastVerbs())
 
     /** The deep tier: it may PUBLISH and has no reason to recall its own output. */
-    fun <S> registerDeep(lens: (S) -> AnalysisSlice): BlockRegistration<S> =
+    fun <S> registerDeep(lens: Lens<S, AnalysisSlice>): BlockRegistration<S> =
         BlockRegistration(block = "analysis", verbs = AnalysisTools(lens).deepVerbs())
 
     override fun arm(

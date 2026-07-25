@@ -14,6 +14,7 @@ import adr.contract.ArtifactResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
@@ -22,7 +23,7 @@ class ArtifactBlock : Block<ArtifactSlice, ArtifactResult, ArtifactView> {
     private val armImpl = ArtifactArm()
     private val projection = ArtifactProjection()
 
-    fun <S> register(lens: (S) -> ArtifactSlice): BlockRegistration<S> =
+    fun <S> register(lens: Lens<S, ArtifactSlice>): BlockRegistration<S> =
         BlockRegistration(block = "artifact", verbs = ArtifactTools(lens).verbs())
 
     override fun arm(

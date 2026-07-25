@@ -10,6 +10,7 @@ import adr.contract.EscalationResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
 import adr.spine.pure.Signature
 import adr.spine.pure.TicketId
 import adr.spine.pure.Timestamp
@@ -19,7 +20,7 @@ class EscalationBlock : Block<EscalationSlice, EscalationResult, EscalationView>
     private val armImpl = EscalationArm()
     private val projection = EscalationProjection()
 
-    fun <S> register(lens: (S) -> EscalationSlice): BlockRegistration<S> =
+    fun <S> register(lens: Lens<S, EscalationSlice>): BlockRegistration<S> =
         BlockRegistration(block = "escalation", verbs = EscalationTools(lens).verbs())
 
     override fun arm(

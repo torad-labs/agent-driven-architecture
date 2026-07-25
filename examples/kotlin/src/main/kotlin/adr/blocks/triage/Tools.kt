@@ -26,6 +26,7 @@ package adr.blocks.triage
 
 import adr.contract.TriageCommand
 import adr.contract.TriageResult
+import adr.spine.pure.Lens
 import adr.spine.pure.RawInput
 import adr.spine.pure.TicketId
 import adr.spine.pure.ToolName
@@ -35,7 +36,7 @@ val SET_PRIORITY = ToolName("setPriority")
 
 data class SetPriorityInput(val ticket: TicketId, val level: Priority)
 
-class TriageTools<S>(private val lens: (S) -> TriageSlice) {
+class TriageTools<S>(private val lens: Lens<S, TriageSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(

@@ -17,6 +17,7 @@ package adr.blocks.inbox
 
 import adr.contract.InboxCommand
 import adr.contract.InboxResult
+import adr.spine.pure.Lens
 import adr.spine.pure.RawInput
 import adr.spine.pure.SourceName
 import adr.spine.pure.ToolName
@@ -29,7 +30,7 @@ data class NoteDropInput(val source: SourceName, val reason: DropReason, val dro
 
 data class NoteFaultInput(val source: SourceName, val fault: String)
 
-class InboxTools<S>(private val lens: (S) -> InboxSlice) {
+class InboxTools<S>(private val lens: Lens<S, InboxSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(

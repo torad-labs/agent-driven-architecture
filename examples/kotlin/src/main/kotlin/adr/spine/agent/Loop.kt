@@ -18,12 +18,14 @@
 package adr.spine.agent
 
 import adr.spine.boundary.FinishedStep
+import adr.spine.boundary.Submit
 import adr.spine.pure.Action
 import adr.spine.pure.Actor
 import adr.spine.pure.Context
 import adr.spine.pure.Ctx
 import adr.spine.pure.RawInput
 import adr.spine.pure.Registry
+import adr.spine.pure.Source
 import adr.spine.pure.StagedInput
 import adr.spine.pure.ToolName
 import adr.spine.pure.Verb
@@ -47,8 +49,8 @@ import kotlinx.serialization.serializer
  * the price of ONE production site for ToolResult.
  */
 class SdkToolSurface<S>(
-    private val stateOf: () -> S,
-    private val contextOf: () -> Context,
+    private val stateOf: Source<S>,
+    private val contextOf: Source<Context>,
 ) {
   fun toolFor(verb: Verb<S, *, *>): Tool<JsonObject, JsonElement, Unit> = tool(
     name = verb.name.value,
@@ -71,10 +73,10 @@ class AgentLoop<S>(
     model: LanguageModel,
     instructions: String,
     registry: Registry<S>,
-    stateOf: () -> S,
-    contextOf: () -> Context,
-    stagedOf: () -> List<StagedInput>,
-    submit: (FinishedStep) -> Unit,
+    stateOf: Source<S>,
+    contextOf: Source<Context>,
+    stagedOf: Source<List<StagedInput>>,
+    submit: Submit,
 ) : ToolLoopAgent<Unit, String>(
     model = model,
     instructions = instructions,

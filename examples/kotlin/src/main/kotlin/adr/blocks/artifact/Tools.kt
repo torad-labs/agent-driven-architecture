@@ -10,6 +10,7 @@ package adr.blocks.artifact
 
 import adr.contract.ArtifactCommand
 import adr.contract.ArtifactResult
+import adr.spine.pure.Lens
 import adr.spine.pure.RawInput
 import adr.spine.pure.ToolName
 import adr.spine.pure.Verb
@@ -27,7 +28,7 @@ data class FindingInput(val text: String)
  */
 class NoInput
 
-class ArtifactTools<S>(private val lens: (S) -> ArtifactSlice) {
+class ArtifactTools<S>(private val lens: Lens<S, ArtifactSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(

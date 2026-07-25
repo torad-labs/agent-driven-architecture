@@ -18,6 +18,7 @@ package adr.blocks.escalation
 
 import adr.contract.EscalationCommand
 import adr.contract.EscalationResult
+import adr.spine.pure.Lens
 import adr.spine.pure.RawInput
 import adr.spine.pure.TicketId
 import adr.spine.pure.ToolName
@@ -28,7 +29,7 @@ val CONFIRM_ESCALATION = ToolName("confirmEscalation")
 
 data class TicketInput(val ticket: TicketId)
 
-class EscalationTools<S>(private val lens: (S) -> EscalationSlice) {
+class EscalationTools<S>(private val lens: Lens<S, EscalationSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(

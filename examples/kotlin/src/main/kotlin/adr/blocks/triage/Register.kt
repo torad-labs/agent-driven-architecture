@@ -24,6 +24,7 @@ import adr.contract.TriageResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
@@ -39,7 +40,7 @@ class TriageBlock : Block<TriageSlice, TriageResult, TriageView> {
     private val armImpl = TriageArm()
     private val projection = TriageProjection()
 
-    fun <S> register(lens: (S) -> TriageSlice): BlockRegistration<S> =
+    fun <S> register(lens: Lens<S, TriageSlice>): BlockRegistration<S> =
         BlockRegistration(block = "triage", verbs = TriageTools(lens).verbs())
 
     override fun arm(

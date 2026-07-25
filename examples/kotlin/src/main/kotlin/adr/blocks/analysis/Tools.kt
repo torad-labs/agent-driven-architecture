@@ -23,6 +23,7 @@ package adr.blocks.analysis
 import adr.contract.AnalysisCommand
 import adr.contract.AnalysisResult
 import adr.spine.pure.Context
+import adr.spine.pure.Lens
 import adr.spine.pure.RawInput
 import adr.spine.pure.Recall
 import adr.spine.pure.StagedInput
@@ -41,7 +42,7 @@ class NoRecallInput
 
 data class PublishAnalysisInput(val text: String)
 
-class AnalysisTools<S>(private val lens: (S) -> AnalysisSlice) {
+class AnalysisTools<S>(private val lens: Lens<S, AnalysisSlice>) {
 
     /** The FAST tier's verbs. Reading a peer's conclusion is reversible and emits nothing. */
     fun fastVerbs(): List<Verb<S, *, *>> = listOf(
