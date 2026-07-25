@@ -28,3 +28,8 @@ fun interface Source<T> {
 fun interface Report<E> {
     operator fun invoke(event: E): List<Action>
 }
+
+/** A one-value writer at the edge of the system: an adapter's way out to the world. */
+fun interface Emit<T> {
+    operator fun invoke(value: T)
+}

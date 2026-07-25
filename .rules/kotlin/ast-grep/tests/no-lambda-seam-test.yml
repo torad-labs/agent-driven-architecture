@@ -1,0 +1,36 @@
+id: no-lambda-seam
+valid:
+  # A NAMED seam: it can be implemented by name, carries KDoc, and a test double can be
+  # declared. `operator fun invoke` keeps the call site reading `decode(input)`, and SAM
+  # conversion keeps `::decodeSetPriority` and `{ it.triage }` binding.
+  - |
+    package good
+
+    fun interface Decode<I> {
+        operator fun invoke(input: RawInput): I?
+    }
+  - |
+    package good
+
+    class Boundary(private val fold: Fold<State>, private val lens: Lens<State, Slice>)
+  # A lambda LITERAL at a call site is not a seam declaration.
+  - |
+    package good
+
+    class Wiring {
+        fun wire(): Narrator = Narrator { line -> sink.write(line) }
+    }
+invalid:
+  # An anonymous, transposable seam: any other one-argument reader of the same shape is
+  # the SAME type, nothing implements it by name, and only a lambda can be passed.
+  - |
+    package bad
+
+    class Tools<S>(private val lens: (S) -> Slice)
+  - |
+    package bad
+
+    class Loop<S>(
+        private val stateOf: () -> S,
+        private val submit: (FinishedStep) -> Unit,
+    )

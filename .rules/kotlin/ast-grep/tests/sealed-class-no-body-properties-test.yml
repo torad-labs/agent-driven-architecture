@@ -1,0 +1,57 @@
+id: sealed-class-no-body-properties
+valid:
+  # Shared properties belong in the CONSTRUCTOR as `open val`; variants override them
+  # there and pass them up, so the parent actually holds the value.
+  - |
+    package good
+
+    sealed class Notice(
+        open val at: Timestamp,
+        open val reason: String,
+    ) {
+        data class Rejected(
+            override val at: Timestamp,
+            override val reason: String,
+        ) : Notice(at, reason)
+    }
+  # A variant with no shared state at all.
+  - |
+    package good
+
+    sealed class RunStatus {
+        data object Idle : RunStatus()
+    }
+  # REGRESSION: an ordinary class whose body merely MENTIONS "sealed class" in a
+  # comment. The unanchored regex matched the whole node text and flagged this.
+  - |
+    package good
+
+    class GateTest {
+        // the F10 check used to read codeText.contains("sealed class TicketStatus")
+        private val live = trees.liveTree()
+    }
+  # Properties in an ORDINARY class body are fine — this rule is about sealed roots.
+  - |
+    package good
+
+    class Boundary(private val clock: Clock) {
+        private val actions = ActionResolution(clock)
+    }
+invalid:
+  # A `val` in a sealed body is shared state no variant can pass up or hold.
+  - |
+    package bad
+
+    sealed class Notice {
+        val at: Timestamp
+    }
+  # A defaulted override in a variant's BODY is the same defect one level down: the
+  # value belongs in the super-constructor call.
+  - |
+    package bad
+
+    sealed class Recall {
+        data object Empty : Recall() {
+            override val text: String = ""
+        }
+    }

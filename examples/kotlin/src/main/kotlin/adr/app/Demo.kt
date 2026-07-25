@@ -37,6 +37,11 @@ import ai.torad.aisdk.providers.mockToolInput
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/** The walkthrough's own scope seam — named, like every other seam in the port. */
+fun interface ScopedBody {
+    suspend operator fun invoke(scope: kotlinx.coroutines.CoroutineScope)
+}
+
 class Demo(private val out: Narrator) {
 
     suspend fun run() {
@@ -200,6 +205,6 @@ class Demo(private val out: Narrator) {
     }
 
 /** A tiny alias so the walkthrough above reads as prose rather than as scaffolding. */
-    private suspend fun coroutineScopeDemo(body: suspend (kotlinx.coroutines.CoroutineScope) -> Unit) =
+    private suspend fun coroutineScopeDemo(body: ScopedBody) =
         kotlinx.coroutines.coroutineScope { body(this) }
 }
