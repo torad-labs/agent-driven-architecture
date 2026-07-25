@@ -1,0 +1,18 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: Prefer const objects or union types over enums.
+# Rationale: TypeScript enums have runtime overhead and edge cases.
+# `as const` objects or union types are simpler and tree-shake better.
+id: no-enum-tsx
+language: tsx
+severity: error
+message: "Use `as const` objects or union types instead of enum."
+files:
+  - "**/*.tsx"
+ignores:
+  - "**/test/**"
+rule:
+  kind: enum_declaration

@@ -1,12 +1,17 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
 # TENET: Prefer readonly arrays in function signatures.
 # Rationale: readonly T[] prevents accidental mutation of array parameters.
 # Makes function contracts clearer and enables better optimizations.
-id: prefer-readonly-array
-language: typescript
+id: prefer-readonly-array-tsx
+language: tsx
 severity: error
 message: "Use readonly T[] for array parameters to prevent mutation."
 files:
-  - "**/*.ts"
+  - "**/*.tsx"
 ignores:
   - "**/test/**"
 rule:

@@ -1,12 +1,17 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
 # TENET: No mutable module-level state.
 # Rationale: Module-level let creates hidden global state.
 # Use const for module-level, manage state in stores/context.
-id: no-module-state
-language: typescript
+id: no-module-state-tsx
+language: tsx
 severity: error
 message: "No module-level let. Use const or manage state in stores/context."
 files:
-  - "**/*.ts"
+  - "**/*.tsx"
 ignores:
   - "**/test/**"
 rule:

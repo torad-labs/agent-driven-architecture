@@ -1,0 +1,21 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: No any type — use unknown or proper generics.
+# Rationale: any defeats type safety. Use unknown for truly unknown types,
+# or proper generics for flexible but safe typing.
+id: no-any-tsx
+language: tsx
+severity: error
+message: "Don't use 'any'. Use 'unknown' for unknown types, or proper generics."
+files:
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.tsx"
+  - "**/*.spec.tsx"
+  - "**/test/**"
+rule:
+  kind: predefined_type
+  regex: "^any$"

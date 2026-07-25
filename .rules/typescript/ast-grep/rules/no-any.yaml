@@ -7,7 +7,6 @@ severity: error
 message: "Don't use 'any'. Use 'unknown' for unknown types, or proper generics."
 files:
   - "**/*.ts"
-  - "**/*.tsx"
 ignores:
   - "**/*.test.ts"
   - "**/*.spec.ts"

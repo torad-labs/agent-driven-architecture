@@ -7,7 +7,6 @@ severity: error
 message: "Use `as const` objects or union types instead of enum."
 files:
   - "**/*.ts"
-  - "**/*.tsx"
 ignores:
   - "**/test/**"
 rule:

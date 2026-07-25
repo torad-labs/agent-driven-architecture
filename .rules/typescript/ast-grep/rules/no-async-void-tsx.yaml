@@ -1,12 +1,17 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
 # TENET: Async functions should return Promise, not void.
 # Rationale: async void functions can't be awaited and errors are uncatchable.
 # Use async Promise<void> to enable proper error handling.
-id: no-async-void
-language: typescript
+id: no-async-void-tsx
+language: tsx
 severity: error
 message: "Async functions should return Promise<T>, not void. Errors in async void are uncatchable."
 files:
-  - "**/*.ts"
+  - "**/*.tsx"
 ignores:
   - "**/test/**"
 rule:
