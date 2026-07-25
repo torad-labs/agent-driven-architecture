@@ -4,6 +4,7 @@
 
 package adr.blocks.escalation
 
+import adr.spine.pure.Emit
 import adr.spine.pure.TicketId
 
 /**
@@ -12,7 +13,7 @@ import adr.spine.pure.TicketId
  */
 class LivePager(
     private val endpoint: String,
-    private val send: (String) -> Unit,
+    private val send: Emit<String>,
 ) : OncallPort {
     override fun page(ticket: TicketId) {
         send("POST $endpoint {\"ticket\":\"${ticket.value}\"}")

@@ -53,18 +53,20 @@ sealed class StagedInput(
  * `publishedAt` is a value that travels; the age is derived at the consuming step
  * from the one clock read the boundary already makes (G9), so it replays exactly.
  */
-sealed interface Recall {
-    /** Every outcome has text — `Empty`'s is empty. Declared once (L3). */
-    val text: String
-
+sealed class Recall(
+    /** Every outcome has text — `Empty`'s is empty. Declared once, HELD once (L3). */
+    open val text: String,
     /** The entry's own clock reading, or null when there is no entry. Declared once. */
-    val publishedAt: Timestamp?
+    open val publishedAt: Timestamp?,
+) {
 
     /** The read completed inside its deadline. */
-    data class Fresh(override val text: String, override val publishedAt: Timestamp) : Recall
+    data class Fresh(override val text: String, override val publishedAt: Timestamp) :
+        Recall(text, publishedAt)
 
     /** The deadline blew; this is the newest entry the reader already held. */
-    data class LastKnown(override val text: String, override val publishedAt: Timestamp) : Recall
+    data class LastKnown(override val text: String, override val publishedAt: Timestamp) :
+        Recall(text, publishedAt)
 
     /**
      * Wired, nothing to give: the deep tier has not published, or it timed out and
@@ -72,10 +74,7 @@ sealed interface Recall {
      * behaviour is identical in both cases (it has no conclusion), and the signal
      * that a relay is slow is a folded fault, not a fourth variant nobody branches on.
      */
-    data object Empty : Recall {
-        override val text: String = ""
-        override val publishedAt: Timestamp? = null
-    }
+    data object Empty : Recall(text = "", publishedAt = null)
 }
 
 /** One published conclusion on the append-only relay. Plain data; no handle, no method. */

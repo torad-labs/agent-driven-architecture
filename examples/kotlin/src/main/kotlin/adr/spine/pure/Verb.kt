@@ -28,21 +28,7 @@ import adr.contract.ToolResult
 data class Ctx<S>(val state: S, val context: Context)
 
 /**
- * What the boundary gate must decide about a verb — computed by the verb itself
- * from its OWN classification, because Kotlin's generic erasure means the boundary
- * cannot `is`-check `Verb.Irreversible<S, *, *>` and still call through it.
- * The sealed pair is what the gate matches on, exhaustively.
- */
-sealed class Gating {
-    /** A Reversible verb: the gate passes it through untouched. */
-    data object Ungated : Gating()
-
-    /** An Irreversible verb: it proceeds only if a DIFFERENT authority requested it. */
-    data class NeedsConfirmation(val requestedBy: Authority?) : Gating()
-}
-
-/**
- * THE FOUR SEAMS OF A VERB, each a NAMED `fun interface` rather than a raw function
+ * THE FIVE SEAMS OF A VERB, each a NAMED `fun interface` rather than a raw function
  * type. A raw `(RawInput) -> I?` is an anonymous, transposable seam: two of them with
  * the same shape are the same type, nothing can implement it by name, no KDoc rides
  * it, and a test double cannot be declared — only a lambda can be passed. Naming them
@@ -74,50 +60,54 @@ fun interface RequestedBy<S> {
     operator fun invoke(state: S, result: ToolResult): Authority?
 }
 
-sealed interface Verb<S, I, R : ToolResult> {
+/**
+ * What the boundary gate must decide about a verb — computed by the verb itself
+ * from its OWN classification, because Kotlin's generic erasure means the boundary
+ * cannot `is`-check `Verb.Irreversible<S, *, *>` and still call through it.
+ * The sealed pair is what the gate matches on, exhaustively.
+ */
+sealed class Gating {
+    /** A Reversible verb: the gate passes it through untouched. */
+    data object Ungated : Gating()
+
+    /** An Irreversible verb: it proceeds only if a DIFFERENT authority requested it. */
+    data class NeedsConfirmation(val requestedBy: Authority?) : Gating()
+}
+
+/**
+ * One tool, as DATA. A sealed CLASS: the six members every verb has are declared once
+ * in the constructor as `open val`, so a variant carries them by construction and the
+ * parent's own members — resolve, modelEcho, signOf — can read them. As a sealed
+ * interface the parent held nothing and each variant re-declared all six.
+ */
+sealed class Verb<S, I, R : ToolResult>(
     /** The verb name — the discriminant of its ToolResult, of its Command, and the registry key (D3). */
-    val name: ToolName
-
+    open val name: ToolName,
     /** The model-facing description. The only prose the reasoner is given about this tool. */
-    val describe: String
-
+    open val describe: String,
     /** The input schema: raw input in, typed input or null out. */
-    val decode: Decode<I>
-
+    open val decode: Decode<I>,
     /** The PURE tool body. Reads Ctx; returns a payload; mutates nothing (G2). */
-    val run: Run<S, I, R>
-
+    open val run: Run<S, I, R>,
     /** The name→Command entry (6.8). Every verb signs — domain and presentation alike (A1). */
-    val sign: Sign<R>
-
+    open val sign: Sign<R>,
+    /** Narrow an erased result back to this verb's own case, CHECKED at construction. */
+    open val narrow: Narrow<R>,
+) {
     /** decode ∘ run. Returns null when the input failed to decode — the boundary owns that word. */
     fun resolve(input: RawInput, ctx: Ctx<S>): ToolResult? = decode(input)?.let { run(it, ctx) }
 
     /**
      * What the MODEL is told about one call, so it has a payload to reason over.
-     * Was an extension function; an extension is not a member, so it could never be
-     * overridden and had no instance behind it. It belongs to the verb, so it lives on
-     * the verb.
      *
      * The RECORDED truth is produced separately, at the boundary (§3.1, §15 risk 4);
-     * this string never folds, never signs and never reaches the timeline. It stays
+     * this string never folds, never signs and never reaches the timeline. It lives
      * HERE and not in spine/agent/loop because it makes a decision — what to say when
-     * the input did not decode — and G3 says the loop is a declaration, not a place for
-     * policy. Gate check C14 denies the branch the moment it drifts back.
+     * the input did not decode — and G3 says the loop is a declaration, not a place
+     * for policy. Gate check C14 denies the branch the moment it drifts back.
      */
     fun modelEcho(input: RawInput, ctx: Ctx<S>): String =
         resolve(input, ctx)?.toString() ?: DECODE_FAILED
-
-    /**
-     * Narrow an erased result back to THIS verb's own case.
-     *
-     * Supplied at construction, where R is concrete, so it is an ordinary CHECKED
-     * `as?` against a named type — `{ it as? TriageResult.SetPriority }`. It replaces
-     * the system's one unchecked cast, `sign(result as R, …)`, which the compiler could
-     * not verify because the registry star-projects R away, and which therefore needed
-     * a @Suppress. Nothing is suppressed now; the check is real and happens at runtime.
-     */
-    val narrow: Narrow<R>
 
     /**
      * Sign a result whose static type the registry erased.
@@ -133,7 +123,7 @@ sealed interface Verb<S, I, R : ToolResult> {
         narrow(result)?.let { sign(it, sig, id) }
 
     /** The verb's own answer to "must the boundary gate this?" */
-    fun gating(state: S, result: ToolResult): Gating
+    abstract fun gating(state: S, result: ToolResult): Gating
 
     /** Undoable, or cheap to undo. Ungated. */
     data class Reversible<S, I, R : ToolResult>(
@@ -143,7 +133,7 @@ sealed interface Verb<S, I, R : ToolResult> {
         override val run: Run<S, I, R>,
         override val sign: Sign<R>,
         override val narrow: Narrow<R>,
-    ) : Verb<S, I, R> {
+    ) : Verb<S, I, R>(name, describe, decode, run, sign, narrow) {
         override fun gating(state: S, result: ToolResult): Gating = Gating.Ungated
     }
 
@@ -160,7 +150,7 @@ sealed interface Verb<S, I, R : ToolResult> {
         override val sign: Sign<R>,
         override val narrow: Narrow<R>,
         val requestedBy: RequestedBy<S>,
-    ) : Verb<S, I, R> {
+    ) : Verb<S, I, R>(name, describe, decode, run, sign, narrow) {
         override fun gating(state: S, result: ToolResult): Gating =
             Gating.NeedsConfirmation(requestedBy(state, result))
     }

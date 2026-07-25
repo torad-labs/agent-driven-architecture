@@ -9,22 +9,23 @@
 
 package adr.spine.pure
 
-sealed interface Notice {
-    val at: Timestamp
-    val tool: ToolName
-    val reason: String
+sealed class Notice(
+    open val at: Timestamp,
+    open val tool: ToolName,
+    open val reason: String,
+) {
 
     /** A fold ARM refused the transition: invalid against the current state (F9). */
     data class Rejected(
         override val at: Timestamp,
         override val tool: ToolName,
         override val reason: String,
-    ) : Notice
+    ) : Notice(at, tool, reason)
 
     /** The BOUNDARY gate refused the action: not permitted (F2/F3). */
     data class Refused(
         override val at: Timestamp,
         override val tool: ToolName,
         override val reason: String,
-    ) : Notice
+    ) : Notice(at, tool, reason)
 }

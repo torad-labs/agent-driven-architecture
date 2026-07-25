@@ -11,7 +11,12 @@ import adr.spine.pure.Timestamp
  * The rim of the block. `append` stands in for the relay store — a real one would be
  * a Kafka producer, an outbox table or an S3 prefix, held here and nowhere else.
  */
-class LiveRelayWriter(private val append: (Timestamp, String) -> Unit) : AnalysisRelay {
+/** The relay's write seam, named rather than a raw `(Timestamp, String) -> Unit`. */
+fun interface AppendConclusion {
+    operator fun invoke(at: Timestamp, text: String)
+}
+
+class LiveRelayWriter(private val append: AppendConclusion) : AnalysisRelay {
     override fun publish(at: Timestamp, text: String) {
         append(at, text)
     }

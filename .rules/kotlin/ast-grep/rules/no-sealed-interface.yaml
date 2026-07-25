@@ -1,4 +1,4 @@
-# TENET: Prefer sealed CLASS over sealed interface.
+# LAW (promoted from rules-style, this repo):  Prefer sealed CLASS over sealed interface.
 # Rationale: Sealed classes allow shared state in the base, sealed interfaces don't.
 # When you need shared properties or behavior in the hierarchy root, sealed class is required.
 # Future-proofing: start with sealed class so you can add shared state later without breaking change.
@@ -8,6 +8,12 @@
 id: no-sealed-interface
 language: kotlin
 severity: error
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/src/test/fixtures/**"
 message: "Use `sealed class` instead of `sealed interface`. Sealed classes allow shared state in the base type. Exceptions: @Serializable wire types, private interfaces."
 rule:
   all:

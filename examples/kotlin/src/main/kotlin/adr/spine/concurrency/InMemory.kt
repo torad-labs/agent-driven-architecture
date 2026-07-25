@@ -60,7 +60,16 @@ class InMemoryMailbox : Mailbox {
  * suspend function that never returns and the fast tier must still start its turn
  * inside `RECALL_DEADLINE_MS`.
  */
-class InMemoryRelay(private val gate: suspend () -> Unit = {}) : RelayRead {
+/**
+ * A suspending barrier a test hands the relay to make a race deterministic. It lives
+ * HERE, not in spine/pure: `suspend` is I/O-shaped and gate check C8 denies it in the
+ * pure ring — the gate rejected the first placement, which is the gate working.
+ */
+fun interface Barrier {
+    suspend operator fun invoke()
+}
+
+class InMemoryRelay(private val gate: Barrier = Barrier {}) : RelayRead {
     private val entries = mutableListOf<RelayEntry>()
 
     /** The deep tier's write side, reached through blocks/analysis's own port at the root. */
