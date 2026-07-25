@@ -10,6 +10,13 @@ ignores:
   - "**/dist/**"
   - "**/*.gradle.kts"
   - "**/src/jvmMain/kotlin/**"
+  # This rule's own message names the exception and then does not implement it:
+  # "runBlocking belongs only at composition roots or tests". An entry point IS the
+  # composition root's front door, and its sibling no-runblocking-in-production
+  # already encodes exactly this carve-out by the same two filenames. Matching them
+  # makes the rule enforce what it says rather than something stricter.
+  - "**/Main.kt"
+  - "**/*Application.kt"
   - "**/src/*Test/kotlin/**"
   - "**/src/test/kotlin/**"
   # grandfather entries are per-repo; installs append their own

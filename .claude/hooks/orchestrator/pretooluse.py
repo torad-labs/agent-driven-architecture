@@ -12,9 +12,9 @@ if __name__ == "__main__":
     except Exception as exc:  # fail CLOSED: a broken gate must not read as a clean one
         import json as _json, traceback, sys as _sys
         print(_json.dumps({
-            "continue": False,
+            "continue": True,   # deny the call; never kill the session
             "decision": "block",
-            "message": "HOOK POLICY INCOMPLETE - the PreToolUse orchestrator raised "
+            "reason": "HOOK POLICY INCOMPLETE - the PreToolUse orchestrator raised "
                        f"{type(exc).__name__}: {exc}. Refusing the write rather than "
                        "allowing it unchecked.",
         }))
