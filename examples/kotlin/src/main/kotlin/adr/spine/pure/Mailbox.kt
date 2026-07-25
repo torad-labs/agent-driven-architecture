@@ -16,9 +16,10 @@
 package adr.spine.pure
 
 /** One thing the consumer can be told. Closed: there is no fourth kind of barge-in. */
-sealed interface Message {
+sealed class Message(
     /** Where this came from. Declared once, carried by every variant (L3). */
-    val source: SourceName
+    open val source: SourceName,
+) {
 
     /**
      * A stimulus to reason about.
@@ -35,13 +36,13 @@ sealed interface Message {
         override val source: SourceName,
         val staged: StagedInput.Perceived,
         val key: SourceKey,
-    ) : Message
+    ) : Message(source)
 
     /** PREEMPT: the running turn is cancelled and JOINED before this one starts (12.3). */
-    data class Interrupt(override val source: SourceName, val reason: String) : Message
+    data class Interrupt(override val source: SourceName, val reason: String) : Message(source)
 
     /** DEFER: wait for the running turn, then finalize and stop. Never preempts (12.3). */
-    data class Drain(override val source: SourceName, val reason: String) : Message
+    data class Drain(override val source: SourceName, val reason: String) : Message(source)
 }
 
 /**
@@ -61,15 +62,16 @@ sealed interface Message {
  *     cheap one has to be declared and reviewed — exactly what `Verb` already does
  *     for reversibility.
  */
-sealed interface InputPolicy {
+sealed class InputPolicy(
     /** The source this policy governs. Declared once (L3). */
-    val source: SourceName
+    open val source: SourceName,
+) {
 
     /** Newest-input-wins: while busy, conflate to the latest and COUNT the drops (12.2). */
-    data class Perishable(override val source: SourceName) : InputPolicy
+    data class Perishable(override val source: SourceName) : InputPolicy(source)
 
     /** Never conflate: dedupe on the source key and ack only after the commit (12.2). */
-    data class DurableQueue(override val source: SourceName) : InputPolicy
+    data class DurableQueue(override val source: SourceName) : InputPolicy(source)
 }
 
 /**

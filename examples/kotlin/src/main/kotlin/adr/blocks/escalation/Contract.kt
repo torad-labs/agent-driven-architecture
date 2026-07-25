@@ -11,46 +11,61 @@ import adr.spine.pure.TicketId
 import adr.spine.pure.Timestamp
 import adr.spine.pure.ToolName
 
-sealed interface EscalationResult : ToolResult {
+/**
+ * A sealed CLASS extending the sealed CLASS ToolResult: `tool` is passed up the chain,
+ * so every variant carries it by construction rather than by re-implementing it.
+ */
+sealed class EscalationResult(
+    override val tool: ToolName,
     /**
      * L3 one level down: a BLOCK's sub-union declares its own shared property on its own
-     * parent. Every escalation verb is about a ticket, so every variant carries one by
-     * construction — and the block's fold arm never has to ask which case it has just to
-     * find out which ticket it is talking about.
+     * parent — IN THE CONSTRUCTOR, as `open val`, so the parent actually holds it. Every
+     * escalation verb is about a ticket, so every variant carries one by construction,
+     * and the block's fold arm never has to ask which case it has just to find out which
+     * ticket it is talking about.
      */
-    val ticket: TicketId
+    open val ticket: TicketId,
+) : ToolResult(tool) {
 
     data class RequestEscalation(
         override val tool: ToolName,
         override val ticket: TicketId,
-    ) : EscalationResult
+    ) : EscalationResult(tool, ticket)
 
     data class ConfirmEscalation(
         override val tool: ToolName,
         override val ticket: TicketId,
-    ) : EscalationResult
+    ) : EscalationResult(tool, ticket)
 }
 
-sealed interface EscalationCommand : Command {
+/**
+ * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
+ * every variant carries authorship, permission and identity by construction (L3).
+ */
+sealed class EscalationCommand(
+    override val tool: ToolName,
+    override val sig: Signature,
+    override val id: CommandId,
+) : Command(tool, sig, id) {
     data class RequestEscalation(
         override val tool: ToolName,
         override val sig: Signature,
         override val id: CommandId,
         val ticket: TicketId,
-    ) : EscalationCommand
+    ) : EscalationCommand(tool, sig, id)
 
     data class ConfirmEscalation(
         override val tool: ToolName,
         override val sig: Signature,
         override val id: CommandId,
         val ticket: TicketId,
-    ) : EscalationCommand
+    ) : EscalationCommand(tool, sig, id)
 }
 
-sealed interface EscalationEffect : Effect {
+sealed class EscalationEffect(override val at: Timestamp) : Effect(at) {
     /** IRREVERSIBLE. Fires only inside the confirm arm's success branch. */
     data class PageOncall(
         override val at: Timestamp,
         val ticket: TicketId,
-    ) : EscalationEffect
+    ) : EscalationEffect(at)
 }

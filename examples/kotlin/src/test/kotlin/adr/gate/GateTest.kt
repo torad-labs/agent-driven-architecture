@@ -127,7 +127,14 @@ class GateTest {
 
         // The variant is DECLARED in exactly one file — the append §11.2 counts as
         // the site you write yourself…
-        val declaring = live.filter { it.block == "escalation" && it.codeText.contains("sealed interface TicketStatus") }
+        // Konsist's STRUCTURE, not a substring of the declaration text. The first
+        // version of this line read `codeText.contains("sealed interface TicketStatus")`
+        // and broke the moment the type became a `sealed class` — a change that altered
+        // nothing this assertion is about. A gate keyed on how a declaration is SPELLED
+        // fails on rewording and passes on relocation, which is backwards.
+        val declaring = live.filter { f ->
+            f.block == "escalation" && f.file.classes(includeNested = true).any { it.name == "TicketStatus" }
+        }
         assertEquals(listOf("blocks/escalation/Slice.kt"), declaring.map { it.path })
 
         // …and MATCHED in exactly two, carrying three closed matches between them:

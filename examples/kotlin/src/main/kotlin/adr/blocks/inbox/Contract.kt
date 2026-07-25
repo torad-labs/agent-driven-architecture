@@ -16,29 +16,44 @@ import adr.spine.pure.Signature
 import adr.spine.pure.SourceName
 import adr.spine.pure.ToolName
 
-sealed interface InboxResult : ToolResult {
+/**
+ * A sealed CLASS extending the sealed CLASS ToolResult: `tool` is passed up the chain,
+ * so every variant carries it by construction rather than by re-implementing it.
+ */
+sealed class InboxResult(
+    override val tool: ToolName,
     /**
-     * L3 one level down: the block's sub-union declares its own shared property on
-     * its own parent. Every inbox verb is about a SOURCE, so the arm never has to
+     * L3 one level down: the block's sub-union declares its own shared property on its
+     * own parent — IN THE CONSTRUCTOR, as `open val`, so the parent holds it rather than
+     * merely requiring it. Every inbox verb is about a SOURCE, so the arm never has to
      * ask which case it has just to find out which source it is talking about.
      */
-    val source: SourceName
+    open val source: SourceName,
+) : ToolResult(tool) {
 
     data class NoteDrop(
         override val tool: ToolName,
         override val source: SourceName,
         val reason: DropReason,
         val dropped: Int,
-    ) : InboxResult
+    ) : InboxResult(tool, source)
 
     data class NoteFault(
         override val tool: ToolName,
         override val source: SourceName,
         val fault: String,
-    ) : InboxResult
+    ) : InboxResult(tool, source)
 }
 
-sealed interface InboxCommand : Command {
+/**
+ * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
+ * every variant carries authorship, permission and identity by construction (L3).
+ */
+sealed class InboxCommand(
+    override val tool: ToolName,
+    override val sig: Signature,
+    override val id: CommandId,
+) : Command(tool, sig, id) {
     data class NoteDrop(
         override val tool: ToolName,
         override val sig: Signature,
@@ -46,7 +61,7 @@ sealed interface InboxCommand : Command {
         val source: SourceName,
         val reason: DropReason,
         val dropped: Int,
-    ) : InboxCommand
+    ) : InboxCommand(tool, sig, id)
 
     data class NoteFault(
         override val tool: ToolName,
@@ -54,5 +69,5 @@ sealed interface InboxCommand : Command {
         override val id: CommandId,
         val source: SourceName,
         val fault: String,
-    ) : InboxCommand
+    ) : InboxCommand(tool, sig, id)
 }

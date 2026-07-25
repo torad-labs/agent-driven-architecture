@@ -22,26 +22,38 @@ import adr.spine.pure.Signature
 import adr.spine.pure.TicketId
 import adr.spine.pure.ToolName
 
-sealed interface ConsoleResult : ToolResult {
+/**
+ * A sealed CLASS extending the sealed CLASS ToolResult: `tool` is passed up the chain,
+ * so every variant carries it by construction rather than by re-implementing it.
+ */
+sealed class ConsoleResult(override val tool: ToolName) : ToolResult(tool) {
     data class FocusTicket(
         override val tool: ToolName,
         val ticket: TicketId,
-    ) : ConsoleResult
+    ) : ConsoleResult(tool)
 
     data class SetPanel(
         override val tool: ToolName,
         val panel: PanelId,
         val visible: Boolean,
-    ) : ConsoleResult
+    ) : ConsoleResult(tool)
 }
 
-sealed interface ConsoleCommand : Command {
+/**
+ * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
+ * every variant carries authorship, permission and identity by construction (L3).
+ */
+sealed class ConsoleCommand(
+    override val tool: ToolName,
+    override val sig: Signature,
+    override val id: CommandId,
+) : Command(tool, sig, id) {
     data class FocusTicket(
         override val tool: ToolName,
         override val sig: Signature,
         override val id: CommandId,
         val ticket: TicketId,
-    ) : ConsoleCommand
+    ) : ConsoleCommand(tool, sig, id)
 
     data class SetPanel(
         override val tool: ToolName,
@@ -49,5 +61,5 @@ sealed interface ConsoleCommand : Command {
         override val id: CommandId,
         val panel: PanelId,
         val visible: Boolean,
-    ) : ConsoleCommand
+    ) : ConsoleCommand(tool, sig, id)
 }

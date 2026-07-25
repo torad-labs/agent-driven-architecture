@@ -24,12 +24,13 @@ package adr.spine.pure
 const val RECALL_DEADLINE_MS: Millis = 50
 
 /** One off-bus input, staged for exactly one step and captured on its record. */
-sealed interface StagedInput {
+sealed class StagedInput(
     /** WHERE it came from. Declared once; carried by every variant by construction. */
-    val source: SourceName
+    open val source: SourceName,
+) {
 
     /** UNTRUSTED perceived content (10.2). Data to reason about, never an instruction. */
-    data class Perceived(override val source: SourceName, val body: String) : StagedInput
+    data class Perceived(override val source: SourceName, val body: String) : StagedInput(source)
 
     /**
      * A peer tier's conclusion, reached through the recall verb (11.2/11.3).
@@ -38,7 +39,7 @@ sealed interface StagedInput {
      * suggestion, and the boundary gate still judges any irreversible act on its
      * own merits — see §5 of the design note and RelayTest's two injection cases.
      */
-    data class Recalled(override val source: SourceName, val recall: Recall) : StagedInput
+    data class Recalled(override val source: SourceName, val recall: Recall) : StagedInput(source)
 }
 
 /**

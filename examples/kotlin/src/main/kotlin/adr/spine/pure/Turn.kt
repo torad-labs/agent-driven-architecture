@@ -15,18 +15,18 @@
 package adr.spine.pure
 
 /** How one turn ended. Closed, so every consumer of an outcome is compiler-checked. */
-sealed interface TurnOutcome {
+sealed class TurnOutcome {
     /** It ran to completion, submitting [steps] steps through the boundary. */
-    data class Ok(val steps: Int) : TurnOutcome
+    data class Ok(val steps: Int) : TurnOutcome()
 
     /** 12.4: the turn threw. The cause is carried; THE CONSUMER LIVES. */
-    data class Threw(val fault: String) : TurnOutcome
+    data class Threw(val fault: String) : TurnOutcome()
 
     /** Preempted at a step boundary. Steps completed before the cancel STAY folded. */
-    data class Cancelled(val by: SourceName) : TurnOutcome
+    data class Cancelled(val by: SourceName) : TurnOutcome()
 
     /** Nothing to do. "Idle" is a status, not a failure. */
-    data object Idle : TurnOutcome
+    data object Idle : TurnOutcome()
 }
 
 /**
@@ -34,18 +34,19 @@ sealed interface TurnOutcome {
  * Command through the root's mapping, so "observable, never silent" is a property
  * of the timeline rather than of a log line someone might grep for.
  */
-sealed interface ConsumerEvent {
+sealed class ConsumerEvent(
     /** Which source the event is about. Declared once (L3). */
-    val source: SourceName
+    open val source: SourceName,
+) {
 
     /** A perishable busy-drop: [dropped] inputs were conflated away (12.2). */
-    data class Conflated(override val source: SourceName, val dropped: Int) : ConsumerEvent
+    data class Conflated(override val source: SourceName, val dropped: Int) : ConsumerEvent(source)
 
     /** A durable redelivery whose key had already been folded — deduped, then acked. */
-    data class Duplicate(override val source: SourceName, val key: SourceKey) : ConsumerEvent
+    data class Duplicate(override val source: SourceName, val key: SourceKey) : ConsumerEvent(source)
 
     /** 12.4: a turn threw, and this is its cause. */
-    data class TurnFailed(override val source: SourceName, val fault: String) : ConsumerEvent
+    data class TurnFailed(override val source: SourceName, val fault: String) : ConsumerEvent(source)
 
     /**
      * The cancel deadline blew: the turn ignored cancellation, so its submit channel
@@ -55,5 +56,5 @@ sealed interface ConsumerEvent {
     data class CancelDeadlineExceeded(
         override val source: SourceName,
         val afterMs: Millis,
-    ) : ConsumerEvent
+    ) : ConsumerEvent(source)
 }
