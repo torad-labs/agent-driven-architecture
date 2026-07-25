@@ -6,21 +6,26 @@
 
 package adr.app
 
+import adr.Driver
 import adr.contract.Command
 import adr.contract.ToolResult
-import adr.human
-import adr.driveCanonicalSession
 import adr.spine.pure.ToolName
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-private fun leaves(type: KClass<*>): List<KClass<*>> =
-    if (type.sealedSubclasses.isEmpty()) listOf(type) else type.sealedSubclasses.flatMap { leaves(it) }
+/** Walking a sealed hierarchy, on a constructed type — test sources are in scope too. */
+private class Sealed {
 
-private fun verbName(type: KClass<*>): String =
-    type.simpleName!!.replaceFirstChar { it.lowercase() }
+    fun leaves(type: KClass<*>): List<KClass<*>> =
+        if (type.sealedSubclasses.isEmpty()) listOf(type)
+        else type.sealedSubclasses.flatMap { leaves(it) }
+
+    fun verbName(type: KClass<*>): String =
+        (type.simpleName ?: error("a sealed subclass is never anonymous: $type"))
+            .replaceFirstChar { it.lowercase() }
+}
 
 class TotalityTest {
 
@@ -31,7 +36,7 @@ class TotalityTest {
 
     @Test
     fun `C13 - every ToolResult case has a registry entry, and every entry has a case`() {
-        val cases = leaves(ToolResult::class).map { verbName(it) }.toSet()
+        val cases = Sealed().leaves(ToolResult::class).map { Sealed().verbName(it) }.toSet()
         val names = registry.keys.map { it.value }.toSet()
 
         assertEquals(names, cases - spineCases)
@@ -40,8 +45,8 @@ class TotalityTest {
 
     @Test
     fun `C13 - the Command hierarchy mirrors the ToolResult hierarchy, name for name`() {
-        val results = leaves(ToolResult::class).map { verbName(it) }.toSet()
-        val commands = leaves(Command::class).map { verbName(it) }.toSet()
+        val results = Sealed().leaves(ToolResult::class).map { Sealed().verbName(it) }.toSet()
+        val commands = Sealed().leaves(Command::class).map { Sealed().verbName(it) }.toSet()
         assertEquals(results, commands)
     }
 
@@ -49,8 +54,8 @@ class TotalityTest {
     fun `C13 - every committed Command carries a name the registry knows`() {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = World(), authority = authority))
-        app.driveCanonicalSession(authority)
-        app.human(ToolName("noSuchTool"))
+        Driver().driveCanonicalSession(app, authority)
+        Driver().human(app, ToolName("noSuchTool"))
 
         val committed = app.bus.records().flatMap { it.commands }
         assertTrue(committed.isNotEmpty())

@@ -17,11 +17,11 @@
 
 package adr.spine
 
-import adr.agent
-import adr.app.RunAuthority
-import adr.app.World
+import adr.Driver
 import adr.app.Env
+import adr.app.RunAuthority
 import adr.app.Wiring
+import adr.app.World
 import adr.blocks.escalation.CONFIRM_ESCALATION
 import adr.blocks.escalation.TicketStatus
 import adr.blocks.triage.Priority
@@ -29,7 +29,6 @@ import adr.blocks.triage.SET_PRIORITY
 import adr.contract.EscalationEffect
 import adr.contract.ToolResult
 import adr.contract.TriageEffect
-import adr.human
 import adr.spine.pure.Notice
 import adr.spine.pure.RunStatus
 import adr.spine.pure.TicketId
@@ -48,7 +47,7 @@ class RejectionTest {
         val world = World()
         val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
-        app.human(CONFIRM_ESCALATION, "ticket" to "4118")
+        Driver().human(app, CONFIRM_ESCALATION, "ticket" to "4118")
 
         // The gate refused it PRE-FOLD, so the refusal is what got committed (D5).
         assertEquals(
@@ -72,7 +71,7 @@ class RejectionTest {
         val world = World()
         val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
-        app.human(CONFIRM_ESCALATION, "ticket" to "nope")
+        Driver().human(app, CONFIRM_ESCALATION, "ticket" to "nope")
 
         assertIs<ToolResult.Refused>(app.bus.records().single().results.single())
         assertTrue(app.performed.none { it.effect is EscalationEffect.PageOncall })
@@ -91,7 +90,7 @@ class RejectionTest {
 
         // setPriority is Reversible, so the GATE passes it through: this is the ARM
         // reading its own state before deciding, which is where F9's rule 1 lives.
-        app.human(SET_PRIORITY, "ticket" to "9999", "level" to "High")
+        Driver().human(app, SET_PRIORITY, "ticket" to "9999", "level" to "High")
 
         assertTrue(
             app.performed.none { it.effect is TriageEffect.LogDecision },
@@ -114,17 +113,17 @@ class RejectionTest {
 
         // Four different failures in a row, including the unresolvable-name path
         // that hijacked the banner in the shipped port.
-        app.human(ToolName("noSuchTool"))
-        app.human(SET_PRIORITY, "ticket" to "9999", "level" to "High")
-        app.human(CONFIRM_ESCALATION, "ticket" to "4118")
-        app.agent(SET_PRIORITY, "ticket" to "4118", "level" to "Nope") // fails to decode
+        Driver().human(app, ToolName("noSuchTool"))
+        Driver().human(app, SET_PRIORITY, "ticket" to "9999", "level" to "High")
+        Driver().human(app, CONFIRM_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, SET_PRIORITY, "ticket" to "4118", "level" to "Nope") // fails to decode
 
         assertEquals(4, app.state.spine.notices.size, "four per-item markers")
         assertEquals(RunStatus.Idle, app.state.spine.run)
         assertEquals("ok", app.controller.view.root.banner, "measured OLD: degraded for the rest of the session")
 
         // The session is still healthy: the next good action folds normally.
-        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
+        Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")
 
         assertEquals(Priority.High, app.state.triage.priority.getValue(known))
         assertEquals(1, app.performed.count { it.effect is TriageEffect.LogDecision })

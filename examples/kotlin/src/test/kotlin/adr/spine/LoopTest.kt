@@ -18,7 +18,7 @@ import adr.spine.pure.StagedInput
 import adr.spine.pure.TicketId
 import ai.torad.aisdk.providers.mockLanguageModelToolThenText
 import ai.torad.aisdk.providers.mockToolInput
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -27,7 +27,7 @@ class LoopTest {
 
     @Test
     fun `a real ToolLoopAgent turn folds through the boundary and commits a signed Command`() =
-        runBlocking {
+        runTest {
             val world = World()
             val staged = StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived")
             val app = Wiring().wireApp(

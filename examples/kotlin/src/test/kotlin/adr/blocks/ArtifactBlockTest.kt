@@ -5,10 +5,11 @@
 
 package adr.blocks
 
-import adr.app.RunAuthority
-import adr.app.World
+import adr.Driver
 import adr.app.Env
+import adr.app.RunAuthority
 import adr.app.Wiring
+import adr.app.World
 import adr.blocks.artifact.ArtifactBlock
 import adr.blocks.artifact.ArtifactLine
 import adr.blocks.artifact.ArtifactSlice
@@ -18,8 +19,6 @@ import adr.blocks.artifact.REQUEST_SEAL
 import adr.blocks.artifact.SealStatus
 import adr.contract.ArtifactEffect
 import adr.contract.ArtifactResult
-import adr.driveCanonicalSession
-import adr.human
 import adr.spine.pure.Actor
 import adr.spine.pure.Authority
 import adr.spine.pure.Signature
@@ -86,8 +85,8 @@ class ArtifactBlockTest {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
 
-        app.human(RECORD_FINDING, "text" to "first")
-        app.driveCanonicalSession(authority)
+        Driver().human(app, RECORD_FINDING, "text" to "first")
+        Driver().driveCanonicalSession(app, authority)
 
         assertEquals(
             listOf("first", "refund was never issued"),

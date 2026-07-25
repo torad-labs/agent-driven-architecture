@@ -5,16 +5,15 @@
 
 package adr.spine
 
-import adr.app.RunAuthority
-import adr.app.World
+import adr.Driver
 import adr.app.Assembly
 import adr.app.Env
+import adr.app.RunAuthority
 import adr.app.Wiring
+import adr.app.World
 import adr.blocks.triage.Priority
 import adr.blocks.triage.SET_PRIORITY
 import adr.contract.TriageEffect
-import adr.driveCanonicalSession
-import adr.human
 import adr.spine.boundary.MovingClock
 import adr.spine.pure.Timestamp
 import adr.spine.replay.Replay
@@ -27,7 +26,7 @@ class BoundaryTest {
     @Test
     fun `the committed record carries now, so a live boundary can be re-folded (F8)`() {
         val app = Wiring().wireApp(Env(clock = MovingClock(start = 1000, step = 7)))
-        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
+        Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")
 
         // The record IS the step: seven fields, one of them the clock read.
         val record = app.bus.records().first()
@@ -55,7 +54,7 @@ class BoundaryTest {
                 clock = MovingClock(start = 1000, step = 7),
             ),
         )
-        app.driveCanonicalSession(authority)
+        Driver().driveCanonicalSession(app, authority)
 
         val liveEffects = app.performed.toList()
         val liveStamps = liveEffects.map { it.effect.at }
@@ -83,8 +82,8 @@ class BoundaryTest {
     @Test
     fun `the effect key is derived from the COMMITTED step index (F7)`() {
         val app = Wiring().wireApp(Env())
-        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
-        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")
+        Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")
+        Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")
 
         // step 0 effect 0, then step 1 effect 0 — the key cannot exist before the append
         // returned the index it is built from, so commit strictly precedes perform.
@@ -94,8 +93,8 @@ class BoundaryTest {
     @Test
     fun `the fold reads its own state for supersedes - the tool returned raw inputs only`() {
         val app = Wiring().wireApp(Env())
-        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
-        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")
+        Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")
+        Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")
 
         val logs = app.performed.map { it.effect }.filterIsInstance<TriageEffect.LogDecision>()
         assertEquals(listOf(null, Priority.High), logs.map { it.supersedes })
@@ -105,8 +104,8 @@ class BoundaryTest {
     fun `actions and results are BOTH recorded, and differ whenever the gate spoke`() {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = World(), authority = authority))
-        app.human(adr.blocks.escalation.REQUEST_ESCALATION, "ticket" to "4118")
-        app.human(adr.blocks.escalation.CONFIRM_ESCALATION, "ticket" to "4118")
+        Driver().human(app, adr.blocks.escalation.REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().human(app, adr.blocks.escalation.CONFIRM_ESCALATION, "ticket" to "4118")
 
         val record = app.bus.records().last()
         assertEquals(adr.blocks.escalation.CONFIRM_ESCALATION, record.actions.single().tool)

@@ -8,22 +8,20 @@
 
 package adr.spine
 
-import adr.app.RunAuthority
-import adr.app.World
+import adr.Driver
 import adr.app.Assembly
 import adr.app.Env
+import adr.app.RunAuthority
 import adr.app.Wiring
+import adr.app.World
 import adr.blocks.escalation.CONFIRM_ESCALATION
 import adr.blocks.escalation.REQUEST_ESCALATION
 import adr.contract.ArtifactEffect
 import adr.contract.EscalationEffect
 import adr.contract.ToolResult
-import adr.driveCanonicalSession
-import adr.human
 import adr.spine.boundary.DedupingSink
 import adr.spine.pure.PerformMode
 import adr.spine.replay.Replay
-import adr.under
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -35,7 +33,7 @@ class RecoveryTest {
         val world = World()
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
-        app.driveCanonicalSession(authority)
+        Driver().driveCanonicalSession(app, authority)
 
         val sink = DedupingSink()
         // ONE replay host, driven twice: the fold it holds is the same both times, so
@@ -54,11 +52,11 @@ class RecoveryTest {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
 
-        app.human(REQUEST_ESCALATION, "ticket" to "4118")
-        app.under(authority, "policy-tier-v3") { human(CONFIRM_ESCALATION, "ticket" to "4118") }
+        Driver().human(app, REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().under(app, authority, "policy-tier-v3") { Driver().human(app, CONFIRM_ESCALATION, "ticket" to "4118") }
         assertEquals(1, world.pages.size)
 
-        app.under(authority, "policy-tier-v3") { human(CONFIRM_ESCALATION, "ticket" to "4118") }
+        Driver().under(app, authority, "policy-tier-v3") { Driver().human(app, CONFIRM_ESCALATION, "ticket" to "4118") }
         assertIs<ToolResult.Refused>(app.bus.records().last().results.last())
         assertEquals(1, world.pages.size, "the irreversible action stays done exactly once")
     }

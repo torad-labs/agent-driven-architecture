@@ -2,8 +2,7 @@
 
 package adr.app
 
-import adr.driveCanonicalSession
-import adr.human
+import adr.Driver
 import adr.spine.pure.RunStatus
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,9 +21,9 @@ class DemoSmokeTest {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
 
-        app.driveCanonicalSession(authority)
-        app.human(adr.spine.pure.ToolName("noSuchTool"))
-        app.human(adr.blocks.triage.SET_PRIORITY, "ticket" to "9999", "level" to "High")
+        Driver().driveCanonicalSession(app, authority)
+        Driver().human(app, adr.spine.pure.ToolName("noSuchTool"))
+        Driver().human(app, adr.blocks.triage.SET_PRIORITY, "ticket" to "9999", "level" to "High")
 
         assertEquals(RunStatus.Idle, app.state.spine.run, "per-item failures never reach RunStatus")
         assertEquals("ok", app.controller.view.root.banner)

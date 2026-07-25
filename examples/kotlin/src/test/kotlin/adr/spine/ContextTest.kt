@@ -4,13 +4,13 @@
 
 package adr.spine
 
+import adr.Driver
 import adr.app.Assembly
 import adr.app.Env
 import adr.app.Wiring
 import adr.blocks.triage.SET_PRIORITY
 import adr.blocks.triage.Ticket
 import adr.blocks.triage.TriageBlock
-import adr.human
 import adr.spine.pure.ContextRenderer
 import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.MAX_CONTEXT_NOTICES
@@ -75,7 +75,7 @@ class ContextTest {
     @Test
     fun `the rendered digest and the prompt version ride the committed record (14_7)`() {
         val app = Wiring().wireApp(Env())
-        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
+        Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")
 
         val fixture = app.bus.records().single().context
         assertEquals("triage-prompt@1", fixture.promptVersion)
