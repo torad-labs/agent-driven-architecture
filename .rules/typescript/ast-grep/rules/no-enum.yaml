@@ -1,0 +1,14 @@
+# TENET: Prefer const objects or union types over enums.
+# Rationale: TypeScript enums have runtime overhead and edge cases.
+# `as const` objects or union types are simpler and tree-shake better.
+id: no-enum
+language: typescript
+severity: error
+message: "Use `as const` objects or union types instead of enum."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/test/**"
+rule:
+  kind: enum_declaration

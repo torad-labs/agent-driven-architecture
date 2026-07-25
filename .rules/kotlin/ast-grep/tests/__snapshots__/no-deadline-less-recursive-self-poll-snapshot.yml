@@ -1,0 +1,134 @@
+id: no-deadline-less-recursive-self-poll
+snapshots:
+  ? |
+    package bad
+
+    private fun doPoll() {
+        val pollPromise = Promise<Unit> { resolve, _ ->
+            if (!polling) {
+                resolve(Unit)
+                return
+            }
+            client.sendFrame(payload).then { resp: dynamic ->
+                js("setTimeout")({ doPoll() }, pollIntervalMs)
+                null
+            }
+        }
+    }
+  : labels:
+    - source: |-
+        private fun doPoll() {
+            val pollPromise = Promise<Unit> { resolve, _ ->
+                if (!polling) {
+                    resolve(Unit)
+                    return
+                }
+                client.sendFrame(payload).then { resp: dynamic ->
+                    js("setTimeout")({ doPoll() }, pollIntervalMs)
+                    null
+                }
+            }
+        }
+      style: primary
+      start: 13
+      end: 318
+    - source: js("setTimeout")({ doPoll() }, pollIntervalMs)
+      style: secondary
+      start: 237
+      end: 283
+  ? |
+    package bad
+
+    private fun pump() {
+        if (!done) {
+            setTimeout(::pump, POLL_MS)
+        }
+    }
+  : labels:
+    - source: |-
+        private fun pump() {
+            if (!done) {
+                setTimeout(::pump, POLL_MS)
+            }
+        }
+      style: primary
+      start: 13
+      end: 94
+    - source: setTimeout(::pump, POLL_MS)
+      style: secondary
+      start: 59
+      end: 86
+  ? |
+    package bad
+
+    private fun pump() {
+        if (!done) {
+            setTimeout({ pump() }, POLL_MS)
+        }
+    }
+  : labels:
+    - source: |-
+        private fun pump() {
+            if (!done) {
+                setTimeout({ pump() }, POLL_MS)
+            }
+        }
+      style: primary
+      start: 13
+      end: 98
+    - source: setTimeout({ pump() }, POLL_MS)
+      style: secondary
+      start: 59
+      end: 90
+  ? |
+    package bad
+
+    private fun waitFor(predicate: () -> Boolean): Promise<Boolean> {
+        fun poll(): Promise<Boolean> =
+            when {
+                predicate() -> Promise.resolve(true)
+                else -> sleep(intervalMs).then { poll() }.unsafeCast<Promise<Boolean>>()
+            }
+        return poll()
+    }
+  : labels:
+    - source: |-
+        fun poll(): Promise<Boolean> =
+                when {
+                    predicate() -> Promise.resolve(true)
+                    else -> sleep(intervalMs).then { poll() }.unsafeCast<Promise<Boolean>>()
+                }
+      style: primary
+      start: 83
+      end: 272
+    - source: sleep(intervalMs).then { poll() }
+      style: secondary
+      start: 198
+      end: 231
+  ? |
+    package bad
+
+    private fun waitForSettled(): Promise<dynamic> = Promise { resolve, _ ->
+        fun check() {
+            when {
+                inFlight <= 1 -> resolve(jsObj("quiesced" to true))
+                else -> js("setTimeout")(::check, QUIESCE_POLL_MS)
+            }
+        }
+        check()
+    }
+  : labels:
+    - source: |-
+        fun check() {
+                when {
+                    inFlight <= 1 -> resolve(jsObj("quiesced" to true))
+                    else -> js("setTimeout")(::check, QUIESCE_POLL_MS)
+                }
+            }
+      style: primary
+      start: 90
+      end: 261
+    - source: js("setTimeout")(::check, QUIESCE_POLL_MS)
+      style: secondary
+      start: 203
+      end: 245

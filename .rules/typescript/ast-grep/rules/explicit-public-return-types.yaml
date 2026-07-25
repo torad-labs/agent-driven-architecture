@@ -1,0 +1,22 @@
+# TENET: Public API functions should have explicit return types.
+# Rationale: Explicit return types on exports prevent accidental API changes
+# and make the contract clear to consumers. Inference is fine for internal code.
+id: explicit-public-return-types
+language: typescript
+severity: error
+message: "Exported functions should have explicit return types for API clarity."
+files:
+  - "**/*.ts"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+  - "**/*.d.ts"
+rule:
+  kind: export_statement
+  has:
+    kind: function_declaration
+    not:
+      has:
+        kind: type_annotation
+        follows:
+          kind: formal_parameters

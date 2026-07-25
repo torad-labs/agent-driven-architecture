@@ -1,0 +1,13 @@
+id: backend-no-openclaw-jsmodule-binding
+valid:
+  - |
+    package good
+
+    @JsModule("node:fs")
+    external object Fs
+invalid:
+  - |
+    package bad
+
+    @JsModule("openclaw/substrate")
+    external object OpenClaw

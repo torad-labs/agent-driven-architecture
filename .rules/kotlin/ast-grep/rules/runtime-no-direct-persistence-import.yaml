@@ -1,0 +1,16 @@
+id: runtime-no-direct-persistence-import
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+message: "runtime-no-direct-persistence-import: plugin runtime code must not import persistence adapters outside the approved boundary files."
+rule:
+  kind: import_header
+  regex: "import\\s+ai\\.torad\\.fleet\\.persistence\\.(SqliteStateRepo|DatabaseSync|openStateRepoResilient)\\b"

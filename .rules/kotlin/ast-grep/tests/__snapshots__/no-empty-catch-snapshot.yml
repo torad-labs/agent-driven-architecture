@@ -1,0 +1,11 @@
+id: no-empty-catch
+snapshots:
+  ? |
+    fun f() {
+        try { g() } catch (e: Exception) {}
+    }
+  : labels:
+    - source: 'catch (e: Exception) {}'
+      style: primary
+      start: 26
+      end: 49

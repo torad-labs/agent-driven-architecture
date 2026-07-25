@@ -4,5 +4,14 @@ node_modules/
 .vscode/
 .idea/
 
+# the PreToolUse hook modules are imported to test them; the bytecode is not source
+__pycache__/
+*.pyc
+
 # the F10 negative-compilation proof's scratch copy of src/ (deleted on success)
 examples/typescript/test/gate/.work/
+
+# >>> torad-managed (auto-generated; do not edit inside) >>>
+.torad.state.json
+.torad.lock
+# <<< torad-managed <<<

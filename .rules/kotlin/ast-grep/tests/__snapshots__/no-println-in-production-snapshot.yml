@@ -1,0 +1,13 @@
+id: no-println-in-production
+snapshots:
+  ? |
+    package bad
+
+    fun report() {
+        println("bare println bypasses structured logging")
+    }
+  : labels:
+    - source: println("bare println bypasses structured logging")
+      style: primary
+      start: 32
+      end: 83

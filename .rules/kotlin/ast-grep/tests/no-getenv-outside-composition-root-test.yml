@@ -1,0 +1,11 @@
+id: no-getenv-outside-composition-root
+valid:
+  - |
+    package good
+
+    data class DatabaseConfig(val path: String)
+invalid:
+  - |
+    package bad
+
+    fun dbPath(): String? = System.getenv("TORAD_FLEET_DB")

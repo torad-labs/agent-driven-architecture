@@ -1,0 +1,19 @@
+id: no-system-exit
+valid:
+  - |
+    package good
+
+    fun fail(): Nothing = throw IllegalStateException("hard stop")
+invalid:
+  - |
+    package bad
+
+    fun quit() {
+        System.exit(1)
+    }
+  - |
+    package bad
+
+    fun quitEither() {
+        exitProcess(1)
+    }

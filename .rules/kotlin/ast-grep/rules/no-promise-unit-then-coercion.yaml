@@ -1,0 +1,143 @@
+id: no-promise-unit-then-coercion
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+message: >-
+  no-promise-unit-then-coercion: assigning a chained .then{} into a Promise<Unit>-typed slot
+  (a self-reassigned var or a function's own return position) lets Kotlin/JS's generic inference
+  pick the non-flattening overload — the callback's own returned Promise is silently DISCARDED,
+  so callbacks fire back-to-back instead of actually sequencing (recurred at S2-1's return-type
+  coercion and S2-3's loop-reassigned chain). Bridge it instead: the two-arg
+  .then(onFulfilled, onRejected) form where BOTH branches return the SAME plain value (never a
+  Promise), a trailing .then { it } passthrough after the inner call, or an empty .then {}
+  (discarding the resolved value on purpose — no nested Promise possible with nothing to return).
+# SP-12 (widening this rule to backend/seatd) found a SECOND, pre-existing gap while validating
+# against real seatd code: every "return position" pattern below is anchored on a bare literal
+# `fun` token — a Kotlin visibility modifier (private/internal/protected) sitting in front of it
+# is a SEPARATE child in the function_declaration node, so ast-grep's plain-text pattern match
+# does not match `private fun ...`/`internal fun ...`/`protected fun ...` AT ALL (confirmed
+# empirically via test_match_code_rule, not assumed — a bare `$MOD fun ...` metavariable prefix
+# does NOT work either; only an explicit literal modifier word matches). This was ALREADY true
+# for backend/host before SP-12 — most real internal helpers are private/internal, so the rule
+# had never actually been exercised against its own most common real shape. Fixed by explicitly
+# enumerating each modifier for both return-position shapes (self-reassignment has no `fun`
+# anchor and is unaffected). Left unfixed, the widened glob would give a false assurance:
+# "seatd is footgun-free" while unable to see a violation in the (very common) private-function
+# case — including SP-4's own chainWrite below.
+rule:
+  all:
+    - any:
+        - pattern: $V = $V.then { $$$BODY }
+        - pattern: "fun $NAME($$$PARAMS): Promise<Unit> = $EXPR.then { $$$BODY }"
+        - pattern: "private fun $NAME($$$PARAMS): Promise<Unit> = $EXPR.then { $$$BODY }"
+        - pattern: "internal fun $NAME($$$PARAMS): Promise<Unit> = $EXPR.then { $$$BODY }"
+        - pattern: "protected fun $NAME($$$PARAMS): Promise<Unit> = $EXPR.then { $$$BODY }"
+        - pattern: |
+            fun $NAME($$$PARAMS): Promise<Unit> {
+              $$$PRE
+              return $EXPR.then { $$$BODY }
+            }
+        - pattern: |
+            private fun $NAME($$$PARAMS): Promise<Unit> {
+              $$$PRE
+              return $EXPR.then { $$$BODY }
+            }
+        - pattern: |
+            internal fun $NAME($$$PARAMS): Promise<Unit> {
+              $$$PRE
+              return $EXPR.then { $$$BODY }
+            }
+        - pattern: |
+            protected fun $NAME($$$PARAMS): Promise<Unit> {
+              $$$PRE
+              return $EXPR.then { $$$BODY }
+            }
+    - not:
+        any:
+          - pattern: $V2 = $V2.then { it }
+          - pattern: "fun $NAME2($$$PARAMS2): Promise<Unit> = $EXPR2.then { it }"
+          - pattern: "private fun $NAME2($$$PARAMS2): Promise<Unit> = $EXPR2.then { it }"
+          - pattern: "internal fun $NAME2($$$PARAMS2): Promise<Unit> = $EXPR2.then { it }"
+          - pattern: "protected fun $NAME2($$$PARAMS2): Promise<Unit> = $EXPR2.then { it }"
+          - pattern: |
+              fun $NAME2($$$PARAMS2): Promise<Unit> {
+                $$$PRE2
+                return $EXPR2.then { it }
+              }
+          - pattern: |
+              private fun $NAME2($$$PARAMS2): Promise<Unit> {
+                $$$PRE2
+                return $EXPR2.then { it }
+              }
+          - pattern: |
+              internal fun $NAME2($$$PARAMS2): Promise<Unit> {
+                $$$PRE2
+                return $EXPR2.then { it }
+              }
+          - pattern: |
+              protected fun $NAME2($$$PARAMS2): Promise<Unit> {
+                $$$PRE2
+                return $EXPR2.then { it }
+              }
+          - pattern: $V3 = $V3.then {}
+          - pattern: "fun $NAME3($$$PARAMS3): Promise<Unit> = $EXPR3.then {}"
+          - pattern: "private fun $NAME3($$$PARAMS3): Promise<Unit> = $EXPR3.then {}"
+          - pattern: "internal fun $NAME3($$$PARAMS3): Promise<Unit> = $EXPR3.then {}"
+          - pattern: "protected fun $NAME3($$$PARAMS3): Promise<Unit> = $EXPR3.then {}"
+          - pattern: |
+              fun $NAME3($$$PARAMS3): Promise<Unit> {
+                $$$PRE3
+                return $EXPR3.then {}
+              }
+          - pattern: |
+              private fun $NAME3($$$PARAMS3): Promise<Unit> {
+                $$$PRE3
+                return $EXPR3.then {}
+              }
+          - pattern: |
+              internal fun $NAME3($$$PARAMS3): Promise<Unit> {
+                $$$PRE3
+                return $EXPR3.then {}
+              }
+          - pattern: |
+              protected fun $NAME3($$$PARAMS3): Promise<Unit> {
+                $$$PRE3
+                return $EXPR3.then {}
+              }
+          # SP-12: the unsafeCast<Promise<Unit>>()-bridged idiom (SP-4's Attach.kt chainWrite) —
+          # the author has already explicitly pinned the type at that exact seam; the SAME
+          # deliberate-convention status as the two exemptions above, not a full proof for every
+          # possible body, just this repo's established bridging idiom for a non-trivial trailing
+          # callback that itself returns no Promise.
+          - pattern: "fun $NAME4($$$PARAMS4): Promise<Unit> = $CHAIN4.unsafeCast<Promise<Unit>>().then { $$$BODY4 }"
+          - pattern: "private fun $NAME4($$$PARAMS4): Promise<Unit> = $CHAIN4.unsafeCast<Promise<Unit>>().then { $$$BODY4 }"
+          - pattern: "internal fun $NAME4($$$PARAMS4): Promise<Unit> = $CHAIN4.unsafeCast<Promise<Unit>>().then { $$$BODY4 }"
+          - pattern: "protected fun $NAME4($$$PARAMS4): Promise<Unit> = $CHAIN4.unsafeCast<Promise<Unit>>().then { $$$BODY4 }"
+          - pattern: |
+              fun $NAME4($$$PARAMS4): Promise<Unit> {
+                $$$PRE4
+                return $CHAIN4.unsafeCast<Promise<Unit>>().then { $$$BODY4 }
+              }
+          - pattern: |
+              private fun $NAME4($$$PARAMS4): Promise<Unit> {
+                $$$PRE4
+                return $CHAIN4.unsafeCast<Promise<Unit>>().then { $$$BODY4 }
+              }
+          - pattern: |
+              internal fun $NAME4($$$PARAMS4): Promise<Unit> {
+                $$$PRE4
+                return $CHAIN4.unsafeCast<Promise<Unit>>().then { $$$BODY4 }
+              }
+          - pattern: |
+              protected fun $NAME4($$$PARAMS4): Promise<Unit> {
+                $$$PRE4
+                return $CHAIN4.unsafeCast<Promise<Unit>>().then { $$$BODY4 }
+              }

@@ -1,0 +1,9 @@
+id: no-raw-thread
+snapshots:
+  ? |
+    fun go() { Thread { work() }.start() }
+  : labels:
+    - source: Thread { work() }
+      style: primary
+      start: 11
+      end: 28

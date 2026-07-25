@@ -1,0 +1,8 @@
+id: deprecated-ctor-to-factory
+language: typescript
+severity: hint
+promotion: suggest
+message: Use Foo.create instead of new Foo.
+rule:
+  pattern: new Foo($$$ARGS)
+fix: Foo.create($$$ARGS)

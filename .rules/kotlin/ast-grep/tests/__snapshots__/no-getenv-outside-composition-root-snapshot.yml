@@ -1,0 +1,11 @@
+id: no-getenv-outside-composition-root
+snapshots:
+  ? |
+    package bad
+
+    fun dbPath(): String? = System.getenv("TORAD_FLEET_DB")
+  : labels:
+    - source: System.getenv("TORAD_FLEET_DB")
+      style: primary
+      start: 37
+      end: 68

@@ -1,0 +1,23 @@
+# TENET (G60, imported+adapted from torad-toolkit resources/configs/kotlin-rules/ast-grep):
+# println bypasses structured logging (no level, no context, can't be filtered/aggregated) in a
+# service/library module. EXCLUDES plugin/runtime deliberately — it's the fleet's actual CLI
+# product (openclaw fleet ...), where println to stdout IS the correct, primary communication
+# channel with the end user, not a logging bypass (confirmed by survey: every current println
+# hit in this repo's production code is either this legitimate CLI output in plugin/runtime, or
+# Mordant's own qualified Terminal.println() in backend/host, which this bare-call pattern
+# naturally doesn't match at all — a different AST shape).
+id: no-println-in-production
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+message: "no-println-in-production: use a logging framework instead of println. println bypasses structured logging."
+rule:
+  pattern: println($$$ARGS)

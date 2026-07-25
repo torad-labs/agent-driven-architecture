@@ -1,0 +1,17 @@
+# TENET: No nested ternary operators.
+# Rationale: Nested ternaries are hard to read. Use if/else or early returns.
+# One level of ternary is fine; nesting makes intent unclear.
+id: no-nested-ternary
+language: typescript
+severity: error
+message: "Avoid nested ternaries. Use if/else or early returns for clarity."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+rule:
+  kind: ternary_expression
+  has:
+    kind: ternary_expression

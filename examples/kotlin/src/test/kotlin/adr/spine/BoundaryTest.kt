@@ -15,7 +15,7 @@ import adr.blocks.triage.SET_PRIORITY
 import adr.contract.TriageEffect
 import adr.driveCanonicalSession
 import adr.human
-import adr.spine.boundary.movingClock
+import adr.spine.boundary.MovingClock
 import adr.spine.pure.Timestamp
 import adr.spine.replay.refold
 import kotlin.test.Test
@@ -26,7 +26,7 @@ class BoundaryTest {
 
     @Test
     fun `the committed record carries now, so a live boundary can be re-folded (F8)`() {
-        val app = wireApp(offlineEnv(clock = movingClock(start = 1000, step = 7)))
+        val app = wireApp(offlineEnv(clock = MovingClock(start = 1000, step = 7)))
         app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
 
         // The record IS the step: seven fields, one of them the clock read.
@@ -52,7 +52,7 @@ class BoundaryTest {
             offlineEnv(
                 world = World(),
                 authority = authority,
-                clock = movingClock(start = 1000, step = 7),
+                clock = MovingClock(start = 1000, step = 7),
             ),
         )
         app.driveCanonicalSession(authority)

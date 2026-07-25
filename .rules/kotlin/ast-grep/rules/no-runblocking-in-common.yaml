@@ -1,0 +1,20 @@
+id: no-runblocking-in-common
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/src/jvmMain/kotlin/**"
+  - "**/src/*Test/kotlin/**"
+  - "**/src/test/kotlin/**"
+  # grandfather entries are per-repo; installs append their own
+message: "no-runblocking-in-common: common domain/application code must preserve suspend discipline; runBlocking belongs only at composition roots or tests."
+rule:
+  any:
+    - pattern: 'runBlocking { $$$ }'
+    - pattern: 'runBlocking($$$A) { $$$ }'

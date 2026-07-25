@@ -24,35 +24,42 @@ import adr.spine.pure.Gating
 import adr.spine.pure.Registry
 import adr.spine.pure.Signature
 
-fun <S> gate(
-    result: ToolResult,
-    sig: Signature,
-    state: S,
-    registry: Registry<S>,
-    policy: ConfirmPolicy,
-): ToolResult {
-    // An unresolvable action never had a verb to gate; it is already a decision.
-    if (result is ToolResult.Unhandled) return result
+/**
+ * The gate itself, over the registry and the confirm policy it is built with. The
+ * per-step values — the result, the signature, the state — are the arguments.
+ *
+ * Constructed by the Boundary, never injected into it. `policy` is the seam a test is
+ * meant to vary; the gate AROUND it is the invariant, and a gate that could be bound
+ * from outside is a gate that could be bypassed from outside.
+ */
+class IrreversibilityGate<S>(
+    private val registry: Registry<S>,
+    private val policy: ConfirmPolicy,
+) {
+    fun check(result: ToolResult, sig: Signature, state: S): ToolResult {
+        // An unresolvable action never had a verb to gate; it is already a decision.
+        if (result is ToolResult.Unhandled) return result
 
-    val verb = registry[result.tool]
-        ?: return ToolResult.Unhandled(result.tool, "no registered verb")
+        val verb = registry[result.tool]
+            ?: return ToolResult.Unhandled(result.tool, "no registered verb")
 
-    return when (val gating = verb.gating(state, result)) {
-        Gating.Ungated -> result
-        is Gating.NeedsConfirmation -> when {
-            gating.requestedBy == null ->
-                ToolResult.Refused(result.tool, "no pending request")
+        return when (val gating = verb.gating(state, result)) {
+            Gating.Ungated -> result
+            is Gating.NeedsConfirmation -> when {
+                gating.requestedBy == null ->
+                    ToolResult.Refused(result.tool, "no pending request")
 
-            gating.requestedBy == sig.authority ->
-                ToolResult.Refused(
-                    result.tool,
-                    "self-confirm: the confirming authority is the requesting authority",
-                )
+                gating.requestedBy == sig.authority ->
+                    ToolResult.Refused(
+                        result.tool,
+                        "self-confirm: the confirming authority is the requesting authority",
+                    )
 
-            !policy.mayConfirm(sig, result, gating.requestedBy) ->
-                ToolResult.Refused(result.tool, "authority may not confirm this action")
+                !policy.mayConfirm(sig, result, gating.requestedBy) ->
+                    ToolResult.Refused(result.tool, "authority may not confirm this action")
 
-            else -> result
+                else -> result
+            }
         }
     }
 }

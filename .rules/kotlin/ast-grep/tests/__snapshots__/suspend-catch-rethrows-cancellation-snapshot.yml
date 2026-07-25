@@ -1,0 +1,84 @@
+id: suspend-catch-rethrows-cancellation
+snapshots:
+  ? |
+    package bad
+
+    suspend fun swallowsCancellationViaException() {
+        try {
+            risky()
+        } catch (e: Exception) {
+            logger.warn(e.message)
+        }
+    }
+  : labels:
+    - source: |-
+        catch (e: Exception) {
+                logger.warn(e.message)
+            }
+      style: primary
+      start: 94
+      end: 153
+    - source: Exception
+      style: secondary
+      start: 104
+      end: 113
+    - source: suspend
+      style: secondary
+      start: 13
+      end: 20
+    - source: suspend
+      style: secondary
+      start: 13
+      end: 20
+    - source: |-
+        suspend fun swallowsCancellationViaException() {
+            try {
+                risky()
+            } catch (e: Exception) {
+                logger.warn(e.message)
+            }
+        }
+      style: secondary
+      start: 13
+      end: 155
+  ? |
+    package bad
+
+    suspend fun swallowsCancellationViaThrowable() {
+        try {
+            risky()
+        } catch (e: Throwable) {
+            logger.warn(e.message)
+        }
+    }
+  : labels:
+    - source: |-
+        catch (e: Throwable) {
+                logger.warn(e.message)
+            }
+      style: primary
+      start: 94
+      end: 153
+    - source: Throwable
+      style: secondary
+      start: 104
+      end: 113
+    - source: suspend
+      style: secondary
+      start: 13
+      end: 20
+    - source: suspend
+      style: secondary
+      start: 13
+      end: 20
+    - source: |-
+        suspend fun swallowsCancellationViaThrowable() {
+            try {
+                risky()
+            } catch (e: Throwable) {
+                logger.warn(e.message)
+            }
+        }
+      style: secondary
+      start: 13
+      end: 155

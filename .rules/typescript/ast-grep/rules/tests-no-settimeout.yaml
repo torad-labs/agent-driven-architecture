@@ -1,0 +1,14 @@
+# TENET: No setTimeout in tests.
+# Rationale: setTimeout makes tests slow and flaky.
+# Use vi.useFakeTimers() or await proper async completion.
+id: tests-no-settimeout
+language: typescript
+severity: error
+message: "Don't use setTimeout in tests. Use vi.useFakeTimers() or proper async."
+files:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+rule:
+  pattern: setTimeout($$$ARGS)

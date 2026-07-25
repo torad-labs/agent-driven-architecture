@@ -1,0 +1,29 @@
+id: tmux-test-socket-isolation-kotlin
+valid:
+  - |
+    package good
+
+    fun isolated() {
+        run("tmux", arrayOf("-L", "private-test", "kill-server"))
+        run("tmux", arrayOf("-S", "/tmp/private.sock", "new-session"))
+    }
+invalid:
+  - |
+    package bad
+
+    fun wipesFleet() {
+        run("tmux", arrayOf("kill-server"))
+    }
+  - |
+    package bad
+
+    fun usesDefaultSocket() {
+        run("tmux", arrayOf("new-session", "-d", "-s", "fixture"))
+    }
+  - |
+    package bad
+
+    fun tmpdirIsNotIsolation() {
+        val env = mapOf("TMUX_TMPDIR" to "/tmp/apparently-private")
+        run("tmux", arrayOf("kill-session", "-t", "fixture"), env)
+    }

@@ -1,0 +1,7 @@
+id: no-unsafe-cast
+valid:
+  - |
+    fun f(x: Any): String? = x as? String
+invalid:
+  - |
+    fun f(x: Any): String = x as String

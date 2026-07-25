@@ -1,0 +1,21 @@
+id: no-loose-top-level-fun
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+message: "no-loose-top-level-fun: application/use-case behavior should live on cohesive instantiable types, not loose top-level functions."
+rule:
+  kind: function_declaration
+  inside:
+    kind: source_file
+  has:
+    kind: function_body
+  not:
+    regex: 'fun main\s*\('

@@ -4,8 +4,18 @@
 // conversion, and it is the symmetric twin of 6.8's name→Command map — both fed by
 // ONE registration.
 //
-//     resolveAction(registry, action, ctx) -> ToolResult      name → ToolResult
-//     signResult(registry, result, sig, id) -> Command        name → Command
+//     ActionResolution(registry).resolve(action, ctx) -> ToolResult   name → ToolResult
+//     ActionResolution(registry).sign(result, sig, id) -> Command      name → Command
+//
+// Both are members of a CONSTRUCTED type, never top-level functions. A top-level
+// function has no instance: nothing builds it, so nothing can stand in for it, so it
+// can only be reached through whatever calls it. The registry is the state the pair
+// shares, so it is constructor-held and drops out of both signatures.
+//
+// The Boundary builds this itself rather than receiving it injected. That is deliberate:
+// an injected resolver would let a test mint ToolResults from a second site, which is
+// exactly what C7 below forbids. Instantiated, therefore testable; not bound, therefore
+// still the single production site.
 //
 // Because the open-name guard lives HERE — at the boundary, where the open name
 // actually arrives — the fold has no `else` arm at all. It is exhaustive over a
@@ -38,36 +48,38 @@ data class FinishedStep(
 )
 
 /**
- * The ONE closed name→ToolResult map, executed BEFORE the fold.
- *
- * A missing verb and an undecodable input both become a folded, committed
- * ToolResult.Unhandled — never a silent drop (6.5). The shipped Kotlin port's
- * `runCatching { … }.getOrNull()` is gone with it.
+ * The two closed maps of the boundary, over ONE registry — the symmetric pair named in
+ * this file's header. Built by the Boundary from the registry it already holds.
  */
-fun <S> resolveAction(registry: Registry<S>, action: Action, ctx: Ctx<S>): ToolResult {
-    val verb = registry[action.tool]
-        ?: return ToolResult.Unhandled(action.tool, "no registered verb")
-    return verb.resolve(action.input, ctx)
-        ?: ToolResult.Unhandled(action.tool, DECODE_FAILED)
-}
+class ActionResolution<S>(private val registry: Registry<S>) {
 
-/**
- * The name→Command map (6.8), supplied by the same registry. EVERY verb signs —
- * presentation and domain alike (A1) — and so do the spine's own two results,
- * because a refusal is a decision and 5.4's discriminator answers yes.
- *
- * The two `is` checks are not an open match dressed up as a closed one: the spine
- * structurally CANNOT enumerate block cases (that is L1), and the registry is what
- * closes the set instead. Gate check C13 proves every case in the system has a verb
- * and signs, so the fallback is total by test.
- */
-fun <S> signResult(
-    registry: Registry<S>,
-    result: ToolResult,
-    sig: Signature,
-    id: CommandId,
-): Command {
-    if (result is ToolResult.Unhandled) return Command.Unhandled(result.tool, sig, id, result.note)
-    if (result is ToolResult.Refused) return Command.Refused(result.tool, sig, id, result.reason)
-    return registry.getValue(result.tool).signOf(result, sig, id)
+    /**
+     * The ONE closed name→ToolResult map, executed BEFORE the fold.
+     *
+     * A missing verb and an undecodable input both become a folded, committed
+     * ToolResult.Unhandled — never a silent drop (6.5). The shipped Kotlin port's
+     * `runCatching { … }.getOrNull()` is gone with it.
+     */
+    fun resolve(action: Action, ctx: Ctx<S>): ToolResult {
+        val verb = registry[action.tool]
+            ?: return ToolResult.Unhandled(action.tool, "no registered verb")
+        return verb.resolve(action.input, ctx)
+            ?: ToolResult.Unhandled(action.tool, DECODE_FAILED)
+    }
+
+    /**
+     * The name→Command map (6.8), supplied by the same registry. EVERY verb signs —
+     * presentation and domain alike (A1) — and so do the spine's own two results,
+     * because a refusal is a decision and 5.4's discriminator answers yes.
+     *
+     * The two `is` checks are not an open match dressed up as a closed one: the spine
+     * structurally CANNOT enumerate block cases (that is L1), and the registry is what
+     * closes the set instead. Gate check C13 proves every case in the system has a verb
+     * and signs, so the fallback is total by test.
+     */
+    fun sign(result: ToolResult, sig: Signature, id: CommandId): Command {
+        if (result is ToolResult.Unhandled) return Command.Unhandled(result.tool, sig, id, result.note)
+        if (result is ToolResult.Refused) return Command.Refused(result.tool, sig, id, result.reason)
+        return registry.getValue(result.tool).signOf(result, sig, id)
+    }
 }

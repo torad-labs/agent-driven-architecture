@@ -1,0 +1,11 @@
+id: no-unsafe-bang-bang
+snapshots:
+  ? |
+    package bad
+
+    fun length(value: String?): Int = value!!.length
+  : labels:
+    - source: value!!
+      style: primary
+      start: 47
+      end: 54

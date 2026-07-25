@@ -1,0 +1,61 @@
+{
+  "summary": {
+    "total": 10,
+    "passed": 7,
+    "failed": 3,
+    "pass_rate": 0.7
+  },
+  "expectations": [
+    {
+      "text": "`runCatching` around a suspend call swallows CancellationException.",
+      "passed": false,
+      "evidence": "Finding #4 only treats runCatching as a scoping issue: \"runCatching only guards the fetch + parse. Everything after if (result.isFailure) runs unguarded.\" It never states that runCatching around a suspend call captures/swallows CancellationException. The cancellation-swallowing bug is only attributed to the catch(Exception) in stream() (#2), not to runCatching in latest(). Not mentioned."
+    },
+    {
+      "text": "Empty `catch (e: Exception) {}` in stream() swallows cancellation.",
+      "passed": true,
+      "evidence": "Finding #2: \"catch (Exception) swallows CancellationException -> the flow can't be cancelled... CancellationException IS an Exception... This catch eats it and the while (true) loop keeps running — the flow refuses to die.\""
+    },
+    {
+      "text": "Per-call `Json {}` instead of reusing one.",
+      "passed": true,
+      "evidence": "Finding #8: \"A new Json instance is constructed per call inside the hot path. Json is designed to be created once and reused. Hoist it to a top-level/companion private val json = Json { ignoreUnknownKeys = true }.\""
+    },
+    {
+      "text": "Returning cached/0.0 on failure masks the outage; 0.0 sentinel dangerous.",
+      "passed": true,
+      "evidence": "Finding #5: \"0.0 as a 'no data' sentinel is dangerous for prices... In a trading app, 0.0 is a real, catastrophic price — it can trip alerts, show a free instrument, or feed a P&L calc as a 100% loss. A sentinel that collides with a legitimate value is a latent incident.\""
+    },
+    {
+      "text": "`GlobalScope.launch` in prefetch().",
+      "passed": true,
+      "evidence": "Finding #6: \"GlobalScope.launch in prefetch() — leaked, uncancellable work... GlobalScope is unbounded and not tied to any lifecycle... GlobalScope should essentially never appear in app/library code.\""
+    },
+    {
+      "text": "Hardcoded `Dispatchers.IO` hurts testability (should be injected) -- NOT praising it.",
+      "passed": false,
+      "evidence": "The review does NOT flag hardcoded Dispatchers.IO as a testability defect; it instead PRAISES it. Finding #10: \"latest() correctly wraps its IO in withContext(Dispatchers.IO)\" and finding #7 mentions injecting only as one of several cache-fix options. No recommendation to inject the dispatcher for testability. The assertion's 'NOT praising it' condition is violated."
+    },
+    {
+      "text": "`accumulated += chunk` + re-split as O(n^2) / re-emitting old lines (freeze symptom).",
+      "passed": true,
+      "evidence": "Finding #1: \"accumulated is never cleared. It grows without bound (a memory leak), and every iteration re-splits the whole buffer. Every price: line ever received is re-emitted on every iteration. Poll 1 emits [a]. Poll 2 appends and re-emits [a, b]... This is exactly 'the streaming felt off.'\" Re-emission and re-split/unbounded-growth both identified."
+    },
+    {
+      "text": "Bare `while (true)` with no delay/backoff.",
+      "passed": true,
+      "evidence": "Finding #3: \"while (true) with no delay -> busy-loop hot spin (CPU burn, connection storm)... this loop spins as fast as the CPU allows, firing back-to-back HTTP requests. On error... immediately re-loops with zero backoff — a tight retry storm. Fix: add delay(...) between polls and a backoff on failure.\""
+    },
+    {
+      "text": "Frames the review EXPLICITLY at Tier 0 (states it's app/internal code, library tiers don't apply).",
+      "passed": false,
+      "evidence": "The review uses CRITICAL/HIGH/MEDIUM severity buckets and never frames findings at a tier. There is no statement that the file is internal/app code or that library-tier rules (ABI/explicitApi/publishing) do not apply. The explicit tier-framing clause is absent. Not mentioned."
+    },
+    {
+      "text": "Raises NO explicitApi/ABI/publishing concerns (no tier-confusion false positives).",
+      "passed": true,
+      "evidence": "The review raises no explicitApi/ABI/binary-compatibility/publishing/multiplatform concerns anywhere. No tier-confusion false positives present (absence check satisfied)."
+    }
+  ],
+  "grader_notes": "without_skill caught 7/10. It correctly diagnosed the stream() cancellation swallow (#2), per-call Json (#3), 0.0 sentinel (#4), GlobalScope (#5), the accumulated += / re-emit O(n^2) bug (#7), and the no-delay busy loop (#8), and produced no tier-confusion false positives (#10). It FAILED three: (#1) it never identified that runCatching around a suspend call swallows CancellationException — it only treated runCatching as a scope-of-coverage issue; (#6) it PRAISED hardcoded Dispatchers.IO ('latest() correctly wraps its IO in withContext(Dispatchers.IO)') rather than flagging it as an injectability/testability defect, violating the 'NOT praising it' condition; and (#9) it never explicitly framed the review at Tier 0 / stated that library-tier rules do not apply (it used generic CRITICAL/HIGH/MEDIUM buckets instead)."
+}

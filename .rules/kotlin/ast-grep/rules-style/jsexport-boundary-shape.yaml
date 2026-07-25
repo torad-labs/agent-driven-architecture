@@ -1,0 +1,39 @@
+id: jsexport-boundary-shape
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+message: "jsexport-boundary-shape (advisory): an @JsExport signature here uses List/Map, Long, or suspend — none cross the @JsExport boundary. Use Array/IntArray, Int/Double, and return kotlin.js.Promise (promise{}) instead. A Kotlin `object` exports as X.getInstance(); prefer top-level funs. (KMP-MIGRATION-STUDY.md Addendum A.)"
+rule:
+  kind: function_declaration
+  has:
+    kind: modifiers
+    has:
+      kind: annotation
+      has:
+        kind: type_identifier
+        regex: "^JsExport$"
+        stopBy: end
+  any:
+    - has:
+        kind: function_modifier
+        regex: "suspend"
+        stopBy: end
+    - has:
+        kind: user_type
+        has:
+          kind: type_identifier
+          regex: "^(List|Map|Long)$"
+    - has:
+        kind: function_value_parameters
+        has:
+          kind: type_identifier
+          regex: "^(List|Map|Long)$"
+          stopBy: end

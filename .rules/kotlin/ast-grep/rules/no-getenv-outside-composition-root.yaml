@@ -1,0 +1,17 @@
+id: no-getenv-outside-composition-root
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+message: "no-getenv-outside-composition-root: environment access belongs at composition roots and platform seams; library modules receive configuration as values."
+rule:
+  any:
+    - pattern: System.getenv($$$)
+    - pattern: process.env[$$$]

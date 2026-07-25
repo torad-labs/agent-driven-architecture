@@ -1,0 +1,7 @@
+id: no-raw-thread
+valid:
+  - |
+    fun go(executor: Executor) { executor.execute { work() } }
+invalid:
+  - |
+    fun go() { Thread { work() }.start() }

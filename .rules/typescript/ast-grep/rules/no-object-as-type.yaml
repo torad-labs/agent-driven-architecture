@@ -1,0 +1,13 @@
+# TENET: Don't use object or Object as a type.
+# Rationale: object is too broad — use Record<string, unknown> or specific types.
+# Object includes primitives via autoboxing.
+id: no-object-as-type
+language: typescript
+severity: error
+message: "Don't use `object` type. Use Record<string, unknown> or specific types."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+rule:
+  kind: type_identifier
+  regex: "^(object|Object)$"

@@ -1,0 +1,19 @@
+# TENET: Exported functions must have explicit return types.
+# Rationale: Implicit return types leak implementation details.
+# Explicit types are self-documenting and catch refactoring errors.
+id: no-implicit-any-return
+language: typescript
+severity: error
+message: "Exported functions need explicit return types."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/test/**"
+rule:
+  kind: export_statement
+  has:
+    kind: function_declaration
+    not:
+      has:
+        kind: type_annotation

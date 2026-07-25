@@ -1,0 +1,27 @@
+id: no-companion-objects
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+#
+# A companion member is a function with no instance. Nothing constructs it, so nothing
+# can substitute it, so it can only be tested through whatever calls it. That is the same
+# disease as no-loose-top-level-fun and no-loose-object; the companion is simply a third
+# place for it to hide. These three are siblings enforcing one law, not competitors.
+#
+# The remedy is NEVER file scope — hoisting a companion member to a top-level declaration
+# keeps the disease and moves the symptom. Give it a host that is constructed:
+#   - state on the type           -> an instance member or a constructor default
+#   - a projection or a policy    -> a `fun interface` the composition root binds
+#   - a step of one owner's work  -> a private member of that owner
+#
+# Test sources are IN scope, matching no-loose-top-level-fun: an untestable helper is not
+# excused by living next to the tests.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+message: "no-companion-objects: a companion member has no instantiation and cannot be substituted. Move it onto a constructed type — an instance member, a `fun interface` seam, or a private member of its owner — never to file scope."
+rule:
+  kind: companion_object

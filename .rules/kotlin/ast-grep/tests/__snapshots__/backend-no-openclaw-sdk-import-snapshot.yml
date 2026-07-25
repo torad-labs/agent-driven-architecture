@@ -1,0 +1,13 @@
+id: backend-no-openclaw-sdk-import
+snapshots:
+  ? |
+    package bad
+
+    import torad.openclaw.sdk.Plugin
+
+    class UsesSdk
+  : labels:
+    - source: import torad.openclaw.sdk.Plugin
+      style: primary
+      start: 13
+      end: 45

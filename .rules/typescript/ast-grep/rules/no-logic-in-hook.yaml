@@ -1,0 +1,24 @@
+# TENET: Hooks compose, they don't compute heavy logic.
+# Rationale: Complex logic in hooks should be extracted to pure functions.
+# Hooks orchestrate state and effects, not business logic.
+id: no-logic-in-hook
+language: typescript
+severity: error
+message: "Extract heavy computation from hooks to pure utility functions."
+files:
+  - "**/use*.ts"
+  - "**/use*.tsx"
+ignores:
+  - "**/test/**"
+rule:
+  kind: function_declaration
+  all:
+    - has:
+        kind: identifier
+        regex: "^use[A-Z]"
+    - has:
+        kind: statement_block
+        has:
+          any:
+            - pattern: for ($$$INIT; $$$COND; $$$UPDATE) { $$$BODY }
+            - pattern: while ($$$COND) { $$$BODY }

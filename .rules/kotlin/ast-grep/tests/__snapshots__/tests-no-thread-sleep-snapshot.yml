@@ -1,0 +1,9 @@
+id: tests-no-thread-sleep
+snapshots:
+  ? |
+    class T { @Test fun t() { Thread.sleep(100) } }
+  : labels:
+    - source: Thread.sleep(100)
+      style: primary
+      start: 26
+      end: 43

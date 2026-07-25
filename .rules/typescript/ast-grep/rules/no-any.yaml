@@ -1,0 +1,18 @@
+# TENET: No any type — use unknown or proper generics.
+# Rationale: any defeats type safety. Use unknown for truly unknown types,
+# or proper generics for flexible but safe typing.
+id: no-any
+language: typescript
+severity: error
+message: "Don't use 'any'. Use 'unknown' for unknown types, or proper generics."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/test/**"
+  - "**/*.d.ts"
+rule:
+  kind: predefined_type
+  regex: "^any$"

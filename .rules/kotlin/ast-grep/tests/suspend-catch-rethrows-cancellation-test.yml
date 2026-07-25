@@ -1,0 +1,77 @@
+id: suspend-catch-rethrows-cancellation
+valid:
+  - |
+    package good
+
+    suspend fun explicitRethrowFirst() {
+        try {
+            risky()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn(e.message)
+        }
+    }
+  - |
+    package good
+
+    suspend fun isCheckThenThrow() {
+        try {
+            risky()
+        } catch (e: Throwable) {
+            if (e is CancellationException) throw e
+            logger.warn(e.message)
+        }
+    }
+  - |
+    package good
+
+    suspend fun usesEnsureActive() {
+        try {
+            risky()
+        } catch (e: Exception) {
+            ensureActive()
+            logger.warn(e.message)
+        }
+    }
+  - |
+    package good
+
+    fun synchronousCatchIsOutOfScope() {
+        try {
+            risky()
+        } catch (e: Exception) {
+            logger.warn(e.message)
+        }
+    }
+  - |
+    package good
+
+    suspend fun narrowExceptionTypeCannotCatchCancellation() {
+        try {
+            risky()
+        } catch (e: IllegalStateException) {
+            logger.warn(e.message)
+        }
+    }
+invalid:
+  - |
+    package bad
+
+    suspend fun swallowsCancellationViaException() {
+        try {
+            risky()
+        } catch (e: Exception) {
+            logger.warn(e.message)
+        }
+    }
+  - |
+    package bad
+
+    suspend fun swallowsCancellationViaThrowable() {
+        try {
+            risky()
+        } catch (e: Throwable) {
+            logger.warn(e.message)
+        }
+    }

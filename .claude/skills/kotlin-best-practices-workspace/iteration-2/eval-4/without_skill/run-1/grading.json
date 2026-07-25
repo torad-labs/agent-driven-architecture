@@ -1,0 +1,43 @@
+{
+  "summary": {
+    "total": 5,
+    "passed": 3,
+    "failed": 2,
+    "pass_rate": 0.6
+  },
+  "expectations": [
+    {
+      "text": "Polymorphic messages are a sealed hierarchy with @JsonClassDiscriminator on the base and explicit @SerialName on each subtype (wire decoupled from class names).",
+      "passed": false,
+      "evidence": "Sealed hierarchy and per-subtype @SerialName are present (ChatWireModels.kt:36 `sealed interface ChatMessage`; @SerialName(\"text\")/(\"tool_call\")/(\"tool_result\") on l.42,50,65), but the discriminator is NOT set with @JsonClassDiscriminator on the base. grep finds NO @JsonClassDiscriminator anywhere in outputs; instead the key is pinned via the Json-builder flag `classDiscriminator = \"type\"` (ChatJson.kt:50). The assertion conjunctively requires @JsonClassDiscriminator on the base (the class-bound, @InheritableSerialInfo approach that travels with the type independent of which Json instance decodes it); the builder-flag approach does not satisfy it. Note ChatMessage also adds a stray empty `companion object` (l.37) that serves no purpose here."
+    },
+    {
+      "text": "Forward-compat for new server fields via per-class @JsonIgnoreUnknownKeys rather than the GLOBAL ignoreUnknownKeys flag (or at minimum scopes leniency deliberately and notes the trade).",
+      "passed": false,
+      "evidence": "Uses the GLOBAL flag `ignoreUnknownKeys = true` (ChatJson.kt:49) and calls it 'the single most important forward-compat switch' (ChatJson.kt:25-28). No @JsonIgnoreUnknownKeys appears on any model (grep: NONE). The escape clause ('or at minimum scopes leniency deliberately and notes the trade') is not met: leniency is applied globally to the single shared ChatJson used for BOTH encode and decode of all types, so it is not scoped, and the trade-off (a global flag also makes strict/request models silently swallow typos) is never noted — it is instead framed as an unqualified positive."
+    },
+    {
+      "text": "Single reused Json instance (top-level/object val), not a per-call Json {}.",
+      "passed": true,
+      "evidence": "ChatJson.kt:48 `public val ChatJson: Json = Json { ... }` — a single top-level val, with KDoc: 'the only object that should be used to encode/decode... Keep it as one shared instance — Json is thread-safe and caches serializers, so reusing it is both correct and faster than constructing one per call' (l.17-24). All helpers (encodeToWire, decodeChatMessage, encodeConversation, decodeConversation) route through this one instance."
+    },
+    {
+      "text": "Unknown polymorphic subtypes handled gracefully (polymorphic defaultDeserializer / fallback type) rather than throwing.",
+      "passed": true,
+      "evidence": "ChatJson.kt:55-62 registers `polymorphic(ChatMessage::class) { defaultDeserializer { discriminator -> UnknownDelegateSerializer(discriminator ?: \"\") } }`. The custom UnknownDelegateSerializer (l.72-86) re-reads the body as a JsonObject and wraps it in UnknownMessage(type, raw=obj), preserving the full raw JSON. Transcript run output confirms: future `image` type decoded to `UnknownMessage(type=image, raw={...})` with no crash."
+    },
+    {
+      "text": "Encodes/decodes through the base type so the discriminator is written, AND demonstrates a class/property rename doesn't change the JSON (via @SerialName).",
+      "passed": true,
+      "evidence": "Encoding goes through the base serializer: `ChatJson.encodeToString(ChatMessage.serializer(), this)` (ChatJson.kt:92) and `ListSerializer(ChatMessage.serializer())` (l.100-103), so the discriminator is emitted — transcript output shows `{\"type\":\"text\",...}` etc. Rename safety is established via @SerialName on every tag and field key; the transcript records a concrete rename proof: 'renamed the class TextMessage -> ChatText AND the property text -> body, kept @SerialName(\"text\") on both -> out={\"text\":\"hi\"}', confirming wire bytes bind to @SerialName strings, not Kotlin identifiers."
+    }
+  ],
+  "execution_metrics": {
+    "total_tokens": 85764,
+    "output_files": 3
+  },
+  "timing": {
+    "executor_duration_seconds": 201.8
+  },
+  "grader_notes": "3/5. The baseline produces functionally working, well-documented code that round-trips, falls back on unknown types, and reuses one Json instance — but it diverges from the skill on the two discriminating assertions. #1 fails because it never uses @JsonClassDiscriminator on the base; it pins the discriminator with the Json-builder `classDiscriminator = \"type\"` flag, which couples the wire contract to the specific Json instance rather than to the type itself. #2 fails on the precise point this eval is built to discriminate: it uses the GLOBAL `ignoreUnknownKeys = true` flag, does not scope leniency to inbound types, and does not note the trade-off (it actively praises the flag as 'the single most important forward-compat switch'). The escape clause in the assertion is therefore not satisfied. Both passing-by-content checks (#4 unknown-type fallback, #5 rename proof) are backed by actual run output in the transcript, not just claims. The custom UnknownDelegateSerializer is heavier than the skill's one-line `defaultDeserializer { UnknownMessage.serializer() }` but is correct and additionally preserves raw JSON. Eval feedback: assertions #1 and #2 are well-designed discriminators — both passed for with_skill and failed for without_skill on exactly the per-class-vs-global / annotation-vs-builder distinction, with no false positives from surface-level keyword matching."
+}

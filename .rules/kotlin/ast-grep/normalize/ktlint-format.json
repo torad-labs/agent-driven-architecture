@@ -1,0 +1,5 @@
+{
+  "kind": "delegate",
+  "delegate": "ktlint",
+  "message": "Delegate formatting and true dataflow cleanups (unused imports, ordering) to ktlint -F."
+}

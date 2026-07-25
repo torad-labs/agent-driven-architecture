@@ -1,0 +1,16 @@
+# TENET: Prefer named exports over default exports.
+# Rationale: Named exports enable better refactoring, auto-imports, and tree-shaking.
+# Default exports allow inconsistent naming across imports.
+id: no-default-export
+language: typescript
+severity: error
+message: "Use named exports for better refactoring and consistency."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/pages/**"
+  - "**/app/**"
+  - "**/*.config.*"
+rule:
+  pattern: export default $EXPR

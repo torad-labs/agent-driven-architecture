@@ -1,0 +1,39 @@
+# TENET: @Composable functions return Unit (with exceptions).
+# Rationale: Composable functions emit UI, they don't return values.
+# EXCEPTIONS:
+#   - remember* functions (rememberX pattern for state hoisting)
+#   - provide* functions (for CompositionLocal)
+id: composable-returns-unit
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/test/**"
+  - "**/*Test/**"
+  - "**/testFixtures/**"
+  # grandfather entries are per-repo; installs append their own
+message: "@Composable functions should typically return Unit. Exceptions: remember*, provide* patterns."
+rule:
+  kind: function_declaration
+  all:
+    - has:
+        kind: modifiers
+        has:
+          kind: annotation
+          regex: "Composable"
+    - has:
+        kind: user_type
+        not:
+          has:
+            kind: type_identifier
+            regex: "^Unit$"
+    - not:
+        has:
+          kind: simple_identifier
+          regex: "^(remember|provide)"

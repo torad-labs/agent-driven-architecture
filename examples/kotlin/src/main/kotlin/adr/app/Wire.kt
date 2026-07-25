@@ -35,9 +35,9 @@ import adr.spine.agent.AgentLoop
 import adr.spine.agent.runTurn
 import adr.spine.boundary.Boundary
 import adr.spine.boundary.InMemoryBus
+import adr.spine.boundary.MovingClock
 import adr.spine.boundary.RecordingSink
-import adr.spine.boundary.movingClock
-import adr.spine.boundary.sequentialIds
+import adr.spine.boundary.SequentialIds
 import adr.spine.concurrency.InMemoryRelay
 import adr.spine.concurrency.SerialConsumer
 import adr.spine.concurrency.TurnRunner
@@ -178,7 +178,7 @@ data class Env(
     val oncall: OncallPort,
     val delivery: DeliveryPort,
     val relay: AnalysisRelay,
-    val ids: IdSource = sequentialIds(),
+    val ids: IdSource = SequentialIds(),
     val bus: Bus = InMemoryBus(),
     val policy: ConfirmPolicy = ConfirmingAuthorities(),
     val events: EventSource = ScriptedEvents(),
@@ -202,7 +202,7 @@ data class Env(
 fun offlineEnv(
     world: World = World(),
     authority: AuthorityResolver = RunAuthority(),
-    clock: Clock = movingClock(start = 1000, step = 7),
+    clock: Clock = MovingClock(start = 1000, step = 7),
     tickets: List<Ticket> = listOf(Ticket(TicketId("4118"), "refund not received")),
     policy: ConfirmPolicy = ConfirmingAuthorities(),
     events: EventSource = ScriptedEvents(),

@@ -1,0 +1,7 @@
+id: composable-returns-unit
+valid:
+  - |
+    @Composable fun Chip(label: String) { Text(label) }
+invalid:
+  - |
+    @Composable fun chipColor(label: String): Color = Color.Red

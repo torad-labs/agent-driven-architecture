@@ -1,0 +1,7 @@
+id: no-runblocking-in-production
+valid:
+  - |
+    suspend fun f(): Int = g()
+invalid:
+  - |
+    fun f(): Int = runBlocking { g() }

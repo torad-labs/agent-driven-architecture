@@ -1,0 +1,7 @@
+id: tests-no-thread-sleep
+valid:
+  - |
+    class T { @Test fun t() = runTest { advanceTimeBy(100) } }
+invalid:
+  - |
+    class T { @Test fun t() { Thread.sleep(100) } }

@@ -1,0 +1,9 @@
+id: no-coroutine-scope-factory
+snapshots:
+  ? |
+    class A { private val scope = CoroutineScope(Dispatchers.Default) }
+  : labels:
+    - source: CoroutineScope(Dispatchers.Default)
+      style: primary
+      start: 30
+      end: 65

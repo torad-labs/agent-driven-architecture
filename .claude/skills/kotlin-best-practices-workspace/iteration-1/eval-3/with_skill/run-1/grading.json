@@ -1,0 +1,26 @@
+{
+  "summary": {"total": 4, "passed": 4, "failed": 0, "pass_rate": 1.0},
+  "expectations": [
+    {
+      "text": "Correctly identifies the code as internal/app-module (Tier 0) and scopes the review to rules that apply.",
+      "passed": true,
+      "evidence": "Dedicated section 'Tier classification (what I'm holding it to)': 'This is an `internal class` in an Android app's `ui.settings` package... Single target, single module, no `commonMain`, no `expect`/`actual`, no `publishing {}`... So this review is **Tier 0 (Core Kotlin) only**.' Findings header: 'Findings (Tier 0, highest-impact first)'."
+    },
+    {
+      "text": "Does NOT raise published-API / binary-compatibility / ABI / explicitApi / @since / Maven-publishing concerns.",
+      "passed": true,
+      "evidence": "No such concern raised as a finding. The review explicitly DECLINES them: 'I am deliberately **not** raising: explicitApi() / explicit public return types — Tier 1, published surfaces only... KMP source-set / Native-dispatcher rules — Tier 2... Publishing / api() vs implementation() / Dokka — Tier 3.' These are listed as out-of-scope, not as defects."
+    },
+    {
+      "text": "Does NOT flag the `data class SettingsUiState` as a 'growable public data class' problem.",
+      "passed": true,
+      "evidence": "Opposite of flagging: 'SettingsUiState being a `data class` is *correct and idiomatic* here; the \"don't grow a public data class\" rule is about cross-module binary compat, which does not exist for an internal UI-state holder.' Also under 'Things that are correct': 'The Tier-1 \"don't grow a public data class\" rule does **not** apply (internal, no cross-module ABI).'"
+    },
+    {
+      "text": "Findings stay proportionate (e.g. suggest injecting Dispatchers.IO) and the verdict is the code is basically solid / commit-ready.",
+      "passed": true,
+      "evidence": "Finding #1 is exactly 'inject the dispatcher' (Severity: Suggestion). Other findings (write-ordering, missing error handling) are marked Suggestion/Note. Verdict line: 'Solid, idiomatic Android ViewModel. Nothing blocking for a commit.' Bottom line: 'Commit-ready. Idiomatic ViewModel, clean state encapsulation...'"
+    }
+  ],
+  "grader_notes": "with_skill was substantially MORE explicit about tier scoping than the baseline. It opens with a named 'Tier classification' section, enumerates the exact tier-detection signals it checked (single target, no commonMain, no expect/actual, no publishing/framework block, no Maven coordinate), and then itemizes by tier (Tier 1/2/3) every published-library rule it is consciously withholding and WHY each is inapplicable. The baseline got the framing right in one prose sentence; the skill run turned that judgment into an auditable checklist. This explicit, tier-aware suppression of library rules on app code is the skill's value-add on this negative-control eval."
+}

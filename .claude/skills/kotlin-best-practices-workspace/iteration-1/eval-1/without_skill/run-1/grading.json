@@ -1,0 +1,36 @@
+{
+  "summary": {"total": 6, "passed": 5, "failed": 1, "pass_rate": 0.83},
+  "expectations": [
+    {
+      "text": "Public surface uses explicit return/property types throughout (no inferred public return types).",
+      "passed": true,
+      "evidence": "Explicit types throughout: WeatherClient.kt 'public suspend fun forecast(location: Location): WeatherResult', 'public fun create(...): WeatherClient'; Model.kt 'public val fahrenheit: Double get() = ...', 'public fun of(...): Location'; WeatherResult.kt 'public fun WeatherResult.forecastOrNull(): Forecast?'. Transcript: 'Compiled the whole surface under kotlinc -Xexplicit-api=strict ... clean compile, exit 0, no warnings.'"
+    },
+    {
+      "text": "Errors modeled as a sealed hierarchy (not a growable public data class, not a bare RuntimeException/IllegalStateException).",
+      "passed": true,
+      "evidence": "WeatherError.kt: 'public sealed class WeatherError(message: String, cause: Throwable? = null) : Throwable(message, cause)' with subtypes Network/LocationNotFound/Unauthorized/RateLimited/Server/Unexpected. Sealed hierarchy, not a data class, not a bare RuntimeException."
+    },
+    {
+      "text": "Forecast result type is NOT a public data class that will grow — interface, regular class, or sealed — to preserve binary compatibility.",
+      "passed": true,
+      "evidence": "Model.kt: 'public class Forecast private constructor(...)' with hand-written equals/hashCode/toString and a nested Builder — explicitly not a data class. KDoc: 'This is intentionally not a data class. In a published library a data class is a binary-compatibility trap.' (The forecast OUTCOME wrapper WeatherResult is additionally a sealed interface.)"
+    },
+    {
+      "text": "Signatures use read-only collections; construction via factory/builder, not a public constructor whose descriptor moves when config grows.",
+      "passed": false,
+      "evidence": "Configuration.kt exposes a PUBLIC constructor with defaulted params as the documented growth path: 'public class Configuration(public val requestTimeoutMillis: Long = 10_000L, public val maxRetries: Int = 2, public val baseUrl: String = ...)' and KDoc 'New options are added as new defaulted params here plus a new setter on Builder.' Appending a defaulted parameter to a public constructor moves its JVM descriptor (NoSuchMethodError for already-compiled callers) — exactly the trap this assertion targets. WeatherClient.create() also takes 'configuration: Configuration = Configuration()', and Success/Failure expose public constructors. A Builder exists but does not remove the public-constructor growth path. (Read-only-collections half is vacuously satisfied — no collections in the surface.)"
+    },
+    {
+      "text": "commonMain stays platform-free: no java.*/android.*/platform.Foundation.* in the public surface.",
+      "passed": true,
+      "evidence": "No imports of java.*/android.*/platform.Foundation.* in any file; time is modeled as a primitive 'observedAtEpochMillis: Long' rather than a platform type. Transcript: 'no reliance on any JVM-only stdlib (commonMain-safe)' and 'commonMain only. No java.*, no JVM-only types in the public API.'"
+    },
+    {
+      "text": "Surfaces at least one publishing or iOS-interop consideration (api() vs implementation(), single-macOS publish, XCFramework, or SKIE).",
+      "passed": true,
+      "evidence": "iOS-interop reasoning is explicit in the transcript: 'Consumed from Swift via the Kotlin/Native ObjC bridge ... avoid things that bridge badly: inline value class, and reliance on Kotlin default arguments (Swift can't see them)' and 'sealed (-> Swift switch), suspend (-> Swift async)'. Builders are justified specifically because 'Kotlin defaults don't bridge' to Swift. (Build-dep api()-vs-implementation() and the binary-compatibility-validator are mentioned as 'out of scope', and SKIE/XCFramework are not named.)"
+    }
+  ],
+  "grader_notes": "Assertion 4 is the only fail and it is the discriminating one: the model produced a Configuration with a public defaulted-parameter constructor as its growth point — a binary-compat trap (descriptor moves on every new param) the with_skill run specifically avoids by making WeatherClientConfig's constructor internal and growing it via public mutable knobs behind a frozen create() factory. The Builder present here does not neutralize the exposed public constructor. EVAL FEEDBACK: assertion 4 bundles two unrelated checks (read-only collections AND construction pattern); the read-only-collections half is vacuous in this eval since neither run exposes collections, so it tests nothing — consider splitting it, and making the construction half explicitly require that the config/result constructors are NOT public so that the defaulted-public-constructor trap is unambiguously caught. Assertion 6's bar is low (any single publishing/interop mention passes) and was met here only via Swift-bridging prose, not a concrete publishing mechanism. Timing: 180.7s / 82291 tokens (faster and cheaper than with_skill's 426.1s / 127036)."
+}

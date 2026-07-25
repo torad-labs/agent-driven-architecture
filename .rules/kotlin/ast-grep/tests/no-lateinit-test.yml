@@ -1,0 +1,7 @@
+id: no-lateinit
+valid:
+  - |
+    class A(private val dep: Dep) { val name: String = dep.name }
+invalid:
+  - |
+    class A { lateinit var dep: Dep }

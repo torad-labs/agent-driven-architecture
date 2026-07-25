@@ -1,0 +1,28 @@
+# TENET: Observable/stream variables should end with $.
+# Rationale: The $ suffix convention makes it clear a variable is a stream.
+# Pattern: const user$ = userService.getUser(); not const user = userService.getUser$();
+# This applies to RxJS Observables and similar stream types.
+id: observable-naming
+language: typescript
+severity: error
+message: "Observable/stream variables should end with $ (e.g., user$, data$)."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+rule:
+  kind: variable_declarator
+  all:
+    - has:
+        kind: type_annotation
+        has:
+          kind: generic_type
+          has:
+            kind: type_identifier
+            regex: "^(Observable|Subject|BehaviorSubject|ReplaySubject|AsyncSubject)$"
+    - has:
+        kind: identifier
+        not:
+          regex: "\\$$"

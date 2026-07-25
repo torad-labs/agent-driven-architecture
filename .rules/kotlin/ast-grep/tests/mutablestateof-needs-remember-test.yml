@@ -1,0 +1,7 @@
+id: mutablestateof-needs-remember
+valid:
+  - |
+    @Composable fun S() { val checked = remember { mutableStateOf(false) } }
+invalid:
+  - |
+    @Composable fun S() { val checked = mutableStateOf(false) }

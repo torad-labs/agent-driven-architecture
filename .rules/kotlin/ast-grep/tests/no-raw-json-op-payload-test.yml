@@ -1,0 +1,12 @@
+id: no-raw-json-op-payload
+valid:
+  - |
+    suspend fun call(host: HostClient, payload: ManifestCallPayload) =
+        host.request("manifestCall", wireJson.encodeToJsonElement(payload).jsonObject)
+invalid:
+  - |
+    suspend fun call(host: HostClient) =
+        host.request("manifestCall", buildJsonObject { put("verb", "list") })
+  - |
+    fun send(repo: StateRepo, nowMs: Long): Long =
+        repo.enqueue(OperationKind.PASTE, null, buildJsonObject { put("session", "s") }, nowMs)

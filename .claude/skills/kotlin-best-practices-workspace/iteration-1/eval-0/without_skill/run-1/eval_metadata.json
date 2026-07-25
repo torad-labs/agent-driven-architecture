@@ -1,0 +1,14 @@
+{
+  "eval_id": 1,
+  "eval_name": "write-streaming-client-core",
+  "prompt": "I'm building a Kotlin price-watch feature for our trading app. Write a class that connects to our SSE price stream at https://gw.acme.trading/v1/stream/{symbol}, exposes incoming price ticks to the UI as they arrive, retries on transient network errors, and shuts down cleanly when the user leaves the screen. We use Ktor for HTTP. I want it to be unit-testable.",
+  "assertions": [
+    "Stream is exposed as a cold Flow returned from a NON-suspend function (not a `suspend fun` returning Flow), so collection stays lazy and cancellable",
+    "Cancellation is correct: no swallowed CancellationException; clean shutdown happens via scope cancellation; no GlobalScope is used",
+    "Retries ONLY transient failures (timeouts/5xx/transport) with capped + jittered exponential backoff; does not retry terminal 4xx; not a bare `while(true)` catch-all with no delay",
+    "The HttpClient/engine and the dispatcher are INJECTED (constructor params) so the class is unit-testable (and any Clock/Random too)",
+    "Does NOT return a fake or last-known value on failure that masks the outage (no silent fallback that fakes success)",
+    "Avoids constructing Json per-call and frames the stream incrementally (does not re-split an ever-growing accumulated buffer)",
+    "Stays at Tier 0 for this app-level task: does NOT impose published-API/ABI/explicitApi/publishing rules that don't apply"
+  ]
+}

@@ -1,0 +1,15 @@
+id: no-dynamic-code-in-src
+valid:
+  - |
+    package good
+
+    fun compute(a: Int, b: Int): Int = a + b
+invalid:
+  - |
+    package bad
+
+    external fun eval(code: String): dynamic
+
+    fun compute(expr: String) {
+        eval(expr)
+    }

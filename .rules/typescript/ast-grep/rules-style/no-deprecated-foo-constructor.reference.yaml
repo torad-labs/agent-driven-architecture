@@ -1,0 +1,8 @@
+# REFERENCE ONLY: opt-in anti-return law for the deprecated-ctor-to-factory
+# codemod template. It is intentionally outside the default rules/ LAW route.
+id: no-deprecated-foo-constructor
+language: typescript
+severity: error
+message: Use Foo.create(...) instead of new Foo(...). Run `torad codemod run deprecated-ctor-to-factory`.
+rule:
+  pattern: new Foo($$$ARGS)

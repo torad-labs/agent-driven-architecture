@@ -1,0 +1,26 @@
+# TENET: UI components render, they don't compute.
+# Rationale: Logic in components makes them hard to test and reason about.
+# Extract logic to hooks, utilities, or state management.
+id: no-logic-in-component
+language: typescript
+severity: error
+message: "Components render, don't compute. Extract logic to hooks or utilities."
+files:
+  - "**/*.tsx"
+ignores:
+  - "**/test/**"
+  - "**/*.test.tsx"
+rule:
+  kind: function_declaration
+  all:
+    - has:
+        kind: identifier
+        regex: "^[A-Z]"
+    - has:
+        kind: statement_block
+        has:
+          any:
+            - pattern: for ($$$INIT; $$$COND; $$$UPDATE) { $$$BODY }
+            - pattern: while ($$$COND) { $$$BODY }
+            - pattern: $ARR.reduce($$$ARGS)
+            - pattern: $ARR.filter($$$ARGS).map($$$ARGS2)
