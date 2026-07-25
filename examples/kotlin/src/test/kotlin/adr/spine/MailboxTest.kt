@@ -73,14 +73,18 @@ private const val FIRST_STEP_MS = 100L
 /** How long a turn that IGNORES cancellation stays alive. Far past CANCEL_DEADLINE_MS. */
 private const val STUBBORN_TURN_MS = 5_000L
 
-private fun inputOf(source: SourceName, key: String, body: String) =
-    Message.Input(source, StagedInput.Perceived(source, body), SourceKey(key))
+/** The two message shapes this suite posts, on a constructed type. */
+private class Msgs {
 
-private fun stepOf(
-    tool: ToolName,
-    vararg fields: Pair<String, String>,
-    staged: List<StagedInput> = emptyList(),
-) = FinishedStep(Actor.Agent, staged, listOf(Action(tool, RawInput(*fields))))
+    fun inputOf(source: SourceName, key: String, body: String) =
+        Message.Input(source, StagedInput.Perceived(source, body), SourceKey(key))
+
+    fun stepOf(
+        tool: ToolName,
+        vararg fields: Pair<String, String>,
+        staged: List<StagedInput> = emptyList(),
+    ) = FinishedStep(Actor.Agent, staged, listOf(Action(tool, RawInput(*fields))))
+}
 
 /**
  * One wired tier with a mailbox. Everything is built through the composition root
@@ -120,14 +124,14 @@ class MailboxTest {
                 is Message.Input -> {
                     delay(FIRST_STEP_MS)
                     // STEP 1 — committed, and it must SURVIVE the cancel (12.3).
-                    ctx.submit(stepOf(SET_PRIORITY, "ticket" to "4118", "level" to "High", staged = ctx.staged))
+                    ctx.submit(Msgs().stepOf(SET_PRIORITY, "ticket" to "4118", "level" to "High", staged = ctx.staged))
                     delay(LONG_TURN_MS - FIRST_STEP_MS)
                     // STEP 2 — this is what the interrupt must not have to wait for.
-                    ctx.submit(stepOf(SET_PRIORITY, "ticket" to "4118", "level" to "Urgent", staged = ctx.staged))
+                    ctx.submit(Msgs().stepOf(SET_PRIORITY, "ticket" to "4118", "level" to "Urgent", staged = ctx.staged))
                 }
 
                 is Message.Interrupt ->
-                    ctx.submit(stepOf(RECORD_FINDING, "text" to "interrupt handled", staged = ctx.staged))
+                    ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "interrupt handled", staged = ctx.staged))
 
                 is Message.Drain -> Unit
             }
@@ -138,7 +142,7 @@ class MailboxTest {
         val controlBase = currentTime
         val control = Barge(runner = longTurnRunner())
         val controlJob = launch { control.consumer.run() }
-        control.mailbox.post(inputOf(TICKETS, "k1", "reading A"))
+        control.mailbox.post(Msgs().inputOf(TICKETS, "k1", "reading A"))
         advanceUntilIdle()
         val controlElapsed = currentTime - controlBase
         assertEquals(LONG_TURN_MS, controlElapsed, "the uninterrupted turn takes $LONG_TURN_MS")
@@ -151,7 +155,7 @@ class MailboxTest {
         val base = currentTime
         val h = Barge(runner = longTurnRunner())
         val job = launch { h.consumer.run() }
-        h.mailbox.post(inputOf(TICKETS, "k1", "reading A"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "k1", "reading A"))
         advanceTimeBy(150)
         assertEquals(0L, startedAt.getValue(TICKETS.value) - base, "turn A started immediately")
 
@@ -191,22 +195,22 @@ class MailboxTest {
             runner = TurnRunner { message, ctx ->
                 when (message) {
                     is Message.Input -> {
-                        ctx.submit(stepOf(RECORD_FINDING, "text" to "folded before the cancel"))
+                        ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "folded before the cancel"))
                         // The case 12.3 hand-waves: a turn that does not cooperate.
                         withContext(NonCancellable) { delay(STUBBORN_TURN_MS) }
                         // …and then submits ANYWAY, long past the deadline.
-                        ctx.submit(stepOf(RECORD_FINDING, "text" to "LATE - must be dropped"))
+                        ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "LATE - must be dropped"))
                     }
 
                     is Message.Interrupt ->
-                        ctx.submit(stepOf(RECORD_FINDING, "text" to "interrupt handled"))
+                        ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "interrupt handled"))
 
                     is Message.Drain -> Unit
                 }
             },
         )
         val job = launch { h.consumer.run() }
-        h.mailbox.post(inputOf(TICKETS, "k1", "reading"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "k1", "reading"))
         advanceTimeBy(10)
         h.mailbox.post(Message.Interrupt(OPERATOR, "stop"))
 
@@ -251,17 +255,17 @@ class MailboxTest {
             policies = listOf(InputPolicy.Perishable(SENSOR)),
             runner = TurnRunner { message, ctx ->
                 (message as? Message.Input)?.let { handled += it.staged.body }
-                ctx.submit(stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
                 delay(1_000)
             },
         )
         val job = launch { h.consumer.run() }
 
-        h.mailbox.post(inputOf(SENSOR, "a", "reading A"))
+        h.mailbox.post(Msgs().inputOf(SENSOR, "a", "reading A"))
         advanceTimeBy(10)
-        h.mailbox.post(inputOf(SENSOR, "b", "reading B"))
-        h.mailbox.post(inputOf(SENSOR, "c", "reading C"))
-        h.mailbox.post(inputOf(SENSOR, "d", "reading D"))
+        h.mailbox.post(Msgs().inputOf(SENSOR, "b", "reading B"))
+        h.mailbox.post(Msgs().inputOf(SENSOR, "c", "reading C"))
+        h.mailbox.post(Msgs().inputOf(SENSOR, "d", "reading D"))
         advanceUntilIdle()
 
         assertContentEquals(
@@ -298,17 +302,17 @@ class MailboxTest {
             // No policy listed for this source: the DEFAULT is DurableQueue (12.2).
             runner = TurnRunner { message, ctx ->
                 (message as? Message.Input)?.let { handled += it.staged.body }
-                ctx.submit(stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
                 delay(1_000)
             },
         )
         val job = launch { h.consumer.run() }
 
-        h.mailbox.post(inputOf(TICKETS, "a", "ticket A"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "a", "ticket A"))
         advanceTimeBy(10)
-        h.mailbox.post(inputOf(TICKETS, "b", "ticket B"))
-        h.mailbox.post(inputOf(TICKETS, "c", "ticket C"))
-        h.mailbox.post(inputOf(TICKETS, "d", "ticket D"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "b", "ticket B"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "c", "ticket C"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "d", "ticket D"))
         advanceUntilIdle()
 
         assertContentEquals(listOf("ticket A", "ticket B", "ticket C", "ticket D"), handled)
@@ -325,7 +329,7 @@ class MailboxTest {
         val h = Barge(
             mailbox = mailbox,
             runner = TurnRunner { message, ctx ->
-                ctx.submit(stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
                 // The step is COMMITTED by now. The lease must still be outstanding: a
                 // crash here has to re-deliver rather than lose the work item (12.2).
                 unackedAtCommitTime += mailbox.unacked().size
@@ -334,7 +338,7 @@ class MailboxTest {
         )
         val job = launch { h.consumer.run() }
 
-        mailbox.post(inputOf(TICKETS, "k1", "ticket 4118"))
+        mailbox.post(Msgs().inputOf(TICKETS, "k1", "ticket 4118"))
         advanceTimeBy(10)
         assertContentEquals(listOf(1), unackedAtCommitTime, "committed, NOT YET acked")
 
@@ -370,13 +374,13 @@ class MailboxTest {
             runner = TurnRunner { message, ctx ->
                 val input = message as? Message.Input
                 check(input?.key != SourceKey("boom")) { "backend timeout" }
-                ctx.submit(stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
             },
         )
         val job = launch { h.consumer.run() }
 
-        h.mailbox.post(inputOf(TICKETS, "boom", "the one that explodes"))
-        h.mailbox.post(inputOf(TICKETS, "ok", "the one after it"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "boom", "the one that explodes"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "ok", "the one after it"))
         advanceUntilIdle()
 
         assertFalse(h.consumer.isStopped, "THE CONSUMER LIVES")
@@ -400,15 +404,15 @@ class MailboxTest {
     fun `DRAIN - defers to the running turn, then finalizes, then stops`() = runTest {
         val h = Barge(
             runner = TurnRunner { message, ctx ->
-                ctx.submit(stepOf(RECORD_FINDING, "text" to "step 1", staged = ctx.staged))
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "step 1", staged = ctx.staged))
                 // Comfortably inside DRAIN_DEADLINE_MS: this turn cooperates, so the
                 // defer completes on the turn's own terms rather than on the bound's.
                 delay(300)
-                ctx.submit(stepOf(RECORD_FINDING, "text" to "step 2", staged = ctx.staged))
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "step 2", staged = ctx.staged))
             },
         )
         val job = launch { h.consumer.run() }
-        h.mailbox.post(inputOf(TICKETS, "k1", "reading"))
+        h.mailbox.post(Msgs().inputOf(TICKETS, "k1", "reading"))
         advanceTimeBy(10)
         h.mailbox.post(Message.Drain(OPERATOR, "shutting down"))
 

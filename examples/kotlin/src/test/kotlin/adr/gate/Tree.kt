@@ -63,31 +63,41 @@ data class Violation(val path: String, val message: String)
 class Check(val id: String, val title: String, val run: (List<GateFile>) -> List<Violation>)
 
 /**
- * Read a tree, normalising every path to be relative to [root] so a fixture at
- * `.../C1/blocks/triage/Fold.kt` and the live file at
- * `src/main/kotlin/adr/blocks/triage/Fold.kt` are both seen as
- * `blocks/triage/Fold.kt`. The rules therefore cannot tell the two apart, which is
- * the property that makes a fixture pair meaningful.
+ * READING THE TREES THE GATE DEFENDS, on a constructed type.
+ *
+ * Test sources are in scope for no-loose-top-level-fun — it ignores build/,
+ * node_modules/, dist/ and *.gradle.kts, and nothing else — and deliberately so: a
+ * helper nothing can construct is no more testable for living next to the tests.
  */
-fun treeOf(root: String): List<GateFile> {
-    val marker = "/" + root.trim('/') + "/"
-    return Konsist.scopeFromDirectory(root)
-        .files
-        .map { GateFile(it.path.substringAfter(marker), it) }
-        .sortedBy { it.path }
+class GateTrees {
+
+    /**
+     * Read a tree, normalising every path to be relative to [root] so a fixture at
+     * `.../C1/blocks/triage/Fold.kt` and the live file at
+     * `src/main/kotlin/adr/blocks/triage/Fold.kt` are both seen as
+     * `blocks/triage/Fold.kt`. The rules therefore cannot tell the two apart, which is
+     * the property that makes a fixture pair meaningful.
+     */
+    fun treeOf(root: String): List<GateFile> {
+        val marker = "/" + root.trim('/') + "/"
+        return Konsist.scopeFromDirectory(root)
+            .files
+            .map { GateFile(it.path.substringAfter(marker), it) }
+            .sortedBy { it.path }
+    }
+
+    /** The live tree the gate defends. */
+    fun liveTree(): List<GateFile> = treeOf("src/main/kotlin/adr")
+
+    /** A fixture tree: `violating` or `compliant`, for one check. */
+    fun fixtureTree(polarity: String, check: String): List<GateFile> =
+        treeOf("src/test/fixtures/konsist/$polarity/$check")
+
+    /** True when [import] is exactly [prefix] or a member of it. */
+    fun matches(import: String, prefix: String): Boolean =
+        import == prefix || import.startsWith("$prefix.")
+
+    /** Does [code] contain [token] as a whole word (not as part of a longer identifier)? */
+    fun mentions(code: String, token: String): Boolean =
+        Regex("""(^|[^A-Za-z0-9_])${Regex.escape(token)}($|[^A-Za-z0-9_])""").containsMatchIn(code)
 }
-
-/** The live tree the gate defends. */
-fun liveTree(): List<GateFile> = treeOf("src/main/kotlin/adr")
-
-/** A fixture tree: `violating` or `compliant`, for one check. */
-fun fixtureTree(polarity: String, check: String): List<GateFile> =
-    treeOf("src/test/fixtures/konsist/$polarity/$check")
-
-/** True when [import] is exactly [prefix] or a member of it. */
-fun matches(import: String, prefix: String): Boolean =
-    import == prefix || import.startsWith("$prefix.")
-
-/** Does [code] contain [token] as a whole word (not as part of a longer identifier)? */
-fun mentions(code: String, token: String): Boolean =
-    Regex("""(^|[^A-Za-z0-9_])${Regex.escape(token)}($|[^A-Za-z0-9_])""").containsMatchIn(code)

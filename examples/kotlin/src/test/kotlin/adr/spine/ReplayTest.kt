@@ -10,17 +10,17 @@
 
 package adr.spine
 
-import adr.app.RunAuthority
-import adr.app.World
+import adr.Driver
 import adr.app.Assembly
 import adr.app.Env
+import adr.app.RunAuthority
 import adr.app.Wiring
-import adr.driveCanonicalSession
+import adr.app.World
 import adr.spine.boundary.MovingClock
 import adr.spine.boundary.RecordingSink
+import adr.spine.pure.PerformMode
 import adr.spine.replay.Replay
 import adr.spine.replay.ReplayFaithfulness
-import adr.spine.pure.PerformMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -39,7 +39,7 @@ class ReplayTest {
             ),
         )
 
-        app.driveCanonicalSession(authority)
+        Driver().driveCanonicalSession(app, authority)
 
         val liveState = app.state
         val liveEffects = app.performed.toList()
@@ -71,7 +71,7 @@ class ReplayTest {
         val world = World()
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
-        app.driveCanonicalSession(authority)
+        Driver().driveCanonicalSession(app, authority)
 
         val liveEffects = app.performed.toList()
         val pagesAfterLive = world.pages.size
@@ -92,7 +92,7 @@ class ReplayTest {
     fun `a divergent re-fold is DETECTED - the harness is not vacuous`() {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = World(), authority = authority))
-        app.driveCanonicalSession(authority)
+        Driver().driveCanonicalSession(app, authority)
 
         // Drop one committed step: the re-fold must no longer match the live run.
         val truncated = app.bus.records().dropLast(1)

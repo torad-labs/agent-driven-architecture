@@ -22,14 +22,14 @@
 
 package adr.spine
 
-import adr.agent
+import adr.Driver
+import adr.app.Assembly
 import adr.app.DEEP_TIER
+import adr.app.Env
 import adr.app.FAST_TIER
 import adr.app.State
-import adr.app.World
-import adr.app.Assembly
-import adr.app.Env
 import adr.app.Wiring
+import adr.app.World
 import adr.blocks.analysis.PUBLISH_ANALYSIS
 import adr.blocks.analysis.RECALL_ANALYSIS
 import adr.blocks.escalation.CONFIRM_ESCALATION
@@ -38,7 +38,6 @@ import adr.contract.AnalysisEffect
 import adr.contract.Command
 import adr.contract.EscalationEffect
 import adr.contract.ToolResult
-import adr.human
 import adr.spine.boundary.FinishedStep
 import adr.spine.concurrency.InMemoryMailbox
 import adr.spine.concurrency.InMemoryRelay
@@ -48,20 +47,14 @@ import adr.spine.pure.Actor
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.Notice
 import adr.spine.pure.RECALL_DEADLINE_MS
+import adr.spine.pure.RawInput
 import adr.spine.pure.Recall
 import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.Timestamp
-import adr.spine.pure.RawInput
 import adr.spine.replay.Replay
 import adr.spine.replay.ReplayFaithfulness
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceUntilIdle
-import kotlinx.coroutines.test.currentTime
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -69,6 +62,12 @@ import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.currentTime
+import kotlinx.coroutines.test.runTest
 
 private val ANALYSIS = SourceName("analysis")
 private val TICKETS = SourceName("tickets")
@@ -277,7 +276,7 @@ class RelayTest {
             // that contains publishAnalysis and nothing from triage.
             val deepWorld = World(relay)
             val deep = Wiring().wireApp(Env(world = deepWorld, verbs = DEEP_TIER))
-            deep.human(PUBLISH_ANALYSIS, "text" to "refunds spike on gateway B")
+            Driver().human(deep, PUBLISH_ANALYSIS, "text" to "refunds spike on gateway B")
 
             assertTrue(deep.performed.any { it.effect is AnalysisEffect.PublishConclusion })
             assertEquals(1, relay.published().size, "publishing crossed the perform seam as an EFFECT")
@@ -305,7 +304,7 @@ class RelayTest {
             // 11.4's allowlist is STRUCTURAL: the fast tier cannot publish, because the
             // name is not in its registry at all. The boundary folds an Unhandled.
             assertFalse(PUBLISH_ANALYSIS in fast.app.registry.keys)
-            fast.app.agent(PUBLISH_ANALYSIS, "text" to "the fast tier tries to publish")
+            Driver().agent(fast.app, PUBLISH_ANALYSIS, "text" to "the fast tier tries to publish")
             assertIs<ToolResult.Unhandled>(fast.app.bus.records().last().results.single())
             assertEquals(1, relay.published().size, "nothing new reached the relay")
         }
@@ -316,7 +315,7 @@ class RelayTest {
         val world = World()
         val app = Wiring().wireApp(Env(world = world))
 
-        app.agent(
+        Driver().agent(app, 
             CONFIRM_ESCALATION,
             "ticket" to "4118",
             staged = listOf(StagedInput.Recalled(ANALYSIS, Recall.Fresh(POISON, Timestamp(500)))),
@@ -345,8 +344,8 @@ class RelayTest {
         val world = World()
         val app = Wiring().wireApp(Env(world = world))
 
-        app.agent(REQUEST_ESCALATION, "ticket" to "4118")
-        app.agent(
+        Driver().agent(app, REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, 
             CONFIRM_ESCALATION,
             "ticket" to "4118",
             staged = listOf(StagedInput.Recalled(ANALYSIS, Recall.Fresh(POISON, Timestamp(500)))),
@@ -362,7 +361,7 @@ class RelayTest {
         val relay = InMemoryRelay()
         val app = Wiring().wireApp(Env(world = World(relay), verbs = FAST_TIER))
 
-        app.agent(
+        Driver().agent(app, 
             RECALL_ANALYSIS,
             staged = listOf(StagedInput.Recalled(ANALYSIS, Recall.Fresh(POISON, Timestamp(500)))),
         )

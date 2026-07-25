@@ -25,50 +25,20 @@ private val STAMP_TYPES = setOf("Actor", "Authority", "Signature")
 /** The pure ring inside a block: everything but `port`, `adapter` and `view-state`. */
 private val PURE_BLOCK_FILES = setOf("Tools.kt", "Fold.kt", "Project.kt", "Slice.kt", "Contract.kt")
 
-/** §1.3's table, verbatim: what each folder MAY import. Anything else is denied. */
-private fun allowedAdrPrefixes(file: GateFile): List<String> = when {
-    file.path.startsWith("spine/pure/") -> listOf("adr.spine.pure", "adr.contract")
-    file.path.startsWith("spine/ports/") -> listOf("adr.spine.pure", "adr.contract")
-    file.path.startsWith("spine/boundary/") ->
-        listOf("adr.spine.pure", "adr.contract", "adr.spine.ports")
-
-    // spine/concurrency is the barge-in machinery (12). It gets the SAME bucket as
-    // spine/surface: it needs the boundary's FinishedStep type to hand a turn its one
-    // channel, and it must NEVER reach spine/agent — the agent-loop SDK stays confined
-    // to one file (G3/I5), which is why the TurnRunner is injected instead.
-    file.path.startsWith("spine/agent/") ||
-        file.path.startsWith("spine/surface/") ||
-        file.path.startsWith("spine/concurrency/") ||
-        file.path.startsWith("spine/replay/") ->
-        listOf("adr.spine.pure", "adr.contract", "adr.spine.ports", "adr.spine.boundary")
-
-    file.block != null -> listOf("adr.spine.pure", "adr.contract", "adr.blocks.${file.block}")
-    file.path.startsWith("app/") -> listOf("adr")
-    else -> emptyList()
-}
-
 /** The only three transport symbols in `adr.contract` that the SPINE itself owns (C15). */
 private val SPINE_OWNED_TRANSPORT = setOf("ToolResult", "Command", "Effect")
 
-/** Every `<Union>.<Variant>` spelling of a ToolResult case, DERIVED from the contracts. */
-private fun resultVariants(files: List<GateFile>): Set<String> =
-    files.flatMap { file ->
-        file.file.interfaces(includeNested = true)
-            .filter { it.name.endsWith("Result") }
-            .flatMap { union ->
-                union.classes(includeNested = false).map { "${union.name}.${it.name}" }
-            }
-    }.toSet()
+.toSet()
 
 val CHECKS: List<Check> = listOf(
 
     // C1 — G4/G10: dependencies point inward. §1.3's table as a rule.
     Check("C1", "dependencies point inward") { files ->
         files.flatMap { file ->
-            val allowed = allowedAdrPrefixes(file)
+            val allowed = GateFacts().allowedAdrPrefixes(file)
             file.imports.mapNotNull { import ->
                 when {
-                    import.startsWith("adr.") && allowed.none { matches(import, it) } ->
+                    import.startsWith("adr.") && allowed.none { GateTrees().matches(import, it) } ->
                         Violation(file.path, "may not import $import")
 
                     // The agent-loop runtime is named in exactly two places (I5/G4).
@@ -88,12 +58,13 @@ val CHECKS: List<Check> = listOf(
     // a sibling's transport case is import-denied BY NAME PREFIX, because it cannot
     // be denied by package.
     Check("C2", "no cross-block symbol import") { files ->
-        files.filter { it.block != null }.flatMap { file ->
-            val self = file.block!!
+        // mapNotNull carries the non-null through the TYPE SYSTEM; `filter { it != null }`
+        // followed by `!!` asserts what the compiler was never told.
+        files.mapNotNull { f -> f.block?.let { f to it } }.flatMap { (file, self) ->
             val prefix = self.replaceFirstChar { it.uppercase() }
             file.imports.mapNotNull { import ->
                 when {
-                    import.startsWith("adr.blocks.") && !matches(import, "adr.blocks.$self") ->
+                    import.startsWith("adr.blocks.") && !GateTrees().matches(import, "adr.blocks.$self") ->
                         Violation(file.path, "imports a sibling block: $import")
 
                     import.startsWith("adr.contract.") -> {
@@ -197,7 +168,7 @@ val CHECKS: List<Check> = listOf(
     // exists. `is TriageResult.SetPriority ->` is a MATCH and stays legal
     // everywhere; `TriageResult.SetPriority(` is a CONSTRUCTION and does not.
     Check("C7", "a ToolResult is constructed only in a tool and at the boundary") { files ->
-        val variants = resultVariants(files)
+        val variants = GateFacts().resultVariants(files)
         val allowed = { file: GateFile ->
             (file.block != null && file.fileName == "Tools.kt") ||
                 file.path == "spine/boundary/Action.kt" ||
@@ -277,7 +248,7 @@ val CHECKS: List<Check> = listOf(
         files.filter { it.block != null && it.fileName == "ViewState.kt" }.flatMap { owner ->
             files.filter { it.block == owner.block }
                 .filterNot { it.fileName == "ViewState.kt" || it.fileName == "Project.kt" }
-                .filter { mentions(it.codeText, "ViewState") }
+                .filter { GateTrees().mentions(it.codeText, "ViewState") }
                 .map { Violation(it.path, "names ViewState; only the block's projection may see it") }
         }
     },
@@ -322,3 +293,43 @@ val CHECKS: List<Check> = listOf(
         }
     },
 )
+
+/**
+ * The two derivations the checks above read, on a constructed type. Test sources are
+ * in scope for no-loose-top-level-fun, and a helper nothing can construct is no more
+ * testable for living beside the tests.
+ */
+private class GateFacts {
+
+    /** §1.3's table, verbatim: what each folder MAY import. Anything else is denied. */
+    fun allowedAdrPrefixes(file: GateFile): List<String> = when {
+        file.path.startsWith("spine/pure/") -> listOf("adr.spine.pure", "adr.contract")
+        file.path.startsWith("spine/ports/") -> listOf("adr.spine.pure", "adr.contract")
+        file.path.startsWith("spine/boundary/") ->
+            listOf("adr.spine.pure", "adr.contract", "adr.spine.ports")
+
+        // spine/concurrency is the barge-in machinery (12). It gets the SAME bucket as
+        // spine/surface: it needs the boundary's FinishedStep type to hand a turn its one
+        // channel, and it must NEVER reach spine/agent — the agent-loop SDK stays confined
+        // to one file (G3/I5), which is why the TurnRunner is injected instead.
+        file.path.startsWith("spine/agent/") ||
+            file.path.startsWith("spine/surface/") ||
+            file.path.startsWith("spine/concurrency/") ||
+            file.path.startsWith("spine/replay/") ->
+            listOf("adr.spine.pure", "adr.contract", "adr.spine.ports", "adr.spine.boundary")
+
+        file.block != null -> listOf("adr.spine.pure", "adr.contract", "adr.blocks.${file.block}")
+        file.path.startsWith("app/") -> listOf("adr")
+        else -> emptyList()
+    }
+
+    /** Every `<Union>.<Variant>` spelling of a ToolResult case, DERIVED from the contracts. */
+    fun resultVariants(files: List<GateFile>): Set<String> =
+        files.flatMap { file ->
+            file.file.interfaces(includeNested = true)
+                .filter { it.name.endsWith("Result") }
+                .flatMap { union ->
+                    union.classes(includeNested = false).map { "${union.name}.${it.name}" }
+                }
+        }.toSet()
+}

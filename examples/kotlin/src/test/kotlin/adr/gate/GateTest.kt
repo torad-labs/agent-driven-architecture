@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
 
 class GateTest {
 
-    private val live = liveTree()
+    private val live = GateTrees().liveTree()
 
     private fun verify(id: String) {
         val check = CHECKS.single { it.id == id }
@@ -34,7 +34,7 @@ class GateTest {
             "${check.id} (${check.title}) must pass on the live tree",
         )
 
-        val blocked = check.run(fixtureTree("violating", id))
+        val blocked = check.run(GateTrees().fixtureTree("violating", id))
         assertTrue(
             blocked.isNotEmpty(),
             "${check.id} BLOCK-TEST: the violating fixture was ACCEPTED. " +
@@ -43,7 +43,7 @@ class GateTest {
 
         assertEquals(
             emptyList(),
-            check.run(fixtureTree("compliant", id)).map { "${it.path} — ${it.message}" },
+            check.run(GateTrees().fixtureTree("compliant", id)).map { "${it.path} — ${it.message}" },
             "${check.id} ALLOW-TEST: idiomatic compliant code was rejected (15.2)",
         )
     }
@@ -97,11 +97,11 @@ class GateTest {
         // have proven anything about it.
         CHECKS.forEach { check ->
             assertTrue(
-                fixtureTree("violating", check.id).isNotEmpty(),
+                GateTrees().fixtureTree("violating", check.id).isNotEmpty(),
                 "${check.id} has no violating fixture",
             )
             assertTrue(
-                fixtureTree("compliant", check.id).isNotEmpty(),
+                GateTrees().fixtureTree("compliant", check.id).isNotEmpty(),
                 "${check.id} has no compliant fixture",
             )
         }
@@ -121,7 +121,7 @@ class GateTest {
     @Test
     fun `F10 - a new TicketStatus variant has ZERO consumers outside its own block`() {
         val outside = live
-            .filter { it.block != "escalation" && mentions(it.codeText, "TicketStatus") }
+            .filter { it.block != "escalation" && GateTrees().mentions(it.codeText, "TicketStatus") }
             .map { it.path }
         assertEquals(emptyList(), outside, "§11.2 claims K = 3, all inside blocks/escalation/")
 
@@ -152,7 +152,7 @@ class GateTest {
      */
     @Test
     fun `L5 - a new verb touches FOUR appends, three files, one folder - uniformly (A1)`() {
-        val perBlock = live.filter { it.block != null }.groupBy { it.block!! }
+        val perBlock = live.mapNotNull { f -> f.block?.let { it to f } }.groupBy({ it.first }, { it.second })
         listOf("triage", "escalation", "console", "artifact", "analysis", "inbox").forEach { block ->
             val names = perBlock.getValue(block).map { it.fileName }.toSet()
             assertTrue(

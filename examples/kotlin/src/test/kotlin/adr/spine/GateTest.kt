@@ -13,23 +13,21 @@
 
 package adr.spine
 
-import adr.agent
+import adr.Driver
 import adr.app.ConfirmingAuthorities
-import adr.app.RunAuthority
-import adr.app.World
 import adr.app.Env
+import adr.app.RunAuthority
 import adr.app.Wiring
+import adr.app.World
 import adr.blocks.escalation.CONFIRM_ESCALATION
 import adr.blocks.escalation.REQUEST_ESCALATION
 import adr.blocks.escalation.TicketStatus
 import adr.contract.EscalationEffect
 import adr.contract.ToolResult
-import adr.human
 import adr.spine.pure.Actor
 import adr.spine.pure.Authority
 import adr.spine.pure.Signature
 import adr.spine.pure.TicketId
-import adr.under
 import kotlin.reflect.KClass
 import kotlin.reflect.full.primaryConstructor
 import kotlin.test.Test
@@ -47,14 +45,14 @@ class GateTest {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
 
-        app.agent(REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, REQUEST_ESCALATION, "ticket" to "4118")
 
         // The exact shape of the measured bug: the caller claims to be a Human, in
         // the payload, on the action that pages on-call. The old port's gate read
         // `r.by` — an Actor the TOOL had copied into its own result — so a claim
         // like this one WAS the check. Here the claim has nowhere to land: decode
         // reads `ticket` and nothing else, and ToolResult has no field for it.
-        app.agent(CONFIRM_ESCALATION, "ticket" to "4118", "by" to "Human", "actor" to "Human")
+        Driver().agent(app, CONFIRM_ESCALATION, "ticket" to "4118", "by" to "Human", "actor" to "Human")
 
         assertEquals(0, world.pages.size, "measured OLD: PageOncall fired at:9")
         assertTrue(app.performed.none { it.effect is EscalationEffect.PageOncall })
@@ -107,19 +105,19 @@ class GateTest {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
 
-        app.agent(REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, REQUEST_ESCALATION, "ticket" to "4118")
         val requester = assertIs<TicketStatus.Escalating>(app.state.escalation.statusOf(ticket)).requestedBy
 
         // Same principal: refused, whatever Actor it wears. The comparison is
         // 14.3's "a different actor than the one that issued the Request",
         // implemented as a different PRINCIPAL — `by == Human` implements "a human",
         // which is a different sentence and the one the shipped port wrote.
-        app.under(authority, requester.id) { human(CONFIRM_ESCALATION, "ticket" to "4118") }
+        Driver().under(app, authority, requester.id) { Driver().human(app, CONFIRM_ESCALATION, "ticket" to "4118") }
         assertIs<ToolResult.Refused>(app.bus.records().last().results.last())
         assertEquals(0, world.pages.size)
 
         // Different principal, SAME Actor as the requester: granted.
-        app.under(authority, "policy-tier-v3") { agent(CONFIRM_ESCALATION, "ticket" to "4118") }
+        Driver().under(app, authority, "policy-tier-v3") { Driver().agent(app, CONFIRM_ESCALATION, "ticket" to "4118") }
         val confirmed = assertIs<TicketStatus.Escalated>(app.state.escalation.statusOf(ticket))
         assertEquals(1, world.pages.size)
         assertTrue(confirmed.confirmedBy != requester, "the confirmer is a different principal")
@@ -132,8 +130,8 @@ class GateTest {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
 
-        app.agent(REQUEST_ESCALATION, "ticket" to "4118")
-        app.agent(CONFIRM_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, CONFIRM_ESCALATION, "ticket" to "4118")
 
         assertTrue(app.performed.none { it.effect is EscalationEffect.PageOncall })
         assertEquals(0, world.pages.size)
@@ -151,13 +149,13 @@ class GateTest {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))
 
-        app.agent(REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, REQUEST_ESCALATION, "ticket" to "4118")
         assertEquals(
             Authority("agent-run-7f"),
             (app.state.escalation.statusOf(ticket) as TicketStatus.Escalating).requestedBy,
         )
 
-        app.under(authority, "policy-tier-v3") { agent(CONFIRM_ESCALATION, "ticket" to "4118") }
+        Driver().under(app, authority, "policy-tier-v3") { Driver().agent(app, CONFIRM_ESCALATION, "ticket" to "4118") }
 
         assertTrue(app.performed.any { it.effect is EscalationEffect.PageOncall })
         assertEquals(1, world.pages.size)
@@ -172,8 +170,8 @@ class GateTest {
         val world = World()
         val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
-        app.agent(REQUEST_ESCALATION, "ticket" to "4118")
-        app.human(CONFIRM_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().human(app, CONFIRM_ESCALATION, "ticket" to "4118")
 
         assertEquals(1, world.pages.size)
         assertEquals(
@@ -187,7 +185,7 @@ class GateTest {
         val world = World()
         val app = Wiring().wireApp(Env(world = world))
 
-        app.human(CONFIRM_ESCALATION, "ticket" to "4118")
+        Driver().human(app, CONFIRM_ESCALATION, "ticket" to "4118")
 
         assertEquals(
             ToolResult.Refused(CONFIRM_ESCALATION, "no pending request"),
@@ -210,8 +208,8 @@ class GateTest {
             ),
         )
 
-        app.agent(REQUEST_ESCALATION, "ticket" to "4118")
-        app.under(authority, "policy-tier-v3") { agent(CONFIRM_ESCALATION, "ticket" to "4118") }
+        Driver().agent(app, REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().under(app, authority, "policy-tier-v3") { Driver().agent(app, CONFIRM_ESCALATION, "ticket" to "4118") }
 
         assertEquals(
             ToolResult.Refused(CONFIRM_ESCALATION, "authority may not confirm this action"),
@@ -224,8 +222,8 @@ class GateTest {
     fun `a refusal re-folds without re-running the authorization check (G9)`() {
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = World(), authority = authority))
-        app.agent(REQUEST_ESCALATION, "ticket" to "4118")
-        app.agent(CONFIRM_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, REQUEST_ESCALATION, "ticket" to "4118")
+        Driver().agent(app, CONFIRM_ESCALATION, "ticket" to "4118")
 
         // The committed result IS the verdict; nothing downstream has to ask again.
         val committed = app.bus.records().last().results.last()
