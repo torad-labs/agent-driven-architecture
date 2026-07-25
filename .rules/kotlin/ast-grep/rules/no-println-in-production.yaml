@@ -17,6 +17,14 @@ ignores:
   - "**/node_modules/**"
   - "**/dist/**"
   - "**/*.gradle.kts"
+  # A console application has to reach the console SOMEWHERE, and the honest place is
+  # the entry point — the same carve-out no-runblocking-in-production already makes by
+  # these two filenames, for the same reason. This is narrow on purpose: it exempts one
+  # file, by name, not a directory. Everything upstream writes through a seam
+  # (app/Narrator.kt) and stays testable; Main.kt binds that seam to stdout in one line.
+  # Widening this to **/app/** or dropping the rule would be the cheat it looks like.
+  - "**/Main.kt"
+  - "**/*Application.kt"
   # grandfather entries are per-repo; installs append their own
   # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
   # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures

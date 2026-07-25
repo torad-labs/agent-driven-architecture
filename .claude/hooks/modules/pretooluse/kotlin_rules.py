@@ -60,9 +60,20 @@ def proposed_content(data: dict) -> str | None:
 
 
 def _scan(sgconfig: Path, text: str, name: str) -> list:
-    """Run ast-grep over `text`, in a temp file keeping `name`'s suffix."""
+    """Run ast-grep over `text`, at a temp path MIRRORING the real one.
+
+    `name` is the file's path relative to the project root, not its basename.
+    That matters: rules scope by path glob, and a probe written to
+    /tmp/xxxx/Main.kt satisfies `**/Main.kt` but not `**/src/main/**` or
+    `**/src/test/fixtures/**`. Scanning a flat basename therefore made the
+    write-time gate disagree with the batch scan on every path-scoped rule —
+    the gate firing where `ast-grep scan` was silent, with no way to tell from
+    the message which one was right. Recreating the relative directories under
+    the temp root makes both see the same path suffix and reach the same verdict.
+    """
     with tempfile.TemporaryDirectory() as td:
         probe = Path(td) / name
+        probe.parent.mkdir(parents=True, exist_ok=True)
         probe.write_text(text)
         result = subprocess.run(
             ["ast-grep", "scan", "--config", str(sgconfig), str(probe), "--json"],
@@ -139,8 +150,14 @@ def run(data: dict) -> dict:
         # debt blocks the refactor that removes it: every edit to a file with
         # nine violations is denied, including the edit deleting one of them.
         # Pre-existing instances are grandfathered.
-        before = _scan(sgconfig, before_text, src.name) if before_text else []
-        after = _scan(sgconfig, content, src.name)
+        # Relative to the project root, so path-scoped ignores resolve — see _scan.
+        try:
+            rel = str(src.resolve().relative_to(root))
+        except ValueError:
+            rel = src.name
+
+        before = _scan(sgconfig, before_text, rel) if before_text else []
+        after = _scan(sgconfig, content, rel)
 
         violations = _introduced(before, after)
 
@@ -178,22 +195,43 @@ def run(data: dict) -> dict:
             )
             if warnings:
                 msg += f"\n\nAlso {len(warnings)} style warning(s) (non-blocking):\n" + fmt(warnings)
-            return {"continue": False, "decision": "block", "message": msg}
+            # `continue` stays TRUE: this denies the write, it does not end the session.
+            # `continue: false` is the protocol's kill switch — it aborts the whole turn,
+            # so one refused edit would stop whatever work was in flight.
+            return {"continue": True, "decision": "block", "message": msg}
 
         return {
             "continue": True,
             "message": f"{len(warnings)} Kotlin style warning(s) (non-blocking):\n" + fmt(warnings),
         }
 
+    # FAIL CLOSED. Every branch below is a gate that did not run, and a gate that did
+    # not run must never read as a gate that found nothing — that is the fake-green this
+    # whole pack exists to prevent. Each blocks with a reason naming the actual cause,
+    # so the fix is obvious (install ast-grep, raise the timeout) rather than a mystery.
     except subprocess.TimeoutExpired:
-        print("[kotlin_rules] ast-grep timed out", file=sys.stderr)
-        return {"continue": True}
+        return {
+            "continue": True, "decision": "block",
+            "message": "[kotlin_rules] ast-grep timed out after 10s, so the Kotlin LAW "
+                       "rules did NOT run on this write. Refusing it rather than "
+                       "allowing it unchecked.",
+        }
     except FileNotFoundError:
-        print("[kotlin_rules] ast-grep not installed - rules not enforced", file=sys.stderr)
-        return {"continue": True}
+        return {
+            "continue": True, "decision": "block",
+            "message": "[kotlin_rules] ast-grep is not installed, so the Kotlin LAW "
+                       "rules did NOT run on this write. Install it (`cargo install "
+                       "ast-grep` / `npm i -g @ast-grep/cli`) — an unenforced gate must "
+                       "not read as a passing one.",
+        }
     except Exception as e:
         print(f"[kotlin_rules] error: {e}", file=sys.stderr)
-        return {"continue": True}
+        return {
+            "continue": True, "decision": "block",
+            "message": f"[kotlin_rules] raised {type(e).__name__}: {e}, so the Kotlin "
+                       "LAW rules did NOT run on this write. Refusing it rather than "
+                       "allowing it unchecked.",
+        }
 
 
 if __name__ == "__main__":

@@ -14,6 +14,13 @@ ignores:
   - "**/*.gradle.kts"
   - "**/*Live*Test.kt"
   - "**/*Integration*Test.kt"
+  # A TEST rule must not police PRODUCTION sources. Its id says `tests-`, its message
+  # says "use runTest", and runTest is a test-only API — yet with no main-source
+  # exclusion it fired on examples/kotlin/src/main/kotlin/adr/app/Demo.kt and told
+  # production code to adopt a testing dependency. runBlocking in main sources is
+  # governed by its own two rules (no-runblocking-in-production, -in-common), which
+  # is where that judgement belongs.
+  - "**/src/main/**"
   # grandfather entries are per-repo; installs append their own
   # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
   # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures

@@ -37,7 +37,7 @@ kotlin {
 }
 
 application {
-    mainClass.set("adr.app.DemoKt")
+    mainClass.set("adr.app.MainKt")
 }
 
 tasks.test {
