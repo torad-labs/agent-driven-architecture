@@ -1,0 +1,62 @@
+id: no-loose-function-typed-val
+snapshots:
+  ? |
+    package bad
+
+    val inferred = { s: String -> s.uppercase() }
+  : labels:
+    - source: 'val inferred = { s: String -> s.uppercase() }'
+      style: primary
+      start: 13
+      end: 58
+    - source: '{ s: String -> s.uppercase() }'
+      style: secondary
+      start: 28
+      end: 58
+    - source: |
+        package bad
+
+        val inferred = { s: String -> s.uppercase() }
+      style: secondary
+      start: 0
+      end: 59
+  ? |
+    package bad
+
+    val triageArm: (Int) -> Int = { x -> x + 1 }
+  : labels:
+    - source: 'val triageArm: (Int) -> Int = { x -> x + 1 }'
+      style: primary
+      start: 13
+      end: 57
+    - source: (Int) -> Int
+      style: secondary
+      start: 28
+      end: 40
+    - source: |
+        package bad
+
+        val triageArm: (Int) -> Int = { x -> x + 1 }
+      style: secondary
+      start: 0
+      end: 58
+  ? |
+    package bad
+
+    var handler: (String) -> Unit = { println(it) }
+  : labels:
+    - source: 'var handler: (String) -> Unit = { println(it) }'
+      style: primary
+      start: 13
+      end: 60
+    - source: (String) -> Unit
+      style: secondary
+      start: 26
+      end: 42
+    - source: |
+        package bad
+
+        var handler: (String) -> Unit = { println(it) }
+      style: secondary
+      start: 0
+      end: 61
