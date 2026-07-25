@@ -7,7 +7,6 @@ severity: error
 message: "Empty interface is equivalent to {}. Use a type alias or add members."
 files:
   - "**/*.ts"
-  - "**/*.tsx"
 rule:
   pattern: interface $NAME {}
   not:

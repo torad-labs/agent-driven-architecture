@@ -7,7 +7,6 @@ severity: error
 message: "Don't use '!'. Use optional chaining (?.), nullish coalescing (??), or proper null checks."
 files:
   - "**/*.ts"
-  - "**/*.tsx"
 ignores:
   - "**/*.test.ts"
   - "**/*.spec.ts"

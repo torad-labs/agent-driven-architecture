@@ -7,7 +7,6 @@ severity: error
 message: "Export const, not let. Mutable exports create hidden coupling."
 files:
   - "**/*.ts"
-  - "**/*.tsx"
 ignores:
   - "**/*.test.ts"
   - "**/test/**"

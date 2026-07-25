@@ -1,17 +1,21 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
 # TENET: No magic strings — use constants or enums.
 # Rationale: String literals scattered through code are hard to refactor.
 # Define constants for repeated strings, use discriminated unions for state.
 # NOTE: This catches common patterns; not all string literals are magic.
-id: no-magic-strings
-language: typescript
+id: no-magic-strings-tsx
+language: tsx
 severity: error
 message: "Consider extracting this string to a constant if used in multiple places."
 files:
-  - "**/*.ts"
+  - "**/*.tsx"
 ignores:
-  - "**/*.test.ts"
+  - "**/*.test.tsx"
   - "**/test/**"
-  - "**/*.d.ts"
   - "**/constants.ts"
   - "**/config.ts"
 rule:

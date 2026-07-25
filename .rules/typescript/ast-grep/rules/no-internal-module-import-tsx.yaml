@@ -1,12 +1,17 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
 # TENET: No private/internal dependency reach-through.
 # Rationale: Imports from another package's internal or private module bypass its
 # public contract and make upgrades brittle. Depend on the public entry point.
-id: no-internal-module-import
-language: typescript
+id: no-internal-module-import-tsx
+language: tsx
 severity: error
 message: "Do not import another package's internal/private modules; depend on the public API."
 files:
-  - "**/*.ts"
+  - "**/*.tsx"
 rule:
   any:
     - pattern: import $IMPORTS from "$SOURCE"

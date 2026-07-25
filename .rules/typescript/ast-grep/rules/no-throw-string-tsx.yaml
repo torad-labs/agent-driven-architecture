@@ -1,0 +1,18 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: Don't throw strings, throw Error objects.
+# Rationale: Error objects have stack traces and are catchable by type.
+# throw "message" loses debugging information.
+id: no-throw-string-tsx
+language: tsx
+severity: error
+message: "Throw Error objects, not strings. Use `throw new Error('...')`."
+files:
+  - "**/*.tsx"
+rule:
+  kind: throw_statement
+  has:
+    kind: string

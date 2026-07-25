@@ -7,7 +7,6 @@ severity: error
 message: "Throw Error objects, not strings. Use `throw new Error('...')`."
 files:
   - "**/*.ts"
-  - "**/*.tsx"
 rule:
   kind: throw_statement
   has:

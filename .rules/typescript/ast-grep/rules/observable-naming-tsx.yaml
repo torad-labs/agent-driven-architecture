@@ -1,15 +1,20 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
 # TENET: Observable/stream variables should end with $.
 # Rationale: The $ suffix convention makes it clear a variable is a stream.
 # Pattern: const user$ = userService.getUser(); not const user = userService.getUser$();
 # This applies to RxJS Observables and similar stream types.
-id: observable-naming
-language: typescript
+id: observable-naming-tsx
+language: tsx
 severity: error
 message: "Observable/stream variables should end with $ (e.g., user$, data$)."
 files:
-  - "**/*.ts"
+  - "**/*.tsx"
 ignores:
-  - "**/*.test.ts"
+  - "**/*.test.tsx"
   - "**/test/**"
 rule:
   kind: variable_declarator

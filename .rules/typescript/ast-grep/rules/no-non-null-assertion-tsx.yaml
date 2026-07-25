@@ -1,0 +1,20 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: No non-null assertion (!) — handle nullability explicitly.
+# Rationale: ! throws at runtime. Use optional chaining (?.), nullish coalescing (??),
+# or proper null checks.
+id: no-non-null-assertion-tsx
+language: tsx
+severity: error
+message: "Don't use '!'. Use optional chaining (?.), nullish coalescing (??), or proper null checks."
+files:
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.tsx"
+  - "**/*.spec.tsx"
+  - "**/test/**"
+rule:
+  kind: non_null_expression
