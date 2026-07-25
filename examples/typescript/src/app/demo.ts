@@ -5,7 +5,7 @@
 
 import { MockLanguageModelV3 } from "ai/test";
 import { authority } from "../spine/pure/actor";
-import { input, interrupt } from "../spine/pure/mailbox";
+import { input, interrupt, isInput } from "../spine/pure/mailbox";
 import { perceived } from "../spine/pure/staged";
 import { movingClock, RecordingSink } from "../spine/boundary/in-memory";
 import { InMemoryMailbox, InMemoryRelay, virtualScheduler } from "../spine/concurrency/in-memory";
@@ -185,7 +185,7 @@ async function tieringAndBargeIn(): Promise<void> {
     turn: {
       run: async (message, ctx: TurnContext): Promise<void> => {
         startedAt.set(message.kind, sched.now());
-        if (message.kind === "Input") {
+        if (isInput(message)) {
           ctx.submit({
             by: "Agent",
             staged: ctx.staged,

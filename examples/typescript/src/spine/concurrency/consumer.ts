@@ -124,10 +124,17 @@ export interface ConsumerDeps {
 
 // ── The consumer's PRIVATE run-state handle ─────────────────────────────────
 // Not transport, not exported, named by nothing else in the system.
-type RunState =
-  | { readonly kind: "Idle" }
-  | {
-      readonly kind: "Running";
+// The discriminants are CONSTANTS, not literals sprinkled at every comparison. Nine
+// sites read `state.kind === "Running"`: a typo in any one is a silent false,
+// not a compile error, and that is the whole weakness of a stringly state machine.
+// One const and one named guard make the union narrow through a single site.
+const IDLE_KIND = "Idle" as const;
+const RUNNING_KIND = "Running" as const;
+
+type Idle = { readonly kind: typeof IDLE_KIND };
+
+type Running = {
+      readonly kind: typeof RUNNING_KIND;
       readonly message: Message;
       readonly settled: Promise<TurnOutcome>;
       readonly abort: AbortController;
@@ -135,7 +142,21 @@ type RunState =
       readonly revoke: () => void;
     };
 
-const IDLE: RunState = { kind: "Idle" };
+type RunState = Idle | Running;
+
+const IDLE: Idle = { kind: IDLE_KIND };
+
+/** The ONE place the run-state discriminant is compared. Everything else asks this. */
+function isRunning(state: RunState): state is Running {
+  return state.kind === RUNNING_KIND;
+}
+
+const THREW_KIND = "Threw" as const;
+
+/** Likewise for the turn outcome: one comparison, named, instead of a literal inline. */
+function isThrew(ended: TurnOutcome): ended is Extract<TurnOutcome, { kind: typeof THREW_KIND }> {
+  return ended.kind === THREW_KIND;
+}
 
 /** What one turn of the select can yield. `ended` rather than `outcome`: an
  *  object literal keyed `outcome` is how a ToolResult is forged, and check C7
@@ -187,7 +208,7 @@ export class SerialConsumer {
   }
 
   get running(): boolean {
-    return this.state.kind === "Running";
+    return isRunning(this.state);
   }
 
   stop(): void {
@@ -206,7 +227,7 @@ export class SerialConsumer {
       const racers: Promise<LoopEvent>[] = [];
       if (this.pending !== null) racers.push(this.pending);
       const running = this.state;
-      if (running.kind === "Running") {
+      if (isRunning(running)) {
         // `settled` NEVER rejects: the turn runner captures a throw into
         // TurnOutcome.Threw, so the race can never see a rejection (12.4).
         racers.push(running.settled.then((ended): LoopEvent => ({ kind: "Settled", ended })));
@@ -222,7 +243,7 @@ export class SerialConsumer {
         }
         case "Settled": {
           const finished = this.state;
-          if (finished.kind === "Running") this.settle(finished.message, event.ended);
+          if (isRunning(finished)) this.settle(finished.message, event.ended);
           await this.resume();
           break;
         }
@@ -261,7 +282,7 @@ export class SerialConsumer {
           this.deps.mailbox.ack(message);
           return;
         }
-        if (this.state.kind === "Running") {
+        if (isRunning(this.state)) {
           this.held = message;
           return;
         }
@@ -269,7 +290,7 @@ export class SerialConsumer {
         return this.start(message);
       }
       case "Perishable": {
-        if (this.state.kind === "Running") {
+        if (isRunning(this.state)) {
           const slot = this.conflating;
           if (slot === null) {
             this.conflating = { message, dropped: 0 };
@@ -303,7 +324,7 @@ export class SerialConsumer {
     // PREEMPT: cancel, JOIN, and only then start — so two folds can never
     // interleave, and the interrupt's turn begins long before the cancelled
     // turn would have finished on its own.
-    if (this.state.kind === "Running") await this.cancelAndJoin(message.source);
+    if (isRunning(this.state)) await this.cancelAndJoin(message.source);
     this.deps.mailbox.ack(message);
     return this.start(message);
   }
@@ -311,7 +332,7 @@ export class SerialConsumer {
   private async onDrain(message: DrainMessage): Promise<void> {
     // DEFER. Note what is NOT called here: `abort()`. A Drain never preempts.
     const running = this.state;
-    if (running.kind === "Running") {
+    if (isRunning(running)) {
       const joined = await this.joinWithin(running.settled, this.drainDeadline());
       switch (joined.kind) {
         case "Settled":
@@ -377,20 +398,20 @@ export class SerialConsumer {
       .run(message, ctx)
       .then((): TurnOutcome => (steps === 0 ? turnIdle : turnOk(steps)))
       .catch((thrown: unknown): TurnOutcome => turnThrew(faultOf(thrown)));
-    this.state = { kind: "Running", message, settled, abort, revoke: () => void (revoked = true) };
+    this.state = { kind: RUNNING_KIND, message, settled, abort, revoke: () => void (revoked = true) };
   }
 
   /** 12.3, with the bound 12.3 itself says an unbounded join needs. */
   private async cancelAndJoin(by: SourceName): Promise<void> {
     const running = this.state;
-    if (running.kind !== "Running") return;
+    if (!isRunning(running)) return;
     running.abort.abort(); // cooperative; honoured at a step boundary
     const joined = await this.joinWithin(running.settled, this.cancelDeadline());
     switch (joined.kind) {
       case "Settled":
         // Steps completed before the cancel STAY folded and their effects STAY
         // performed. There is no rollback and no compensating write.
-        this.settle(running.message, joined.ended.kind === "Threw" ? joined.ended : turnCancelled(by));
+        this.settle(running.message, isThrew(joined.ended) ? joined.ended : turnCancelled(by));
         return;
       case "Expired":
         this.abandon(running, this.cancelDeadline());
@@ -411,7 +432,7 @@ export class SerialConsumer {
    *  every later `submit`, so the abandoned turn cannot fold anything after the
    *  deadline: two folds cannot interleave EVEN WHEN THE JOIN FAILS. The
    *  deadline becomes the step boundary. The turn is never awaited again. */
-  private abandon(running: Extract<RunState, { kind: "Running" }>, afterMs: number): void {
+  private abandon(running: Running, afterMs: number): void {
     running.revoke();
     this.state = IDLE;
     this.emit(cancelDeadlineExceeded(running.message.source, afterMs));

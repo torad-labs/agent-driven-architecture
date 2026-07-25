@@ -49,6 +49,14 @@ export interface DrainMessage extends MessageBase {
 
 export type Message = InputMessage | InterruptMessage | DrainMessage;
 
+/** The discriminant as a CONSTANT, and the ONE place it is compared. A literal at
+ *  every call site is a typo away from a silent false; a named guard is not. */
+export const INPUT_KIND = "Input" as const;
+
+export function isInput(message: Message): message is InputMessage {
+  return message.kind === INPUT_KIND;
+}
+
 export function input(source: SourceName, staged: Perceived, key: SourceKey): InputMessage {
   return { kind: "Input", source, staged, key };
 }
