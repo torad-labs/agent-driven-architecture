@@ -28,7 +28,6 @@ import adr.spine.pure.Recall
 import adr.spine.pure.StagedInput
 import adr.spine.pure.ToolName
 import adr.spine.pure.Verb
-import adr.spine.pure.text
 
 val RECALL_ANALYSIS = ToolName("recallAnalysis")
 val PUBLISH_ANALYSIS = ToolName("publishAnalysis")

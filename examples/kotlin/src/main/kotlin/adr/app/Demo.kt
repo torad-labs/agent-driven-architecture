@@ -32,7 +32,7 @@ import adr.spine.pure.Message
 import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
-import adr.spine.pure.rawOf
+import adr.spine.pure.RawInput
 import ai.torad.aisdk.providers.mockLanguageModelToolThenText
 import ai.torad.aisdk.providers.mockToolInput
 import kotlinx.coroutines.delay
@@ -60,33 +60,33 @@ class Demo(private val out: Narrator) {
 
         // 2) A PRESENTATION verb, from the human surface. It folds AND signs, exactly like
         //    a domain verb — that is A1: one tool mechanic, not two.
-        app.controller.onAction(Action(SET_PANEL, rawOf("panel" to "audit", "visible" to "true")))
+        app.controller.onAction(Action(SET_PANEL, RawInput("panel" to "audit", "visible" to "true")))
         out.say("[a1   ] presentation command committed: ${app.bus.records().last().commands.last()}")
 
         // 3) The agent asks for an escalation (reversible; pages nobody).
-        app.controller.onAction(Action(REQUEST_ESCALATION, rawOf("ticket" to "4118")))
+        app.controller.onAction(Action(REQUEST_ESCALATION, RawInput("ticket" to "4118")))
         out.say("[state] ${app.controller.view.escalation.rows.first().state}")
 
         // 4) The SAME principal tries to confirm its own request — the gate REFUSES it,
         //    pre-fold, and commits the refusal so it replays.
-        app.controller.onAction(Action(CONFIRM_ESCALATION, rawOf("ticket" to "4118")))
+        app.controller.onAction(Action(CONFIRM_ESCALATION, RawInput("ticket" to "4118")))
         out.say("[gate ] self-confirm → ${app.bus.records().last().results.last()}")
         out.say("[gate ] pages so far: ${world.pages.size}")
 
         // 5) An UNATTENDED confirmer: a policy tier, acting through the agent's own
         //    stream. The Actor is stamped truthfully; only the AUTHORITY differs (F3).
         authority.acting = Authority("policy-tier-v3")
-        app.controller.onAction(Action(CONFIRM_ESCALATION, rawOf("ticket" to "4118")))
+        app.controller.onAction(Action(CONFIRM_ESCALATION, RawInput("ticket" to "4118")))
         authority.acting = null
         out.say("[gate ] policy-tier confirm → ${app.bus.records().last().results.last()}")
         out.say("[gate ] pages so far: ${world.pages.size}")
 
         // 6) The work product: folded lines, then ONE gated delivery at seal time (F6).
-        app.controller.onAction(Action(RECORD_FINDING, rawOf("text" to "refund was never issued")))
-        app.controller.onAction(Action(RECORD_FINDING, rawOf("text" to "escalated to on-call")))
-        app.controller.onAction(Action(REQUEST_SEAL, rawOf()))
+        app.controller.onAction(Action(RECORD_FINDING, RawInput("text" to "refund was never issued")))
+        app.controller.onAction(Action(RECORD_FINDING, RawInput("text" to "escalated to on-call")))
+        app.controller.onAction(Action(REQUEST_SEAL, RawInput()))
         authority.acting = Authority("policy-tier-v3")
-        app.controller.onAction(Action(CONFIRM_SEAL, rawOf()))
+        app.controller.onAction(Action(CONFIRM_SEAL, RawInput()))
         authority.acting = null
 
         out.say("\n[artifact] ${app.controller.view.artifact}")
@@ -110,7 +110,7 @@ class Demo(private val out: Narrator) {
         // The DEEP tier: its registry contains publishAnalysis and nothing from triage.
         val deepWorld = World(relayStore)
         val deep = wireApp(offlineEnv(world = deepWorld, verbs = DEEP_TIER))
-        deep.controller.onAction(Action(PUBLISH_ANALYSIS, rawOf("text" to "refunds spike on gateway B")))
+        deep.controller.onAction(Action(PUBLISH_ANALYSIS, RawInput("text" to "refunds spike on gateway B")))
         out.say("[tier ] deep published: ${deepWorld.conclusions}")
 
         // The FAST tier: a SEPARATE app, a separate bus, wired to the same relay's READ
@@ -122,7 +122,7 @@ class Demo(private val out: Narrator) {
             app = fast,
             env = offlineEnv(world = fastWorld, verbs = FAST_TIER, relayRead = relayStore, mailbox = mailbox),
             runner = TurnRunner { _, ctx ->
-                ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, rawOf()))))
+                ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
             },
         )
         checkNotNull(consumer)
@@ -164,7 +164,7 @@ class Demo(private val out: Narrator) {
                         FinishedStep(
                             Actor.Agent,
                             ctx.staged,
-                            listOf(Action(RECORD_FINDING, rawOf("text" to "step 1 of ${message.source.value}"))),
+                            listOf(Action(RECORD_FINDING, RawInput("text" to "step 1 of ${message.source.value}"))),
                         ),
                     )
                     // A LONG turn. The interrupt below must not wait for it.
@@ -173,7 +173,7 @@ class Demo(private val out: Narrator) {
                         FinishedStep(
                             Actor.Agent,
                             ctx.staged,
-                            listOf(Action(RECORD_FINDING, rawOf("text" to "step 2 of ${message.source.value}"))),
+                            listOf(Action(RECORD_FINDING, RawInput("text" to "step 2 of ${message.source.value}"))),
                         ),
                     )
                 },

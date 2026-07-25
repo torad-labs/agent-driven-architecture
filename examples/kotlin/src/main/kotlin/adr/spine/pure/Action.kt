@@ -11,6 +11,7 @@
 
 package adr.spine.pure
 
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -19,15 +20,38 @@ import kotlinx.serialization.json.contentOrNull
 /** What was ASKED. Half of the audit pair; ToolResult is the other half. */
 data class Action(val tool: ToolName, val input: RawInput)
 
-/** Read a string field out of a raw input, or null if it is missing or not a scalar. */
-fun RawInput.text(field: String): String? =
-    ((this as? JsonObject)?.get(field) as? JsonPrimitive)?.contentOrNull
+/**
+ * The untrusted payload a tool call carries, and the ONLY thing that reads it.
+ *
+ * This was a `typealias RawInput = JsonElement` with two extension functions and a
+ * `rawOf` builder beside it — three top-level functions, none of them attached to
+ * anything. An extension function is not a member: it dispatches statically, it cannot
+ * be overridden, and there is no instance to substitute. Making the payload a real type
+ * turns its two accessors into ordinary members, so `input.text("ticket")` reads exactly
+ * as it did while now belonging to something, and the builder becomes a constructor.
+ *
+ * Reading stays TOTAL and null-returning: a missing field, a wrong shape and a
+ * non-scalar are all `null`, never a throw, because the payload is untrusted and a
+ * decode failure must fold as ToolResult.Unhandled rather than crash the boundary.
+ */
+class RawInput(private val json: JsonElement) {
 
-/** Read a boolean field out of a raw input, tolerating `true` and `"true"`. */
-fun RawInput.flag(field: String): Boolean? =
-    ((this as? JsonObject)?.get(field) as? JsonPrimitive)
-        ?.let { it.booleanOrNull ?: it.contentOrNull?.toBooleanStrictOrNull() }
+    /** Build from flat string fields — what a form, a demo or a test hands the surface. */
+    constructor(vararg fields: Pair<String, String>) :
+        this(JsonObject(fields.associate { (k, v) -> k to JsonPrimitive(v) }))
 
-/** Build a raw input from flat string fields — what a form or a test hands the surface. */
-fun rawOf(vararg fields: Pair<String, String>): RawInput =
-    JsonObject(fields.associate { (k, v) -> k to JsonPrimitive(v) })
+    /** A string field, or null if it is missing or not a scalar. */
+    fun text(field: String): String? =
+        ((json as? JsonObject)?.get(field) as? JsonPrimitive)?.contentOrNull
+
+    /** A boolean field, tolerating `true` and `"true"`. */
+    fun flag(field: String): Boolean? =
+        ((json as? JsonObject)?.get(field) as? JsonPrimitive)
+            ?.let { it.booleanOrNull ?: it.contentOrNull?.toBooleanStrictOrNull() }
+
+    override fun equals(other: Any?): Boolean = other is RawInput && other.json == json
+
+    override fun hashCode(): Int = json.hashCode()
+
+    override fun toString(): String = json.toString()
+}

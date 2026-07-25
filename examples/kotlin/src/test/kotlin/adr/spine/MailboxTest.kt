@@ -48,7 +48,7 @@ import adr.spine.pure.StagedInput
 import adr.spine.pure.TicketId
 import adr.spine.pure.ToolName
 import adr.spine.pure.TurnOutcome
-import adr.spine.pure.rawOf
+import adr.spine.pure.RawInput
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
@@ -82,7 +82,7 @@ private fun stepOf(
     tool: ToolName,
     vararg fields: Pair<String, String>,
     staged: List<StagedInput> = emptyList(),
-) = FinishedStep(Actor.Agent, staged, listOf(Action(tool, rawOf(*fields))))
+) = FinishedStep(Actor.Agent, staged, listOf(Action(tool, RawInput(*fields))))
 
 /**
  * One wired tier with a mailbox. Everything is built through the composition root

@@ -22,6 +22,7 @@ import adr.spine.pure.Action
 import adr.spine.pure.Actor
 import adr.spine.pure.Context
 import adr.spine.pure.Ctx
+import adr.spine.pure.RawInput
 import adr.spine.pure.Registry
 import adr.spine.pure.StagedInput
 import adr.spine.pure.ToolName
@@ -59,7 +60,7 @@ private fun <S> sdkTool(
     // ONE call, no branch. `modelEcho` is a pure function in spine/pure/verb, because
     // deciding what to say when an input fails to decode is a decision, and G3 keeps
     // decisions out of the loop. Gate check C14 is what holds that line.
-    JsonPrimitive(verb.modelEcho(input, Ctx(stateOf(), contextOf())))
+    JsonPrimitive(verb.modelEcho(RawInput(input), Ctx(stateOf(), contextOf())))
 }
 
 /**
@@ -88,7 +89,7 @@ class AgentLoop<S>(
         // it forwards the list it is handed, which is why C14 stays satisfiable here.
         step.toolCalls
             .takeIf { it.isNotEmpty() }
-            ?.map { Action(ToolName(it.toolName), it.input) }
+            ?.map { Action(ToolName(it.toolName), RawInput(it.input)) }
             ?.let { submit(FinishedStep(by = Actor.Agent, staged = stagedOf(), actions = it)) }
     },
 )

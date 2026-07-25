@@ -55,7 +55,7 @@ import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.Timestamp
-import adr.spine.pure.rawOf
+import adr.spine.pure.RawInput
 import adr.spine.replay.Replay
 import adr.spine.replay.ReplayFaithfulness
 import kotlinx.coroutines.CompletableDeferred
@@ -86,7 +86,7 @@ private class Tier(
     verbs: List<BlockRegistration<State>>? = null,
     val mailbox: InMemoryMailbox = InMemoryMailbox(),
     runner: TurnRunner = TurnRunner { _, ctx ->
-        ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, rawOf()))))
+        ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
     },
 ) {
     private val env = offlineEnv(
@@ -199,7 +199,7 @@ class RelayTest {
             verbs = FAST_TIER,
             runner = TurnRunner { _, ctx ->
                 startedAt += currentTime
-                ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, rawOf()))))
+                ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
             },
         )
         val job = launch { tier.consumer.run() }
