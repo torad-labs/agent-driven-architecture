@@ -17,8 +17,8 @@ import adr.agent
 import adr.app.ConfirmingAuthorities
 import adr.app.RunAuthority
 import adr.app.World
-import adr.app.offlineEnv
-import adr.app.wireApp
+import adr.app.Env
+import adr.app.Wiring
 import adr.blocks.escalation.CONFIRM_ESCALATION
 import adr.blocks.escalation.REQUEST_ESCALATION
 import adr.blocks.escalation.TicketStatus
@@ -45,7 +45,7 @@ class GateTest {
     fun `F2 - a forged actor in the TOOL INPUT cannot reach the irreversible effect`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = world, authority = authority))
+        val app = Wiring().wireApp(Env(world = world, authority = authority))
 
         app.agent(REQUEST_ESCALATION, "ticket" to "4118")
 
@@ -105,7 +105,7 @@ class GateTest {
     fun `F2 - the CONFIRMING authority must differ from the one recorded as requester`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = world, authority = authority))
+        val app = Wiring().wireApp(Env(world = world, authority = authority))
 
         app.agent(REQUEST_ESCALATION, "ticket" to "4118")
         val requester = assertIs<TicketStatus.Escalating>(app.state.escalation.statusOf(ticket)).requestedBy
@@ -130,7 +130,7 @@ class GateTest {
     fun `F2 - an agent cannot self-confirm, and the Actor is still stamped truthfully`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = world, authority = authority))
+        val app = Wiring().wireApp(Env(world = world, authority = authority))
 
         app.agent(REQUEST_ESCALATION, "ticket" to "4118")
         app.agent(CONFIRM_ESCALATION, "ticket" to "4118")
@@ -149,7 +149,7 @@ class GateTest {
     fun `F3 - an unattended confirmer promotes - the Actor is Agent, only the Authority differs`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = world, authority = authority))
+        val app = Wiring().wireApp(Env(world = world, authority = authority))
 
         app.agent(REQUEST_ESCALATION, "ticket" to "4118")
         assertEquals(
@@ -170,7 +170,7 @@ class GateTest {
     @Test
     fun `F3 - a human host confirms too - the mechanism is the same one`() {
         val world = World()
-        val app = wireApp(offlineEnv(world = world, authority = RunAuthority()))
+        val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
         app.agent(REQUEST_ESCALATION, "ticket" to "4118")
         app.human(CONFIRM_ESCALATION, "ticket" to "4118")
@@ -185,7 +185,7 @@ class GateTest {
     @Test
     fun `the gate refuses a confirm with NO pending request - before the fold sees it`() {
         val world = World()
-        val app = wireApp(offlineEnv(world = world))
+        val app = Wiring().wireApp(Env(world = world))
 
         app.human(CONFIRM_ESCALATION, "ticket" to "4118")
 
@@ -202,8 +202,8 @@ class GateTest {
     fun `the product policy seam can deny an otherwise-different authority`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(
-            offlineEnv(
+        val app = Wiring().wireApp(
+            Env(
                 world = world,
                 authority = authority,
                 policy = ConfirmingAuthorities(allowed = setOf(Authority("host:marcos"))),
@@ -223,7 +223,7 @@ class GateTest {
     @Test
     fun `a refusal re-folds without re-running the authorization check (G9)`() {
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = World(), authority = authority))
+        val app = Wiring().wireApp(Env(world = World(), authority = authority))
         app.agent(REQUEST_ESCALATION, "ticket" to "4118")
         app.agent(CONFIRM_ESCALATION, "ticket" to "4118")
 

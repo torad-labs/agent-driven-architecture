@@ -32,7 +32,12 @@ import adr.spine.pure.Verb
 val RECALL_ANALYSIS = ToolName("recallAnalysis")
 val PUBLISH_ANALYSIS = ToolName("publishAnalysis")
 
-data object NoRecallInput
+/**
+ * The input of a verb that takes none. A CLASS, not a `data object`: an object has no
+ * instantiation, which is the same defect as a top-level function, and this one is a
+ * VALUE the decode step returns rather than a singleton anything depends on.
+ */
+class NoRecallInput
 
 data class PublishAnalysisInput(val text: String)
 
@@ -67,7 +72,7 @@ class AnalysisTools<S>(private val lens: (S) -> AnalysisSlice) {
     fun recallIn(context: Context): Recall =
         context.staged.filterIsInstance<StagedInput.Recalled>().lastOrNull()?.recall ?: Recall.Empty
 
-    private fun decodeNothing(raw: RawInput): NoRecallInput = NoRecallInput
+    private fun decodeNothing(raw: RawInput): NoRecallInput = NoRecallInput()
 
     private fun decodePublish(raw: RawInput): PublishAnalysisInput? =
         raw.text("text")?.let { PublishAnalysisInput(it) }

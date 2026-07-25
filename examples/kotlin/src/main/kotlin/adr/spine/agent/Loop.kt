@@ -46,11 +46,11 @@ import kotlinx.serialization.serializer
  * produce the recorded truth. A pure function evaluated twice is free, and that is
  * the price of ONE production site for ToolResult.
  */
-private fun <S> sdkTool(
-    verb: Verb<S, *, *>,
-    stateOf: () -> S,
-    contextOf: () -> Context,
-): Tool<JsonObject, JsonElement, Unit> = tool(
+class SdkToolSurface<S>(
+    private val stateOf: () -> S,
+    private val contextOf: () -> Context,
+) {
+  fun toolFor(verb: Verb<S, *, *>): Tool<JsonObject, JsonElement, Unit> = tool(
     name = verb.name.value,
     description = verb.describe,
     inputSerializer = serializer(),
@@ -60,6 +60,7 @@ private fun <S> sdkTool(
     // deciding what to say when an input fails to decode is a decision, and G3 keeps
     // decisions out of the loop. Gate check C14 is what holds that line.
     JsonPrimitive(verb.modelEcho(RawInput(input), Ctx(stateOf(), contextOf())))
+  }
 }
 
 /**
@@ -77,7 +78,11 @@ class AgentLoop<S>(
 ) : ToolLoopAgent<Unit, String>(
     model = model,
     instructions = instructions,
-    tools = toolSetOf(*registry.values.map { sdkTool(it, stateOf, contextOf) }.toTypedArray()),
+    tools = toolSetOf(
+        *SdkToolSurface(stateOf, contextOf)
+            .let { surface -> registry.values.map(surface::toolFor) }
+            .toTypedArray(),
+    ),
     stopWhen = stepCountIs(8),
     onStepFinish = {
         // The model's RAW input, forwarded verbatim. The boundary decides what it means.
@@ -91,7 +96,17 @@ class AgentLoop<S>(
             ?.map { Action(ToolName(it.toolName), RawInput(it.input)) }
             ?.let { submit(FinishedStep(by = Actor.Agent, staged = stagedOf(), actions = it)) }
     },
-)
+) {
+    /**
+     * Run one agent turn-chain. The runtime drives the loop; the boundary folds each
+     * step. A MEMBER, not an extension: an extension dispatches statically and has no
+     * instance, so `runTurn` could never be overridden by a test double of the loop.
+     */
+    suspend fun runTurn(prompt: String): TurnResult {
+        val result = generate(prompt = prompt)
+        return TurnResult(steps = result.steps.size, text = result.text)
+    }
+}
 
 /**
  * What the RUNTIME returned from one turn-chain: how many steps it took and what it
@@ -101,8 +116,4 @@ class AgentLoop<S>(
  */
 data class TurnResult(val steps: Int, val text: String)
 
-/** Run one agent turn-chain. The runtime drives the loop; the boundary folds each step. */
-suspend fun <S> AgentLoop<S>.runTurn(prompt: String): TurnResult {
-    val result = generate(prompt = prompt)
-    return TurnResult(steps = result.steps.size, text = result.text)
-}
+

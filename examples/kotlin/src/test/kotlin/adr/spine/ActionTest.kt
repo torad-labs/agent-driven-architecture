@@ -8,8 +8,8 @@ package adr.spine
 import adr.agent
 import adr.app.RunAuthority
 import adr.app.World
-import adr.app.offlineEnv
-import adr.app.wireApp
+import adr.app.Env
+import adr.app.Wiring
 import adr.blocks.triage.SET_PRIORITY
 import adr.contract.ToolResult
 import adr.contract.TriageResult
@@ -24,7 +24,7 @@ class ActionTest {
 
     @Test
     fun `an unregistered name folds and commits as Unhandled - never a silent drop`() {
-        val app = wireApp(offlineEnv())
+        val app = Wiring().wireApp(Env())
         app.human(ToolName("noSuchTool"))
 
         val record = app.bus.records().last()
@@ -39,7 +39,7 @@ class ActionTest {
 
     @Test
     fun `an input that fails to decode folds and commits as Unhandled`() {
-        val app = wireApp(offlineEnv())
+        val app = Wiring().wireApp(Env())
         app.human(SET_PRIORITY, "ticket" to "4118", "level" to "Nope")
 
         val result = app.bus.records().last().results.last()
@@ -53,8 +53,8 @@ class ActionTest {
 
     @Test
     fun `F1 - the human path and the agent path resolve IDENTICALLY`() {
-        val agentApp = wireApp(offlineEnv(authority = RunAuthority(), world = World()))
-        val humanApp = wireApp(offlineEnv(authority = RunAuthority(), world = World()))
+        val agentApp = Wiring().wireApp(Env(authority = RunAuthority(), world = World()))
+        val humanApp = Wiring().wireApp(Env(authority = RunAuthority(), world = World()))
 
         agentApp.agent(SET_PRIORITY, "ticket" to "4118", "level" to "High")
         humanApp.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")

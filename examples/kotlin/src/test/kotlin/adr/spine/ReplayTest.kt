@@ -13,9 +13,9 @@ package adr.spine
 import adr.app.RunAuthority
 import adr.app.World
 import adr.app.foldApp
-import adr.app.offlineEnv
+import adr.app.Env
 import adr.app.projectContextApp
-import adr.app.wireApp
+import adr.app.Wiring
 import adr.driveCanonicalSession
 import adr.spine.boundary.MovingClock
 import adr.spine.boundary.RecordingSink
@@ -32,8 +32,8 @@ class ReplayTest {
     fun `F5 - the live run and its re-fold agree on state and on every effect`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(
-            offlineEnv(
+        val app = Wiring().wireApp(
+            Env(
                 world = world,
                 authority = authority,
                 clock = MovingClock(start = 1000, step = 7),
@@ -71,7 +71,7 @@ class ReplayTest {
     fun `PerformMode REPLAY collects the descriptors and fires NOTHING`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = world, authority = authority))
+        val app = Wiring().wireApp(Env(world = world, authority = authority))
         app.driveCanonicalSession(authority)
 
         val liveEffects = app.performed.toList()
@@ -92,7 +92,7 @@ class ReplayTest {
     @Test
     fun `a divergent re-fold is DETECTED - the harness is not vacuous`() {
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = World(), authority = authority))
+        val app = Wiring().wireApp(Env(world = World(), authority = authority))
         app.driveCanonicalSession(authority)
 
         // Drop one committed step: the re-fold must no longer match the live run.

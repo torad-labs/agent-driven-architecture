@@ -32,7 +32,6 @@ import adr.contract.EscalationEffect
 import adr.contract.ToolResult
 import adr.contract.TriageEffect
 import adr.spine.agent.AgentLoop
-import adr.spine.agent.runTurn
 import adr.spine.boundary.Boundary
 import adr.spine.boundary.InMemoryBus
 import adr.spine.boundary.MovingClock
@@ -140,12 +139,6 @@ class ConfirmingAuthorities(private val allowed: Set<Authority>? = null) : Confi
     ): Boolean = allowed == null || sig.authority in allowed
 }
 
-/** The cognition seam, bound. The spine never names the runtime's model type; this does. */
-fun modelProvider(model: LanguageModel): ModelProvider<LanguageModel> =
-    object : ModelProvider<LanguageModel> {
-        override fun model(): LanguageModel = model
-    }
-
 /** The sensing seam, bound: a scripted queue of untrusted perceived events (10.2). */
 class ScriptedEvents(private val events: List<StagedInput.Perceived> = emptyList()) : EventSource {
     private var next = 0
@@ -196,34 +189,40 @@ data class Env(
     val relayRead: RelayRead? = null,
     /** Per SOURCE (12.2). An unlisted source gets DurableQueue — see spine/pure/mailbox. */
     val policies: List<InputPolicy> = emptyList(),
-)
-
-/** A fully offline environment: no keys, no network, a moving clock, a fake world. */
-fun offlineEnv(
-    world: World = World(),
-    authority: AuthorityResolver = RunAuthority(),
-    clock: Clock = MovingClock(start = 1000, step = 7),
-    tickets: List<Ticket> = listOf(Ticket(TicketId("4118"), "refund not received")),
-    policy: ConfirmPolicy = ConfirmingAuthorities(),
-    events: EventSource = ScriptedEvents(),
-    verbs: List<BlockRegistration<State>>? = null,
-    mailbox: Mailbox? = null,
-    relayRead: RelayRead? = null,
-    policies: List<InputPolicy> = emptyList(),
-): Env = Env(
-    clock = clock,
-    authority = authority,
-    oncall = world.oncall,
-    delivery = world.delivery,
-    relay = world.relay,
-    policy = policy,
-    events = events,
-    tickets = tickets,
-    verbs = verbs,
-    mailbox = mailbox,
-    relayRead = relayRead,
-    policies = policies,
-)
+) {
+    /**
+     * A fully offline environment: no keys, no network, a moving clock, a fake world.
+     *
+     * Was a top-level `offlineEnv(...)` factory beside this class. All it ever did was
+     * default an Env and derive three ports from one World — which is a constructor's
+     * job, so it is one. Nothing extra needs to exist to build an Env now.
+     */
+    constructor(
+        world: World = World(),
+        authority: AuthorityResolver = RunAuthority(),
+        clock: Clock = MovingClock(start = 1000, step = 7),
+        tickets: List<Ticket> = listOf(Ticket(TicketId("4118"), "refund not received")),
+        policy: ConfirmPolicy = ConfirmingAuthorities(),
+        events: EventSource = ScriptedEvents(),
+        verbs: List<BlockRegistration<State>>? = null,
+        mailbox: Mailbox? = null,
+        relayRead: RelayRead? = null,
+        policies: List<InputPolicy> = emptyList(),
+    ) : this(
+        clock = clock,
+        authority = authority,
+        oncall = world.oncall,
+        delivery = world.delivery,
+        relay = world.relay,
+        policy = policy,
+        events = events,
+        tickets = tickets,
+        verbs = verbs,
+        mailbox = mailbox,
+        relayRead = relayRead,
+        policies = policies,
+    )
+}
 
 class App(
     val boundary: Boundary<State>,
@@ -283,146 +282,166 @@ val DEEP_TIER: List<BlockRegistration<State>>
         InboxBlock().register { it.inbox },
     )
 
-fun wireApp(env: Env): App {
-    val registry = RegistryBuilder<State>().of(*(env.verbs ?: ALL_BLOCKS).toTypedArray())
-
-    val log = mutableListOf<String>()
-    val sink = RecordingSink(AppSink(env.oncall, env.delivery, env.relay, log))
-    val initial = initialState(env.tickets)
-
-    val boundary = Boundary(
-        clock = env.clock,
-        ids = env.ids,
-        bus = env.bus,
-        sink = sink,
-        authority = env.authority,
-        policy = env.policy,
-        registry = registry,
-        fold = ::foldApp,
-        projectContext = ::projectContextApp,
-        promptVersion = env.promptVersion,
-        session = env.session,
-        initial = initial,
-    )
-
-    val controller = Controller(
-        viewOf = { projectApp(boundary.state) },
-        submit = boundary::onStepFinish,
-    )
-
-    return App(boundary, controller, registry, env.bus, sink, log, initial, env.events)
-}
-
-/** I5: the verb table meets the runtime. The loop is the only file that converts. */
-fun App.agentLoop(
-    models: ModelProvider<LanguageModel>,
-    instructions: String,
-): AgentLoop<State> = AgentLoop(
-    model = models.model(),
-    instructions = instructions,
-    registry = registry,
-    stateOf = { boundary.state },
-    contextOf = { boundary.context() },
-    stagedOf = { listOfNotNull(events.poll()) },
-    submit = boundary::onStepFinish,
-)
-
-// ── the barge-in rung, wired (12) ──────────────────────────────────────────
-// The consumer reports SPINE-shaped events; the inbox block owns an app-shaped
-// closed set of its own; and THIS FILE is the one place allowed to know both. That
-// is L1 in one function: the spine does not name the block, the block does not name
-// the consumer, and the two closed sets are joined at the root.
-//
-// The mapping produces ACTIONS, so a barge-in decision travels the ONE existing path
-// — resolveAction → gate → fold → commit → signed Command. Nothing new is added to
-// the boundary, and RunStatus is untouched.
-
-fun consumerActions(event: ConsumerEvent): List<Action> = when (event) {
-    is ConsumerEvent.Conflated -> listOf(
-        Action(
-            NOTE_DROP,
-            RawInput(
-                "source" to event.source.value,
-                "reason" to "Conflated",
-                "dropped" to event.dropped.toString(),
-            ),
-        ),
-    )
-
-    is ConsumerEvent.Duplicate -> listOf(
-        Action(
-            NOTE_DROP,
-            RawInput("source" to event.source.value, "reason" to "Duplicate", "dropped" to "1"),
-        ),
-    )
-
-    is ConsumerEvent.TurnFailed -> listOf(
-        Action(NOTE_FAULT, RawInput("source" to event.source.value, "fault" to event.fault)),
-    )
-
-    is ConsumerEvent.CancelDeadlineExceeded -> listOf(
-        Action(
-            NOTE_FAULT,
-            RawInput(
-                "source" to event.source.value,
-                "fault" to "abandoned: the turn ignored cancellation for ${event.afterMs}ms",
-            ),
-        ),
-    )
-}
-
 /**
- * What a Drain commits before the consumer stops (12.3). It REQUESTS the seal rather
- * than confirming it: `confirmSeal` is irreversible and 14.3 requires a different
- * principal, so a drain cannot rubber-stamp its own finalization. The gate is not
- * suspended because the session is ending.
- */
-fun drainActions(message: Message.Drain): List<Action> = listOf(Action(REQUEST_SEAL, RawInput()))
-
-/**
- * Build the barge-in consumer — ONLY when a mailbox was supplied. An app that takes
- * neither rung pays nothing: no mailbox, no consumer, no relay read.
- */
-fun wireConsumer(app: App, env: Env, runner: TurnRunner): SerialConsumer? =
-    env.mailbox?.let { mailbox ->
-        SerialConsumer(
-            mailbox = mailbox,
-            runner = runner,
-            submit = app.boundary::onStepFinish,
-            report = ::consumerActions,
-            finalize = ::drainActions,
-            policies = env.policies,
-            relay = env.relayRead,
-            recallSource = SourceName("analysis"),
-        )
-    }
-
-/**
- * I5 once more, one level up: the TurnRunner the consumer drives.
+ * THE COMPOSITION ROOT, as a constructed type.
  *
- * It builds the agent loop with THIS TURN'S OWN staged inputs, so the recall the
- * consumer already bounded is exactly what the model is shown and exactly what rides
- * the committed record. `ctx::submit` and not `boundary::onStepFinish`: the turn's
- * only channel is the revocable one.
+ * These eight were top-level functions, and the argument that they were fine there is
+ * the one the rule pack already answers: `fun main` is excluded from
+ * no-loose-top-level-fun because a JVM entry point has nowhere else to live, and that
+ * carve-out is scoped to one identifier by regex when the pack's own `ignores:` could
+ * have exempted the whole folder and deliberately did not. The root's HELPERS are not
+ * the entry point. They assemble a graph, they make decisions (which prompt, which
+ * action), and a decision with no instance behind it cannot be exercised on its own.
+ *
+ * Constructed, never bound: nothing injects a Wiring. It is the one place allowed to
+ * know both the spine's closed set and a block's, which is exactly why it must not be
+ * substitutable — a swapped root is a different application.
  */
-fun App.tierRunner(
-    models: ModelProvider<LanguageModel>,
-    instructions: String,
-): TurnRunner = TurnRunner { message, ctx ->
-    AgentLoop(
+class Wiring {
+
+    /** The cognition seam, bound. The spine never names the runtime's model type; this does. */
+    fun modelProvider(model: LanguageModel): ModelProvider<LanguageModel> =
+        object : ModelProvider<LanguageModel> {
+            override fun model(): LanguageModel = model
+        }
+    fun wireApp(env: Env): App {
+        val registry = RegistryBuilder<State>().of(*(env.verbs ?: ALL_BLOCKS).toTypedArray())
+
+        val log = mutableListOf<String>()
+        val sink = RecordingSink(AppSink(env.oncall, env.delivery, env.relay, log))
+        val initial = initialState(env.tickets)
+
+        val boundary = Boundary(
+            clock = env.clock,
+            ids = env.ids,
+            bus = env.bus,
+            sink = sink,
+            authority = env.authority,
+            policy = env.policy,
+            registry = registry,
+            fold = ::foldApp,
+            projectContext = ::projectContextApp,
+            promptVersion = env.promptVersion,
+            session = env.session,
+            initial = initial,
+        )
+
+        val controller = Controller(
+            viewOf = { projectApp(boundary.state) },
+            submit = boundary::onStepFinish,
+        )
+
+        return App(boundary, controller, registry, env.bus, sink, log, initial, env.events)
+    }
+    /** I5: the verb table meets the runtime. The loop is the only file that converts. */
+    fun agentLoop(
+        app: App,
+        models: ModelProvider<LanguageModel>,
+        instructions: String,
+    ): AgentLoop<State> = AgentLoop(
         model = models.model(),
         instructions = instructions,
-        registry = registry,
-        stateOf = { boundary.state },
-        contextOf = { boundary.context(ctx.staged) },
-        stagedOf = { ctx.staged },
-        submit = ctx::submit,
-    ).runTurn(promptFor(message))
-}
+        registry = app.registry,
+        stateOf = { app.boundary.state },
+        contextOf = { app.boundary.context() },
+        stagedOf = { listOfNotNull(app.events.poll()) },
+        submit = app.boundary::onStepFinish,
+    )
+    // ── the barge-in rung, wired (12) ──────────────────────────────────────────
+    // The consumer reports SPINE-shaped events; the inbox block owns an app-shaped
+    // closed set of its own; and THIS FILE is the one place allowed to know both. That
+    // is L1 in one function: the spine does not name the block, the block does not name
+    // the consumer, and the two closed sets are joined at the root.
+    //
+    // The mapping produces ACTIONS, so a barge-in decision travels the ONE existing path
+    // — resolveAction → gate → fold → commit → signed Command. Nothing new is added to
+    // the boundary, and RunStatus is untouched.
 
-/** One prompt per kind of barge-in. Closed match, no else arm. */
-fun promptFor(message: Message): String = when (message) {
-    is Message.Input -> message.staged.body
-    is Message.Interrupt -> "INTERRUPT: ${message.reason}"
-    is Message.Drain -> "DRAIN: ${message.reason}"
+    fun consumerActions(event: ConsumerEvent): List<Action> = when (event) {
+        is ConsumerEvent.Conflated -> listOf(
+            Action(
+                NOTE_DROP,
+                RawInput(
+                    "source" to event.source.value,
+                    "reason" to "Conflated",
+                    "dropped" to event.dropped.toString(),
+                ),
+            ),
+        )
+
+        is ConsumerEvent.Duplicate -> listOf(
+            Action(
+                NOTE_DROP,
+                RawInput("source" to event.source.value, "reason" to "Duplicate", "dropped" to "1"),
+            ),
+        )
+
+        is ConsumerEvent.TurnFailed -> listOf(
+            Action(NOTE_FAULT, RawInput("source" to event.source.value, "fault" to event.fault)),
+        )
+
+        is ConsumerEvent.CancelDeadlineExceeded -> listOf(
+            Action(
+                NOTE_FAULT,
+                RawInput(
+                    "source" to event.source.value,
+                    "fault" to "abandoned: the turn ignored cancellation for ${event.afterMs}ms",
+                ),
+            ),
+        )
+    }
+    /**
+     * What a Drain commits before the consumer stops (12.3). It REQUESTS the seal rather
+     * than confirming it: `confirmSeal` is irreversible and 14.3 requires a different
+     * principal, so a drain cannot rubber-stamp its own finalization. The gate is not
+     * suspended because the session is ending.
+     */
+    fun drainActions(message: Message.Drain): List<Action> = listOf(Action(REQUEST_SEAL, RawInput()))
+    /**
+     * Build the barge-in consumer — ONLY when a mailbox was supplied. An app that takes
+     * neither rung pays nothing: no mailbox, no consumer, no relay read.
+     */
+    fun wireConsumer(app: App, env: Env, runner: TurnRunner): SerialConsumer? =
+        env.mailbox?.let { mailbox ->
+            SerialConsumer(
+                mailbox = mailbox,
+                runner = runner,
+                submit = app.boundary::onStepFinish,
+                report = ::consumerActions,
+                finalize = ::drainActions,
+                policies = env.policies,
+                relay = env.relayRead,
+                recallSource = SourceName("analysis"),
+            )
+        }
+    /**
+     * I5 once more, one level up: the TurnRunner the consumer drives.
+     *
+     * It builds the agent loop with THIS TURN'S OWN staged inputs, so the recall the
+     * consumer already bounded is exactly what the model is shown and exactly what rides
+     * the committed record. `ctx::submit` and not `boundary::onStepFinish`: the turn's
+     * only channel is the revocable one.
+     */
+    fun tierRunner(
+        app: App,
+        models: ModelProvider<LanguageModel>,
+        instructions: String,
+    ): TurnRunner = TurnRunner { message, ctx ->
+        AgentLoop(
+            model = models.model(),
+            instructions = instructions,
+            registry = app.registry,
+            stateOf = { app.boundary.state },
+            contextOf = { app.boundary.context(ctx.staged) },
+            stagedOf = { ctx.staged },
+            submit = ctx::submit,
+        ).runTurn(promptFor(message))
+    }
+
+    /** One prompt per kind of barge-in. Closed match, no else arm. */
+    fun promptFor(message: Message): String = when (message) {
+        is Message.Input -> message.staged.body
+        is Message.Interrupt -> "INTERRUPT: ${message.reason}"
+        is Message.Drain -> "DRAIN: ${message.reason}"
+    }
 }
