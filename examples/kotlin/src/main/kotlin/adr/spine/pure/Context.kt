@@ -4,7 +4,7 @@
 // pure projection, beside State→ViewModel and the fold:
 //
 //     projectContext(state, staged) -> Context        PURE. No I/O, no clock.
-//     render(context)               -> String         PURE. Exactly what the model saw.
+//     ContextRenderer().render(context)               -> String         PURE. Exactly what the model saw.
 //
 // It is RECOMPUTED FROM COMMITTED STATE EVERY STEP — never appended to, never a
 // mutable accumulator. That, plus the two constants below, is the whole growth
@@ -52,31 +52,40 @@ data class Context(
 /** What rides the committed record (14.7 + F4): the prompt version and the rendered digest. */
 data class ContextFixture(val promptVersion: String, val digest: String)
 
-/** The exact text the reasoner sees. Pure and total, so the fixture check is meaningful. */
-fun render(context: Context): String = buildString {
-    append("staged: ").append(context.staged.size).append(" input(s)").append('\n')
-    context.staged.forEach { append("> ").append(stagedLine(it)).append('\n') }
-    context.lines.forEach { append("- ").append(it).append('\n') }
-    context.notices.forEach { append("! ").append(it).append('\n') }
-    append("artifact: ").append(context.artifactLineCount).append(" line(s)")
-}
-
-/** One rendered line per staged input, in order. Closed match, no else arm (C9). */
-private fun stagedLine(input: StagedInput): String = when (input) {
-    is StagedInput.Perceived -> "${input.source.value} — ${input.body}"
-    is StagedInput.Recalled -> "${input.source.value} — ${recallLine(input.recall)}"
-}
-
 /**
- * The reasoner is told WHICH BRANCH the recall took. A fourth Recall variant breaks
- * the build here, which is the point: stale is LABELLED stale in the prompt itself
- * and is never rendered as though it were fresh.
+ * The exact text the reasoner sees. Pure and total, so the fixture check is meaningful.
+ *
+ * A CONSTRUCTED type: the two line-formatters below are its own private members, which
+ * is what they always were in spirit — `private` at file scope still means anything in
+ * the module can be handed them, and neither could be exercised without calling render.
  */
-private fun recallLine(recall: Recall): String = when (recall) {
-    is Recall.Fresh -> "conclusion (fresh, published at ${recall.publishedAt.value}): ${recall.text}"
+class ContextRenderer {
 
-    is Recall.LastKnown ->
-        "conclusion (LAST KNOWN, published at ${recall.publishedAt.value}): ${recall.text}"
+    fun render(context: Context): String = buildString {
+        append("staged: ").append(context.staged.size).append(" input(s)").append('\n')
+        context.staged.forEach { append("> ").append(stagedLine(it)).append('\n') }
+        context.lines.forEach { append("- ").append(it).append('\n') }
+        context.notices.forEach { append("! ").append(it).append('\n') }
+        append("artifact: ").append(context.artifactLineCount).append(" line(s)")
+    }
 
-    Recall.Empty -> "no conclusion published"
+    /** One rendered line per staged input, in order. Closed match, no else arm (C9). */
+    private fun stagedLine(input: StagedInput): String = when (input) {
+        is StagedInput.Perceived -> "${input.source.value} — ${input.body}"
+        is StagedInput.Recalled -> "${input.source.value} — ${recallLine(input.recall)}"
+    }
+
+    /**
+     * The reasoner is told WHICH BRANCH the recall took. A fourth Recall variant breaks
+     * the build here, which is the point: stale is LABELLED stale in the prompt itself
+     * and is never rendered as though it were fresh.
+     */
+    private fun recallLine(recall: Recall): String = when (recall) {
+        is Recall.Fresh -> "conclusion (fresh, published at ${recall.publishedAt.value}): ${recall.text}"
+
+        is Recall.LastKnown ->
+            "conclusion (LAST KNOWN, published at ${recall.publishedAt.value}): ${recall.text}"
+
+        Recall.Empty -> "no conclusion published"
+    }
 }

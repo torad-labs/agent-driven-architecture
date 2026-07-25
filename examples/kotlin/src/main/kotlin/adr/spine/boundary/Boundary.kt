@@ -32,7 +32,7 @@ import adr.spine.pure.SessionId
 import adr.spine.pure.Signature
 import adr.spine.pure.StagedInput
 import adr.spine.pure.StepRecord
-import adr.spine.pure.render
+import adr.spine.pure.ContextRenderer
 import adr.spine.ports.AuthorityResolver
 import adr.spine.ports.Bus
 import adr.spine.ports.Clock
@@ -103,7 +103,7 @@ class Boundary<S>(
                 actions = step.actions,
                 results = gated,
                 commands = gated.map { actions.sign(it, sig, ids.next()) },
-                context = ContextFixture(promptVersion, render(ctx.context)),
+                context = ContextFixture(promptVersion, ContextRenderer().render(ctx.context)),
             ),
         )
 

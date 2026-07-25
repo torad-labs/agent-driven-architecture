@@ -61,6 +61,21 @@ sealed interface Verb<S, I, R : ToolResult> {
     fun resolve(input: RawInput, ctx: Ctx<S>): ToolResult? = decode(input)?.let { run(it, ctx) }
 
     /**
+     * What the MODEL is told about one call, so it has a payload to reason over.
+     * Was an extension function; an extension is not a member, so it could never be
+     * overridden and had no instance behind it. It belongs to the verb, so it lives on
+     * the verb.
+     *
+     * The RECORDED truth is produced separately, at the boundary (§3.1, §15 risk 4);
+     * this string never folds, never signs and never reaches the timeline. It stays
+     * HERE and not in spine/agent/loop because it makes a decision — what to say when
+     * the input did not decode — and G3 says the loop is a declaration, not a place for
+     * policy. Gate check C14 denies the branch the moment it drifts back.
+     */
+    fun modelEcho(input: RawInput, ctx: Ctx<S>): String =
+        resolve(input, ctx)?.toString() ?: DECODE_FAILED
+
+    /**
      * Sign a result whose static type has been erased by the registry's star projection.
      *
      * This is the ONE unchecked cast in the system, and D3 is its proof: a result
@@ -118,8 +133,6 @@ const val DECODE_FAILED = "input failed to decode"
  * place for policy. Gate check C14 denies the branch the moment it drifts back into
  * the loop file, which is exactly how it got there in the first place.
  */
-fun <S> Verb<S, *, *>.modelEcho(input: RawInput, ctx: Ctx<S>): String =
-    resolve(input, ctx)?.toString() ?: DECODE_FAILED
 
 /** The one closed table the boundary reads: name → verb. It supplies BOTH maps (F1). */
 typealias Registry<S> = Map<ToolName, Verb<S, *, *>>
@@ -127,10 +140,21 @@ typealias Registry<S> = Map<ToolName, Verb<S, *, *>>
 /** A block's single public contribution to the spine (I7). */
 data class BlockRegistration<S>(val block: String, val verbs: List<Verb<S, *, *>>)
 
-/** The composition root's one call: registrations in, the closed registry out. */
-fun <S> registryOf(vararg blocks: BlockRegistration<S>): Registry<S> {
-    val verbs = blocks.flatMap { it.verbs }
-    val registry = verbs.associateBy { it.name }
-    check(registry.size == verbs.size) { "two blocks registered the same tool name" }
-    return registry
+/**
+ * The composition root's one call: registrations in, the closed registry out.
+ *
+ * A CONSTRUCTED type rather than a top-level function, because it makes a decision —
+ * it REJECTS a duplicate tool name — and a decision with no instance behind it cannot
+ * be exercised on its own. This one can: build it, hand it two registrations that
+ * collide, and watch it refuse, without standing up an app.
+ */
+class RegistryBuilder<S> {
+    fun of(vararg blocks: BlockRegistration<S>): Registry<S> = of(blocks.toList())
+
+    fun of(blocks: List<BlockRegistration<S>>): Registry<S> {
+        val verbs = blocks.flatMap { it.verbs }
+        val registry = verbs.associateBy { it.name }
+        check(registry.size == verbs.size) { "two blocks registered the same tool name" }
+        return registry
+    }
 }

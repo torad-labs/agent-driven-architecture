@@ -21,7 +21,7 @@ import adr.spine.pure.StagedInput
 import adr.spine.pure.TicketId
 import adr.spine.pure.Timestamp
 import adr.spine.pure.ToolName
-import adr.spine.pure.render
+import adr.spine.pure.ContextRenderer
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -68,7 +68,7 @@ class ContextTest {
         // The artifact contributes a COUNT, never content — a long session cannot inflate it.
         assertEquals(0, context.artifactLineCount)
         assertTrue(
-            render(context).lines().size <=
+            ContextRenderer().render(context).lines().size <=
                 CONTEXT_LINE_BLOCKS * MAX_CONTEXT_LINES_PER_BLOCK + MAX_CONTEXT_NOTICES + 2,
         )
     }
@@ -81,6 +81,6 @@ class ContextTest {
         val fixture = app.bus.records().single().context
         assertEquals("triage-prompt@1", fixture.promptVersion)
         // The digest is the state as it was BEFORE the step — the input the model saw.
-        assertEquals(render(projectContextApp(app.initial, emptyList())), fixture.digest)
+        assertEquals(ContextRenderer().render(projectContextApp(app.initial, emptyList())), fixture.digest)
     }
 }
