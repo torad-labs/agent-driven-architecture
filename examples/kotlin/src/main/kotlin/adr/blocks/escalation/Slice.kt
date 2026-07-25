@@ -10,24 +10,23 @@ package adr.blocks.escalation
 import adr.spine.pure.Authority
 import adr.spine.pure.TicketId
 
-sealed interface TicketStatus {
-    val ticket: TicketId
+sealed class TicketStatus(open val ticket: TicketId) {
 
-    data class Open(override val ticket: TicketId) : TicketStatus
+    data class Open(override val ticket: TicketId) : TicketStatus(ticket)
 
     /** Reversible. Records WHO ASKED, so the confirm can be required to differ. */
     data class Escalating(
         override val ticket: TicketId,
         val requestedBy: Authority,
-    ) : TicketStatus
+    ) : TicketStatus(ticket)
 
     /** Irreversible, already done. Records WHO CONFIRMED. */
     data class Escalated(
         override val ticket: TicketId,
         val confirmedBy: Authority,
-    ) : TicketStatus
+    ) : TicketStatus(ticket)
 
-    data class Resolved(override val ticket: TicketId) : TicketStatus
+    data class Resolved(override val ticket: TicketId) : TicketStatus(ticket)
 }
 
 data class EscalationSlice(val status: Map<TicketId, TicketStatus> = emptyMap()) {

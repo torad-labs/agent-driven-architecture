@@ -8,12 +8,12 @@
 
 package adr.spine.pure
 
-sealed interface RunStatus {
-    data object Idle : RunStatus
+sealed class RunStatus {
+    data object Idle : RunStatus()
 
-    data class Working(val step: Int) : RunStatus
+    data class Working(val step: Int) : RunStatus()
 
-    data class Degraded(val cause: String) : RunStatus
+    data class Degraded(val cause: String) : RunStatus()
 
-    data class Error(val fault: String) : RunStatus
+    data class Error(val fault: String) : RunStatus()
 }

@@ -20,30 +20,42 @@ import adr.spine.pure.TicketId
 import adr.spine.pure.Timestamp
 import adr.spine.pure.ToolName
 
-sealed interface TriageResult : ToolResult {
+/**
+ * A sealed CLASS extending the sealed CLASS ToolResult: `tool` is passed up the chain,
+ * so every variant carries it by construction rather than by re-implementing it.
+ */
+sealed class TriageResult(override val tool: ToolName) : ToolResult(tool) {
     data class SetPriority(
         override val tool: ToolName,
         val ticket: TicketId,
         val level: Priority,
-    ) : TriageResult
+    ) : TriageResult(tool)
 }
 
-sealed interface TriageCommand : Command {
+/**
+ * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
+ * every variant carries authorship, permission and identity by construction (L3).
+ */
+sealed class TriageCommand(
+    override val tool: ToolName,
+    override val sig: Signature,
+    override val id: CommandId,
+) : Command(tool, sig, id) {
     data class SetPriority(
         override val tool: ToolName,
         override val sig: Signature,
         override val id: CommandId,
         val ticket: TicketId,
         val level: Priority,
-    ) : TriageCommand
+    ) : TriageCommand(tool, sig, id)
 }
 
-sealed interface TriageEffect : Effect {
+sealed class TriageEffect(override val at: Timestamp) : Effect(at) {
     /** `supersedes` is derived BY THE FOLD from its own current state (4.3) — never by the tool. */
     data class LogDecision(
         override val at: Timestamp,
         val ticket: TicketId,
         val level: Priority,
         val supersedes: Priority?,
-    ) : TriageEffect
+    ) : TriageEffect(at)
 }

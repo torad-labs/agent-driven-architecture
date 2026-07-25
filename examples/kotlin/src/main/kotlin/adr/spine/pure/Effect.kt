@@ -14,10 +14,11 @@ package adr.contract
 
 import adr.spine.pure.Timestamp
 
-sealed interface Effect {
+sealed class Effect(
     /** When the fold decided this. Declared once, carried by every variant. */
-    val at: Timestamp
+    open val at: Timestamp,
+) {
 
     /** The spine's own effect: a diagnostic line for a rejection or a refusal. */
-    data class Diag(override val at: Timestamp, val note: String) : Effect
+    data class Diag(override val at: Timestamp, val note: String) : Effect(at)
 }

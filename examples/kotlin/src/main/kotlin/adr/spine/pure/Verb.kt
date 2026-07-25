@@ -33,12 +33,12 @@ data class Ctx<S>(val state: S, val context: Context)
  * cannot `is`-check `Verb.Irreversible<S, *, *>` and still call through it.
  * The sealed pair is what the gate matches on, exhaustively.
  */
-sealed interface Gating {
+sealed class Gating {
     /** A Reversible verb: the gate passes it through untouched. */
-    data object Ungated : Gating
+    data object Ungated : Gating()
 
     /** An Irreversible verb: it proceeds only if a DIFFERENT authority requested it. */
-    data class NeedsConfirmation(val requestedBy: Authority?) : Gating
+    data class NeedsConfirmation(val requestedBy: Authority?) : Gating()
 }
 
 sealed interface Verb<S, I, R : ToolResult> {

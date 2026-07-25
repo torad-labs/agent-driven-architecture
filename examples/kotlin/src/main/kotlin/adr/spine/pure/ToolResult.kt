@@ -19,19 +19,20 @@ package adr.contract
 
 import adr.spine.pure.ToolName
 
-sealed interface ToolResult {
-    /** The verb this payload came from. Declared once, carried by every variant. */
-    val tool: ToolName
+sealed class ToolResult(
+    /** The verb this payload came from. Declared once, carried by every variant (D3). */
+    open val tool: ToolName,
+) {
 
     /**
      * An Action naming no registered verb, or an input that failed to decode.
      * It is FOLDED and COMMITTED like any other result (6.5) — never silently dropped.
      */
-    data class Unhandled(override val tool: ToolName, val note: String) : ToolResult
+    data class Unhandled(override val tool: ToolName, val note: String) : ToolResult(tool)
 
     /**
      * The boundary gate said no (D5). Committed, so a re-fold reproduces the
      * refusal without re-running the authorization check (G9).
      */
-    data class Refused(override val tool: ToolName, val reason: String) : ToolResult
+    data class Refused(override val tool: ToolName, val reason: String) : ToolResult(tool)
 }

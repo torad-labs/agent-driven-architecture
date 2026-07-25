@@ -15,42 +15,54 @@ import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 import adr.spine.pure.ToolName
 
-sealed interface ArtifactResult : ToolResult {
+/**
+ * A sealed CLASS extending the sealed CLASS ToolResult: `tool` is passed up the chain,
+ * so every variant carries it by construction rather than by re-implementing it.
+ */
+sealed class ArtifactResult(override val tool: ToolName) : ToolResult(tool) {
     data class RecordFinding(
         override val tool: ToolName,
         val text: String,
-    ) : ArtifactResult
+    ) : ArtifactResult(tool)
 
-    data class RequestSeal(override val tool: ToolName) : ArtifactResult
+    data class RequestSeal(override val tool: ToolName) : ArtifactResult(tool)
 
-    data class ConfirmSeal(override val tool: ToolName) : ArtifactResult
+    data class ConfirmSeal(override val tool: ToolName) : ArtifactResult(tool)
 }
 
-sealed interface ArtifactCommand : Command {
+/**
+ * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
+ * every variant carries authorship, permission and identity by construction (L3).
+ */
+sealed class ArtifactCommand(
+    override val tool: ToolName,
+    override val sig: Signature,
+    override val id: CommandId,
+) : Command(tool, sig, id) {
     data class RecordFinding(
         override val tool: ToolName,
         override val sig: Signature,
         override val id: CommandId,
         val text: String,
-    ) : ArtifactCommand
+    ) : ArtifactCommand(tool, sig, id)
 
     data class RequestSeal(
         override val tool: ToolName,
         override val sig: Signature,
         override val id: CommandId,
-    ) : ArtifactCommand
+    ) : ArtifactCommand(tool, sig, id)
 
     data class ConfirmSeal(
         override val tool: ToolName,
         override val sig: Signature,
         override val id: CommandId,
-    ) : ArtifactCommand
+    ) : ArtifactCommand(tool, sig, id)
 }
 
-sealed interface ArtifactEffect : Effect {
+sealed class ArtifactEffect(override val at: Timestamp) : Effect(at) {
     /** IRREVERSIBLE, and it fires exactly ONCE, at seal time — never once per line. */
     data class DeliverArtifact(
         override val at: Timestamp,
         val lines: List<ArtifactLine>,
-    ) : ArtifactEffect
+    ) : ArtifactEffect(at)
 }

@@ -13,13 +13,13 @@ import adr.spine.pure.Timestamp
 /** `by` is the stamped Actor, copied in by the ARM from `sig` — never by the tool. */
 data class ArtifactLine(val at: Timestamp, val by: Actor, val text: String)
 
-sealed interface SealStatus {
-    data object Draft : SealStatus
+sealed class SealStatus {
+    data object Draft : SealStatus()
 
     /** Reversible: a request is just a request. Records WHO ASKED. */
-    data class Sealing(val requestedBy: Authority) : SealStatus
+    data class Sealing(val requestedBy: Authority) : SealStatus()
 
-    data class Sealed(val at: Timestamp, val by: Authority) : SealStatus
+    data class Sealed(val at: Timestamp, val by: Authority) : SealStatus()
 }
 
 data class ArtifactSlice(
