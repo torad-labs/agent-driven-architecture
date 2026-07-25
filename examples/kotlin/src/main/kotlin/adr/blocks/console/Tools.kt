@@ -29,6 +29,7 @@ class ConsoleTools<S>(private val lens: (S) -> ConsoleSlice) {
             decode = ::decodeFocus,
             run = { input, _ -> ConsoleResult.FocusTicket(FOCUS_TICKET, input.ticket) },
             sign = { r, sig, id -> ConsoleCommand.FocusTicket(r.tool, sig, id, r.ticket) },
+            narrow = { it as? ConsoleResult.FocusTicket },
         ),
         Verb.Reversible(
             name = SET_PANEL,
@@ -36,6 +37,7 @@ class ConsoleTools<S>(private val lens: (S) -> ConsoleSlice) {
             decode = ::decodePanel,
             run = { input, _ -> ConsoleResult.SetPanel(SET_PANEL, input.panel, input.visible) },
             sign = { r, sig, id -> ConsoleCommand.SetPanel(r.tool, sig, id, r.panel, r.visible) },
+            narrow = { it as? ConsoleResult.SetPanel },
         ),
     )
 

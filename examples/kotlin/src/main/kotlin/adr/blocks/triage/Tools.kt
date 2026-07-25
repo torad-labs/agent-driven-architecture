@@ -44,6 +44,7 @@ class TriageTools<S>(private val lens: (S) -> TriageSlice) {
             decode = ::decodeSetPriority,
             run = { input, _ -> TriageResult.SetPriority(SET_PRIORITY, input.ticket, input.level) },
             sign = { r, sig, id -> TriageCommand.SetPriority(r.tool, sig, id, r.ticket, r.level) },
+            narrow = { it as? TriageResult.SetPriority },
         ),
     )
 

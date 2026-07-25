@@ -40,6 +40,7 @@ class InboxTools<S>(private val lens: (S) -> InboxSlice) {
                 InboxResult.NoteDrop(NOTE_DROP, input.source, input.reason, input.dropped)
             },
             sign = { r, sig, id -> InboxCommand.NoteDrop(r.tool, sig, id, r.source, r.reason, r.dropped) },
+            narrow = { it as? InboxResult.NoteDrop },
         ),
         Verb.Reversible(
             name = NOTE_FAULT,
@@ -47,12 +48,13 @@ class InboxTools<S>(private val lens: (S) -> InboxSlice) {
             decode = ::decodeNoteFault,
             run = { input, _ -> InboxResult.NoteFault(NOTE_FAULT, input.source, input.fault) },
             sign = { r, sig, id -> InboxCommand.NoteFault(r.tool, sig, id, r.source, r.fault) },
+            narrow = { it as? InboxResult.NoteFault },
         ),
     )
 
     private fun decodeNoteDrop(raw: RawInput): NoteDropInput? {
         val source = raw.text("source") ?: return null
-        val reason = raw.text("reason")?.let(::dropReasonOf) ?: return null
+        val reason = raw.text("reason")?.let(dropReasonOf::parse) ?: return null
         val dropped = raw.text("dropped")?.toIntOrNull() ?: return null
         return NoteDropInput(SourceName(source), reason, dropped)
     }
@@ -64,9 +66,7 @@ class InboxTools<S>(private val lens: (S) -> InboxSlice) {
     }
 
     /** OPEN input, guarded: an unrecognised word is a decode failure, never a default. */
-    private fun dropReasonOf(name: String): DropReason? = when (name) {
-        "Conflated" -> DropReason.Conflated
-        "Duplicate" -> DropReason.Duplicate
-        else -> null
+    private val dropReasonOf = DropReason.Parser { token ->
+        DropReason.entries.firstOrNull { it.name == token }
     }
 }

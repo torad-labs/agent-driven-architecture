@@ -80,6 +80,16 @@ class ActionResolution<S>(private val registry: Registry<S>) {
     fun sign(result: ToolResult, sig: Signature, id: CommandId): Command {
         if (result is ToolResult.Unhandled) return Command.Unhandled(result.tool, sig, id, result.note)
         if (result is ToolResult.Refused) return Command.Refused(result.tool, sig, id, result.reason)
+        // D3 says this cannot be null: a result reaches this verb only because its own
+        // `tool` name looked the verb up, and one name means one result case. Gate check
+        // C13 re-proves that mapping mechanically for every case in the system. The
+        // branch exists because the narrowing is now CHECKED rather than an unchecked
+        // cast the compiler was told to ignore — an unreachable failure that says what
+        // broke beats a ClassCastException from inside a lambda.
         return registry.getValue(result.tool).signOf(result, sig, id)
+            ?: error(
+                "C13 violation: ${result.tool.value} produced a result its own verb " +
+                    "cannot sign — the registry maps one name to one result case",
+            )
     }
 }

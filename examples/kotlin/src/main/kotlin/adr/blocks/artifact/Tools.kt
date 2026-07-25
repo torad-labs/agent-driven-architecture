@@ -36,6 +36,7 @@ class ArtifactTools<S>(private val lens: (S) -> ArtifactSlice) {
             decode = ::decodeFinding,
             run = { input, _ -> ArtifactResult.RecordFinding(RECORD_FINDING, input.text) },
             sign = { r, sig, id -> ArtifactCommand.RecordFinding(r.tool, sig, id, r.text) },
+            narrow = { it as? ArtifactResult.RecordFinding },
         ),
         Verb.Reversible(
             name = REQUEST_SEAL,
@@ -43,6 +44,7 @@ class ArtifactTools<S>(private val lens: (S) -> ArtifactSlice) {
             decode = ::decodeNothing,
             run = { _, _ -> ArtifactResult.RequestSeal(REQUEST_SEAL) },
             sign = { r, sig, id -> ArtifactCommand.RequestSeal(r.tool, sig, id) },
+            narrow = { it as? ArtifactResult.RequestSeal },
         ),
         Verb.Irreversible(
             name = CONFIRM_SEAL,
@@ -50,6 +52,7 @@ class ArtifactTools<S>(private val lens: (S) -> ArtifactSlice) {
             decode = ::decodeNothing,
             run = { _, _ -> ArtifactResult.ConfirmSeal(CONFIRM_SEAL) },
             sign = { r, sig, id -> ArtifactCommand.ConfirmSeal(r.tool, sig, id) },
+            narrow = { it as? ArtifactResult.ConfirmSeal },
             requestedBy = { state, _ ->
                 (lens(state).seal as? SealStatus.Sealing)?.requestedBy
             },
