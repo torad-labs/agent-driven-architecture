@@ -17,13 +17,16 @@ import adr.blocks.analysis.AnalysisSlice
 import adr.blocks.analysis.AnalysisView
 import adr.blocks.artifact.ArtifactSlice
 import adr.blocks.artifact.ArtifactView
+import adr.blocks.console.ConsoleBlock
 import adr.blocks.console.ConsoleSlice
 import adr.blocks.console.ConsoleView
+import adr.blocks.escalation.EscalationBlock
 import adr.blocks.escalation.EscalationSlice
 import adr.blocks.escalation.EscalationView
 import adr.blocks.inbox.InboxSlice
 import adr.blocks.inbox.InboxView
 import adr.blocks.triage.Ticket
+import adr.blocks.triage.TriageBlock
 import adr.blocks.triage.TriageSlice
 import adr.blocks.triage.TriageView
 import adr.spine.pure.PanelId
@@ -40,15 +43,15 @@ import adr.spine.pure.ViewModel
  * idiom in inbox, artifact and analysis.
  */
 data class State(
-    val spine: SpineSlice = SpineSlice.initial,
-    val triage: TriageSlice = TriageSlice.empty,
-    val escalation: EscalationSlice = EscalationSlice.empty,
-    val console: ConsoleSlice = ConsoleSlice.empty,
-    val artifact: ArtifactSlice = ArtifactSlice.empty,
+    val spine: SpineSlice = SpineSlice(),
+    val triage: TriageSlice = TriageSlice(),
+    val escalation: EscalationSlice = EscalationSlice(),
+    val console: ConsoleSlice = ConsoleSlice(),
+    val artifact: ArtifactSlice = ArtifactSlice(),
     /** The tiering rung (11): what this tier recalled, and what it published. */
-    val analysis: AnalysisSlice = AnalysisSlice.empty,
+    val analysis: AnalysisSlice = AnalysisSlice(),
     /** The barge-in rung (12): what was shed while busy, and what failed. */
-    val inbox: InboxSlice = InboxSlice.empty,
+    val inbox: InboxSlice = InboxSlice(),
 )
 
 /** The block views composed onto the spine's ViewModel root. */
@@ -67,7 +70,7 @@ fun initialState(
     tickets: List<Ticket> = emptyList(),
     panels: List<PanelId> = listOf(PanelId("queue"), PanelId("detail"), PanelId("audit")),
 ): State = State(
-    triage = TriageSlice.of(tickets),
-    escalation = EscalationSlice.of(tickets.map { it.id }),
-    console = ConsoleSlice.of(panels),
+    triage = TriageBlock().slice(tickets),
+    escalation = EscalationBlock().slice(tickets.map { it.id }),
+    console = ConsoleBlock().slice(panels),
 )

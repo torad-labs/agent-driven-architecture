@@ -14,6 +14,7 @@ import adr.contract.ConsoleResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.PanelId
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
@@ -31,6 +32,10 @@ class ConsoleBlock : Block<ConsoleSlice, ConsoleResult, ConsoleView> {
         now: Timestamp,
         sig: Signature,
     ): ArmOut<ConsoleSlice> = armImpl.arm(slice, result, now, sig)
+
+    /** The SEEDED slice — on the block, not on a companion of the shape. */
+    fun slice(panels: List<PanelId>): ConsoleSlice =
+        ConsoleSlice(panels = panels.associateWith { false })
 
     override fun view(slice: ConsoleSlice): ConsoleView = projection.view(slice)
 

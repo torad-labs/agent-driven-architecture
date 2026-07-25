@@ -16,11 +16,12 @@ package adr.blocks.console
 import adr.spine.pure.TicketId
 
 data class ViewState(
-    val hover: TicketId?,
-    val scrollOffset: Int,
-    val draft: String,
+    val hover: TicketId? = null,
+    val scrollOffset: Int = 0,
+    val draft: String = "",
 ) {
-    companion object {
-        val empty = ViewState(hover = null, scrollOffset = 0, draft = "")
-    }
+    // No companion: a companion member has no instance, which is the same defect as a
+    // top-level function. The EMPTY slice is now what the primary constructor builds
+    // when told nothing — `ViewState()` — so the shape carries its own starting value and
+    // nothing extra has to exist to hand it over.
 }

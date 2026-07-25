@@ -30,7 +30,7 @@ class TriageBlockTest {
 
     private val sig = Signature(Actor.Agent, Authority("agent-run-7f"))
     private val now = Timestamp(9)
-    private val slice = TriageSlice.of(listOf(Ticket(TicketId("4118"), "refund not received")))
+    private val slice = TriageBlock().slice(listOf(Ticket(TicketId("4118"), "refund not received")))
 
     /** The block is CONSTRUCTED here — no root, no registry, no boundary (G13). */
     private val block = TriageBlock()

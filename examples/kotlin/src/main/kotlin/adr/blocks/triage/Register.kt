@@ -49,6 +49,15 @@ class TriageBlock : Block<TriageSlice, TriageResult, TriageView> {
         sig: Signature,
     ): ArmOut<TriageSlice> = armImpl.arm(slice, result, now, sig)
 
+    /**
+     * The SEEDED slice. It lives on the block, not on a companion of the shape: a
+     * companion member has no instance, and this one builds the block's own state, so
+     * the block is where it belongs. The empty slice needs nothing at all — it is what
+     * `TriageSlice()` constructs.
+     */
+    fun slice(tickets: List<Ticket>): TriageSlice =
+        TriageSlice(tickets = tickets.associateBy { it.id })
+
     override fun view(slice: TriageSlice): TriageView = projection.view(slice)
 
     /**

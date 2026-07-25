@@ -13,13 +13,16 @@ package adr.spine.pure
 import adr.contract.Effect
 import adr.contract.ToolResult
 
-data class SpineSlice(val run: RunStatus, val notices: List<Notice>) {
+data class SpineSlice(
+    val run: RunStatus = RunStatus.Idle,
+    val notices: List<Notice> = emptyList(),
+) {
+    // No companion: a companion member has no instance, which is the same defect as a
+    // top-level function. The EMPTY slice is now what the primary constructor builds
+    // when told nothing — `SpineSlice()` — so the shape carries its own starting value and
+    // nothing extra has to exist to hand it over.
     fun withNotices(more: List<Notice>): SpineSlice =
         if (more.isEmpty()) this else copy(notices = notices + more)
-
-    companion object {
-        val initial = SpineSlice(run = RunStatus.Idle, notices = emptyList())
-    }
 }
 
 /** What one fold arm returns: the new slice, the effects it earned, the notices it left. */

@@ -26,7 +26,7 @@ data class ConsoleView(
 
 class ConsoleProjection {
 
-    fun view(slice: ConsoleSlice, ephemeral: ViewState = ViewState.empty): ConsoleView =
+    fun view(slice: ConsoleSlice, ephemeral: ViewState = ViewState()): ConsoleView =
         ConsoleView(
             focused = slice.focused?.value,
             panels = slice.panels.map { (panel, visible) -> PanelRow(panel.value, visible) },

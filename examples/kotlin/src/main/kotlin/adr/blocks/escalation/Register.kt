@@ -11,6 +11,7 @@ import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.Signature
+import adr.spine.pure.TicketId
 import adr.spine.pure.Timestamp
 
 class EscalationBlock : Block<EscalationSlice, EscalationResult, EscalationView> {
@@ -27,6 +28,10 @@ class EscalationBlock : Block<EscalationSlice, EscalationResult, EscalationView>
         now: Timestamp,
         sig: Signature,
     ): ArmOut<EscalationSlice> = armImpl.arm(slice, result, now, sig)
+
+    /** The SEEDED slice — on the block, not on a companion of the shape. */
+    fun slice(tickets: List<TicketId>): EscalationSlice =
+        EscalationSlice(tickets.associateWith { TicketStatus.Open(it) })
 
     override fun view(slice: EscalationSlice): EscalationView = projection.view(slice)
 
