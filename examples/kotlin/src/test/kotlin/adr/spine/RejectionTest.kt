@@ -20,8 +20,8 @@ package adr.spine
 import adr.agent
 import adr.app.RunAuthority
 import adr.app.World
-import adr.app.offlineEnv
-import adr.app.wireApp
+import adr.app.Env
+import adr.app.Wiring
 import adr.blocks.escalation.CONFIRM_ESCALATION
 import adr.blocks.escalation.TicketStatus
 import adr.blocks.triage.Priority
@@ -46,7 +46,7 @@ class RejectionTest {
     @Test
     fun `F9 - confirm with NO prior request folds a marker and fires nothing`() {
         val world = World()
-        val app = wireApp(offlineEnv(world = world, authority = RunAuthority()))
+        val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
         app.human(CONFIRM_ESCALATION, "ticket" to "4118")
 
@@ -70,7 +70,7 @@ class RejectionTest {
     @Test
     fun `F9 - confirm on an UNKNOWN ticket folds a marker and fires nothing`() {
         val world = World()
-        val app = wireApp(offlineEnv(world = world, authority = RunAuthority()))
+        val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
         app.human(CONFIRM_ESCALATION, "ticket" to "nope")
 
@@ -86,7 +86,7 @@ class RejectionTest {
     @Test
     fun `F9 - setPriority on an unknown ticket mutates nothing and fires nothing`() {
         val world = World()
-        val app = wireApp(offlineEnv(world = world, authority = RunAuthority()))
+        val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
         val before = app.state.triage
 
         // setPriority is Reversible, so the GATE passes it through: this is the ARM
@@ -110,7 +110,7 @@ class RejectionTest {
     @Test
     fun `F9 - a rejection does not poison the session - the NEXT good action still works`() {
         val world = World()
-        val app = wireApp(offlineEnv(world = world, authority = RunAuthority()))
+        val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
         // Four different failures in a row, including the unresolvable-name path
         // that hijacked the banner in the shipped port.

@@ -7,8 +7,8 @@ package adr.blocks
 
 import adr.app.RunAuthority
 import adr.app.World
-import adr.app.offlineEnv
-import adr.app.wireApp
+import adr.app.Env
+import adr.app.Wiring
 import adr.blocks.artifact.ArtifactBlock
 import adr.blocks.artifact.ArtifactLine
 import adr.blocks.artifact.ArtifactSlice
@@ -84,7 +84,7 @@ class ArtifactBlockTest {
     fun `F6 - end to end, the artifact re-folds by VALUE and delivers exactly once`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = world, authority = authority))
+        val app = Wiring().wireApp(Env(world = world, authority = authority))
 
         app.human(RECORD_FINDING, "text" to "first")
         app.driveCanonicalSession(authority)

@@ -28,10 +28,9 @@ import adr.app.FAST_TIER
 import adr.app.State
 import adr.app.World
 import adr.app.foldApp
-import adr.app.offlineEnv
+import adr.app.Env
 import adr.app.projectContextApp
-import adr.app.wireApp
-import adr.app.wireConsumer
+import adr.app.Wiring
 import adr.blocks.analysis.PUBLISH_ANALYSIS
 import adr.blocks.analysis.RECALL_ANALYSIS
 import adr.blocks.escalation.CONFIRM_ESCALATION
@@ -89,14 +88,14 @@ private class Tier(
         ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
     },
 ) {
-    private val env = offlineEnv(
+    private val env = Env(
         world = world,
         verbs = verbs,
         mailbox = mailbox,
         relayRead = relayRead,
     )
-    val app = wireApp(env)
-    val consumer = checkNotNull(wireConsumer(app, env, runner))
+    val app = Wiring().wireApp(env)
+    val consumer = checkNotNull(Wiring().wireConsumer(app, env, runner))
 
     fun post(body: String, key: String = "k1") = mailbox.post(
         adr.spine.pure.Message.Input(TICKETS, StagedInput.Perceived(TICKETS, body), SourceKey(key)),
@@ -278,7 +277,7 @@ class RelayTest {
             // THE DEEP TIER. Its own world, its own bus, its own session, and a registry
             // that contains publishAnalysis and nothing from triage.
             val deepWorld = World(relay)
-            val deep = wireApp(offlineEnv(world = deepWorld, verbs = DEEP_TIER))
+            val deep = Wiring().wireApp(Env(world = deepWorld, verbs = DEEP_TIER))
             deep.human(PUBLISH_ANALYSIS, "text" to "refunds spike on gateway B")
 
             assertTrue(deep.performed.any { it.effect is AnalysisEffect.PublishConclusion })
@@ -316,7 +315,7 @@ class RelayTest {
     @Test
     fun `10_2 - a recalled conclusion cannot buy an irreversible act`() {
         val world = World()
-        val app = wireApp(offlineEnv(world = world))
+        val app = Wiring().wireApp(Env(world = world))
 
         app.agent(
             CONFIRM_ESCALATION,
@@ -345,7 +344,7 @@ class RelayTest {
     @Test
     fun `10_2 - even with a pending request, recalled text cannot make the agent its own confirmer`() {
         val world = World()
-        val app = wireApp(offlineEnv(world = world))
+        val app = Wiring().wireApp(Env(world = world))
 
         app.agent(REQUEST_ESCALATION, "ticket" to "4118")
         app.agent(
@@ -362,7 +361,7 @@ class RelayTest {
     @Test
     fun `11_3 - the recall arm emits NO effect, so recalled text cannot even reach the relay`() {
         val relay = InMemoryRelay()
-        val app = wireApp(offlineEnv(world = World(relay), verbs = FAST_TIER))
+        val app = Wiring().wireApp(Env(world = World(relay), verbs = FAST_TIER))
 
         app.agent(
             RECALL_ANALYSIS,

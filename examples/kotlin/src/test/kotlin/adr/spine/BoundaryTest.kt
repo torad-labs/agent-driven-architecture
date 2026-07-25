@@ -8,8 +8,8 @@ package adr.spine
 import adr.app.RunAuthority
 import adr.app.World
 import adr.app.foldApp
-import adr.app.offlineEnv
-import adr.app.wireApp
+import adr.app.Env
+import adr.app.Wiring
 import adr.blocks.triage.Priority
 import adr.blocks.triage.SET_PRIORITY
 import adr.contract.TriageEffect
@@ -26,7 +26,7 @@ class BoundaryTest {
 
     @Test
     fun `the committed record carries now, so a live boundary can be re-folded (F8)`() {
-        val app = wireApp(offlineEnv(clock = MovingClock(start = 1000, step = 7)))
+        val app = Wiring().wireApp(Env(clock = MovingClock(start = 1000, step = 7)))
         app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
 
         // The record IS the step: seven fields, one of them the clock read.
@@ -48,8 +48,8 @@ class BoundaryTest {
         // re-READ the clock would pass by luck; here every step has a distinct
         // timestamp that exists nowhere except on its own committed record.
         val authority = RunAuthority()
-        val app = wireApp(
-            offlineEnv(
+        val app = Wiring().wireApp(
+            Env(
                 world = World(),
                 authority = authority,
                 clock = MovingClock(start = 1000, step = 7),
@@ -82,7 +82,7 @@ class BoundaryTest {
 
     @Test
     fun `the effect key is derived from the COMMITTED step index (F7)`() {
-        val app = wireApp(offlineEnv())
+        val app = Wiring().wireApp(Env())
         app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
         app.human(SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")
 
@@ -93,7 +93,7 @@ class BoundaryTest {
 
     @Test
     fun `the fold reads its own state for supersedes - the tool returned raw inputs only`() {
-        val app = wireApp(offlineEnv())
+        val app = Wiring().wireApp(Env())
         app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
         app.human(SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")
 
@@ -104,7 +104,7 @@ class BoundaryTest {
     @Test
     fun `actions and results are BOTH recorded, and differ whenever the gate spoke`() {
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = World(), authority = authority))
+        val app = Wiring().wireApp(Env(world = World(), authority = authority))
         app.human(adr.blocks.escalation.REQUEST_ESCALATION, "ticket" to "4118")
         app.human(adr.blocks.escalation.CONFIRM_ESCALATION, "ticket" to "4118")
 

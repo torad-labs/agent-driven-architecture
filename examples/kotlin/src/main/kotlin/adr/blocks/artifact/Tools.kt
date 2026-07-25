@@ -20,7 +20,12 @@ val CONFIRM_SEAL = ToolName("confirmSeal")
 
 data class FindingInput(val text: String)
 
-data object NoInput
+/**
+ * The input of a verb that takes none. A CLASS, not a `data object`: an object has no
+ * instantiation, which is the same defect as a top-level function, and this one is a
+ * VALUE the decode step returns rather than a singleton anything depends on.
+ */
+class NoInput
 
 class ArtifactTools<S>(private val lens: (S) -> ArtifactSlice) {
 
@@ -54,5 +59,5 @@ class ArtifactTools<S>(private val lens: (S) -> ArtifactSlice) {
     private fun decodeFinding(raw: RawInput): FindingInput? =
         raw.text("text")?.let { FindingInput(it) }
 
-    private fun decodeNothing(raw: RawInput): NoInput = NoInput
+    private fun decodeNothing(raw: RawInput): NoInput = NoInput()
 }

@@ -20,7 +20,7 @@ class DemoSmokeTest {
     fun `F9 - after every kind of rejection the SESSION banner is still ok`() {
         val world = World()
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = world, authority = authority))
+        val app = Wiring().wireApp(Env(world = world, authority = authority))
 
         app.driveCanonicalSession(authority)
         app.human(adr.spine.pure.ToolName("noSuchTool"))

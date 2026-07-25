@@ -24,7 +24,7 @@ private fun verbName(type: KClass<*>): String =
 
 class TotalityTest {
 
-    private val registry = wireApp(offlineEnv()).registry
+    private val registry = Wiring().wireApp(Env()).registry
 
     /** The spine's own two cases are not verbs — nobody calls them; the boundary mints them. */
     private val spineCases = setOf("unhandled", "refused")
@@ -48,7 +48,7 @@ class TotalityTest {
     @Test
     fun `C13 - every committed Command carries a name the registry knows`() {
         val authority = RunAuthority()
-        val app = wireApp(offlineEnv(world = World(), authority = authority))
+        val app = Wiring().wireApp(Env(world = World(), authority = authority))
         app.driveCanonicalSession(authority)
         app.human(ToolName("noSuchTool"))
 

@@ -5,9 +5,9 @@
 package adr.spine
 
 import adr.app.initialState
-import adr.app.offlineEnv
+import adr.app.Env
 import adr.app.projectContextApp
-import adr.app.wireApp
+import adr.app.Wiring
 import adr.blocks.triage.SET_PRIORITY
 import adr.blocks.triage.Ticket
 import adr.blocks.triage.TriageBlock
@@ -75,7 +75,7 @@ class ContextTest {
 
     @Test
     fun `the rendered digest and the prompt version ride the committed record (14_7)`() {
-        val app = wireApp(offlineEnv())
+        val app = Wiring().wireApp(Env())
         app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
 
         val fixture = app.bus.records().single().context

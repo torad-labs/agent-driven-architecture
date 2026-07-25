@@ -21,10 +21,8 @@ package adr.spine
 
 import adr.app.State
 import adr.app.World
-import adr.app.offlineEnv
-import adr.app.promptFor
-import adr.app.wireApp
-import adr.app.wireConsumer
+import adr.app.Env
+import adr.app.Wiring
 import adr.blocks.artifact.RECORD_FINDING
 import adr.blocks.artifact.SealStatus
 import adr.blocks.inbox.DropReason
@@ -96,14 +94,14 @@ private class Barge(
     verbs: List<BlockRegistration<State>>? = null,
     runner: TurnRunner,
 ) {
-    private val env = offlineEnv(
+    private val env = Env(
         world = world,
         mailbox = mailbox,
         policies = policies,
         verbs = verbs,
     )
-    val app = wireApp(env)
-    val consumer = checkNotNull(wireConsumer(app, env, runner))
+    val app = Wiring().wireApp(env)
+    val consumer = checkNotNull(Wiring().wireConsumer(app, env, runner))
 
     /** Every tool name committed to the timeline, in order. */
     fun committed(): List<String> = app.bus.records().flatMap { it.commands }.map { it.tool.value }
@@ -253,7 +251,7 @@ class MailboxTest {
             policies = listOf(InputPolicy.Perishable(SENSOR)),
             runner = TurnRunner { message, ctx ->
                 (message as? Message.Input)?.let { handled += it.staged.body }
-                ctx.submit(stepOf(RECORD_FINDING, "text" to promptFor(message), staged = ctx.staged))
+                ctx.submit(stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
                 delay(1_000)
             },
         )
@@ -300,7 +298,7 @@ class MailboxTest {
             // No policy listed for this source: the DEFAULT is DurableQueue (12.2).
             runner = TurnRunner { message, ctx ->
                 (message as? Message.Input)?.let { handled += it.staged.body }
-                ctx.submit(stepOf(RECORD_FINDING, "text" to promptFor(message), staged = ctx.staged))
+                ctx.submit(stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
                 delay(1_000)
             },
         )
@@ -327,7 +325,7 @@ class MailboxTest {
         val h = Barge(
             mailbox = mailbox,
             runner = TurnRunner { message, ctx ->
-                ctx.submit(stepOf(RECORD_FINDING, "text" to promptFor(message), staged = ctx.staged))
+                ctx.submit(stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
                 // The step is COMMITTED by now. The lease must still be outstanding: a
                 // crash here has to re-deliver rather than lose the work item (12.2).
                 unackedAtCommitTime += mailbox.unacked().size
@@ -372,7 +370,7 @@ class MailboxTest {
             runner = TurnRunner { message, ctx ->
                 val input = message as? Message.Input
                 check(input?.key != SourceKey("boom")) { "backend timeout" }
-                ctx.submit(stepOf(RECORD_FINDING, "text" to promptFor(message), staged = ctx.staged))
+                ctx.submit(stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
             },
         )
         val job = launch { h.consumer.run() }

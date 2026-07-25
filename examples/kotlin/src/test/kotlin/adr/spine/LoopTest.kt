@@ -7,14 +7,11 @@ package adr.spine
 import adr.app.RunAuthority
 import adr.app.World
 import adr.app.ScriptedEvents
-import adr.app.agentLoop
-import adr.app.modelProvider
-import adr.app.offlineEnv
-import adr.app.wireApp
+import adr.app.Env
+import adr.app.Wiring
 import adr.blocks.triage.Priority
 import adr.contract.TriageCommand
 import adr.contract.TriageEffect
-import adr.spine.agent.runTurn
 import adr.spine.pure.Actor
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
@@ -33,8 +30,8 @@ class LoopTest {
         runBlocking {
             val world = World()
             val staged = StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived")
-            val app = wireApp(
-                offlineEnv(world = world, authority = RunAuthority(), events = ScriptedEvents(listOf(staged))),
+            val app = Wiring().wireApp(
+                Env(world = world, authority = RunAuthority(), events = ScriptedEvents(listOf(staged))),
             )
 
             val model = mockLanguageModelToolThenText(
@@ -42,7 +39,7 @@ class LoopTest {
                 toolInput = mockToolInput("ticket" to "4118", "level" to "High"),
                 finalText = "Priority set to High.",
             )
-            val out = app.agentLoop(modelProvider(model), "You triage support tickets.")
+            val out = Wiring().agentLoop(app, Wiring().modelProvider(model), "You triage support tickets.")
                 .runTurn("ticket 4118 looks urgent")
 
             assertEquals(2, out.steps)

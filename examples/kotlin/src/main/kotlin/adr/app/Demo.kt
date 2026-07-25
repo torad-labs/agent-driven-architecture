@@ -19,7 +19,6 @@ import adr.blocks.artifact.CONFIRM_SEAL
 import adr.blocks.artifact.RECORD_FINDING
 import adr.blocks.artifact.REQUEST_SEAL
 import adr.blocks.console.SET_PANEL
-import adr.spine.agent.runTurn
 import adr.spine.boundary.FinishedStep
 import adr.spine.concurrency.InMemoryMailbox
 import adr.spine.concurrency.SerialConsumer
@@ -46,7 +45,7 @@ class Demo(private val out: Narrator) {
         val events = ScriptedEvents(
             listOf(StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived")),
         )
-        val app = wireApp(offlineEnv(world = world, authority = authority, events = events))
+        val app = Wiring().wireApp(Env(world = world, authority = authority, events = events))
 
         // 1) A real agent turn, scripted offline: the agent calls setPriority.
         val model = mockLanguageModelToolThenText(
@@ -54,7 +53,7 @@ class Demo(private val out: Narrator) {
             toolInput = mockToolInput("ticket" to "4118", "level" to "High"),
             finalText = "Set #4118 to High.",
         )
-        val turn = app.agentLoop(modelProvider(model), "You triage support tickets.").runTurn("ticket 4118 looks urgent")
+        val turn = Wiring().agentLoop(app, Wiring().modelProvider(model), "You triage support tickets.").runTurn("ticket 4118 looks urgent")
         out.say("\n[agent] ran ${turn.steps} steps, said: \"${turn.text}\"")
         out.say("[view ] ${app.controller.view.triage.rows.first()}")
 
@@ -109,18 +108,18 @@ class Demo(private val out: Narrator) {
 
         // The DEEP tier: its registry contains publishAnalysis and nothing from triage.
         val deepWorld = World(relayStore)
-        val deep = wireApp(offlineEnv(world = deepWorld, verbs = DEEP_TIER))
+        val deep = Wiring().wireApp(Env(world = deepWorld, verbs = DEEP_TIER))
         deep.controller.onAction(Action(PUBLISH_ANALYSIS, RawInput("text" to "refunds spike on gateway B")))
         out.say("[tier ] deep published: ${deepWorld.conclusions}")
 
         // The FAST tier: a SEPARATE app, a separate bus, wired to the same relay's READ
         // side. It may recall; `publishAnalysis` is not in its registry at all.
         val fastWorld = World(relayStore)
-        val fast = wireApp(offlineEnv(world = fastWorld, verbs = FAST_TIER, relayRead = relayStore))
+        val fast = Wiring().wireApp(Env(world = fastWorld, verbs = FAST_TIER, relayRead = relayStore))
         val mailbox = InMemoryMailbox()
-        val consumer = wireConsumer(
+        val consumer = Wiring().wireConsumer(
             app = fast,
-            env = offlineEnv(world = fastWorld, verbs = FAST_TIER, relayRead = relayStore, mailbox = mailbox),
+            env = Env(world = fastWorld, verbs = FAST_TIER, relayRead = relayStore, mailbox = mailbox),
             runner = TurnRunner { _, ctx ->
                 ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
             },
@@ -149,14 +148,14 @@ class Demo(private val out: Narrator) {
     private suspend fun bargeInWalkthrough() = coroutineScopeDemo { scope ->
         val world = World()
         val mailbox = InMemoryMailbox()
-        val env = offlineEnv(
+        val env = Env(
             world = world,
             mailbox = mailbox,
             policies = listOf(InputPolicy.Perishable(SourceName("sensor"))),
         )
-        val app = wireApp(env)
+        val app = Wiring().wireApp(env)
         val consumer = checkNotNull(
-            wireConsumer(
+            Wiring().wireConsumer(
                 app = app,
                 env = env,
                 runner = TurnRunner { message, ctx ->
