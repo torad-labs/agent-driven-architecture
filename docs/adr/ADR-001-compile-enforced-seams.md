@@ -173,12 +173,30 @@ deliberate. Both passages are wrong and are corrected.
 
 ### Q3. What is a feature's one public symbol?
 
-**Answer: a value, not a function** — `public val Triage: Block`, behind a `fun interface Block`
-declared in the core.
+**Answer: a type the root constructs** — `public class TriageBlock : Block<TriageSlice, TriageResult,
+TriageView>`, implementing an `interface Block` declared in the core.
 
 `public fun register(spine: Spine)` contradicts this ADR's own first decision, which forbids top-level
-functions precisely because they cannot be bound, faked or swapped. A value satisfies that decision,
-freezes to exactly one line in the checked-in public-surface file, and can be substituted in a test.
+functions precisely because they cannot be bound, faked or swapped.
+
+**This answer was corrected once, after the conversion actually landed** — the original read "a value,
+not a function: `public val Triage: Block`, behind a `fun interface Block`". Two defects, both found by
+building it:
+
+1. A top-level `val` does not satisfy the decision it claims to. The reason a value was wanted is that
+   it "can be substituted in a test", and a top-level `val` cannot: it is a global that every consumer
+   hard-names, which is the property being cured, not the cure. Note it also slips past the rule pack —
+   `Block` is not a function type, so `no-loose-function-typed-val` does not fire on it. A class is
+   what the reason actually asks for; the root constructs it and a test constructs a different one.
+2. `fun interface Block` cannot be taken literally, because a block has more than one role and a SAM
+   interface holds one abstract method.
+
+The role set was then **measured** rather than assumed, across the six shipped blocks: `arm` 6/6,
+`view` 6/6, `contextLines` 5/6 (artifact contributes a count, never lines), `register` 5/6 (analysis
+has three, because a tier is an allowlist). So `Block` declares the universal two and no more. An
+interface derived from a single block instead over-fits to it — measured: a draft written from `triage`
+alone declared all five roles, and neither `artifact` nor `analysis` could have implemented it without
+stubbing a role it does not have.
 
 ### Q4. Does the TypeScript port ship?
 
@@ -247,8 +265,9 @@ This is a split by what the type carries, not an inconsistency. Most transport i
 `data class`. The few types that are capabilities are not.
 
 - **Three rings, dependencies point inward, only the boundary is impure.** Unchanged from the book.
-- **A block is a vertical slice whose only public symbol is `register(spine)`.** It contributes a
-  **tool** and a **projection**. It owns **privately** its ports, its decision logic, and its view model.
+- **A block is a vertical slice whose only public symbol is a TYPE the root constructs** —
+  `class TriageBlock : Block<TriageSlice, TriageResult, TriageView>`. It contributes a **tool** and a
+  **projection**. It owns **privately** its ports, its decision logic, and its view model.
 - **Blocks couple only through the one folded `State` and the one bus — never by import.**
 - **The kernel stays whole.** `Command`, `ToolResult`, `Effect`, `State`, the fold, the boundary and the
   bus live in `:spine` and nowhere else. They are the shared language every block speaks; they are not
@@ -315,7 +334,7 @@ project.afterEvaluate {
 ```
 
 **API freeze.** `apiDump`/`apiCheck` commits a `<module>.api` per block whose entire content is one
-symbol: `fun register(spine: Spine)`. A second public declaration fails `apiCheck` in CI. `internal` on
+symbol: the block's type, `class TriageBlock`. A second public declaration fails `apiCheck` in CI. `internal` on
 everything else makes that automatic. This replaces the current situation, where the review measured
 **14 to 20 public declarations per block and zero uses of `internal` repository-wide.**
 
@@ -331,15 +350,27 @@ runtime dispatch and silent pass-through: the weaker wall.
 A block contributes:
 
 ```kotlin
-// :spine/Spine.kt
-public interface Spine {
-    public fun addTools(tools: ToolSet)
-    public fun addProjection(projection: Projection)
+// :spine/Block.kt — the roles EVERY block shares, measured across the six shipped blocks:
+//   arm 6/6, view 6/6, contextLines 5/6 (artifact contributes a COUNT), register 5/6
+//   (analysis has THREE, because a tier is an allowlist). Only the universal two are
+//   declared here; pinning the other two would force exactly the per-block special-casing
+//   the interface exists to avoid.
+public interface Block<Slice, R : ToolResult, View> {
+    public fun arm(slice: Slice, result: R, now: Timestamp, sig: Signature): ArmOut<Slice>
+    public fun view(slice: Slice): View
 }
 
-// each :block:<x> exposes exactly one public symbol:
-public fun register(spine: Spine)
+// each :block:<x> exposes exactly one public symbol — a TYPE the root CONSTRUCTS:
+public class TriageBlock : Block<TriageSlice, TriageResult, TriageView>
 ```
+
+**Not `public fun register(spine: Spine)`, and not `public val Triage: Block`.** An earlier draft of
+this ADR wrote the first while §1.3 Q3 simultaneously named it as contradicting the ADR's own first
+decision — the contradiction sat here unfixed until two independent audits reported it. Q3's own
+answer, a top-level `val`, does not survive either: Q3 wanted a value because a value "can be
+substituted in a test", and a top-level `val` is a global that every consumer hard-names, which is the
+property being cured rather than the cure. A class satisfies Q3's *reason*. The root constructs it,
+and a test constructs a different one.
 
 and owns privately: its decision logic, its port interfaces, its projection, its view model.
 
