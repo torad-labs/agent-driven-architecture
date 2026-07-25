@@ -72,9 +72,16 @@ sealed interface InputPolicy {
     data class DurableQueue(override val source: SourceName) : InputPolicy
 }
 
-/** An unlisted source gets [InputPolicy.DurableQueue]. Documented, not silent. */
-fun policyFor(policies: List<InputPolicy>, source: SourceName): InputPolicy =
-    policies.firstOrNull { it.source == source } ?: InputPolicy.DurableQueue(source)
+/**
+ * The per-source policy table. The LIST is the same on every lookup inside one
+ * consumer, so it is constructor state and drops out of the call — the split the
+ * boundary's ActionResolution already makes. An unlisted source gets
+ * [InputPolicy.DurableQueue]: documented, not silent.
+ */
+class InputPolicies(private val policies: List<InputPolicy>) {
+    fun forSource(source: SourceName): InputPolicy =
+        policies.firstOrNull { it.source == source } ?: InputPolicy.DurableQueue(source)
+}
 
 /**
  * How long a cancel may take before the consumer stops waiting on it.

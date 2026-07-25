@@ -14,12 +14,15 @@ data class ViewModel(val banner: String, val notices: List<String>)
  * Closed match over RunStatus with NO else arm: adding a status variant breaks the
  * build here, which is the edit list 15.4 promises (G12/F10).
  */
-fun spineView(slice: SpineSlice): ViewModel = ViewModel(
-    banner = when (val run = slice.run) {
-        RunStatus.Idle -> "ok"
-        is RunStatus.Working -> "working (step ${run.step})"
-        is RunStatus.Degraded -> "degraded: ${run.cause}"
-        is RunStatus.Error -> "error: ${run.fault}"
-    },
-    notices = slice.notices.takeLast(MAX_CONTEXT_NOTICES).map { "${it.tool.value}: ${it.reason}" },
-)
+class SpineProjection {
+
+    fun view(slice: SpineSlice): ViewModel = ViewModel(
+        banner = when (val run = slice.run) {
+            RunStatus.Idle -> "ok"
+            is RunStatus.Working -> "working (step ${run.step})"
+            is RunStatus.Degraded -> "degraded: ${run.cause}"
+            is RunStatus.Error -> "error: ${run.fault}"
+        },
+        notices = slice.notices.takeLast(MAX_CONTEXT_NOTICES).map { "${it.tool.value}: ${it.reason}" },
+    )
+}

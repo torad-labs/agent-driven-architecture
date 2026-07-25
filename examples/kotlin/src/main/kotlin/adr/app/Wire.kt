@@ -67,7 +67,7 @@ import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.TicketId
 import adr.spine.pure.RawInput
-import adr.spine.pure.registryOf
+import adr.spine.pure.RegistryBuilder
 import adr.spine.surface.Controller
 import ai.torad.aisdk.LanguageModel
 
@@ -284,7 +284,7 @@ val DEEP_TIER: List<BlockRegistration<State>>
     )
 
 fun wireApp(env: Env): App {
-    val registry = registryOf(*(env.verbs ?: ALL_BLOCKS).toTypedArray())
+    val registry = RegistryBuilder<State>().of(*(env.verbs ?: ALL_BLOCKS).toTypedArray())
 
     val log = mutableListOf<String>()
     val sink = RecordingSink(AppSink(env.oncall, env.delivery, env.relay, log))

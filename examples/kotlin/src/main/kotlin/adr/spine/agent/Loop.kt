@@ -27,7 +27,6 @@ import adr.spine.pure.Registry
 import adr.spine.pure.StagedInput
 import adr.spine.pure.ToolName
 import adr.spine.pure.Verb
-import adr.spine.pure.modelEcho
 import ai.torad.aisdk.LanguageModel
 import ai.torad.aisdk.Tool
 import ai.torad.aisdk.ToolLoopAgent

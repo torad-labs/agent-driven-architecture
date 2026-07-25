@@ -43,18 +43,26 @@ typealias Fold<S> = (S, List<ToolResult>, Timestamp, Signature) -> Pair<S, List<
  */
 typealias ProjectContext<S> = (S, List<StagedInput>) -> Context
 
-/** The spine's arm for an unresolvable action. Identical everywhere (§7). */
-fun unhandledArm(slice: SpineSlice, r: ToolResult.Unhandled, now: Timestamp): ArmOut<SpineSlice> =
-    ArmOut(
-        slice = slice,
-        effects = listOf(Effect.Diag(now, r.note)),
-        notices = listOf(Notice.Rejected(now, r.tool, r.note)),
-    )
+/**
+ * The spine's OWN two fold arms — the ones every app folds identically (§7), for the
+ * two results no block owns: an action that resolved to no verb, and one the gate
+ * refused. A constructed type, so an app can fold them in a test without an app.
+ */
+class SpineArms {
 
-/** The spine's arm for a gate refusal. Identical everywhere (§7). */
-fun refusedArm(slice: SpineSlice, r: ToolResult.Refused, now: Timestamp): ArmOut<SpineSlice> =
-    ArmOut(
-        slice = slice,
-        effects = listOf(Effect.Diag(now, r.reason)),
-        notices = listOf(Notice.Refused(now, r.tool, r.reason)),
-    )
+    /** The arm for an unresolvable action. */
+    fun unhandled(slice: SpineSlice, r: ToolResult.Unhandled, now: Timestamp): ArmOut<SpineSlice> =
+        ArmOut(
+            slice = slice,
+            effects = listOf(Effect.Diag(now, r.note)),
+            notices = listOf(Notice.Rejected(now, r.tool, r.note)),
+        )
+
+    /** The arm for a gate refusal. */
+    fun refused(slice: SpineSlice, r: ToolResult.Refused, now: Timestamp): ArmOut<SpineSlice> =
+        ArmOut(
+            slice = slice,
+            effects = listOf(Effect.Diag(now, r.reason)),
+            notices = listOf(Notice.Refused(now, r.tool, r.reason)),
+        )
+}

@@ -79,10 +79,3 @@ sealed interface Recall {
 
 /** One published conclusion on the append-only relay. Plain data; no handle, no method. */
 data class RelayEntry(val publishedAt: Timestamp, val text: String)
-
-/**
- * How old the recalled conclusion is, derived at the consuming step from the ONE
- * injected clock read. Null when there is nothing to age.
- */
-fun ageOf(recall: Recall, now: Timestamp): Millis? =
-    recall.publishedAt?.let { now.value - it.value }

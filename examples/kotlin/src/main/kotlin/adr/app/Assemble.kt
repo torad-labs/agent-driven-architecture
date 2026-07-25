@@ -40,9 +40,8 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.StagedInput
 import adr.spine.pure.Timestamp
-import adr.spine.pure.refusedArm
-import adr.spine.pure.spineView
-import adr.spine.pure.unhandledArm
+import adr.spine.pure.SpineProjection
+import adr.spine.pure.SpineArms
 
 fun foldApp(
     state: State,
@@ -100,12 +99,12 @@ fun foldApp(
             }
 
             // The spine's own two arms. Identical everywhere (§7).
-            is ToolResult.Unhandled -> unhandledArm(s.spine, result, now).let {
+            is ToolResult.Unhandled -> SpineArms().unhandled(s.spine, result, now).let {
                 effects += it.effects
                 notices += it.notices
             }
 
-            is ToolResult.Refused -> refusedArm(s.spine, result, now).let {
+            is ToolResult.Refused -> SpineArms().refused(s.spine, result, now).let {
                 effects += it.effects
                 notices += it.notices
             }
@@ -117,7 +116,7 @@ fun foldApp(
 }
 
 fun projectApp(state: State): AppView = AppView(
-    root = spineView(state.spine),
+    root = SpineProjection().view(state.spine),
     triage = TriageBlock().view(state.triage),
     escalation = EscalationBlock().view(state.escalation),
     console = ConsoleBlock().view(state.console),

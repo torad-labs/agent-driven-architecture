@@ -51,7 +51,7 @@ import adr.spine.pure.PerformMode
 import adr.spine.pure.ProjectContext
 import adr.spine.pure.StepIndex
 import adr.spine.pure.StepRecord
-import adr.spine.pure.render
+import adr.spine.pure.ContextRenderer
 
 data class RefoldOutcome<S>(val state: S, val effects: List<KeyedEffect>)
 
@@ -125,7 +125,7 @@ class ReplayFaithfulness<S>(
     ) {
         var state = initial
         records.forEachIndexed { step, record ->
-            val expected = ContextFixture(promptVersion, render(projectContext(state, record.staged)))
+            val expected = ContextFixture(promptVersion, ContextRenderer().render(projectContext(state, record.staged)))
             check(record.context == expected) {
                 "replay: the context fixture committed at step $step does not match the projection"
             }

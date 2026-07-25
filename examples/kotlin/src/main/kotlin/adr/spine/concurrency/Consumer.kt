@@ -61,7 +61,7 @@ import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.TurnOutcome
-import adr.spine.pure.policyFor
+import adr.spine.pure.InputPolicies
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -223,7 +223,7 @@ class SerialConsumer(
     }
 
     private suspend fun onInput(scope: CoroutineScope, message: Message.Input) {
-        when (policyFor(policies, message.source)) {
+        when (InputPolicies(policies).forSource(message.source)) {
             is InputPolicy.DurableQueue -> onDurable(scope, message)
             is InputPolicy.Perishable -> onPerishable(scope, message)
         }
@@ -347,7 +347,7 @@ class SerialConsumer(
             emit(ConsumerEvent.Conflated(next.source, dropped))
             dropped = 0
         }
-        if (policyFor(policies, next.source) is InputPolicy.DurableQueue) {
+        if (InputPolicies(policies).forSource(next.source) is InputPolicy.DurableQueue) {
             seen += next.key
         }
         start(scope, next)
