@@ -1,0 +1,120 @@
+# ── config/detekt/gate.yml — the type-aware half of the gate (F12) ─────────
+#
+# THIS FILE IS THE WHOLE detekt CONFIGURATION. `buildUponDefaultConfig` is false,
+# so a rule that is not written here does not run. That is deliberate: 15.2's
+# discipline is "a wrong rule is fixed and re-tested, never disabled", and the only
+# way to keep that promise is to ship a gate small enough that every rule in it is
+# a reviewed row. There is no warning tier and no baseline file.
+#
+# Three checks live here rather than in Konsist because all three need the
+# COMPILER'S types, not the source text:
+#
+#   C3  G9   — no ambient clock, randomness or identity outside the boundary.
+#              Matching `Instant.now` as text also catches a comment and a variable
+#              called `instantNow`; matching it as a RESOLVED CALL to
+#              java.time.Instant.now catches the call and nothing else.
+#   C9  G12  — a `when` over a sealed or enum subject may not have an `else` arm.
+#              Deciding whether a subject IS sealed requires resolving its type.
+#   C14 G3   — the agent loop is a declaration: no branching, no looping.
+#
+# All three run WITH TYPE RESOLUTION: build.gradle.kts sets both `classpath` and
+# `jdkHome` on every Detekt task. With either one missing, the calls named below
+# resolve to nothing and C3 passes silently on the exact call it exists to deny.
+# That is not hypothetical — it is what this file did before `jdkHome` was set,
+# and the block-test in build.gradle.kts is what caught it.
+
+build:
+  maxIssues: 0
+
+config:
+  validation: true
+  warningsAsErrors: true
+
+complexity:
+  active: true
+  # C14 — G3: the loop is a DECLARATION, not a place for policy. A threshold of 2
+  # fails a method at its FIRST decision point: no if, no when, no for, no while,
+  # no try. A retry count or a skip condition in the loop is a decision that never
+  # reaches the fold, never signs and never replays.
+  CyclomaticComplexMethod:
+    active: true
+    includes: ['**/spine/agent/**']
+    threshold: 2
+    ignoreSingleWhenExpression: false
+    ignoreSimpleWhenEntries: false
+    ignoreNestingFunctions: false
+
+potential-bugs:
+  active: true
+  # C9 — G12/F10: closed matches, no catch-all. An `else` arm is how a new variant
+  # stops breaking the build: the compiler goes quiet and the arm silently answers
+  # the wrong thing. The rule is type-aware, so it fires only when the subject
+  # really is sealed, an enum or a boolean — which is why it can be on tree-wide
+  # without becoming the nuisance 15.2 warns about. A `when` over an OPEN input
+  # (a String off the wire) keeps its `else`, exactly as 6.10 asks.
+  ElseCaseInsteadOfExhaustiveWhen:
+    active: true
+
+style:
+  active: true
+  # C3 — G9: time, randomness and identity are PORTS. The boundary reads the clock
+  # exactly once per step (Boundary.kt step 1) and mints ids from IdSource;
+  # everything upstream is handed the value. `excludes` names the one folder where
+  # an ambient capability may be adapted into a port.
+  #
+  # The values are fully qualified and resolved: `System.currentTimeMillis` with no
+  # package matches NOTHING, which is worth knowing before adding a row here.
+  ForbiddenMethodCall:
+    active: true
+    excludes: ['**/spine/boundary/**']
+    methods:
+      - reason: 'G9: time is a port. The boundary reads Clock.now() once per step.'
+        value: 'java.lang.System.currentTimeMillis'
+      - reason: 'G9: time is a port. The boundary reads Clock.now() once per step.'
+        value: 'java.lang.System.nanoTime'
+      - reason: 'G9: time is a port. The boundary reads Clock.now() once per step.'
+        value: 'java.time.Instant.now'
+      - reason: 'G9: time is a port. The boundary reads Clock.now() once per step.'
+        value: 'java.time.LocalDate.now'
+      - reason: 'G9: time is a port. The boundary reads Clock.now() once per step.'
+        value: 'java.time.LocalDateTime.now'
+      - reason: 'G9: identity is a port. Ids are minted at the boundary from IdSource.'
+        value: 'java.util.UUID.randomUUID'
+      - reason: 'G9: randomness is ambient. A fold that rolls dice cannot be re-folded.'
+        value: 'java.lang.Math.random'
+      - reason: 'G9: randomness is ambient. A fold that rolls dice cannot be re-folded.'
+        value: 'kotlin.random.Random.nextInt'
+      - reason: 'G9: randomness is ambient. A fold that rolls dice cannot be re-folded.'
+        value: 'kotlin.random.Random.nextLong'
+      - reason: 'G9: randomness is ambient. A fold that rolls dice cannot be re-folded.'
+        value: 'kotlin.random.Random.nextDouble'
+
+      # C4(d) — F2/D4: the stamp is MINTED at the boundary and nowhere else. This
+      # is the constructor, resolved: a data class named Signature in someone
+      # else's package does not trip it, and a comment mentioning one does not
+      # either. Reading `sig.by` and `sig.authority` stays legal everywhere; it is
+      # MAKING one that is denied, because a forged stamp is F2's whole bug.
+      - reason: 'G1/F2: the Signature is minted once per step, at the boundary. Upstream it is unrepresentable.'
+        value: 'adr.spine.pure.Signature.<init>'
+
+      # C6 — F9: a per-item failure is never session-global. Idle and Working
+      # describe the turn and stay constructible; Degraded and Error describe the
+      # SESSION, and F9's measured bug was one bad ticket leaving the banner
+      # "degraded: ..." for the rest of the session. A block folds a Notice.
+      - reason: 'F9: the session status is the boundary''s. A per-item failure folds a Notice.Rejected.'
+        value: 'adr.spine.pure.RunStatus.Degraded.<init>'
+      - reason: 'F9: the session status is the boundary''s. A per-item failure folds a Notice.Refused.'
+        value: 'adr.spine.pure.RunStatus.Error.<init>'
+
+      # C7 — F1: ONE production site. These are the SPINE's own two results, and
+      # the boundary's name->ToolResult map is the only thing entitled to mint
+      # them. The shipped Kotlin port minted neither: it wrote
+      # `runCatching { … }.getOrNull()` and dropped the step on the floor.
+      #
+      # The block-owned results are covered by the Konsist half of C7, which
+      # DERIVES the variant list from each block's Contract.kt — so adding a verb
+      # stays four appends and never touches this file.
+      - reason: 'F1: Unhandled is minted by the boundary''s name->ToolResult map, never upstream of it.'
+        value: 'adr.contract.ToolResult.Unhandled.<init>'
+      - reason: 'F1/D5: Refused is the gate''s verdict. Only the gate may reach it.'
+        value: 'adr.contract.ToolResult.Refused.<init>'

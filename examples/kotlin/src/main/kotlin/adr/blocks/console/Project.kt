@@ -1,0 +1,34 @@
+// ── blocks/console/project — where ephemeral state is allowed to join ──────
+// The ONLY file permitted to import blocks/console/view-state (gate check C12).
+// Folded truth and ephemeral view-state meet here, in a pure projection, at the last
+// possible moment — and the ephemeral half never travels back.
+
+package adr.blocks.console
+
+import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
+
+data class PanelRow(val panel: String, val visible: Boolean)
+
+data class ConsoleView(
+    val focused: String?,
+    val panels: List<PanelRow>,
+    /** Ephemeral: rendered, never folded, never signed. */
+    val hovered: String?,
+    val scrollOffset: Int,
+    val draft: String,
+)
+
+fun consoleView(slice: ConsoleSlice, ephemeral: ViewState = ViewState.empty): ConsoleView =
+    ConsoleView(
+        focused = slice.focused?.value,
+        panels = slice.panels.map { (panel, visible) -> PanelRow(panel.value, visible) },
+        hovered = ephemeral.hover?.value,
+        scrollOffset = ephemeral.scrollOffset,
+        draft = ephemeral.draft,
+    )
+
+fun consoleContextLines(slice: ConsoleSlice): List<String> =
+    (
+        listOfNotNull(slice.focused?.let { "the console is focused on ticket ${it.value}" }) +
+            slice.panels.filterValues { it }.keys.map { "panel ${it.value} is visible" }
+        ).take(MAX_CONTEXT_LINES_PER_BLOCK)

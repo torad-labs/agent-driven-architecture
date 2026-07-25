@@ -10,7 +10,12 @@
     "skipLibCheck": true,
     "esModuleInterop": true,
     "types": ["node"],
-    "noEmit": true
+    "noEmit": true,
+    "allowJs": true,
+    "resolveJsonModule": true
   },
-  "include": ["src", "test"]
+  "//allowJs": "eslint.config.js IS the gate (F12). test/gate/gate.test.ts imports it so the block-tests and allow-tests run the SHIPPED rule objects rather than a copy — there is no second implementation to drift.",
+  "include": ["src", "test", "eslint.config.js"],
+  "//exclude": "test/gate/fixtures holds DELIBERATELY BROKEN source — it is input to the gate's block-tests, not part of the build. test/gate/.work is the exhaustiveness proof's scratch copy.",
+  "exclude": ["node_modules", "test/gate/fixtures", "test/gate/.work"]
 }

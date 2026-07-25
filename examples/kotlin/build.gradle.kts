@@ -1,7 +1,12 @@
+import io.gitlab.arturbosch.detekt.Detekt
+import java.io.ByteArrayOutputStream
+
 plugins {
     kotlin("jvm") version "2.4.0"
     kotlin("plugin.serialization") version "2.4.0"
     application
+    // The type-aware half of the gate (checks C3, C9, C14). See config/detekt/gate.yml.
+    id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 repositories {
@@ -17,7 +22,14 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     testImplementation(kotlin("test"))
+    // The registry-totality check (gate check C13) reflects over sealedSubclasses.
+    testImplementation(kotlin("reflect"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    // The structural half of the gate (C1, C2, C4-C8, C10-C12). Konsist parses the
+    // tree with the Kotlin compiler front-end and exposes imports, packages,
+    // declarations, types and modifiers — so each rule is an assertion about the
+    // CODE, never about its text.
+    testImplementation("com.lemonappdev:konsist:0.17.3")
 }
 
 kotlin {
@@ -25,9 +37,312 @@ kotlin {
 }
 
 application {
-    mainClass.set("adr.DemoKt")
+    mainClass.set("adr.app.DemoKt")
 }
 
 tasks.test {
     useJUnitPlatform()
+    // The architecture gate (src/test/kotlin/adr/gate) reads the source tree,
+    // so pin the working directory to the project root.
+    workingDir = project.projectDir
 }
+
+// ── the gate (F12) ─────────────────────────────────────────────────────────
+// 15.1 stakes the architecture's answer to its own central problem on MACHINE
+// ENFORCEMENT, and 15.4 closes "the payoff the whole reference promises is
+// contingent on these checks being present and blocking". The shipped reference
+// had none: Date.now() inside a tool and an `fs` import in the domain both passed
+// a clean build.
+//
+// Fourteen checks now DENY, in two halves that run under ONE command:
+//
+//   ./gradlew check
+//     ├── test                    Konsist + JUnit — C1, C2, C4-C8, C10-C13,
+//     │                           each with its own BLOCK-test and ALLOW-test
+//     ├── detektMain              type-aware — C3, C9, C14 over the live tree
+//     ├── gateDetektBlockTest     …the same three, proven to REJECT a violation
+//     └── gateDetektAllowTest     …and proven to ACCEPT compliant code
+//
+// There is no warning tier, no baseline file, and no `ignoreFailures` on any task
+// that defends the live tree.
+
+detekt {
+    // The gate IS config/detekt/gate.yml. Nothing is inherited, so no rule can
+    // arrive unreviewed and no author is ever asked to silence one (15.2).
+    buildUponDefaultConfig = false
+    allRules = false
+    config.setFrom(files("config/detekt/gate.yml"))
+    ignoreFailures = false
+    // The tree the gate defends. §1.3's import table is about spine/, blocks/ and
+    // app/; the fixtures under src/test/fixtures are analysed by their own tasks,
+    // with the assertion inverted.
+    source.setFrom(files("src/main/kotlin"))
+}
+
+/** Fixture pairs live outside every compiled source set: they are input, not code. */
+val gateFixtures = layout.projectDirectory.dir("src/test/fixtures/detekt")
+
+/**
+ * Type resolution needs the classpath the compiler saw. Without it,
+ * ElseCaseInsteadOfExhaustiveWhen cannot tell a sealed subject from any other and
+ * ForbiddenMethodCall cannot resolve a call at all — both would silently pass, and
+ * a silently-passing check is the exact failure F12 measured.
+ */
+val gateAnalysisClasspath: FileCollection = files(
+    configurations.named("detekt"),
+    sourceSets.main.get().compileClasspath,
+    // The compiled tree itself, so the FIXTURES can name the real transport types.
+    // A fixture that constructs its own local `Signature` would prove nothing: the
+    // rules match resolved constructors, so the fixture has to reach the same one
+    // the architecture is protecting.
+    sourceSets.main.get().output,
+)
+
+/**
+ * Type resolution also needs the JDK. Without `jdkHome`, `System.currentTimeMillis()`
+ * resolves to nothing at all and C3 passes silently on the very call it exists to
+ * deny — which is why the block-test below is not optional.
+ */
+val gateJdkHome = javaToolchains
+    .launcherFor { languageVersion.set(JavaLanguageVersion.of(21)) }
+    .map { it.metadata.installationPath }
+
+tasks.withType<Detekt>().configureEach {
+    jvmTarget = "21"
+    jdkHome.set(gateJdkHome)
+    reports {
+        xml.required.set(true)
+        html.required.set(false)
+        txt.required.set(false)
+        sarif.required.set(false)
+        md.required.set(false)
+    }
+}
+
+/** The live tree. DENYING: a finding here fails the build. */
+tasks.named<Detekt>("detektMain") {
+    description = "C3/C9/C14 over the production tree. A finding is a failed build."
+    classpath.setFrom(gateAnalysisClasspath)
+}
+
+/**
+ * The plugin's own `detekt` task runs WITHOUT type resolution, and all three rules
+ * need it — so left alone, `./gradlew detekt` would report a clean tree no matter
+ * what the tree contained. A command that always says yes is worse than no command,
+ * so it gets the same classpath as everything else here.
+ *
+ * Its source is narrowed to src/main (see the `detekt { }` block above). The gate
+ * defends the PRODUCTION tree: §1.3's table is about spine/, blocks/ and app/, and
+ * test code deliberately constructs stamps and refusals in order to assert on them
+ * — GateTest's own F2/D4 test builds a Signature and a Refused on purpose. Denying
+ * that would be the nuisance 15.2 warns about, and the first thing an author would
+ * switch off.
+ */
+tasks.named<Detekt>("detekt") {
+    description = "C3/C9/C14 over the production tree, with type resolution."
+    classpath.setFrom(gateAnalysisClasspath)
+}
+
+/**
+ * The BLOCK-test half. Runs the same three rules over a tree that violates each
+ * one on purpose. `ignoreFailures` is true HERE and only here, because the
+ * assertion is INVERTED: gateDetektBlockTest fails unless every expected rule fired.
+ */
+val gateDetektViolating by tasks.registering(Detekt::class) {
+    description = "Runs the gate's detekt rules over the deliberately violating fixtures."
+    setSource(gateFixtures.dir("violating"))
+    classpath.setFrom(gateAnalysisClasspath)
+    config.setFrom(files("config/detekt/gate.yml"))
+    buildUponDefaultConfig = false
+    ignoreFailures = true
+    reports.xml.outputLocation.set(layout.buildDirectory.file("reports/detekt/gate-violating.xml"))
+}
+
+/** The ALLOW-test half: the same shapes, written the way the architecture asks. */
+val gateDetektCompliant by tasks.registering(Detekt::class) {
+    description = "Runs the gate's detekt rules over the compliant fixtures."
+    setSource(gateFixtures.dir("compliant"))
+    classpath.setFrom(gateAnalysisClasspath)
+    config.setFrom(files("config/detekt/gate.yml"))
+    buildUponDefaultConfig = false
+    ignoreFailures = true
+    reports.xml.outputLocation.set(layout.buildDirectory.file("reports/detekt/gate-compliant.xml"))
+}
+
+/**
+ * What each check must be seen REJECTING, keyed by the check it proves.
+ *
+ * Keyed on the finding itself, not on the rule id: C3, C4, C6 and C7 are all
+ * carried by ForbiddenMethodCall, so asserting "ForbiddenMethodCall fired" would
+ * let three of the four rot away unnoticed behind the fourth.
+ */
+val gateDetektExpected = mapOf(
+    "C3 (ambient clock/random/id)" to "java.lang.System.currentTimeMillis",
+    "C3 (ambient instant)" to "java.time.Instant.now",
+    "C3 (ambient id)" to "java.util.UUID.randomUUID",
+    "C3 (ambient random)" to "kotlin.random.Random.nextInt",
+    "C4 (forged Signature)" to "adr.spine.pure.Signature.&lt;init&gt;",
+    "C6 (block reaches RunStatus.Degraded)" to "adr.spine.pure.RunStatus.Degraded.&lt;init&gt;",
+    "C6 (block reaches RunStatus.Error)" to "adr.spine.pure.RunStatus.Error.&lt;init&gt;",
+    "C7 (result minted outside the boundary)" to "adr.contract.ToolResult.Refused.&lt;init&gt;",
+    "C9 (else over a sealed subject)" to "source=\"detekt.ElseCaseInsteadOfExhaustiveWhen\"",
+    "C14 (control flow in the loop)" to "source=\"detekt.CyclomaticComplexMethod\"",
+)
+
+val gateDetektBlockTest by tasks.registering {
+    description = "BLOCK-TEST: proves C3, C9 and C14 REJECT their violating fixture."
+    dependsOn(gateDetektViolating)
+    val report = layout.buildDirectory.file("reports/detekt/gate-violating.xml")
+    val expected = gateDetektExpected
+    outputs.upToDateWhen { false }
+    doLast {
+        val xml = report.get().asFile.readText()
+        val missing = expected.filterValues { !xml.contains(it) }
+        check(missing.isEmpty()) {
+            "gate BLOCK-TEST failed: the violating fixtures did NOT trip " +
+                missing.entries.joinToString { "${it.key} (${it.value})" } +
+                ". A check nobody has watched fail is not a check."
+        }
+    }
+}
+
+val gateDetektAllowTest by tasks.registering {
+    description = "ALLOW-TEST: proves C3, C9 and C14 ACCEPT idiomatic compliant code."
+    dependsOn(gateDetektCompliant)
+    val report = layout.buildDirectory.file("reports/detekt/gate-compliant.xml")
+    outputs.upToDateWhen { false }
+    doLast {
+        val xml = report.get().asFile.readText()
+        val findings = Regex("""<error\b[^>]*>""").findAll(xml).map { it.value }.toList()
+        check(findings.isEmpty()) {
+            "gate ALLOW-TEST failed: the COMPLIANT fixtures were rejected by" +
+                findings.joinToString("\n  ", prefix = "\n  ") +
+                "\nA rule that fires on correct code is a nuisance authors turn off (15.2)."
+        }
+    }
+}
+
+// ── F10: the edit list, PROVEN by the compiler ─────────────────────────────
+// §11.2 promises that adding a state variant costs 1 append plus 3 compiler-named
+// arms, all inside one block folder. 15.4 lists that as a G12 self-check —
+// "introduce a variant; the build must break at the fold arm, the view projection
+// and the context projection" — and F10 measured that the self-check had never
+// been run: `t.status.kind === "Open"` is not a closed match, and it compiles
+// happily after a variant is added while silently answering the wrong thing.
+//
+// So the reference stops asserting the edit list and starts EARNING it. Two
+// checked-in fixture trees hold a faithful copy of the three consumers against the
+// real spine vocabulary. The block-test compiles the five-variant tree and demands
+// a non-zero exit naming all three sites; the allow-test compiles the four-variant
+// tree and demands exit 0. Both run under `./gradlew check`.
+
+val kotlinCompilerCli: Configuration by configurations.creating
+
+dependencies {
+    kotlinCompilerCli("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.0")
+}
+
+val exhaustiveFixtures = layout.projectDirectory.dir("src/test/fixtures/exhaustive")
+
+/**
+ * Compile one fixture tree with the real Kotlin compiler, against the real
+ * compiled spine. [expectFailure] inverts the assertion; [mustName] is what the
+ * compiler has to have said, so a build that fails for some UNRELATED reason
+ * cannot masquerade as a passing block-test.
+ */
+fun registerExhaustiveCheck(
+    taskName: String,
+    fixture: String,
+    expectFailure: Boolean,
+    mustName: List<String> = emptyList(),
+) = tasks.register<JavaExec>(taskName) {
+    dependsOn(tasks.named("compileKotlin"))
+    val source = exhaustiveFixtures.dir(fixture)
+    val outDir = layout.buildDirectory.dir("gate/exhaustive/$fixture")
+    val logFile = layout.buildDirectory.file("reports/gate/exhaustive-$fixture.txt")
+
+    description = if (expectFailure) {
+        "F10 BLOCK-TEST: a fifth TicketStatus variant must BREAK the build at three sites."
+    } else {
+        "F10 ALLOW-TEST: the same three consumers must compile cleanly at four variants."
+    }
+
+    classpath = kotlinCompilerCli
+    mainClass.set("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
+    isIgnoreExitValue = true
+    outputs.upToDateWhen { false }
+
+    val captured = ByteArrayOutputStream()
+    standardOutput = captured
+    errorOutput = captured
+
+    argumentProviders.add {
+        listOf(
+            "-no-stdlib",
+            "-jvm-target", "21",
+            "-classpath", gateAnalysisClasspath.filter { it.exists() }.asPath,
+            "-d", outDir.get().asFile.absolutePath,
+            source.asFile.absolutePath,
+        )
+    }
+
+    doLast {
+        val log = captured.toString()
+        logFile.get().asFile.apply { parentFile.mkdirs() }.writeText(log)
+        val exit = executionResult.get().exitValue
+
+        if (expectFailure) {
+            check(exit != 0) {
+                "F10 BLOCK-TEST failed: adding a fifth TicketStatus variant COMPILED.\n" +
+                    "The edit list §11.2 promises is not real, which is exactly what F10 measured.\n$log"
+            }
+            val missing = mustName.filterNot { log.contains(it) }
+            check(missing.isEmpty()) {
+                "F10 BLOCK-TEST failed: the build broke, but not for the expected reason.\n" +
+                    "The compiler never said: $missing\n$log"
+            }
+            // Count the EXHAUSTIVENESS errors specifically. The compiler also emits
+            // knock-on type errors from the same three sites, and counting those too
+            // would make K look like whatever the inference cascade happened to
+            // produce rather than the number §11.2 actually claims.
+            val sites = Regex("""Escalation\.kt:(\d+):\d+: error: 'when' expression must be exhaustive""")
+                .findAll(log)
+                .map { it.groupValues[1] }
+                .toSet()
+            check(sites.size == 3) {
+                "F10 BLOCK-TEST failed: expected THREE compiler-named sites, got ${sites.size} " +
+                    "at lines $sites. §11.2's K = 3 is the claim under test.\n$log"
+            }
+            logger.lifecycle("F10 BLOCK-TEST: the compiler named 3 sites (lines ${sites.sorted()}) — edit list earned.")
+        } else {
+            check(exit == 0) {
+                "F10 ALLOW-TEST failed: the compliant four-variant tree did NOT compile.\n" +
+                    "A negative-compilation fixture that never compiles proves nothing.\n$log"
+            }
+        }
+    }
+}
+
+val gateExhaustiveBlockTest = registerExhaustiveCheck(
+    taskName = "gateExhaustiveBlockTest",
+    fixture = "violating",
+    expectFailure = true,
+    mustName = listOf("'when' expression must be exhaustive"),
+)
+
+val gateExhaustiveAllowTest = registerExhaustiveCheck(
+    taskName = "gateExhaustiveAllowTest",
+    fixture = "compliant",
+    expectFailure = false,
+)
+
+tasks.check {
+    dependsOn(
+        tasks.named("detektMain"),
+        gateDetektBlockTest,
+        gateDetektAllowTest,
+        gateExhaustiveBlockTest,
+        gateExhaustiveAllowTest,
+    )
+}
+
