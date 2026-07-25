@@ -1,0 +1,227 @@
+// ── app/demo — a runnable, offline end-to-end script (`npm run demo`) ──────
+// No API keys, no network: a scripted model drives the real agent loop, the
+// real boundary folds each step, the real gate holds, and the real replay
+// harness re-derives the session from committed bytes alone.
+
+import { MockLanguageModelV3 } from "ai/test";
+import { authority } from "../spine/pure/actor";
+import { input, interrupt } from "../spine/pure/mailbox";
+import { perceived } from "../spine/pure/staged";
+import { movingClock, RecordingSink } from "../spine/boundary/in-memory";
+import { InMemoryMailbox, InMemoryRelay, virtualScheduler } from "../spine/concurrency/in-memory";
+import type { TurnContext } from "../spine/concurrency/consumer";
+import { runTurn } from "../spine/agent/loop";
+import { refold } from "../spine/replay/replay";
+import { liveRelay } from "../blocks/analysis/adapter";
+import { initialState } from "./contract";
+import { project } from "./assemble";
+import {
+  DEEP_TIER,
+  FAST_TIER,
+  authorization,
+  effectSink,
+  offlinePorts,
+  wireApp,
+  wireConsumer,
+} from "./wire";
+
+/** drain the microtasks the consumer chained — nothing sleeps in this demo */
+function settle(): Promise<void> {
+  return new Promise<void>((resolve) => void setImmediate(resolve));
+}
+
+const usage = {
+  inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
+  outputTokens: { total: 1, text: 1, reasoning: undefined },
+};
+
+function scriptedModel(): MockLanguageModelV3 {
+  let call = 0;
+  return new MockLanguageModelV3({
+    doGenerate: async () => {
+      call += 1;
+      if (call === 1) {
+        return {
+          content: [
+            {
+              type: "tool-call" as const,
+              toolCallId: "t1",
+              toolName: "setPriority",
+              input: JSON.stringify({ ticket: "4118", level: "High" }),
+            },
+            {
+              // A1: a presentation verb travels the SAME path as a domain verb.
+              type: "tool-call" as const,
+              toolCallId: "t2",
+              toolName: "setPanel",
+              input: JSON.stringify({ panel: "escalation", visible: true }),
+            },
+          ],
+          finishReason: { unified: "tool-calls" as const, raw: undefined },
+          usage,
+          warnings: [],
+        };
+      }
+      return {
+        content: [{ type: "text" as const, text: "Raised #4118 to High and opened the escalation panel." }],
+        finishReason: { unified: "stop" as const, raw: undefined },
+        usage,
+        warnings: [],
+      };
+    },
+  });
+}
+
+async function main(): Promise<void> {
+  const performed = new RecordingSink(effectSink(offlinePorts()));
+  const app = wireApp({
+    clock: movingClock(1000, 7),
+    sink: performed,
+    initial: initialState({ tickets: [{ id: "4118", body: "refund not received" }] }),
+    authz: authorization({
+      authorities: { Human: authority("host:marcos"), Agent: authority("agent-run-7f") },
+    }),
+  });
+
+  // 1) An agent turn, scripted offline. The loop forwards ACTIONS; the boundary
+  //    resolves them through the one name→ToolResult map and folds the result.
+  const turn = await runTurn({
+    model: scriptedModel(),
+    prompt: "ticket 4118 looks urgent",
+    boundary: app.boundary,
+    registry: app.registry,
+    dispatchers: app.dispatchers,
+  });
+  console.log(`\n[agent] ran ${turn.steps} steps, said: "${turn.text}"`);
+  console.log("[state] triage:", project(app.boundary.state).triage.rows[0]);
+  console.log("[state] panels:", project(app.boundary.state).console.panels);
+
+  // 2) The agent requests escalation — reversible, so nothing pages.
+  app.boundary.onStepFinish({
+    by: "Agent",
+    staged: [],
+    actions: [{ tool: "requestEscalation", input: { ticket: "4118" } }],
+  });
+
+  // 3) The AGENT tries to confirm its own request. Same Actor, and — the part
+  //    that matters — the SAME AUTHORITY that raised the request. REFUSED at
+  //    the boundary, before the fold, and the refusal is committed.
+  app.boundary.onStepFinish({
+    by: "Agent",
+    staged: [],
+    actions: [{ tool: "confirmEscalation", input: { ticket: "4118" } }],
+  });
+  console.log("\n[gate] agent self-confirm →", app.bus.records().at(-1)?.results.at(-1));
+
+  // 4) The HOST confirms: a different principal. Granted; on-call is paged once.
+  app.controller.onAction({ tool: "confirmEscalation", input: { ticket: "4118" } });
+  console.log("[gate] host confirm     →", app.bus.records().at(-1)?.results.at(-1));
+
+  // 5) The work product: folded lines, then ONE gated delivery at seal time.
+  app.boundary.onStepFinish({
+    by: "Agent",
+    staged: [perceived("inbox", "customer says the refund never arrived")],
+    actions: [
+      { tool: "recordFinding", input: { text: "customer reports a missing refund" } },
+      { tool: "recordFinding", input: { text: "escalated to on-call" } },
+      { tool: "requestSeal", input: {} },
+    ],
+  });
+  app.controller.onAction({ tool: "confirmSeal", input: {} });
+
+  // 6) Replay: re-fold ONLY the committed bytes and compare against the live run.
+  const replayed = refold(app.initial, app.bus.records(), app.dispatchers);
+  const same =
+    JSON.stringify(replayed.state) === JSON.stringify(app.boundary.state) &&
+    JSON.stringify(replayed.effects) === JSON.stringify(performed.performed);
+  console.log("\n[effects] ", performed.performed.map((k) => `${k.key.step}:${k.key.index} ${k.effect.kind}`).join(" · "));
+  console.log("[replay]  state and full effect sequence re-derived from the bus:", same);
+  console.log("[banner]  ", project(app.boundary.state).banner);
+  console.log("[notices] ", project(app.boundary.state).notices);
+
+  await tieringAndBargeIn();
+}
+
+// ── The two advanced rungs, run end to end (11 and 12) ─────────────────────
+// Both are OPTIONAL, and this is what optional looks like: a separate wiring,
+// two extra registration lists, and nothing above this line had to change.
+
+async function tieringAndBargeIn(): Promise<void> {
+  // ── 11 · TIERING. Two units of work, two buses, two clocks, ONE relay, and
+  //    no handle between them. The deep tier publishes; the fast tier recalls.
+  const store = new InMemoryRelay();
+  const deep = wireApp({
+    clock: movingClock(500, 5),
+    sink: effectSink(offlinePorts(() => undefined, liveRelay((at, text) => store.publish(at, text)))),
+    session: "deep-1",
+    verbs: DEEP_TIER,
+  });
+  deep.boundary.onStepFinish({
+    by: "Agent",
+    staged: [],
+    actions: [{ tool: "publishAnalysis", input: { text: "root cause: expired card token" } }],
+  });
+  console.log("\n[tier]     deep tier published:", store.published);
+
+  const fastSink = new RecordingSink(effectSink(offlinePorts(() => undefined)));
+  const fast = wireApp({
+    clock: movingClock(1000, 7),
+    sink: fastSink,
+    session: "fast-1",
+    verbs: FAST_TIER,
+    initial: initialState({ tickets: [{ id: "4118", body: "refund not received" }] }),
+  });
+
+  // ── 12 · BARGE-IN. The consumer SELECTS over { next message, running turn },
+  //    so a message is observable WHILE a turn runs. Time is virtual: the long
+  //    turn below would not finish until t=10 000, and nothing here sleeps.
+  const mailbox = new InMemoryMailbox();
+  const sched = virtualScheduler();
+  const startedAt = new Map<string, number>();
+  const consumer = wireConsumer(fast, {
+    mailbox,
+    scheduler: sched,
+    relay: { read: store, source: "analysis" },
+    turn: {
+      run: async (message, ctx: TurnContext): Promise<void> => {
+        startedAt.set(message.kind, sched.now());
+        if (message.kind === "Input") {
+          ctx.submit({
+            by: "Agent",
+            staged: ctx.staged,
+            actions: [
+              { tool: "recallAnalysis", input: {} },
+              { tool: "recordFinding", input: { text: message.staged.body } },
+            ],
+          });
+          await sched.after(10_000, ctx.signal); // a LONG turn
+          return;
+        }
+        ctx.submit({
+          by: "Agent",
+          staged: ctx.staged,
+          actions: [{ tool: "setPanel", input: { panel: "escalation", visible: true } }],
+        });
+      },
+    },
+  });
+  void consumer.run();
+
+  mailbox.post(input("tickets", perceived("tickets", "customer reports a failed charge"), "t1"));
+  await settle();
+  console.log("[tier]     fast tier recalled:", fast.boundary.state.analysis.notes.at(-1)?.recall);
+
+  sched.advance(100);
+  await settle();
+  mailbox.post(interrupt("operator", "the customer is on the phone"));
+  await settle();
+
+  console.log(
+    `[barge-in] long turn started at t=${startedAt.get("Input")}, would finish at t=10000; ` +
+      `interrupt handled at t=${startedAt.get("Interrupt")}`,
+  );
+  console.log("[barge-in] committed:", fast.bus.records().flatMap((r) => r.commands.map((c) => c.tool)));
+  console.log("[barge-in] cancelled turn's steps are still folded:", fast.boundary.state.artifact.lines.length, "line(s)\n");
+}
+
+void main();

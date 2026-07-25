@@ -3,3 +3,6 @@
 node_modules/
 .vscode/
 .idea/
+
+# the F10 negative-compilation proof's scratch copy of src/ (deleted on success)
+examples/typescript/test/gate/.work/

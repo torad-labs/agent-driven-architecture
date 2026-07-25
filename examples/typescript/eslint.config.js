@@ -1,0 +1,461 @@
+// ── eslint.config.js — THE GATE (F12) ──────────────────────────────────────
+// 15.1 stakes the architecture's answer to its own central problem on machine
+// enforcement, and 15.4 closes: "the payoff … is contingent on these checks
+// being present and blocking." The shipped reference shipped NONE — `Date.now()`
+// inside a tool body and an `fs` import in the domain file both compiled clean,
+// 8/8 green, no CI, no lint config, no rule of any kind.
+//
+// Fifteen checks. FOURTEEN LIVE HERE, in ordinary ESLint rules that any
+// TypeScript team already runs; C13 (registry totality) is a vitest check,
+// because it is a question about values, not syntax. All fifteen DENY — `npm
+// run lint` exits non-zero — and every one ships a BLOCK-test and an ALLOW-test
+// (test/gate/gate.test.ts over test/gate/fixtures/). There is no warning tier.
+//
+// Boring on purpose: `no-restricted-imports` with an allow-list regex per
+// folder is §1.3's import table written out verbatim, `no-restricted-syntax` is
+// the forbidden-call list, and exhaustiveness is the type-aware
+// `switch-exhaustiveness-check`. Nothing here is a bespoke analyser, so a
+// reader can check the rule against the ESLint docs rather than against us.
+//
+// Discipline (15.2): a wrong rule is FIXED and re-tested, never disabled. No
+// check ships without its allow-test — that is what keeps a check from drifting
+// into a nuisance authors turn off.
+
+import tseslint from "typescript-eslint";
+
+// ── the fifteen ─────────────────────────────────────────────────────────────
+// `by` is how test/gate/gate.test.ts attributes a lint message to a check:
+// "tag" matches the `[Cn]` marker every message below carries, "rule" matches a
+// whole rule id whose own wording we do not author.
+export const CHECKS = [
+  { id: "C1", invariant: "G4/G10 — dependencies point inward", by: "tag", rule: "" },
+  { id: "C2", invariant: "G11 — no cross-block symbol import", by: "tag", rule: "" },
+  { id: "C3", invariant: "G9 — no clock, random or id outside the boundary", by: "tag", rule: "" },
+  { id: "C4", invariant: "F2/D4 — an Actor is unrepresentable upstream", by: "tag", rule: "" },
+  { id: "C5", invariant: "F7/G9 — the fold cannot key an effect", by: "tag", rule: "" },
+  { id: "C6", invariant: "F9 — per-item failures are not session-global", by: "tag", rule: "" },
+  { id: "C7", invariant: "F1 — one production site for ToolResult", by: "tag", rule: "" },
+  { id: "C8", invariant: "G2 — tools are pure", by: "tag", rule: "" },
+  { id: "C9", invariant: "G12/F10 — closed matches, no catch-all", by: "rule", rule: "@typescript-eslint/switch-exhaustiveness-check" },
+  { id: "C10", invariant: "G7 — no service locators, no module-level mutable state", by: "tag", rule: "" },
+  { id: "C11", invariant: "7.9/G13 — ports are interfaces only", by: "tag", rule: "" },
+  { id: "C12", invariant: "4.6/A1 — ephemeral view-state never folds", by: "tag", rule: "" },
+  { id: "C13", invariant: "registry totality — every ok result has a Verb that signs", by: "vitest", rule: "" },
+  { id: "C14", invariant: "G3 — the loop is a declaration", by: "tag", rule: "" },
+  { id: "C15", invariant: "A4 — the spine tier is self-contained and vendorable", by: "tag", rule: "" },
+];
+
+// ── import-specifier vocabulary ─────────────────────────────────────────────
+// The tree imports by relative path, so §1.3's table is a table of specifier
+// shapes. Each fragment below is one cell of it.
+const SIBLING = "\\./[a-z0-9-]+"; //                       ./slice
+const SPINE_PURE = "\\.\\./pure/[a-z0-9-]+"; //             ../pure/ids        (from inside spine/)
+const SPINE_PORTS = "\\.\\./ports/[a-z0-9-]+"; //           ../ports/bus
+const SPINE_BOUNDARY = "\\.\\./boundary/[a-z0-9-]+"; //     ../boundary/action
+const BLOCK_PURE = "\\.\\./\\.\\./spine/pure/[a-z0-9-]+"; // ../../spine/pure/ids (from inside blocks/X/)
+const AGENT_SDK = "ai(?:/[a-z]+)?"; //                      the agent-loop runtime
+const SCHEMA_DSL = "zod"; //                                the input schema, model-facing AND the decoder
+const EXTERNAL = "[^.].*"; //                               any client library
+
+/** C1 — §1.3 as an ALLOW-LIST, so anything not listed is forbidden. */
+const only = (where, ...allowed) => ({
+  regex: `^(?!(?:${allowed.join("|")})$)`,
+  message: `[C1] ${where}`,
+});
+
+// ── the checks that ride on `no-restricted-imports` ─────────────────────────
+
+// C2 — G11: no cross-block symbol import. From inside `blocks/X`, a sibling is
+// exactly one `../` away, and any `../../blocks/…` is the long way round to the
+// same place. Blocks communicate by reading a sibling's slice off the one
+// folded State as a VALUE, or by dispatching a verb the sibling's arm folds.
+const C2 = [
+  { regex: "^\\.\\./(?!\\.\\./)", message: "[C2] a block may not import a sibling block — blocks talk through the one folded State" },
+  { regex: "^\\.\\./\\.\\./blocks/", message: "[C2] a block may not reach another block by path — blocks talk through the one folded State" },
+];
+
+// C4 — F2/D4: an Actor is UNREPRESENTABLE where a tool could forge one.
+// Scoped to the files that DECLARE transport cases: a block's `slice`
+// legitimately stores an Authority (that is the value the gate compares
+// against, §2.2's `Escalating(requestedBy)`), and a fold arm legitimately
+// receives the boundary's Signature. What may never happen is a ToolResult
+// variant with an Actor-typed member — which is what these files declare.
+const C4 = [
+  {
+    regex: ".",
+    importNames: ["Actor", "Authority", "Signature", "authority"],
+    message: "[C4] a ToolResult declaration may not name Actor/Authority/Signature — the stamp is minted after the tool returns",
+  },
+];
+
+// C5 — F7/G9: the fold cannot mint an effect key. `Effect` is the FOLD's
+// transport and carries no identity; `KeyedEffect` is the BOUNDARY's and is
+// built from the COMMITTED step index, so it is literally unavailable until
+// `bus.append` has returned.
+const C5_MINT = [
+  {
+    regex: ".",
+    importNames: ["EffectKey", "keyedEffect", "keyOf"],
+    message: "[C5] only the boundary and the replay harness may mint an effect key",
+  },
+];
+const C5_TYPE = [
+  {
+    regex: ".",
+    importNames: ["KeyedEffect"],
+    message: "[C5] KeyedEffect is the boundary's transport — the fold never names it",
+  },
+];
+
+// C6 — F9: a per-item failure is not session-global. `Degraded`/`Error`
+// describe the SESSION (a budget exceeded, an append that failed, a turn that
+// threw) and belong to the boundary. A block that rejects one bad ticket folds
+// a per-item `Notice.Rejected`.
+const C6 = [
+  {
+    regex: ".",
+    importNames: ["RunStatus", "RunStatusBase", "RunStatusKind", "Degraded", "Errored", "degraded", "errored", "working", "idle"],
+    message: "[C6] a block may not touch the session-global RunStatus — a rejection folds a per-item Notice",
+  },
+];
+
+// C7 — F1: ONE production site for every ToolResult. The spine's own two cases
+// are minted at the boundary; a block's are minted by its verb bodies.
+const C7_IMPORT = [
+  {
+    regex: ".",
+    importNames: ["unhandled", "refused"],
+    message: "[C7] only the boundary produces a spine ToolResult — a recorded result may never disagree with what was folded",
+  },
+];
+
+// C8 — G2: a pure file names no I/O.
+const C8_IMPORT = [{ regex: "^node:", message: "[C8] a pure file may not import a runtime module" }];
+
+// C15 — A4: THE SPINE TIER IS SELF-CONTAINED, so it can be lifted out whole.
+// 1.3 sells the spine as something you inherit rather than author. No package
+// exists on any registry, and both reference ports carry the spine as source —
+// so the honest claim is narrower and this check is what makes it PROVABLE
+// rather than aspirational: the tier is a fixed, small, self-contained set of
+// files that names nothing in your feature code, so you vendor it once and never
+// edit it per feature. A published artifact is future work.
+//
+// IT IS NOT REDUNDANT WITH C1. C1 is a per-folder allow-list; C15 is a
+// TIER-LEVEL DENIAL that no per-folder rule can accidentally relax, and it
+// survives a future spine folder being added with a permissive bucket. (In the
+// Kotlin port it catches something C1 structurally cannot: Kotlin forces every
+// sealed-hierarchy variant into one package, which C1 has to permit.)
+const C15 = [
+  { regex: "(^|/)blocks/", message: "[C15] the spine tier is self-contained — it may not name a block" },
+  { regex: "(^|/)app/", message: "[C15] the spine tier is self-contained — it may not name the composition root" },
+];
+
+// C12 — 4.6/A1: ephemeral view-state never folds. Hover, scroll offset and an
+// unsubmitted draft never enter a tool, never fold and never sign; only the
+// owning block's `project` may read them.
+const C12 = [{ regex: "view-state$", message: "[C12] only a block's own `project` may see its ephemeral view-state" }];
+
+// ── the checks that ride on `no-restricted-syntax` ──────────────────────────
+
+// C1, third half — a dynamic `import()` routes around the import table, because
+// the specifier is an expression rather than a declaration. Nothing in the tree
+// needs one, so the whole form is denied and the table stays total.
+const NO_DYNAMIC_IMPORT = [
+  { selector: "ImportExpression", message: "[C1] a dynamic import routes around §1.3's table — declare the dependency at the top of the file" },
+];
+
+// C3 — G9: `now` has exactly one source in the system, and it is a port.
+const C3 = [
+  { selector: 'MemberExpression[object.name="Date"][property.name="now"]', message: "[C3] `now` comes from the Clock port, read once per step at the boundary" },
+  { selector: 'NewExpression[callee.name="Date"]', message: "[C3] `now` comes from the Clock port, read once per step at the boundary" },
+  { selector: 'MemberExpression[object.name="Math"][property.name="random"]', message: "[C3] randomness is a port, not an ambient capability" },
+  { selector: 'MemberExpression[object.name="crypto"]', message: "[C3] ids come from the IdSource port, minted from the committed sequence" },
+  { selector: 'MemberExpression[object.name="performance"][property.name="now"]', message: "[C3] `now` comes from the Clock port, read once per step at the boundary" },
+];
+
+// C7, second half — a ToolResult is an object literal with an `outcome` key.
+// (`r.outcome === "ok"` is a READ, and reads are everywhere they should be.)
+const C7_LITERAL = [
+  {
+    selector: 'ObjectExpression > Property[key.name="outcome"]',
+    message: "[C7] a ToolResult may only be produced by a verb body or by the boundary",
+  },
+];
+
+// C8 — G2: tools are pure. The tool body runs twice per agent action (once so
+// the model has a payload to reason over, once at the boundary to produce the
+// recorded truth); that is free for a pure function and ruinous for anything else.
+const C8_SYNTAX = [
+  { selector: "AwaitExpression", message: "[C8] a pure file does not await — I/O belongs to an adapter" },
+  { selector: "FunctionDeclaration[async=true], FunctionExpression[async=true], ArrowFunctionExpression[async=true]", message: "[C8] a pure file declares no async function — I/O belongs to an adapter" },
+  { selector: 'CallExpression[callee.name="fetch"]', message: "[C8] a pure file performs no I/O — that is what the adapter is for" },
+  { selector: 'MemberExpression[object.name="process"]', message: "[C8] a pure file reads no ambient environment" },
+];
+
+// C10 — G7: no service locators, no module-level mutable state. `Program >` is
+// the whole of it: a `let` inside a closure is a local, which is why
+// `spine/boundary/in-memory` needs no exemption.
+const C10 = [
+  { selector: 'Program > VariableDeclaration[kind="let"]', message: "[C10] module-level mutable state is a service locator in disguise — pass it through the composition root" },
+  { selector: 'Program > VariableDeclaration[kind="var"]', message: "[C10] module-level mutable state is a service locator in disguise — pass it through the composition root" },
+  { selector: 'Program > ExportNamedDeclaration > VariableDeclaration[kind="let"]', message: "[C10] module-level mutable state is a service locator in disguise — pass it through the composition root" },
+  { selector: 'Program > ExportNamedDeclaration > VariableDeclaration[kind="var"]', message: "[C10] module-level mutable state is a service locator in disguise — pass it through the composition root" },
+];
+
+// C11 — 7.9/G13: "a port is a published contract, not an implementation" is a
+// property of the FOLDER, not a convention someone remembers.
+const C11 = [
+  {
+    selector: "FunctionDeclaration, ClassDeclaration, VariableDeclaration, ArrowFunctionExpression, FunctionExpression, TSEnumDeclaration, TSModuleDeclaration",
+    message: "[C11] a port is a published contract, not an implementation — declare an interface and bind it at the composition root",
+  },
+];
+
+// C14 — G3: the loop is a DECLARATION. No branching, no state, no domain logic;
+// it converts a verb table into SDK tools and hooks the boundary onto the
+// finished-step callback.
+const C14 = [
+  {
+    selector: "IfStatement, ForStatement, ForOfStatement, ForInStatement, WhileStatement, DoWhileStatement, TryStatement, SwitchStatement",
+    message: "[C14] the loop is a declaration, not a program — decisions belong to the fold",
+  },
+];
+
+// ── the checks that ride on `no-restricted-globals` ────────────────────────
+// A selector matches `Date.now()`; it does not match `const { now } = Date`.
+// Denying the GLOBAL closes the aliasing route, and costs nothing because no
+// pure file in the system has any business naming one of these.
+// `Math` is deliberately absent: `Math.max` is pure and legitimate, and a rule
+// that forbids it is the nuisance 15.2 warns about — so C3 keeps a narrow
+// selector for `Math.random` alone.
+const C3_GLOBALS = [
+  { name: "Date", message: "[C3] `now` comes from the Clock port, read once per step at the boundary" },
+  { name: "crypto", message: "[C3] ids come from the IdSource port, minted from the committed sequence" },
+  { name: "performance", message: "[C3] `now` comes from the Clock port, read once per step at the boundary" },
+];
+const C8_GLOBALS = [
+  { name: "fetch", message: "[C8] a pure file performs no I/O — that is what the adapter is for" },
+  { name: "process", message: "[C8] a pure file reads no ambient environment" },
+];
+
+// C9 — G12/F10: a closed match, never a catch-all. Type-aware: the rule reads
+// the union from the type checker, so adding a variant breaks every consumer.
+const C9_RULE = {
+  "@typescript-eslint/switch-exhaustiveness-check": [
+    "error",
+    {
+      // our idiom is an explicit `default: { const _never: never = x }`, so an
+      // exhaustive switch is allowed to carry one …
+      allowDefaultCaseForExhaustiveSwitch: true,
+      // … but a default NEVER makes a union switch count as exhaustive, which
+      // is the whole point: `default: return "other"` is not a closed match.
+      considerDefaultExhaustiveForUnions: false,
+      requireDefaultForNonUnion: true,
+    },
+  ],
+};
+
+// ── composition helpers ─────────────────────────────────────────────────────
+
+const bucket = (files, { imports, syntax, globals = [] }) => ({
+  files,
+  languageOptions: {
+    parser: tseslint.parser,
+    parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+  },
+  plugins: { "@typescript-eslint": tseslint.plugin },
+  rules: {
+    ...C9_RULE,
+    "no-restricted-imports": imports.length === 0 ? "off" : ["error", { patterns: imports }],
+    // NO_DYNAMIC_IMPORT rides every bucket: an import table with an escape
+    // hatch is not a table.
+    "no-restricted-syntax": ["error", ...NO_DYNAMIC_IMPORT, ...syntax],
+    "no-restricted-globals": globals.length === 0 ? "off" : ["error", ...globals],
+  },
+});
+
+/** every rule that applies to a file inside `blocks/<X>/`, before per-leaf edits */
+const blockImports = (allowed, extra = []) => [
+  only("a block may import `spine/pure` and its own folder, nothing else", ...allowed),
+  ...C2,
+  ...C5_MINT,
+  ...C5_TYPE,
+  ...C6,
+  ...C7_IMPORT,
+  ...C8_IMPORT,
+  ...C12,
+  ...extra,
+];
+
+const BLOCK_ALLOWED = [SIBLING, BLOCK_PURE];
+const PURE_SYNTAX = [...C3, ...C7_LITERAL, ...C8_SYNTAX, ...C10];
+
+// ── §1.3, folder by folder ─────────────────────────────────────────────────
+// Ordered general → specific. Flat config merges rule-by-rule, so a later
+// bucket restates only the rule it changes.
+export const gate = [
+  // The catch-all, first and strictest: a file that is in NONE of §1.3's
+  // folders may import nothing at all. Every bucket below overrides both rules
+  // wholesale, so this is what a file lands on by being somewhere undeclared —
+  // a new folder cannot quietly opt out of the gate by not being listed.
+  bucket(["**/src/**/*.ts"], {
+    imports: [only("this file is in no folder §1.3 declares — it belongs under spine/, blocks/<X>/ or app/")],
+    syntax: [...C3, ...C7_LITERAL, ...C8_SYNTAX, ...C10],
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+  }),
+
+  // spine/pure — ZERO I/O; the transport vocabulary and nothing else.
+  bucket(["**/src/spine/pure/**/*.ts"], {
+    imports: [only("`spine/pure` may import `spine/pure` only", SIBLING), ...C5_MINT, ...C5_TYPE, ...C7_IMPORT, ...C8_IMPORT, ...C12, ...C15],
+    syntax: PURE_SYNTAX,
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+  }),
+  // … except the two files that DECLARE what the others may not name.
+  bucket(["**/src/spine/pure/tool-result.ts"], {
+    imports: [only("`spine/pure` may import `spine/pure` only", SIBLING), ...C4, ...C5_MINT, ...C5_TYPE, ...C8_IMPORT, ...C12, ...C15],
+    syntax: [...C3, ...C8_SYNTAX, ...C10],
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+  }),
+  bucket(["**/src/spine/pure/keyed-effect.ts"], {
+    imports: [only("`spine/pure` may import `spine/pure` only", SIBLING), ...C7_IMPORT, ...C8_IMPORT, ...C12, ...C15],
+    syntax: PURE_SYNTAX,
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+  }),
+
+  // spine/ports — INTERFACES ONLY. A file here with a body is a gate failure.
+  bucket(["**/src/spine/ports/**/*.ts"], {
+    imports: [only("`spine/ports` may import `spine/pure` only", SPINE_PURE), ...C5_MINT, ...C5_TYPE, ...C7_IMPORT, ...C8_IMPORT, ...C12, ...C15],
+    syntax: [...C7_LITERAL, ...C10, ...C11],
+  }),
+  bucket(["**/src/spine/ports/sink.ts"], {
+    // `perform` accepts a KeyedEffect and nothing else, so this one signature
+    // has to name the type. It still may not MINT one.
+    imports: [only("`spine/ports` may import `spine/pure` only", SPINE_PURE), ...C5_MINT, ...C7_IMPORT, ...C8_IMPORT, ...C12, ...C15],
+    syntax: [...C7_LITERAL, ...C10, ...C11],
+  }),
+
+  // spine/boundary — THE ONE IMPURE SEAM. The clock, the ids and the keys live
+  // here, and nowhere else.
+  bucket(["**/src/spine/boundary/**/*.ts"], {
+    imports: [only("`spine/boundary` may import `spine/pure` and `spine/ports`", SIBLING, SPINE_PURE, SPINE_PORTS), ...C12, ...C15],
+    syntax: [...C10],
+  }),
+
+  // spine/agent — the ONLY file in the system that may name the agent runtime.
+  bucket(["**/src/spine/agent/**/*.ts"], {
+    imports: [
+      only("`spine/agent` may import `spine/pure`, `spine/ports`, `spine/boundary` and the agent-loop SDK", SPINE_PURE, SPINE_PORTS, SPINE_BOUNDARY, AGENT_SDK),
+      ...C5_MINT,
+      ...C5_TYPE,
+      ...C7_IMPORT,
+      ...C8_IMPORT,
+      ...C12,
+      ...C15,
+    ],
+    syntax: [...C3, ...C7_LITERAL, ...C10, ...C14],
+    globals: [...C3_GLOBALS],
+  }),
+
+  // spine/surface — ONE ViewModel stream and ONE action sink (G8).
+  bucket(["**/src/spine/surface/**/*.ts"], {
+    imports: [
+      only("`spine/surface` may import `spine/pure`, `spine/ports` and `spine/boundary/action`", SPINE_PURE, SPINE_PORTS, "\\.\\./boundary/action"),
+      ...C5_MINT,
+      ...C5_TYPE,
+      ...C7_IMPORT,
+      ...C8_IMPORT,
+      ...C12,
+      ...C15,
+    ],
+    syntax: [...C3, ...C7_LITERAL, ...C10],
+    globals: [...C3_GLOBALS],
+  }),
+
+  // spine/concurrency — THE BARGE-IN LOOP and THE TIER RELAY's read side. It
+  // awaits, because bounding a turn and racing a mailbox is the whole job — so
+  // C8's no-await rule is off here and C3 is NOT: the consumer reads no wall
+  // clock, only relative durations handed to the Scheduler port, which is what
+  // keeps `clock.now()` at the boundary the one clock read in the system.
+  bucket(["**/src/spine/concurrency/**/*.ts"], {
+    imports: [
+      only("`spine/concurrency` may import `spine/pure`, `spine/ports` and `spine/boundary/action`", SPINE_PURE, SPINE_PORTS, "\\.\\./boundary/action"),
+      ...C5_MINT,
+      ...C5_TYPE,
+      ...C7_IMPORT,
+      ...C8_IMPORT,
+      ...C12,
+      ...C15,
+    ],
+    syntax: [...C3, ...C7_LITERAL, ...C10],
+    globals: [...C3_GLOBALS],
+  }),
+
+  // spine/replay — re-folds committed bytes; may mint keys, performs nothing.
+  bucket(["**/src/spine/replay/**/*.ts"], {
+    imports: [only("`spine/replay` may import `spine/pure`, `spine/ports` and `spine/boundary`", SPINE_PURE, SPINE_PORTS, SPINE_BOUNDARY), ...C7_IMPORT, ...C8_IMPORT, ...C12, ...C15],
+    syntax: [...C3, ...C7_LITERAL, ...C10],
+    globals: [...C3_GLOBALS],
+  }),
+
+  // blocks/<X> — the default every file in a block folder starts from.
+  bucket(["**/src/blocks/*/*.ts"], { imports: blockImports(BLOCK_ALLOWED), syntax: PURE_SYNTAX, globals: [...C3_GLOBALS, ...C8_GLOBALS] }),
+
+  // blocks/<X>/contract — where the block's ToolResult cases are DECLARED.
+  bucket(["**/src/blocks/*/contract.ts"], { imports: blockImports(BLOCK_ALLOWED, C4), syntax: PURE_SYNTAX, globals: [...C3_GLOBALS, ...C8_GLOBALS] }),
+
+  // blocks/<X>/tools — the verb table: the ONE place a block mints a result.
+  bucket(["**/src/blocks/*/tools.ts"], {
+    imports: blockImports([...BLOCK_ALLOWED, SCHEMA_DSL]),
+    syntax: [...C3, ...C8_SYNTAX, ...C10],
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+  }),
+
+  // blocks/<X>/project — the two pure projections; the ONE reader of view-state.
+  bucket(["**/src/blocks/*/project.ts"], {
+    imports: [only("a block may import `spine/pure` and its own folder, nothing else", ...BLOCK_ALLOWED), ...C2, ...C5_MINT, ...C5_TYPE, ...C6, ...C7_IMPORT, ...C8_IMPORT],
+    syntax: PURE_SYNTAX,
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+  }),
+
+  // blocks/<X>/port — the block's private frozen contract.
+  bucket(["**/src/blocks/*/port.ts"], { imports: blockImports(BLOCK_ALLOWED), syntax: [...C3, ...C7_LITERAL, ...C10, ...C11], globals: [...C3_GLOBALS, ...C8_GLOBALS] }),
+
+  // blocks/<X>/adapter — the ONLY impure file in a block; it may hold a client.
+  bucket(["**/src/blocks/*/adapter.ts"], {
+    imports: [
+      only("an adapter may import its own port, `spine/pure` and its own client library", SIBLING, BLOCK_PURE, EXTERNAL),
+      ...C2,
+      ...C5_MINT,
+      ...C5_TYPE,
+      ...C6,
+      ...C7_IMPORT,
+      ...C12,
+    ],
+    syntax: [...C3, ...C7_LITERAL, ...C10],
+    globals: [...C3_GLOBALS],
+  }),
+
+  // blocks/<X>/view-state — EPHEMERAL. It imports nothing at all.
+  bucket(["**/src/blocks/*/view-state.ts"], {
+    imports: [only("ephemeral view-state imports nothing — it is not part of the system's truth"), ...C2],
+    syntax: PURE_SYNTAX,
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+  }),
+
+  // app — THE ROOT. The single cross-layer importer (G7/G10), and the only
+  // place that may name every block.
+  bucket(["**/src/app/**/*.ts"], {
+    imports: [...C5_MINT, ...C7_IMPORT, ...C12],
+    syntax: [...C3, ...C7_LITERAL, ...C10],
+    globals: [...C3_GLOBALS],
+  }),
+];
+
+export default [
+  {
+    // test/gate/fixtures holds DELIBERATELY BROKEN source — it is INPUT to the
+    // gate's own block-tests, not part of the tree the gate defends.
+    ignores: ["node_modules/**", "test/gate/fixtures/**", "test/gate/.work/**"],
+  },
+  ...gate,
+];

@@ -1,0 +1,114 @@
+// ── test/spine/boundary — commit before perform, and `now` on the record ──
+// F8's measured failure: RecordingBus after a step folded at now=9 exposed keys
+// ['commands','results'] and contained no 'now'; a live boundary that folded at
+// at:1001 re-folded at at:0.
+
+package adr.spine
+
+import adr.app.RunAuthority
+import adr.app.World
+import adr.app.foldApp
+import adr.app.offlineEnv
+import adr.app.wireApp
+import adr.blocks.triage.Priority
+import adr.blocks.triage.SET_PRIORITY
+import adr.contract.TriageEffect
+import adr.driveCanonicalSession
+import adr.human
+import adr.spine.boundary.movingClock
+import adr.spine.pure.Timestamp
+import adr.spine.replay.refold
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class BoundaryTest {
+
+    @Test
+    fun `the committed record carries now, so a live boundary can be re-folded (F8)`() {
+        val app = wireApp(offlineEnv(clock = movingClock(start = 1000, step = 7)))
+        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
+
+        // The record IS the step: seven fields, one of them the clock read.
+        val record = app.bus.records().first()
+        assertEquals(Timestamp(1007), record.now)
+        assertEquals(record.now, (app.performed.single().effect as TriageEffect.LogDecision).at)
+    }
+
+    @Test
+    fun `F8 - a live turn under a MOVING clock re-folds to IDENTICAL timestamps`() {
+        // The measured failure, in one line: a live boundary that folded at at:1001
+        // re-folded at at:0. `append(signedCommands, capturedResults)` had no clock
+        // read in it, and a RecordingBus after a step folded at now=9 exposed keys
+        // ['commands','results'] and nothing else — so the timestamp was not lost in
+        // the re-fold, it was never written down.
+        //
+        // A MOVING clock is what makes this test able to fail. Under a fixed clock a
+        // re-fold that invented Timestamp(0) would still differ, but a re-fold that
+        // re-READ the clock would pass by luck; here every step has a distinct
+        // timestamp that exists nowhere except on its own committed record.
+        val authority = RunAuthority()
+        val app = wireApp(
+            offlineEnv(
+                world = World(),
+                authority = authority,
+                clock = movingClock(start = 1000, step = 7),
+            ),
+        )
+        app.driveCanonicalSession(authority)
+
+        val liveEffects = app.performed.toList()
+        val liveStamps = liveEffects.map { it.effect.at }
+
+        assertTrue(liveStamps.isNotEmpty())
+        assertTrue(liveStamps.none { it == Timestamp(0) }, "the live run stamped real times")
+        assertEquals(liveStamps.distinct().size > 1, true, "the clock really moved across the run")
+
+        // Re-fold from NOTHING BUT the committed bytes: no clock is available here.
+        val (_, effects2) = refold(app.initial, app.bus.records(), ::foldApp)
+
+        assertEquals(liveStamps, effects2.map { it.effect.at }, "measured OLD: live at:1001 -> re-folded at:0")
+        assertEquals(liveEffects, effects2, "…and the keys round-trip with them")
+
+        // `now` is ON the record — the field whose absence caused all of the above.
+        assertEquals(Timestamp(1007), app.bus.records().first().now)
+        assertEquals(
+            app.bus.records().map { it.now }.distinct(),
+            app.bus.records().map { it.now },
+            "each committed step carries its own clock read",
+        )
+    }
+
+    @Test
+    fun `the effect key is derived from the COMMITTED step index (F7)`() {
+        val app = wireApp(offlineEnv())
+        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
+        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")
+
+        // step 0 effect 0, then step 1 effect 0 — the key cannot exist before the append
+        // returned the index it is built from, so commit strictly precedes perform.
+        assertEquals(listOf(0 to 0, 1 to 0), app.performed.map { it.key.step.value to it.key.index })
+    }
+
+    @Test
+    fun `the fold reads its own state for supersedes - the tool returned raw inputs only`() {
+        val app = wireApp(offlineEnv())
+        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "High")
+        app.human(SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")
+
+        val logs = app.performed.map { it.effect }.filterIsInstance<TriageEffect.LogDecision>()
+        assertEquals(listOf(null, Priority.High), logs.map { it.supersedes })
+    }
+
+    @Test
+    fun `actions and results are BOTH recorded, and differ whenever the gate spoke`() {
+        val authority = RunAuthority()
+        val app = wireApp(offlineEnv(world = World(), authority = authority))
+        app.human(adr.blocks.escalation.REQUEST_ESCALATION, "ticket" to "4118")
+        app.human(adr.blocks.escalation.CONFIRM_ESCALATION, "ticket" to "4118")
+
+        val record = app.bus.records().last()
+        assertEquals(adr.blocks.escalation.CONFIRM_ESCALATION, record.actions.single().tool)
+        assertTrue(record.results.single() is adr.contract.ToolResult.Refused)
+    }
+}

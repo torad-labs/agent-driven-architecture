@@ -6,8 +6,9 @@
   "description": "Functional TypeScript reference implementation of the Agent-Driven Architecture, on the Vercel AI SDK.",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "demo": "tsx src/demo.ts"
+    "lint": "eslint .",
+    "test": "npm run typecheck && npm run lint && vitest run",
+    "demo": "tsx src/app/demo.ts"
   },
   "dependencies": {
     "ai": "^6.0.208",
@@ -15,8 +16,10 @@
   },
   "devDependencies": {
     "@types/node": "^26.0.0",
+    "eslint": "^10.8.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.9"
   }
 }
