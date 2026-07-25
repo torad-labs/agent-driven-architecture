@@ -10,19 +10,14 @@ import adr.spine.pure.PanelId
 import adr.spine.pure.TicketId
 
 data class ConsoleSlice(
-    val focused: TicketId?,
-    val panels: Map<PanelId, Boolean>,
+    val focused: TicketId? = null,
+    val panels: Map<PanelId, Boolean> = emptyMap(),
 ) {
+    // No companion: a companion member has no instance, the same defect as a top-level
+    // function. The EMPTY slice is what the primary constructor builds when told
+    // nothing — `ConsoleSlice()` — so the shape carries its own starting value.
     fun withFocus(ticket: TicketId): ConsoleSlice = copy(focused = ticket)
 
     fun withPanel(panel: PanelId, visible: Boolean): ConsoleSlice =
         copy(panels = panels + (panel to visible))
-
-    companion object {
-        /** The starting slice, on the SHAPE — `State`'s field default needs it before any block exists. */
-        val empty = ConsoleSlice(focused = null, panels = emptyMap())
-
-        fun of(panels: List<PanelId>): ConsoleSlice =
-            ConsoleSlice(focused = null, panels = panels.associateWith { false })
-    }
 }

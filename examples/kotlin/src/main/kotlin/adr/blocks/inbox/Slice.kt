@@ -29,11 +29,15 @@ sealed interface DropReason {
 }
 
 data class InboxSlice(
-    val conflated: Map<SourceName, Int>,
-    val duplicates: Map<SourceName, Int>,
+    val conflated: Map<SourceName, Int> = emptyMap(),
+    val duplicates: Map<SourceName, Int> = emptyMap(),
     /** BOUNDED: the reasoner's input may not grow with the number of things that broke. */
-    val faults: List<String>,
+    val faults: List<String> = emptyList(),
 ) {
+    // No companion: a companion member has no instance, which is the same defect as a
+    // top-level function. The EMPTY slice is now what the primary constructor builds
+    // when told nothing — `InboxSlice()` — so the shape carries its own starting value and
+    // nothing extra has to exist to hand it over.
     fun withDrop(source: SourceName, reason: DropReason, count: Int): InboxSlice = when (reason) {
         DropReason.Conflated ->
             copy(conflated = conflated + (source to (conflated[source] ?: 0) + count))
@@ -44,8 +48,4 @@ data class InboxSlice(
 
     fun withFault(line: String): InboxSlice =
         copy(faults = (faults + line).takeLast(MAX_CONTEXT_LINES_PER_BLOCK))
-
-    companion object {
-        val empty = InboxSlice(conflated = emptyMap(), duplicates = emptyMap(), faults = emptyList())
-    }
 }

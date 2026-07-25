@@ -29,7 +29,7 @@ class EscalationBlockTest {
     private val now = Timestamp(9)
     private val asked = Signature(Actor.Agent, Authority("agent-run-7f"))
     private val confirmer = Signature(Actor.Agent, Authority("policy-tier-v3"))
-    private val slice = EscalationSlice.of(listOf(ticket))
+    private val slice = EscalationBlock().slice(listOf(ticket))
 
     /** The block is CONSTRUCTED here — no root, no registry, no boundary (G13). */
     private val block = EscalationBlock()

@@ -22,12 +22,14 @@ sealed interface SealStatus {
     data class Sealed(val at: Timestamp, val by: Authority) : SealStatus
 }
 
-data class ArtifactSlice(val lines: List<ArtifactLine>, val seal: SealStatus) {
+data class ArtifactSlice(
+    val lines: List<ArtifactLine> = emptyList(),
+    val seal: SealStatus = SealStatus.Draft,
+) {
+    // No companion: a companion member has no instance, the same defect as a top-level
+    // function. The EMPTY slice is what the primary constructor builds when told
+    // nothing — `ArtifactSlice()` — so the shape carries its own starting value.
     fun withLine(line: ArtifactLine): ArtifactSlice = copy(lines = lines + line)
 
     fun withSeal(next: SealStatus): ArtifactSlice = copy(seal = next)
-
-    companion object {
-        val empty = ArtifactSlice(lines = emptyList(), seal = SealStatus.Draft)
-    }
 }

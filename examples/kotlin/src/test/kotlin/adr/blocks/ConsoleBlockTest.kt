@@ -27,7 +27,7 @@ class ConsoleBlockTest {
 
     private val now = Timestamp(9)
     private val sig = Signature(Actor.Agent, Authority("agent-run-7f"))
-    private val slice = ConsoleSlice.of(listOf(PanelId("queue"), PanelId("detail")))
+    private val slice = ConsoleBlock().slice(listOf(PanelId("queue"), PanelId("detail")))
 
     /** The block is CONSTRUCTED here — no root, no registry, no boundary (G13). */
     private val block = ConsoleBlock()

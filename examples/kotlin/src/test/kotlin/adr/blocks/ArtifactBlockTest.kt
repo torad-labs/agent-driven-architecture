@@ -41,7 +41,7 @@ class ArtifactBlockTest {
     @Test
     fun `a finding is FOLDED as a line - no effect is performed`() {
         val out = block.arm(
-            ArtifactSlice.empty,
+            ArtifactSlice(),
             ArtifactResult.RecordFinding(RECORD_FINDING, "refund never issued"),
             now,
             author,
@@ -54,7 +54,7 @@ class ArtifactBlockTest {
     @Test
     fun `delivery is ONE irreversible effect at seal time`() {
         val drafted = block.arm(
-            ArtifactSlice.empty,
+            ArtifactSlice(),
             ArtifactResult.RecordFinding(RECORD_FINDING, "first"),
             now,
             author,
@@ -73,9 +73,9 @@ class ArtifactBlockTest {
 
     @Test
     fun `a confirm with no requested seal mutates nothing and delivers nothing`() {
-        val out = block.arm(ArtifactSlice.empty, ArtifactResult.ConfirmSeal(CONFIRM_SEAL), now, confirmer)
+        val out = block.arm(ArtifactSlice(), ArtifactResult.ConfirmSeal(CONFIRM_SEAL), now, confirmer)
 
-        assertEquals(ArtifactSlice.empty, out.slice)
+        assertEquals(ArtifactSlice(), out.slice)
         assertTrue(out.effects.isEmpty())
         assertEquals("no seal has been requested", out.notices.single().reason)
     }

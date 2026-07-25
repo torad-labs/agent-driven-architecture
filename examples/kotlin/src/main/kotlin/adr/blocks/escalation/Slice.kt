@@ -30,16 +30,11 @@ sealed interface TicketStatus {
     data class Resolved(override val ticket: TicketId) : TicketStatus
 }
 
-data class EscalationSlice(val status: Map<TicketId, TicketStatus>) {
+data class EscalationSlice(val status: Map<TicketId, TicketStatus> = emptyMap()) {
+    // No companion: a companion member has no instance, which is the same defect as a
+    // top-level function. The EMPTY slice is now what the primary constructor builds
+    // when told nothing — `EscalationSlice()` — so the shape carries its own starting value.
     fun statusOf(ticket: TicketId): TicketStatus? = status[ticket]
 
     fun with(next: TicketStatus): EscalationSlice = copy(status = status + (next.ticket to next))
-
-    companion object {
-        /** The starting slice, on the SHAPE — `State`'s field default needs it before any block exists. */
-        val empty = EscalationSlice(status = emptyMap())
-
-        fun of(tickets: List<TicketId>): EscalationSlice =
-            EscalationSlice(tickets.associateWith { TicketStatus.Open(it) })
-    }
 }
