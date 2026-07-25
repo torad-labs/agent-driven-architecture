@@ -12,6 +12,10 @@ ignores:
   - "**/src/*Test/kotlin/**"
   - "**/src/test/kotlin/**"
   # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
 message: "no-clock-or-random-in-domain: common domain code must not read the wall clock, draw randomness, or mint ids. Inject time and ids at the boundary."
 rule:
   any:

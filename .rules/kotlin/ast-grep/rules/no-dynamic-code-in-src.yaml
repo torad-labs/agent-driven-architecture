@@ -10,6 +10,10 @@ ignores:
   - "**/dist/**"
   - "**/*.gradle.kts"
   # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
 message: "no-dynamic-code-in-src: the OpenClaw scanner's dynamic-code-execution rule fires unconditionally on an eval( call in dist/, with no node_modules exemption. Express this without eval — a lookup table, a sealed dispatch, or a typed parser."
 rule:
   pattern: eval($$$ARGS)

@@ -13,6 +13,10 @@ ignores:
   - "**/dist/**"
   - "**/*.gradle.kts"
   # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
 message: "Thread.sleep blocks real time. Use runTest virtual time (advanceTimeBy / advanceUntilIdle)."
 rule:
   pattern: Thread.sleep($$$ARGS)
