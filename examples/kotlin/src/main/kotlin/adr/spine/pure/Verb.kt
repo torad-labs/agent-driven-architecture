@@ -41,6 +41,39 @@ sealed class Gating {
     data class NeedsConfirmation(val requestedBy: Authority?) : Gating()
 }
 
+/**
+ * THE FOUR SEAMS OF A VERB, each a NAMED `fun interface` rather than a raw function
+ * type. A raw `(RawInput) -> I?` is an anonymous, transposable seam: two of them with
+ * the same shape are the same type, nothing can implement it by name, no KDoc rides
+ * it, and a test double cannot be declared — only a lambda can be passed. Naming them
+ * costs nothing at the call site, because `operator fun invoke` keeps `decode(input)`
+ * reading exactly as it did and SAM conversion keeps `::decodeSetPriority` binding.
+ */
+fun interface Decode<I> {
+    /** Raw input in, typed input or null out. Null is a decode failure the boundary owns. */
+    operator fun invoke(input: RawInput): I?
+}
+
+fun interface Run<S, I, R : ToolResult> {
+    /** The PURE tool body. Reads Ctx; returns a payload; mutates nothing (G2). */
+    operator fun invoke(input: I, ctx: Ctx<S>): R
+}
+
+fun interface Sign<R : ToolResult> {
+    /** The name→Command entry (6.8). Every verb signs — domain and presentation alike (A1). */
+    operator fun invoke(result: R, sig: Signature, id: CommandId): Command
+}
+
+fun interface Narrow<R : ToolResult> {
+    /** Narrow an erased result back to this verb's own case. Null means "not mine". */
+    operator fun invoke(result: ToolResult): R?
+}
+
+fun interface RequestedBy<S> {
+    /** Which authority ASKED for this, read out of committed State (14.3). */
+    operator fun invoke(state: S, result: ToolResult): Authority?
+}
+
 sealed interface Verb<S, I, R : ToolResult> {
     /** The verb name — the discriminant of its ToolResult, of its Command, and the registry key (D3). */
     val name: ToolName
@@ -49,13 +82,13 @@ sealed interface Verb<S, I, R : ToolResult> {
     val describe: String
 
     /** The input schema: raw input in, typed input or null out. */
-    val decode: (RawInput) -> I?
+    val decode: Decode<I>
 
     /** The PURE tool body. Reads Ctx; returns a payload; mutates nothing (G2). */
-    val run: (I, Ctx<S>) -> R
+    val run: Run<S, I, R>
 
     /** The name→Command entry (6.8). Every verb signs — domain and presentation alike (A1). */
-    val sign: (R, Signature, CommandId) -> Command
+    val sign: Sign<R>
 
     /** decode ∘ run. Returns null when the input failed to decode — the boundary owns that word. */
     fun resolve(input: RawInput, ctx: Ctx<S>): ToolResult? = decode(input)?.let { run(it, ctx) }
@@ -84,7 +117,7 @@ sealed interface Verb<S, I, R : ToolResult> {
      * not verify because the registry star-projects R away, and which therefore needed
      * a @Suppress. Nothing is suppressed now; the check is real and happens at runtime.
      */
-    val narrow: (ToolResult) -> R?
+    val narrow: Narrow<R>
 
     /**
      * Sign a result whose static type the registry erased.
@@ -106,10 +139,10 @@ sealed interface Verb<S, I, R : ToolResult> {
     data class Reversible<S, I, R : ToolResult>(
         override val name: ToolName,
         override val describe: String,
-        override val decode: (RawInput) -> I?,
-        override val run: (I, Ctx<S>) -> R,
-        override val sign: (R, Signature, CommandId) -> Command,
-        override val narrow: (ToolResult) -> R?,
+        override val decode: Decode<I>,
+        override val run: Run<S, I, R>,
+        override val sign: Sign<R>,
+        override val narrow: Narrow<R>,
     ) : Verb<S, I, R> {
         override fun gating(state: S, result: ToolResult): Gating = Gating.Ungated
     }
@@ -122,11 +155,11 @@ sealed interface Verb<S, I, R : ToolResult> {
     data class Irreversible<S, I, R : ToolResult>(
         override val name: ToolName,
         override val describe: String,
-        override val decode: (RawInput) -> I?,
-        override val run: (I, Ctx<S>) -> R,
-        override val sign: (R, Signature, CommandId) -> Command,
-        override val narrow: (ToolResult) -> R?,
-        val requestedBy: (S, ToolResult) -> Authority?,
+        override val decode: Decode<I>,
+        override val run: Run<S, I, R>,
+        override val sign: Sign<R>,
+        override val narrow: Narrow<R>,
+        val requestedBy: RequestedBy<S>,
     ) : Verb<S, I, R> {
         override fun gating(state: S, result: ToolResult): Gating =
             Gating.NeedsConfirmation(requestedBy(state, result))

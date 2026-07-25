@@ -7,6 +7,7 @@ package adr.blocks.console
 
 import adr.contract.ConsoleCommand
 import adr.contract.ConsoleResult
+import adr.spine.pure.Lens
 import adr.spine.pure.PanelId
 import adr.spine.pure.RawInput
 import adr.spine.pure.TicketId
@@ -20,7 +21,7 @@ data class FocusInput(val ticket: TicketId)
 
 data class PanelInput(val panel: PanelId, val visible: Boolean)
 
-class ConsoleTools<S>(private val lens: (S) -> ConsoleSlice) {
+class ConsoleTools<S>(private val lens: Lens<S, ConsoleSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(

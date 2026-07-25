@@ -44,6 +44,7 @@
 package adr.spine.concurrency
 
 import adr.spine.boundary.FinishedStep
+import adr.spine.boundary.Submit
 import adr.spine.ports.Mailbox
 import adr.spine.ports.RelayRead
 import adr.spine.pure.Action
@@ -51,17 +52,18 @@ import adr.spine.pure.Actor
 import adr.spine.pure.CANCEL_DEADLINE_MS
 import adr.spine.pure.ConsumerEvent
 import adr.spine.pure.DRAIN_DEADLINE_MS
+import adr.spine.pure.InputPolicies
 import adr.spine.pure.InputPolicy
 import adr.spine.pure.Message
 import adr.spine.pure.Millis
 import adr.spine.pure.RECALL_DEADLINE_MS
 import adr.spine.pure.Recall
 import adr.spine.pure.RelayEntry
+import adr.spine.pure.Report
 import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.TurnOutcome
-import adr.spine.pure.InputPolicies
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -103,7 +105,7 @@ fun interface TurnRunner {
  */
 private class SubmitGate(
     override val staged: List<StagedInput>,
-    private val downstream: (FinishedStep) -> Unit,
+    private val downstream: Submit,
 ) : TurnContext {
     private var revoked = false
 
@@ -160,9 +162,9 @@ private data class Read(val entry: RelayEntry?)
 class SerialConsumer(
     private val mailbox: Mailbox,
     private val runner: TurnRunner,
-    private val submit: (FinishedStep) -> Unit,
-    private val report: (ConsumerEvent) -> List<Action>,
-    private val finalize: (Message.Drain) -> List<Action>,
+    private val submit: Submit,
+    private val report: Report<ConsumerEvent>,
+    private val finalize: Report<Message.Drain>,
     private val policies: List<InputPolicy> = emptyList(),
     private val relay: RelayRead? = null,
     private val recallSource: SourceName = SourceName("relay"),

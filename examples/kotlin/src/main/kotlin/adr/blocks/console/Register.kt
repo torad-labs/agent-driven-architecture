@@ -14,6 +14,7 @@ import adr.contract.ConsoleResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
 import adr.spine.pure.PanelId
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
@@ -23,7 +24,7 @@ class ConsoleBlock : Block<ConsoleSlice, ConsoleResult, ConsoleView> {
     private val armImpl = ConsoleArm()
     private val projection = ConsoleProjection()
 
-    fun <S> register(lens: (S) -> ConsoleSlice): BlockRegistration<S> =
+    fun <S> register(lens: Lens<S, ConsoleSlice>): BlockRegistration<S> =
         BlockRegistration(block = "console", verbs = ConsoleTools(lens).verbs())
 
     override fun arm(

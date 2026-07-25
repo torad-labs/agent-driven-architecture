@@ -39,6 +39,16 @@ import adr.spine.pure.Registry
 import adr.spine.pure.Signature
 import adr.spine.pure.StagedInput
 
+/**
+ * The one channel a finished step travels — the turn's ONLY way into the fold.
+ *
+ * A NAMED seam, not a raw `(FinishedStep) -> Unit`. It lives here rather than in
+ * spine/pure because its payload does, and pure may not import the boundary (C1).
+ */
+fun interface Submit {
+    operator fun invoke(step: FinishedStep)
+}
+
 /** One finished step, from either path: the agent loop or the human surface. */
 data class FinishedStep(
     val by: Actor,

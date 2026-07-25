@@ -33,7 +33,15 @@ data class ArmOut<S>(
 )
 
 /** The pure decision the boundary injects into itself: (state, results, now, sig) -> (state, effects). */
-typealias Fold<S> = (S, List<ToolResult>, Timestamp, Signature) -> Pair<S, List<Effect>>
+fun interface Fold<S> {
+    /** The pure decision the boundary injects into itself. The ONLY decider in the system. */
+    operator fun invoke(
+        state: S,
+        results: List<ToolResult>,
+        now: Timestamp,
+        sig: Signature,
+    ): Pair<S, List<Effect>>
+}
 
 /**
  * The THIRD pure projection (F4/G15): committed State + this step's ORDERED staged
@@ -41,7 +49,10 @@ typealias Fold<S> = (S, List<ToolResult>, Timestamp, Signature) -> Pair<S, List<
  * "in their staging order, keyed to the consuming step" — a step may consume a
  * perceived event AND a recall from a peer tier.
  */
-typealias ProjectContext<S> = (S, List<StagedInput>) -> Context
+fun interface ProjectContext<S> {
+    /** Committed State + this step's ORDERED staged inputs -> Context. */
+    operator fun invoke(state: S, staged: List<StagedInput>): Context
+}
 
 /**
  * The spine's OWN two fold arms — the ones every app folds identically (§7), for the

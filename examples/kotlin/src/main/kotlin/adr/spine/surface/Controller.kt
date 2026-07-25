@@ -9,12 +9,14 @@
 package adr.spine.surface
 
 import adr.spine.boundary.FinishedStep
+import adr.spine.boundary.Submit
 import adr.spine.pure.Action
 import adr.spine.pure.Actor
+import adr.spine.pure.Source
 
 class Controller<V>(
-    private val viewOf: () -> V,
-    private val submit: (FinishedStep) -> Unit,
+    private val viewOf: Source<V>,
+    private val submit: Submit,
 ) {
     /** The one immutable value the surface renders. Every flag is already decided. */
     val view: V get() = viewOf()
