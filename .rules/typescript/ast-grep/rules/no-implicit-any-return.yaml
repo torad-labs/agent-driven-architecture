@@ -15,5 +15,12 @@ rule:
   has:
     kind: function_declaration
     not:
+        # A TYPE PREDICATE (`r is AnalysisResult`) and an ASSERTION SIGNATURE
+        # (`asserts x is T`) are return types — they are just not `type_annotation`
+        # nodes. Without them this rule flagged all 7 type-guard exports in
+        # examples/typescript, every one of which is explicitly typed.
       has:
-        kind: type_annotation
+        any:
+          - kind: type_annotation
+          - kind: type_predicate_annotation
+          - kind: asserts_annotation

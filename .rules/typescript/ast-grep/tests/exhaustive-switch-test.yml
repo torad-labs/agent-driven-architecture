@@ -1,0 +1,34 @@
+id: exhaustive-switch
+valid:
+  # REGRESSION: the guard inside a BLOCK, which is where it normally lives. `has` reads
+  # direct children, so without stopBy the nested form was invisible and all 34 hits in
+  # examples/typescript were switches that already carried the check.
+  - |
+    function guarded(r: R): string {
+      switch (r.tool) {
+        case "a": return "a";
+        default: {
+          const _never: never = r;
+          throw new Error(String(_never));
+        }
+      }
+    }
+  # The un-blocked form, and any identifier name.
+  - |
+    function inlineGuard(r: R): string {
+      switch (r.tool) {
+        case "a": return "a";
+        default:
+          const _exhaustive: never = r;
+          throw new Error("nope");
+      }
+    }
+invalid:
+  - |
+    function unguarded(r: R): string {
+      switch (r.tool) {
+        case "a": return "a";
+        default:
+          throw new Error("unhandled");
+      }
+    }

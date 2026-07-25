@@ -1,0 +1,9 @@
+id: no-module-state
+snapshots:
+  ? |
+    let realModuleState = 0;
+  : labels:
+    - source: let realModuleState = 0;
+      style: primary
+      start: 0
+      end: 24
