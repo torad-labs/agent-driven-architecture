@@ -7,7 +7,7 @@ package adr.spine
 
 import adr.app.RunAuthority
 import adr.app.World
-import adr.app.foldApp
+import adr.app.Assembly
 import adr.app.Env
 import adr.app.Wiring
 import adr.blocks.triage.Priority
@@ -66,7 +66,7 @@ class BoundaryTest {
 
         // Re-fold from NOTHING BUT the committed bytes: no clock is available here.
         // The fold is the replay host's constructor state; the timeline is the argument.
-        val (_, effects2) = Replay(::foldApp).refold(app.initial, app.bus.records())
+        val (_, effects2) = Replay(Assembly()::fold).refold(app.initial, app.bus.records())
 
         assertEquals(liveStamps, effects2.map { it.effect.at }, "measured OLD: live at:1001 -> re-folded at:0")
         assertEquals(liveEffects, effects2, "…and the keys round-trip with them")

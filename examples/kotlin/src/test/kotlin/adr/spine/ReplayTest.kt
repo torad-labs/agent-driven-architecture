@@ -12,9 +12,8 @@ package adr.spine
 
 import adr.app.RunAuthority
 import adr.app.World
-import adr.app.foldApp
+import adr.app.Assembly
 import adr.app.Env
-import adr.app.projectContextApp
 import adr.app.Wiring
 import adr.driveCanonicalSession
 import adr.spine.boundary.MovingClock
@@ -45,7 +44,7 @@ class ReplayTest {
         val liveState = app.state
         val liveEffects = app.performed.toList()
 
-        val (state2, effects2) = Replay(::foldApp).refold(app.initial, app.bus.records())
+        val (state2, effects2) = Replay(Assembly()::fold).refold(app.initial, app.bus.records())
 
         assertEquals(liveState, state2, "state re-derives from the committed bytes")
         assertEquals(liveEffects, effects2, "so does the full effect sequence — keys AND timestamps")
@@ -56,8 +55,8 @@ class ReplayTest {
         // three app-constant values are what the harness is BUILT with; the timeline and
         // the live run it is measured against are what it is CALLED with.
         ReplayFaithfulness(
-            fold = ::foldApp,
-            projectContext = ::projectContextApp,
+            fold = Assembly()::fold,
+            projectContext = Assembly()::context,
             promptVersion = "triage-prompt@1",
         ).assertFaithful(
             initial = app.initial,
@@ -82,7 +81,7 @@ class ReplayTest {
 
         // Drive the SAME sink chain the live run used — including the real adapters.
         val replaySink = RecordingSink(adr.app.AppSink(world.oncall, world.delivery, world.relay, mutableListOf()))
-        Replay(::foldApp).collectPerform(app.initial, app.bus.records(), replaySink, PerformMode.REPLAY)
+        Replay(Assembly()::fold).collectPerform(app.initial, app.bus.records(), replaySink, PerformMode.REPLAY)
 
         assertEquals(liveEffects, replaySink.performed, "descriptors collected…")
         assertEquals(pagesAfterLive, world.pages.size, "…and nothing fired")
@@ -97,7 +96,7 @@ class ReplayTest {
 
         // Drop one committed step: the re-fold must no longer match the live run.
         val truncated = app.bus.records().dropLast(1)
-        val (state2, _) = Replay(::foldApp).refold(app.initial, truncated)
+        val (state2, _) = Replay(Assembly()::fold).refold(app.initial, truncated)
         assertTrue(state2 != app.state, "a harness that cannot fail is not a harness")
     }
 }

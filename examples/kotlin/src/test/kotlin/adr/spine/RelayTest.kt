@@ -27,9 +27,8 @@ import adr.app.DEEP_TIER
 import adr.app.FAST_TIER
 import adr.app.State
 import adr.app.World
-import adr.app.foldApp
+import adr.app.Assembly
 import adr.app.Env
-import adr.app.projectContextApp
 import adr.app.Wiring
 import adr.blocks.analysis.PUBLISH_ANALYSIS
 import adr.blocks.analysis.RECALL_ANALYSIS
@@ -127,7 +126,7 @@ class RelayTest {
         assertEquals("actually it is gateway C", relay.published().last().text)
 
         val records = tier.app.bus.records()
-        val replayed = Replay(::foldApp).refold(tier.app.initial, records)
+        val replayed = Replay(Assembly()::fold).refold(tier.app.initial, records)
 
         assertEquals(
             Recall.Fresh("refunds spike on gateway B", Timestamp(500)),
@@ -142,8 +141,8 @@ class RelayTest {
         // that are constant for this app, then CALLED twice below — so the only thing
         // that differs between the passing run and the failing one is the timeline.
         val faithfulness = ReplayFaithfulness(
-            fold = ::foldApp,
-            projectContext = ::projectContextApp,
+            fold = Assembly()::fold,
+            projectContext = Assembly()::context,
             promptVersion = "triage-prompt@1",
         )
         faithfulness.assertFaithful(

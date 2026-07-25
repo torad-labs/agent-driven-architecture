@@ -10,7 +10,7 @@ package adr.spine
 
 import adr.app.RunAuthority
 import adr.app.World
-import adr.app.foldApp
+import adr.app.Assembly
 import adr.app.Env
 import adr.app.Wiring
 import adr.blocks.escalation.CONFIRM_ESCALATION
@@ -40,7 +40,7 @@ class RecoveryTest {
         val sink = DedupingSink()
         // ONE replay host, driven twice: the fold it holds is the same both times, so
         // what differs between the two drives is nothing at all — which is the point.
-        val replay = Replay(::foldApp)
+        val replay = Replay(Assembly()::fold)
         replay.collectPerform(app.initial, app.bus.records(), sink, PerformMode.RECOVERY)
         replay.collectPerform(app.initial, app.bus.records(), sink, PerformMode.RECOVERY)
 

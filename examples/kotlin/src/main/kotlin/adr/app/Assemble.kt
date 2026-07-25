@@ -13,7 +13,7 @@
 // THE BLOCKS ARE CONSTRUCTED HERE, per call. A block used to be a loose `object`, so
 // there was nothing to build and nothing that could be built in a test; now each
 // dispatcher stands its blocks up itself. The three signatures are UNCHANGED on
-// purpose — `::foldApp` and `::projectContextApp` are passed to the Boundary against
+// purpose — `Assembly()::fold` and `Assembly()::context` are passed to the Boundary against
 // `typealias Fold<S>` and `ProjectContext<S>`, and an extra parameter here would break
 // nine call sites. When these three dispatchers become a class in their own right, the
 // locals below hoist to constructor state with no other rework.
@@ -25,6 +25,7 @@ import adr.blocks.artifact.ArtifactBlock
 import adr.blocks.console.ConsoleBlock
 import adr.blocks.escalation.EscalationBlock
 import adr.blocks.inbox.InboxBlock
+import adr.blocks.triage.Ticket
 import adr.blocks.triage.TriageBlock
 import adr.contract.AnalysisResult
 import adr.contract.ArtifactResult
@@ -37,108 +38,133 @@ import adr.contract.TriageResult
 import adr.spine.pure.Context
 import adr.spine.pure.MAX_CONTEXT_NOTICES
 import adr.spine.pure.Notice
+import adr.spine.pure.PanelId
 import adr.spine.pure.Signature
-import adr.spine.pure.StagedInput
-import adr.spine.pure.Timestamp
-import adr.spine.pure.SpineProjection
 import adr.spine.pure.SpineArms
-
-fun foldApp(
-    state: State,
-    results: List<ToolResult>,
-    now: Timestamp,
-    sig: Signature,
-): Pair<State, List<Effect>> {
-    val triage = TriageBlock()
-    val escalation = EscalationBlock()
-    val console = ConsoleBlock()
-    val artifact = ArtifactBlock()
-    val analysis = AnalysisBlock()
-    val inbox = InboxBlock()
-
-    var s = state
-    val effects = mutableListOf<Effect>()
-    val notices = mutableListOf<Notice>()
-
-    for (result in results) {
-        when (result) {
-            is TriageResult -> triage.arm(s.triage, result, now, sig).let {
-                s = s.copy(triage = it.slice)
-                effects += it.effects
-                notices += it.notices
-            }
-
-            is EscalationResult -> escalation.arm(s.escalation, result, now, sig).let {
-                s = s.copy(escalation = it.slice)
-                effects += it.effects
-                notices += it.notices
-            }
-
-            is ConsoleResult -> console.arm(s.console, result, now, sig).let {
-                s = s.copy(console = it.slice)
-                effects += it.effects
-                notices += it.notices
-            }
-
-            is ArtifactResult -> artifact.arm(s.artifact, result, now, sig).let {
-                s = s.copy(artifact = it.slice)
-                effects += it.effects
-                notices += it.notices
-            }
-
-            is AnalysisResult -> analysis.arm(s.analysis, result, now, sig).let {
-                s = s.copy(analysis = it.slice)
-                effects += it.effects
-                notices += it.notices
-            }
-
-            is InboxResult -> inbox.arm(s.inbox, result, now, sig).let {
-                s = s.copy(inbox = it.slice)
-                effects += it.effects
-                notices += it.notices
-            }
-
-            // The spine's own two arms. Identical everywhere (§7).
-            is ToolResult.Unhandled -> SpineArms().unhandled(s.spine, result, now).let {
-                effects += it.effects
-                notices += it.notices
-            }
-
-            is ToolResult.Refused -> SpineArms().refused(s.spine, result, now).let {
-                effects += it.effects
-                notices += it.notices
-            }
-        }
-    }
-
-    // Per-item notices land in the spine's slice. RunStatus is NEVER touched here (F9).
-    return s.copy(spine = s.spine.withNotices(notices)) to effects.toList()
-}
-
-fun projectApp(state: State): AppView = AppView(
-    root = SpineProjection().view(state.spine),
-    triage = TriageBlock().view(state.triage),
-    escalation = EscalationBlock().view(state.escalation),
-    console = ConsoleBlock().view(state.console),
-    artifact = ArtifactBlock().view(state.artifact),
-    analysis = AnalysisBlock().view(state.analysis),
-    inbox = InboxBlock().view(state.inbox),
-)
+import adr.spine.pure.SpineProjection
+import adr.spine.pure.StagedInput
+import adr.spine.pure.TicketId
+import adr.spine.pure.Timestamp
 
 /**
- * The THIRD pure projection (G15). Recomputed from committed State every step, never
- * appended to, and bounded by declared constants — so |Context| is O(1) in timeline
- * length. The artifact contributes a COUNT, never its lines.
+ * THE APP'S OWN THREE ROLES, on one constructed type — the app-level counterparts of a
+ * block's arm/view/contextLines, composing the six blocks into one fold and two
+ * projections.
+ *
+ * These were top-level so that `Assembly()::fold` and `Assembly()::context` could be handed to
+ * the Boundary as `Fold<S>` / `ProjectContext<S>`. A bound member reference —
+ * `Assembly()::fold` — has exactly that type, so nothing about the seam needed the
+ * functions to be loose; only the habit did.
  */
-fun projectContextApp(state: State, staged: List<StagedInput>): Context = Context(
-    staged = staged,
-    lines = TriageBlock().contextLines(state.triage) +
-        EscalationBlock().contextLines(state.escalation) +
-        ConsoleBlock().contextLines(state.console) +
-        AnalysisBlock().contextLines(state.analysis) +
-        InboxBlock().contextLines(state.inbox),
-    notices = state.spine.notices
-        .takeLast(MAX_CONTEXT_NOTICES)
-        .map { "${it.tool.value}: ${it.reason}" },
-    artifactLineCount = ArtifactBlock().lineCount(state.artifact),
-)
+class Assembly {
+
+    fun fold(
+        state: State,
+        results: List<ToolResult>,
+        now: Timestamp,
+        sig: Signature,
+    ): Pair<State, List<Effect>> {
+        val triage = TriageBlock()
+        val escalation = EscalationBlock()
+        val console = ConsoleBlock()
+        val artifact = ArtifactBlock()
+        val analysis = AnalysisBlock()
+        val inbox = InboxBlock()
+
+        var s = state
+        val effects = mutableListOf<Effect>()
+        val notices = mutableListOf<Notice>()
+
+        for (result in results) {
+            when (result) {
+                is TriageResult -> triage.arm(s.triage, result, now, sig).let {
+                    s = s.copy(triage = it.slice)
+                    effects += it.effects
+                    notices += it.notices
+                }
+
+                is EscalationResult -> escalation.arm(s.escalation, result, now, sig).let {
+                    s = s.copy(escalation = it.slice)
+                    effects += it.effects
+                    notices += it.notices
+                }
+
+                is ConsoleResult -> console.arm(s.console, result, now, sig).let {
+                    s = s.copy(console = it.slice)
+                    effects += it.effects
+                    notices += it.notices
+                }
+
+                is ArtifactResult -> artifact.arm(s.artifact, result, now, sig).let {
+                    s = s.copy(artifact = it.slice)
+                    effects += it.effects
+                    notices += it.notices
+                }
+
+                is AnalysisResult -> analysis.arm(s.analysis, result, now, sig).let {
+                    s = s.copy(analysis = it.slice)
+                    effects += it.effects
+                    notices += it.notices
+                }
+
+                is InboxResult -> inbox.arm(s.inbox, result, now, sig).let {
+                    s = s.copy(inbox = it.slice)
+                    effects += it.effects
+                    notices += it.notices
+                }
+
+                // The spine's own two arms. Identical everywhere (§7).
+                is ToolResult.Unhandled -> SpineArms().unhandled(s.spine, result, now).let {
+                    effects += it.effects
+                    notices += it.notices
+                }
+
+                is ToolResult.Refused -> SpineArms().refused(s.spine, result, now).let {
+                    effects += it.effects
+                    notices += it.notices
+                }
+            }
+        }
+
+        // Per-item notices land in the spine's slice. RunStatus is NEVER touched here (F9).
+        return s.copy(spine = s.spine.withNotices(notices)) to effects.toList()
+    }
+
+    fun view(state: State): AppView = AppView(
+        root = SpineProjection().view(state.spine),
+        triage = TriageBlock().view(state.triage),
+        escalation = EscalationBlock().view(state.escalation),
+        console = ConsoleBlock().view(state.console),
+        artifact = ArtifactBlock().view(state.artifact),
+        analysis = AnalysisBlock().view(state.analysis),
+        inbox = InboxBlock().view(state.inbox),
+    )
+
+    /**
+     * The THIRD pure projection (G15). Recomputed from committed State every step, never
+     * appended to, and bounded by declared constants — so |Context| is O(1) in timeline
+     * length. The artifact contributes a COUNT, never its lines.
+     */
+    fun context(state: State, staged: List<StagedInput>): Context = Context(
+        staged = staged,
+        lines = TriageBlock().contextLines(state.triage) +
+            EscalationBlock().contextLines(state.escalation) +
+            ConsoleBlock().contextLines(state.console) +
+            AnalysisBlock().contextLines(state.analysis) +
+            InboxBlock().contextLines(state.inbox),
+        notices = state.spine.notices
+            .takeLast(MAX_CONTEXT_NOTICES)
+            .map { "${it.tool.value}: ${it.reason}" },
+        artifactLineCount = ArtifactBlock().lineCount(state.artifact),
+    )
+
+    /** Only the blocks that start non-empty are seeded; the rest take their own defaults. */
+    fun initialState(
+        tickets: List<Ticket> = emptyList(),
+        panels: List<PanelId> = listOf(PanelId("queue"), PanelId("detail"), PanelId("audit")),
+    ): State = State(
+        triage = TriageBlock().slice(tickets),
+        escalation = EscalationBlock().slice(tickets.map { it.id }),
+        console = ConsoleBlock().slice(panels),
+    )
+}
