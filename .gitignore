@@ -8,6 +8,9 @@ node_modules/
 __pycache__/
 *.pyc
 
+# transient per-agent worktrees created by workflow runs
+.claude/worktrees/
+
 # the F10 negative-compilation proof's scratch copy of src/ (deleted on success)
 examples/typescript/test/gate/.work/
 

@@ -19,9 +19,8 @@ import adr.app.wireApp
 import adr.driveCanonicalSession
 import adr.spine.boundary.MovingClock
 import adr.spine.boundary.RecordingSink
-import adr.spine.replay.assertReplayFaithful
-import adr.spine.replay.collectPerform
-import adr.spine.replay.refold
+import adr.spine.replay.Replay
+import adr.spine.replay.ReplayFaithfulness
 import adr.spine.pure.PerformMode
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -46,22 +45,25 @@ class ReplayTest {
         val liveState = app.state
         val liveEffects = app.performed.toList()
 
-        val (state2, effects2) = refold(app.initial, app.bus.records(), ::foldApp)
+        val (state2, effects2) = Replay(::foldApp).refold(app.initial, app.bus.records())
 
         assertEquals(liveState, state2, "state re-derives from the committed bytes")
         assertEquals(liveEffects, effects2, "so does the full effect sequence — keys AND timestamps")
         assertTrue(liveEffects.isNotEmpty())
 
         // And the digest check: a change to projectContext that silently alters what the
-        // model saw fails the golden trace, WITHOUT re-running the model (F4/§5.3).
-        assertReplayFaithful(
+        // model saw fails the golden trace, WITHOUT re-running the model (F4/§5.3). The
+        // three app-constant values are what the harness is BUILT with; the timeline and
+        // the live run it is measured against are what it is CALLED with.
+        ReplayFaithfulness(
+            fold = ::foldApp,
+            projectContext = ::projectContextApp,
+            promptVersion = "triage-prompt@1",
+        ).assertFaithful(
             initial = app.initial,
             records = app.bus.records(),
             liveState = liveState,
             liveEffects = liveEffects,
-            fold = ::foldApp,
-            projectContext = ::projectContextApp,
-            promptVersion = "triage-prompt@1",
         )
     }
 
@@ -80,7 +82,7 @@ class ReplayTest {
 
         // Drive the SAME sink chain the live run used — including the real adapters.
         val replaySink = RecordingSink(adr.app.AppSink(world.oncall, world.delivery, world.relay, mutableListOf()))
-        collectPerform(app.initial, app.bus.records(), replaySink, PerformMode.REPLAY, ::foldApp)
+        Replay(::foldApp).collectPerform(app.initial, app.bus.records(), replaySink, PerformMode.REPLAY)
 
         assertEquals(liveEffects, replaySink.performed, "descriptors collected…")
         assertEquals(pagesAfterLive, world.pages.size, "…and nothing fired")
@@ -95,7 +97,7 @@ class ReplayTest {
 
         // Drop one committed step: the re-fold must no longer match the live run.
         val truncated = app.bus.records().dropLast(1)
-        val (state2, _) = refold(app.initial, truncated, ::foldApp)
+        val (state2, _) = Replay(::foldApp).refold(app.initial, truncated)
         assertTrue(state2 != app.state, "a harness that cannot fail is not a harness")
     }
 }

@@ -22,7 +22,7 @@ import adr.driveCanonicalSession
 import adr.human
 import adr.spine.boundary.DedupingSink
 import adr.spine.pure.PerformMode
-import adr.spine.replay.collectPerform
+import adr.spine.replay.Replay
 import adr.under
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -38,8 +38,11 @@ class RecoveryTest {
         app.driveCanonicalSession(authority)
 
         val sink = DedupingSink()
-        collectPerform(app.initial, app.bus.records(), sink, PerformMode.RECOVERY, ::foldApp)
-        collectPerform(app.initial, app.bus.records(), sink, PerformMode.RECOVERY, ::foldApp)
+        // ONE replay host, driven twice: the fold it holds is the same both times, so
+        // what differs between the two drives is nothing at all — which is the point.
+        val replay = Replay(::foldApp)
+        replay.collectPerform(app.initial, app.bus.records(), sink, PerformMode.RECOVERY)
+        replay.collectPerform(app.initial, app.bus.records(), sink, PerformMode.RECOVERY)
 
         assertEquals(1, sink.fired.count { it is EscalationEffect.PageOncall })
         assertEquals(1, sink.fired.count { it is ArtifactEffect.DeliverArtifact })
