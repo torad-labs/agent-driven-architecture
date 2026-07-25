@@ -12,37 +12,40 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
-fun consoleArm(
-    slice: ConsoleSlice,
-    result: ConsoleResult,
-    now: Timestamp,
-    sig: Signature,
-): ArmOut<ConsoleSlice> = when (result) {
-    is ConsoleResult.FocusTicket ->
-        if (slice.focused == result.ticket) {
-            ArmOut(
-                slice = slice,
-                notices = listOf(
-                    Notice.Rejected(
-                        now,
-                        result.tool,
-                        "ticket ${result.ticket.value} is already focused",
-                    ),
-                ),
-            )
-        } else {
-            ArmOut(slice = slice.withFocus(result.ticket))
-        }
+class ConsoleArm {
 
-    is ConsoleResult.SetPanel ->
-        if (!slice.panels.containsKey(result.panel)) {
-            ArmOut(
-                slice = slice,
-                notices = listOf(
-                    Notice.Rejected(now, result.tool, "no panel named ${result.panel.value}"),
-                ),
-            )
-        } else {
-            ArmOut(slice = slice.withPanel(result.panel, result.visible))
-        }
+    fun arm(
+        slice: ConsoleSlice,
+        result: ConsoleResult,
+        now: Timestamp,
+        sig: Signature,
+    ): ArmOut<ConsoleSlice> = when (result) {
+        is ConsoleResult.FocusTicket ->
+            if (slice.focused == result.ticket) {
+                ArmOut(
+                    slice = slice,
+                    notices = listOf(
+                        Notice.Rejected(
+                            now,
+                            result.tool,
+                            "ticket ${result.ticket.value} is already focused",
+                        ),
+                    ),
+                )
+            } else {
+                ArmOut(slice = slice.withFocus(result.ticket))
+            }
+
+        is ConsoleResult.SetPanel ->
+            if (!slice.panels.containsKey(result.panel)) {
+                ArmOut(
+                    slice = slice,
+                    notices = listOf(
+                        Notice.Rejected(now, result.tool, "no panel named ${result.panel.value}"),
+                    ),
+                )
+            } else {
+                ArmOut(slice = slice.withPanel(result.panel, result.visible))
+            }
+    }
 }

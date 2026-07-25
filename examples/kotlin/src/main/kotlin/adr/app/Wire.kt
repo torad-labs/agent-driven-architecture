@@ -9,22 +9,22 @@
 
 package adr.app
 
-import adr.blocks.analysis.Analysis
+import adr.blocks.analysis.AnalysisBlock
 import adr.blocks.analysis.AnalysisRelay
 import adr.blocks.analysis.LiveRelayWriter
-import adr.blocks.artifact.Artifact
+import adr.blocks.artifact.ArtifactBlock
 import adr.blocks.artifact.DeliveryPort
 import adr.blocks.artifact.LiveDelivery
 import adr.blocks.artifact.REQUEST_SEAL
-import adr.blocks.console.Console
-import adr.blocks.escalation.Escalation
+import adr.blocks.console.ConsoleBlock
+import adr.blocks.escalation.EscalationBlock
 import adr.blocks.escalation.LivePager
 import adr.blocks.escalation.OncallPort
-import adr.blocks.inbox.Inbox
+import adr.blocks.inbox.InboxBlock
 import adr.blocks.inbox.NOTE_DROP
 import adr.blocks.inbox.NOTE_FAULT
 import adr.blocks.triage.Ticket
-import adr.blocks.triage.Triage
+import adr.blocks.triage.TriageBlock
 import adr.contract.AnalysisEffect
 import adr.contract.ArtifactEffect
 import adr.contract.Effect
@@ -240,20 +240,24 @@ class App(
 }
 
 /**
- * I2/I7: the six registrations. Each block is handed a LENS onto its own slice, so it
- * never has to know what else is in State (L1).
+ * I2/I7: the six registrations. Each block is CONSTRUCTED here and handed a LENS onto
+ * its own slice, so it never has to know what else is in State (L1).
+ *
+ * This is the composition root doing what a composition root is for. A block used to be
+ * a loose `object` that existed whether or not anyone wired it; now the root builds each
+ * one, and a block nobody constructs is a block that is not in the system.
  *
  * Declared as `get()` rather than a stored property so no top-level initialisation
- * order exists to reason about — the same idiom every block's `initial` uses.
+ * order exists to reason about — the same idiom every slice's `empty` uses.
  */
 val ALL_BLOCKS: List<BlockRegistration<State>>
     get() = listOf(
-        Triage.register { it.triage },
-        Escalation.register { it.escalation },
-        Console.register { it.console },
-        Artifact.register { it.artifact },
-        Analysis.register { it.analysis },
-        Inbox.register { it.inbox },
+        TriageBlock().register { it.triage },
+        EscalationBlock().register { it.escalation },
+        ConsoleBlock().register { it.console },
+        ArtifactBlock().register { it.artifact },
+        AnalysisBlock().register { it.analysis },
+        InboxBlock().register { it.inbox },
     )
 
 /**
@@ -264,19 +268,19 @@ val ALL_BLOCKS: List<BlockRegistration<State>>
  */
 val FAST_TIER: List<BlockRegistration<State>>
     get() = listOf(
-        Triage.register { it.triage },
-        Escalation.register { it.escalation },
-        Console.register { it.console },
-        Artifact.register { it.artifact },
-        Analysis.registerFast { it.analysis },
-        Inbox.register { it.inbox },
+        TriageBlock().register { it.triage },
+        EscalationBlock().register { it.escalation },
+        ConsoleBlock().register { it.console },
+        ArtifactBlock().register { it.artifact },
+        AnalysisBlock().registerFast { it.analysis },
+        InboxBlock().register { it.inbox },
     )
 
 /** The DEEP tier does one job: think slowly, and publish what it concluded. */
 val DEEP_TIER: List<BlockRegistration<State>>
     get() = listOf(
-        Analysis.registerDeep { it.analysis },
-        Inbox.register { it.inbox },
+        AnalysisBlock().registerDeep { it.analysis },
+        InboxBlock().register { it.inbox },
     )
 
 fun wireApp(env: Env): App {

@@ -21,14 +21,17 @@ data class InboxView(
     val faults: List<String>,
 )
 
-fun inboxView(slice: InboxSlice): InboxView = InboxView(
-    conflated = slice.conflated.map { (source, count) -> "${source.value}: $count conflated" },
-    duplicates = slice.duplicates.map { (source, count) -> "${source.value}: $count duplicate" },
-    faults = slice.faults,
-)
+class InboxProjection {
 
-fun inboxContextLines(slice: InboxSlice): List<String> = (
-    slice.conflated.map { (source, count) -> "$count input(s) conflated from ${source.value}" } +
-        slice.duplicates.map { (source, count) -> "$count duplicate input(s) from ${source.value}" } +
-        slice.faults.map { "turn failed: $it" }
-    ).takeLast(MAX_CONTEXT_LINES_PER_BLOCK)
+    fun view(slice: InboxSlice): InboxView = InboxView(
+        conflated = slice.conflated.map { (source, count) -> "${source.value}: $count conflated" },
+        duplicates = slice.duplicates.map { (source, count) -> "${source.value}: $count duplicate" },
+        faults = slice.faults,
+    )
+
+    fun contextLines(slice: InboxSlice): List<String> = (
+        slice.conflated.map { (source, count) -> "$count input(s) conflated from ${source.value}" } +
+            slice.duplicates.map { (source, count) -> "$count duplicate input(s) from ${source.value}" } +
+            slice.faults.map { "turn failed: $it" }
+        ).takeLast(MAX_CONTEXT_LINES_PER_BLOCK)
+}

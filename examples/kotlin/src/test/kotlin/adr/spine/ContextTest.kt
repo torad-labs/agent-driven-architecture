@@ -10,7 +10,7 @@ import adr.app.projectContextApp
 import adr.app.wireApp
 import adr.blocks.triage.SET_PRIORITY
 import adr.blocks.triage.Ticket
-import adr.blocks.triage.Triage
+import adr.blocks.triage.TriageBlock
 import adr.human
 import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.MAX_CONTEXT_NOTICES
@@ -62,7 +62,7 @@ class ContextTest {
 
         val context = projectContextApp(noisy, emptyList())
 
-        assertEquals(MAX_CONTEXT_LINES_PER_BLOCK, Triage.contextLines(noisy.triage).size)
+        assertEquals(MAX_CONTEXT_LINES_PER_BLOCK, TriageBlock().contextLines(noisy.triage).size)
         assertEquals(MAX_CONTEXT_NOTICES, context.notices.size)
         assertTrue(context.lines.size <= CONTEXT_LINE_BLOCKS * MAX_CONTEXT_LINES_PER_BLOCK)
         // The artifact contributes a COUNT, never content — a long session cannot inflate it.

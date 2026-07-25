@@ -9,8 +9,9 @@ import adr.app.RunAuthority
 import adr.app.World
 import adr.app.offlineEnv
 import adr.app.wireApp
-import adr.blocks.artifact.Artifact
+import adr.blocks.artifact.ArtifactBlock
 import adr.blocks.artifact.ArtifactLine
+import adr.blocks.artifact.ArtifactSlice
 import adr.blocks.artifact.CONFIRM_SEAL
 import adr.blocks.artifact.RECORD_FINDING
 import adr.blocks.artifact.REQUEST_SEAL
@@ -34,10 +35,13 @@ class ArtifactBlockTest {
     private val author = Signature(Actor.Agent, Authority("agent-run-7f"))
     private val confirmer = Signature(Actor.Human, Authority("host:marcos"))
 
+    /** The block is CONSTRUCTED here — no root, no registry, no boundary (G13). */
+    private val block = ArtifactBlock()
+
     @Test
     fun `a finding is FOLDED as a line - no effect is performed`() {
-        val out = Artifact.arm(
-            Artifact.initial,
+        val out = block.arm(
+            ArtifactSlice.empty,
             ArtifactResult.RecordFinding(RECORD_FINDING, "refund never issued"),
             now,
             author,
@@ -49,16 +53,16 @@ class ArtifactBlockTest {
 
     @Test
     fun `delivery is ONE irreversible effect at seal time`() {
-        val drafted = Artifact.arm(
-            Artifact.initial,
+        val drafted = block.arm(
+            ArtifactSlice.empty,
             ArtifactResult.RecordFinding(RECORD_FINDING, "first"),
             now,
             author,
         ).slice
-        val sealing = Artifact.arm(drafted, ArtifactResult.RequestSeal(REQUEST_SEAL), now, author).slice
+        val sealing = block.arm(drafted, ArtifactResult.RequestSeal(REQUEST_SEAL), now, author).slice
         assertIs<SealStatus.Sealing>(sealing.seal)
 
-        val sealed = Artifact.arm(sealing, ArtifactResult.ConfirmSeal(CONFIRM_SEAL), now, confirmer)
+        val sealed = block.arm(sealing, ArtifactResult.ConfirmSeal(CONFIRM_SEAL), now, confirmer)
 
         assertIs<SealStatus.Sealed>(sealed.slice.seal)
         assertEquals(
@@ -69,9 +73,9 @@ class ArtifactBlockTest {
 
     @Test
     fun `a confirm with no requested seal mutates nothing and delivers nothing`() {
-        val out = Artifact.arm(Artifact.initial, ArtifactResult.ConfirmSeal(CONFIRM_SEAL), now, confirmer)
+        val out = block.arm(ArtifactSlice.empty, ArtifactResult.ConfirmSeal(CONFIRM_SEAL), now, confirmer)
 
-        assertEquals(Artifact.initial, out.slice)
+        assertEquals(ArtifactSlice.empty, out.slice)
         assertTrue(out.effects.isEmpty())
         assertEquals("no seal has been requested", out.notices.single().reason)
     }

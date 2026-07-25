@@ -4,11 +4,12 @@
 
 package adr.blocks
 
-import adr.blocks.console.Console
+import adr.blocks.console.ConsoleBlock
+import adr.blocks.console.ConsoleProjection
+import adr.blocks.console.ConsoleSlice
 import adr.blocks.console.FOCUS_TICKET
 import adr.blocks.console.SET_PANEL
 import adr.blocks.console.ViewState
-import adr.blocks.console.consoleView
 import adr.contract.ConsoleResult
 import adr.spine.pure.Actor
 import adr.spine.pure.Authority
@@ -26,18 +27,21 @@ class ConsoleBlockTest {
 
     private val now = Timestamp(9)
     private val sig = Signature(Actor.Agent, Authority("agent-run-7f"))
-    private val slice = Console.slice(listOf(PanelId("queue"), PanelId("detail")))
+    private val slice = ConsoleSlice.of(listOf(PanelId("queue"), PanelId("detail")))
+
+    /** The block is CONSTRUCTED here — no root, no registry, no boundary (G13). */
+    private val block = ConsoleBlock()
 
     @Test
     fun `a presentation decision FOLDS - it is truth, by 4_6's own test`() {
-        val out = Console.arm(slice, ConsoleResult.FocusTicket(FOCUS_TICKET, TicketId("4118")), now, sig)
+        val out = block.arm(slice, ConsoleResult.FocusTicket(FOCUS_TICKET, TicketId("4118")), now, sig)
         assertEquals(TicketId("4118"), out.slice.focused)
         assertTrue(out.effects.isEmpty(), "a presentation verb changes belief, not the world")
     }
 
     @Test
     fun `a presentation arm reads state and rejects per-item, exactly like a domain arm`() {
-        val out = Console.arm(slice, ConsoleResult.SetPanel(SET_PANEL, PanelId("ghost"), true), now, sig)
+        val out = block.arm(slice, ConsoleResult.SetPanel(SET_PANEL, PanelId("ghost"), true), now, sig)
 
         assertEquals(slice, out.slice)
         assertIs<Notice.Rejected>(out.notices.single())
@@ -46,16 +50,18 @@ class ConsoleBlockTest {
 
     @Test
     fun `setPanel folds the agent's layout decision`() {
-        val out = Console.arm(slice, ConsoleResult.SetPanel(SET_PANEL, PanelId("detail"), true), now, sig)
+        val out = block.arm(slice, ConsoleResult.SetPanel(SET_PANEL, PanelId("detail"), true), now, sig)
         assertEquals(true, out.slice.panels.getValue(PanelId("detail")))
     }
 
     @Test
     fun `EPHEMERAL view-state joins only at the projection, and never travels back`() {
-        val folded = Console.arm(slice, ConsoleResult.FocusTicket(FOCUS_TICKET, TicketId("4118")), now, sig).slice
+        val folded = block.arm(slice, ConsoleResult.FocusTicket(FOCUS_TICKET, TicketId("4118")), now, sig).slice
         val ephemeral = ViewState(hover = TicketId("9999"), scrollOffset = 120, draft = "not submitted")
 
-        val view = consoleView(folded, ephemeral)
+        // The PROJECTION is constructed directly: the ephemeral half is visible only
+        // here, never through the block's own `view(slice)` (gate check C12).
+        val view = ConsoleProjection().view(folded, ephemeral)
 
         assertEquals("4118", view.focused, "folded truth")
         assertEquals("9999", view.hovered, "ephemeral, rendered only")

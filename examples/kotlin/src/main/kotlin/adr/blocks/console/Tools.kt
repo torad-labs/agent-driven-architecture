@@ -22,28 +22,31 @@ data class FocusInput(val ticket: TicketId)
 
 data class PanelInput(val panel: PanelId, val visible: Boolean)
 
-private fun decodeFocus(raw: RawInput): FocusInput? =
-    raw.text("ticket")?.let { FocusInput(TicketId(it)) }
+class ConsoleTools<S>(private val lens: (S) -> ConsoleSlice) {
 
-private fun decodePanel(raw: RawInput): PanelInput? {
-    val panel = raw.text("panel") ?: return null
-    val visible = raw.flag("visible") ?: return null
-    return PanelInput(PanelId(panel), visible)
+    fun verbs(): List<Verb<S, *, *>> = listOf(
+        Verb.Reversible(
+            name = FOCUS_TICKET,
+            describe = "Bring a ticket into focus on the console.",
+            decode = ::decodeFocus,
+            run = { input, _ -> ConsoleResult.FocusTicket(FOCUS_TICKET, input.ticket) },
+            sign = { r, sig, id -> ConsoleCommand.FocusTicket(r.tool, sig, id, r.ticket) },
+        ),
+        Verb.Reversible(
+            name = SET_PANEL,
+            describe = "Show or hide a console panel (queue | detail | audit).",
+            decode = ::decodePanel,
+            run = { input, _ -> ConsoleResult.SetPanel(SET_PANEL, input.panel, input.visible) },
+            sign = { r, sig, id -> ConsoleCommand.SetPanel(r.tool, sig, id, r.panel, r.visible) },
+        ),
+    )
+
+    private fun decodeFocus(raw: RawInput): FocusInput? =
+        raw.text("ticket")?.let { FocusInput(TicketId(it)) }
+
+    private fun decodePanel(raw: RawInput): PanelInput? {
+        val panel = raw.text("panel") ?: return null
+        val visible = raw.flag("visible") ?: return null
+        return PanelInput(PanelId(panel), visible)
+    }
 }
-
-fun <S> consoleVerbs(lens: (S) -> ConsoleSlice): List<Verb<S, *, *>> = listOf(
-    Verb.Reversible(
-        name = FOCUS_TICKET,
-        describe = "Bring a ticket into focus on the console.",
-        decode = ::decodeFocus,
-        run = { input, _ -> ConsoleResult.FocusTicket(FOCUS_TICKET, input.ticket) },
-        sign = { r, sig, id -> ConsoleCommand.FocusTicket(r.tool, sig, id, r.ticket) },
-    ),
-    Verb.Reversible(
-        name = SET_PANEL,
-        describe = "Show or hide a console panel (queue | detail | audit).",
-        decode = ::decodePanel,
-        run = { input, _ -> ConsoleResult.SetPanel(SET_PANEL, input.panel, input.visible) },
-        sign = { r, sig, id -> ConsoleCommand.SetPanel(r.tool, sig, id, r.panel, r.visible) },
-    ),
-)

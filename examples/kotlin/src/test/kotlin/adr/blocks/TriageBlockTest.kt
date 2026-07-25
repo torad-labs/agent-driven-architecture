@@ -11,7 +11,7 @@ package adr.blocks
 import adr.blocks.triage.Priority
 import adr.blocks.triage.SET_PRIORITY
 import adr.blocks.triage.Ticket
-import adr.blocks.triage.Triage
+import adr.blocks.triage.TriageBlock
 import adr.blocks.triage.TriageSlice
 import adr.contract.TriageEffect
 import adr.contract.TriageResult
@@ -30,11 +30,14 @@ class TriageBlockTest {
 
     private val sig = Signature(Actor.Agent, Authority("agent-run-7f"))
     private val now = Timestamp(9)
-    private val slice = Triage.slice(listOf(Ticket(TicketId("4118"), "refund not received")))
+    private val slice = TriageSlice.of(listOf(Ticket(TicketId("4118"), "refund not received")))
+
+    /** The block is CONSTRUCTED here — no root, no registry, no boundary (G13). */
+    private val block = TriageBlock()
 
     @Test
     fun `a known ticket transitions and earns exactly one effect`() {
-        val out = Triage.arm(
+        val out = block.arm(
             slice,
             TriageResult.SetPriority(SET_PRIORITY, TicketId("4118"), Priority.High),
             now,
@@ -51,7 +54,7 @@ class TriageBlockTest {
 
     @Test
     fun `F9 - an unknown ticket mutates nothing, fires nothing, and leaves ONE per-item notice`() {
-        val out = Triage.arm(
+        val out = block.arm(
             slice,
             TriageResult.SetPriority(SET_PRIORITY, TicketId("9999"), Priority.High),
             now,

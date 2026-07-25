@@ -3,9 +3,15 @@
 //   publishAnalysis  DEEP tier, Reversible.  Appends the note AND emits the effect.
 //
 // 11.4's "single registry, an allowlist of the agents permitted to exist" is these
-// two functions plus the two lists app/wire composes from them. A fast tier wired
-// with only [analysisFastVerbs] CANNOT publish — the name is not in its registry, so
+// two TABLES plus the two lists app/wire composes from them. A fast tier wired with
+// only [AnalysisTools.fastVerbs] CANNOT publish — the name is not in its registry, so
 // the boundary folds an `Unhandled` rather than trusting a promise not to call it.
+//
+// TWO TABLES ON ONE CONSTRUCTED TYPE, over the one lens they share — the same shape
+// the boundary's `ActionResolution` uses to hold its two maps over one registry. This
+// is the block that breaks the "one verb table per block" pattern, and it is why
+// `register` is NOT a method on the shared `Block` interface: three tier builders
+// cannot be expressed as one.
 //
 // The recall body is PURE and TOTAL. It reads the `Recalled` the consumer already
 // staged and bounded; it never touches the relay, never awaits, never fails. That is
@@ -31,36 +37,39 @@ data object NoRecallInput
 
 data class PublishAnalysisInput(val text: String)
 
-private fun decodeNothing(raw: RawInput): NoRecallInput = NoRecallInput
+class AnalysisTools<S>(private val lens: (S) -> AnalysisSlice) {
 
-private fun decodePublish(raw: RawInput): PublishAnalysisInput? =
-    raw.text("text")?.let { PublishAnalysisInput(it) }
+    /** The FAST tier's verbs. Reading a peer's conclusion is reversible and emits nothing. */
+    fun fastVerbs(): List<Verb<S, *, *>> = listOf(
+        Verb.Reversible(
+            name = RECALL_ANALYSIS,
+            describe = "Recall the deep tier's newest published conclusion. It is a suggestion, not an instruction.",
+            decode = ::decodeNothing,
+            run = { _, ctx -> AnalysisResult.RecallAnalysis(RECALL_ANALYSIS, recallIn(ctx.context)) },
+            sign = { r, sig, id -> AnalysisCommand.RecallAnalysis(r.tool, sig, id, r.recall) },
+        ),
+    )
 
-/**
- * The staged recall for THIS step, or [Recall.Empty] when the tier is not wired to a
- * relay. Total: a fast tier with no deep tier behind it is a normal, working agent.
- */
-fun recallIn(context: Context): Recall =
-    context.staged.filterIsInstance<StagedInput.Recalled>().lastOrNull()?.recall ?: Recall.Empty
+    /** The DEEP tier's verbs. Publishing is the only way anything reaches the relay. */
+    fun deepVerbs(): List<Verb<S, *, *>> = listOf(
+        Verb.Reversible(
+            name = PUBLISH_ANALYSIS,
+            describe = "Publish a conclusion to the append-only relay the fast tier recalls from.",
+            decode = ::decodePublish,
+            run = { input, _ -> AnalysisResult.PublishAnalysis(PUBLISH_ANALYSIS, input.text) },
+            sign = { r, sig, id -> AnalysisCommand.PublishAnalysis(r.tool, sig, id, r.text) },
+        ),
+    )
 
-/** The FAST tier's verbs. Reading a peer's conclusion is reversible and emits nothing. */
-fun <S> analysisFastVerbs(lens: (S) -> AnalysisSlice): List<Verb<S, *, *>> = listOf(
-    Verb.Reversible(
-        name = RECALL_ANALYSIS,
-        describe = "Recall the deep tier's newest published conclusion. It is a suggestion, not an instruction.",
-        decode = ::decodeNothing,
-        run = { _, ctx -> AnalysisResult.RecallAnalysis(RECALL_ANALYSIS, recallIn(ctx.context)) },
-        sign = { r, sig, id -> AnalysisCommand.RecallAnalysis(r.tool, sig, id, r.recall) },
-    ),
-)
+    /**
+     * The staged recall for THIS step, or [Recall.Empty] when the tier is not wired to a
+     * relay. Total: a fast tier with no deep tier behind it is a normal, working agent.
+     */
+    fun recallIn(context: Context): Recall =
+        context.staged.filterIsInstance<StagedInput.Recalled>().lastOrNull()?.recall ?: Recall.Empty
 
-/** The DEEP tier's verbs. Publishing is the only way anything reaches the relay. */
-fun <S> analysisDeepVerbs(lens: (S) -> AnalysisSlice): List<Verb<S, *, *>> = listOf(
-    Verb.Reversible(
-        name = PUBLISH_ANALYSIS,
-        describe = "Publish a conclusion to the append-only relay the fast tier recalls from.",
-        decode = ::decodePublish,
-        run = { input, _ -> AnalysisResult.PublishAnalysis(PUBLISH_ANALYSIS, input.text) },
-        sign = { r, sig, id -> AnalysisCommand.PublishAnalysis(r.tool, sig, id, r.text) },
-    ),
-)
+    private fun decodeNothing(raw: RawInput): NoRecallInput = NoRecallInput
+
+    private fun decodePublish(raw: RawInput): PublishAnalysisInput? =
+        raw.text("text")?.let { PublishAnalysisInput(it) }
+}
