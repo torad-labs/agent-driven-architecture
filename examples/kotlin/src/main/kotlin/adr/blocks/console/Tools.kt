@@ -12,8 +12,6 @@ import adr.spine.pure.RawInput
 import adr.spine.pure.TicketId
 import adr.spine.pure.ToolName
 import adr.spine.pure.Verb
-import adr.spine.pure.flag
-import adr.spine.pure.text
 
 val FOCUS_TICKET = ToolName("focusTicket")
 val SET_PANEL = ToolName("setPanel")

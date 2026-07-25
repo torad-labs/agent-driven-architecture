@@ -13,7 +13,6 @@ import adr.contract.ArtifactResult
 import adr.spine.pure.RawInput
 import adr.spine.pure.ToolName
 import adr.spine.pure.Verb
-import adr.spine.pure.text
 
 val RECORD_FINDING = ToolName("recordFinding")
 val REQUEST_SEAL = ToolName("requestSeal")

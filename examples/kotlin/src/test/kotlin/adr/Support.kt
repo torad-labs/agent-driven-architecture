@@ -20,11 +20,11 @@ import adr.spine.pure.Authority
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.ToolName
-import adr.spine.pure.rawOf
+import adr.spine.pure.RawInput
 
 /** The human path: one Action through the surface. */
 fun App.human(tool: ToolName, vararg fields: Pair<String, String>) {
-    controller.onAction(Action(tool, rawOf(*fields)))
+    controller.onAction(Action(tool, RawInput(*fields)))
 }
 
 /** The agent path: one finished step carrying the model's raw input. */
@@ -37,7 +37,7 @@ fun App.agent(
         FinishedStep(
             by = Actor.Agent,
             staged = staged,
-            actions = listOf(Action(tool, rawOf(*fields))),
+            actions = listOf(Action(tool, RawInput(*fields))),
         ),
     )
 }

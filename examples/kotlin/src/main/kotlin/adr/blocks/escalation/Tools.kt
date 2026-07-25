@@ -22,7 +22,6 @@ import adr.spine.pure.RawInput
 import adr.spine.pure.TicketId
 import adr.spine.pure.ToolName
 import adr.spine.pure.Verb
-import adr.spine.pure.text
 
 val REQUEST_ESCALATION = ToolName("requestEscalation")
 val CONFIRM_ESCALATION = ToolName("confirmEscalation")

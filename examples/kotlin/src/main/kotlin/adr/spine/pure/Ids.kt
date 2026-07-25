@@ -11,7 +11,6 @@
 
 package adr.spine.pure
 
-import kotlinx.serialization.json.JsonElement
 
 /** ONE NAME PER VERB (D3): the discriminant of ToolResult, of Command, and the registry key. */
 @JvmInline
@@ -59,10 +58,3 @@ value class SourceKey(val value: String)
 
 /** A relative duration. Never a clock reading — deadlines are handed in, not read (G9). */
 typealias Millis = Long
-
-/**
- * The OPEN input an Action carries: whatever a surface or a model actually sent.
- * It is open on purpose (6.10) — the closed set begins one step later, when the
- * boundary's name→ToolResult map turns it into a sealed value or an Unhandled.
- */
-typealias RawInput = JsonElement

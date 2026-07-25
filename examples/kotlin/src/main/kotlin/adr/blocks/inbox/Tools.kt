@@ -21,7 +21,6 @@ import adr.spine.pure.RawInput
 import adr.spine.pure.SourceName
 import adr.spine.pure.ToolName
 import adr.spine.pure.Verb
-import adr.spine.pure.text
 
 val NOTE_DROP = ToolName("noteDrop")
 val NOTE_FAULT = ToolName("noteFault")

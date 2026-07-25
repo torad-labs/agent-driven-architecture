@@ -66,7 +66,7 @@ import adr.spine.pure.Signature
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.TicketId
-import adr.spine.pure.rawOf
+import adr.spine.pure.RawInput
 import adr.spine.pure.registryOf
 import adr.spine.surface.Controller
 import ai.torad.aisdk.LanguageModel
@@ -341,7 +341,7 @@ fun consumerActions(event: ConsumerEvent): List<Action> = when (event) {
     is ConsumerEvent.Conflated -> listOf(
         Action(
             NOTE_DROP,
-            rawOf(
+            RawInput(
                 "source" to event.source.value,
                 "reason" to "Conflated",
                 "dropped" to event.dropped.toString(),
@@ -352,18 +352,18 @@ fun consumerActions(event: ConsumerEvent): List<Action> = when (event) {
     is ConsumerEvent.Duplicate -> listOf(
         Action(
             NOTE_DROP,
-            rawOf("source" to event.source.value, "reason" to "Duplicate", "dropped" to "1"),
+            RawInput("source" to event.source.value, "reason" to "Duplicate", "dropped" to "1"),
         ),
     )
 
     is ConsumerEvent.TurnFailed -> listOf(
-        Action(NOTE_FAULT, rawOf("source" to event.source.value, "fault" to event.fault)),
+        Action(NOTE_FAULT, RawInput("source" to event.source.value, "fault" to event.fault)),
     )
 
     is ConsumerEvent.CancelDeadlineExceeded -> listOf(
         Action(
             NOTE_FAULT,
-            rawOf(
+            RawInput(
                 "source" to event.source.value,
                 "fault" to "abandoned: the turn ignored cancellation for ${event.afterMs}ms",
             ),
@@ -377,7 +377,7 @@ fun consumerActions(event: ConsumerEvent): List<Action> = when (event) {
  * principal, so a drain cannot rubber-stamp its own finalization. The gate is not
  * suspended because the session is ending.
  */
-fun drainActions(message: Message.Drain): List<Action> = listOf(Action(REQUEST_SEAL, rawOf()))
+fun drainActions(message: Message.Drain): List<Action> = listOf(Action(REQUEST_SEAL, RawInput()))
 
 /**
  * Build the barge-in consumer — ONLY when a mailbox was supplied. An app that takes
