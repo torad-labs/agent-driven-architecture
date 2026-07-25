@@ -28,8 +28,6 @@ private val PURE_BLOCK_FILES = setOf("Tools.kt", "Fold.kt", "Project.kt", "Slice
 /** The only three transport symbols in `adr.contract` that the SPINE itself owns (C15). */
 private val SPINE_OWNED_TRANSPORT = setOf("ToolResult", "Command", "Effect")
 
-.toSet()
-
 val CHECKS: List<Check> = listOf(
 
     // C1 — G4/G10: dependencies point inward. §1.3's table as a rule.
@@ -69,7 +67,7 @@ val CHECKS: List<Check> = listOf(
 
                     import.startsWith("adr.contract.") -> {
                         val symbol = import.removePrefix("adr.contract.")
-                        val spineOwned = symbol in setOf("ToolResult", "Command", "Effect")
+                        val spineOwned = symbol in SPINE_OWNED_TRANSPORT
                         if (spineOwned || symbol.startsWith(prefix)) {
                             null
                         } else {

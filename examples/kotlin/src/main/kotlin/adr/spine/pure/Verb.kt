@@ -136,18 +136,6 @@ sealed interface Verb<S, I, R : ToolResult> {
 /** The one word the system uses when an input did not decode. Spelled once (F1). */
 const val DECODE_FAILED = "input failed to decode"
 
-/**
- * What the MODEL is told about one call, so it has a payload to reason over.
- *
- * The RECORDED truth is produced separately, at the boundary (§3.1, §15 risk 4);
- * this string never folds, never signs and never reaches the timeline.
- *
- * It lives HERE and not in spine/agent/loop because it makes a decision — what to
- * say when the input did not decode — and G3 says the loop is a declaration, not a
- * place for policy. Gate check C14 denies the branch the moment it drifts back into
- * the loop file, which is exactly how it got there in the first place.
- */
-
 /** The one closed table the boundary reads: name → verb. It supplies BOTH maps (F1). */
 typealias Registry<S> = Map<ToolName, Verb<S, *, *>>
 
