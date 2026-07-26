@@ -16,7 +16,8 @@
 // is free, and that is the price of one production site. (See the matching
 // comment at the second call site in `spine/boundary/action.ts`.)
 
-import { generateText, type LanguageModel, stepCountIs, type ToolSet, tool } from "ai";
+import { toJsonSchema } from "@valibot/to-json-schema";
+import { generateText, jsonSchema, type LanguageModel, stepCountIs, type ToolSet, tool } from "ai";
 import type { Registry } from "../boundary/action";
 import type { Boundary } from "../boundary/boundary";
 import type { StagedInput } from "../pure/staged";
@@ -40,8 +41,15 @@ export function buildTools<S>(
     verb.name,
     tool({
       description: verb.describe,
-      // the spine never interprets a schema; only this adapter does
-      inputSchema: verb.schema as FlexibleInputSchema,
+      // THE SPINE NEVER INTERPRETS A SCHEMA; ONLY THIS ADAPTER DOES — and this is
+      // where that sentence earns its keep. A block writes a Valibot schema, the spine
+      // types it as a Standard Schema and only ever calls `~standard.validate`, and the
+      // runtime wants JSON Schema for the model-facing tool definition. The SDK reads
+      // `~standard.jsonSchema.input`, an extension Valibot 1.4 does not ship, so the
+      // conversion happens HERE rather than by constraining what a block may write.
+      inputSchema: jsonSchema(
+        toJsonSchema(verb.schema as Parameters<typeof toJsonSchema>[0]),
+      ) as FlexibleInputSchema,
       // runs the PURE body so the model has something to reason over; the
       // recorded truth is produced again at the boundary, from the raw input
       execute: async (input: unknown) => verb.run(input, ctx()),

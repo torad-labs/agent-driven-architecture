@@ -9,7 +9,8 @@
 // presentation verbs. Wire a consumer without this block and the Action still
 // resolves, to a committed `Unhandled`: still on the timeline, never silent.
 
-import { z } from "zod";
+import type { InferOutput } from "valibot";
+import { literal, number, object, string, variant } from "valibot";
 import type { Verb } from "../../spine/pure/verb";
 import { reversible } from "../../spine/pure/verb";
 import type {
@@ -19,17 +20,17 @@ import type {
   NoteFaultResult,
 } from "./contract";
 
-const dropReason = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("Conflated"), source: z.string(), dropped: z.number() }),
-  z.object({ kind: z.literal("Duplicate"), source: z.string(), key: z.string() }),
+const dropReason = variant("kind", [
+  object({ kind: literal("Conflated"), source: string(), dropped: number() }),
+  object({ kind: literal("Duplicate"), source: string(), key: string() }),
 ]);
 
 export function inboxVerbs<S>(): readonly Verb<S>[] {
   return [
-    reversible<S, { reason: z.infer<typeof dropReason> }, NoteDropResult, NoteDropCommand>({
+    reversible<S, { reason: InferOutput<typeof dropReason> }, NoteDropResult, NoteDropCommand>({
       name: "noteDrop",
       describe: "Record that an input was dropped — conflated away, or refused as a duplicate.",
-      schema: z.object({ reason: dropReason }),
+      schema: object({ reason: dropReason }),
       run: (input) => ({ outcome: "ok", tool: "noteDrop", reason: input.reason }),
       sign: (result, sig, id) => ({
         outcome: "ok",
@@ -42,7 +43,7 @@ export function inboxVerbs<S>(): readonly Verb<S>[] {
     reversible<S, { source: string; fault: string }, NoteFaultResult, NoteFaultCommand>({
       name: "noteFault",
       describe: "Record that a turn failed, or that a cancel exceeded its deadline.",
-      schema: z.object({ source: z.string(), fault: z.string() }),
+      schema: object({ source: string(), fault: string() }),
       run: (input) => ({
         outcome: "ok",
         tool: "noteFault",

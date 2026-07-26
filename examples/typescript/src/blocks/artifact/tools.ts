@@ -6,7 +6,7 @@
 // PARENT-declared property, so the gate compares principals without this file
 // knowing anything about authority at all.
 
-import { z } from "zod";
+import { object, string } from "valibot";
 import type { Verb } from "../../spine/pure/verb";
 import { irreversible, reversible } from "../../spine/pure/verb";
 import type {
@@ -19,14 +19,14 @@ import type {
 } from "./contract";
 import type { ArtifactSlice } from "./slice";
 
-const nothing = z.object({});
+const nothing = object({});
 
 export function artifactVerbs<S>(read: (state: S) => ArtifactSlice): readonly Verb<S>[] {
   return [
     reversible<S, { text: string }, RecordFindingResult, RecordFindingCommand>({
       name: "recordFinding",
       describe: "Append one line to the session's work product.",
-      schema: z.object({ text: z.string() }),
+      schema: object({ text: string() }),
       run: (input) => ({ outcome: "ok", tool: "recordFinding", text: input.text }),
       sign: (result, sig, id) => ({
         outcome: "ok",

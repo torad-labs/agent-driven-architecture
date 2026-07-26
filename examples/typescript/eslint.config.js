@@ -54,7 +54,16 @@ const SPINE_PORTS = "\\.\\./ports/[a-z0-9-]+"; //           ../ports/bus
 const SPINE_BOUNDARY = "\\.\\./boundary/[a-z0-9-]+"; //     ../boundary/action
 const BLOCK_PURE = "\\.\\./\\.\\./spine/pure/[a-z0-9-]+"; // ../../spine/pure/ids (from inside blocks/X/)
 const AGENT_SDK = "ai(?:/[a-z]+)?"; //                      the agent-loop runtime
-const SCHEMA_DSL = "zod"; //                                the input schema, model-facing AND the decoder
+// The schema CONVERTER, allowed here and nowhere else. spine/agent is already the one
+// file licensed to interpret a schema — a block writes Valibot, spine/pure only ever
+// calls `~standard.validate`, and the runtime wants JSON Schema for the tool
+// definition. Granting the converter to this bucket keeps that conversion in the
+// adapter instead of pushing JSON Schema up into what a block is allowed to write.
+const SCHEMA_TO_JSON = "@valibot/to-json-schema";
+const SCHEMA_DSL = "valibot"; //                            the input schema, model-facing AND the decoder.
+//   A Standard Schema (standardschema.dev), so spine/pure names the STANDARD rather
+//   than this library: see InputSchema in spine/pure/verb.ts. Swapping it for zod or
+//   arktype is this one line plus the block imports — the spine does not move.
 const EXTERNAL = "[^.].*"; //                               any client library
 
 /** C1 — §1.3 as an ALLOW-LIST, so anything not listed is forbidden. */
@@ -344,7 +353,7 @@ export const gate = [
   // spine/agent — the ONLY file in the system that may name the agent runtime.
   bucket(["**/src/spine/agent/**/*.ts"], {
     imports: [
-      only("`spine/agent` may import `spine/pure`, `spine/ports`, `spine/boundary` and the agent-loop SDK", SPINE_PURE, SPINE_PORTS, SPINE_BOUNDARY, AGENT_SDK),
+      only("`spine/agent` may import `spine/pure`, `spine/ports`, `spine/boundary`, the agent-loop SDK and the schema converter", SPINE_PURE, SPINE_PORTS, SPINE_BOUNDARY, AGENT_SDK, SCHEMA_TO_JSON),
       ...C5_MINT,
       ...C5_TYPE,
       ...C7_IMPORT,
