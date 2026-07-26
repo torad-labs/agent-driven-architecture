@@ -28,7 +28,11 @@ export interface KeyedEffect<E extends EffectBase = EffectBase> {
   readonly effect: E;
 }
 
-export function keyedEffect<E extends EffectBase>(step: StepIndex, index: number, effect: E): KeyedEffect<E> {
+export function keyedEffect<E extends EffectBase>(
+  step: StepIndex,
+  index: number,
+  effect: E,
+): KeyedEffect<E> {
   return { key: { step, index }, effect };
 }
 

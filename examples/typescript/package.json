@@ -7,14 +7,18 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "npm run typecheck && npm run lint && vitest run",
-    "demo": "tsx src/app/demo.ts"
+    "test": "npm run typecheck && npm run lint && npm run biome && vitest run",
+    "demo": "tsx src/app/main.ts",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "biome": "biome check ."
   },
   "dependencies": {
     "ai": "^6.0.208",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
     "@types/node": "^26.0.0",
     "eslint": "^10.8.0",
     "tsx": "^4.22.4",

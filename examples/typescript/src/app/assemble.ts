@@ -16,24 +16,23 @@
 // Note what is NOT here: a per-VERB branch. Adding a verb touches four sites,
 // all four inside its own block folder, and zero at the root (L5, §11.1).
 
-import type { Signature } from "../spine/pure/actor";
-import type { Context } from "../spine/pure/context";
-import { MAX_CONTEXT_NOTICES, bounded } from "../spine/pure/context";
-import type { Timestamp } from "../spine/pure/ids";
-import type { Notice } from "../spine/pure/notice";
-import { renderNotice } from "../spine/pure/notice";
-import type { StagedInput } from "../spine/pure/staged";
-import { spineArm, unclaimedArm, withNotices } from "../spine/pure/spine-slice";
-import type { ToolResultBase } from "../spine/pure/tool-result";
-import { spineView } from "../spine/pure/view";
-import type { ArmOut, FoldOut } from "../spine/pure/verb";
-
 import { analysis } from "../blocks/analysis/register";
 import { artifact } from "../blocks/artifact/register";
 import { consoleBlock } from "../blocks/console/register";
 import { escalation } from "../blocks/escalation/register";
 import { inbox } from "../blocks/inbox/register";
 import { triage } from "../blocks/triage/register";
+import type { Signature } from "../spine/pure/actor";
+import type { Context } from "../spine/pure/context";
+import { bounded, MAX_CONTEXT_NOTICES } from "../spine/pure/context";
+import type { Timestamp } from "../spine/pure/ids";
+import type { Notice } from "../spine/pure/notice";
+import { renderNotice } from "../spine/pure/notice";
+import { spineArm, unclaimedArm, withNotices } from "../spine/pure/spine-slice";
+import type { StagedInput } from "../spine/pure/staged";
+import type { ToolResultBase } from "../spine/pure/tool-result";
+import type { ArmOut, FoldOut } from "../spine/pure/verb";
+import { spineView } from "../spine/pure/view";
 
 import type { AppView, Effect, OkResult, State, ToolResult } from "./contract";
 
@@ -60,7 +59,10 @@ function foldOne(state: State, r: ToolResult, now: Timestamp, sig: Signature): F
     case "unhandled":
     case "refused": {
       const out = spineArm(state.spine, r, now);
-      return { state: { ...state, spine: withNotices(out.slice, out.notices) }, effects: out.effects };
+      return {
+        state: { ...state, spine: withNotices(out.slice, out.notices) },
+        effects: out.effects,
+      };
     }
     case "ok":
       return foldOk(state, r, now, sig);
@@ -76,16 +78,28 @@ function foldOk(state: State, r: OkResult, now: Timestamp, sig: Signature): Fold
     return merge(triage.arm(state.triage, r, now, sig), (slice) => ({ ...state, triage: slice }));
   }
   if (escalation.owns(r)) {
-    return merge(escalation.arm(state.escalation, r, now, sig), (slice) => ({ ...state, escalation: slice }));
+    return merge(escalation.arm(state.escalation, r, now, sig), (slice) => ({
+      ...state,
+      escalation: slice,
+    }));
   }
   if (consoleBlock.owns(r)) {
-    return merge(consoleBlock.arm(state.console, r, now, sig), (slice) => ({ ...state, console: slice }));
+    return merge(consoleBlock.arm(state.console, r, now, sig), (slice) => ({
+      ...state,
+      console: slice,
+    }));
   }
   if (artifact.owns(r)) {
-    return merge(artifact.arm(state.artifact, r, now, sig), (slice) => ({ ...state, artifact: slice }));
+    return merge(artifact.arm(state.artifact, r, now, sig), (slice) => ({
+      ...state,
+      artifact: slice,
+    }));
   }
   if (analysis.owns(r)) {
-    return merge(analysis.arm(state.analysis, r, now, sig), (slice) => ({ ...state, analysis: slice }));
+    return merge(analysis.arm(state.analysis, r, now, sig), (slice) => ({
+      ...state,
+      analysis: slice,
+    }));
   }
   if (inbox.owns(r)) {
     return merge(inbox.arm(state.inbox, r, now, sig), (slice) => ({ ...state, inbox: slice }));
@@ -158,7 +172,12 @@ export function projectContext(state: State, staged: readonly StagedInput[]): Co
  *  open base signature: the spine hands the fold only results its own registry
  *  produced, plus the spine's own two cases. */
 export const dispatchers = {
-  fold(state: State, results: readonly ToolResult[], now: Timestamp, sig: Signature): FoldOut<State> {
+  fold(
+    state: State,
+    results: readonly ToolResult[],
+    now: Timestamp,
+    sig: Signature,
+  ): FoldOut<State> {
     return fold(state, results, now, sig);
   },
   projectContext,

@@ -49,7 +49,11 @@ export function withNotices(slice: SpineSlice, notices: readonly Notice[]): Spin
  * the tool, exactly as an unknown tool name does. The fold does not mint a
  * ToolResult to get here (C7 forbids that, correctly); it asks the spine.
  */
-export function unclaimedArm(slice: SpineSlice, tool: ToolName, now: Timestamp): ArmOut<SpineSlice> {
+export function unclaimedArm(
+  slice: SpineSlice,
+  tool: ToolName,
+  now: Timestamp,
+): ArmOut<SpineSlice> {
   const note = "no block claimed this result — a block's `owns` predicate is stale";
   const effects: readonly EffectBase[] = [diag(now, note)];
   return { slice, effects, notices: [rejected(now, tool, note)] };

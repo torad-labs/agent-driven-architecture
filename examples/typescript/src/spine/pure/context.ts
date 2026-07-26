@@ -56,8 +56,7 @@ export function bounded(lines: readonly string[], max: number): readonly string[
 }
 
 export function render(context: Context): string {
-  const staged =
-    context.staged.length === 0 ? ["staged: none"] : context.staged.map(renderStaged);
+  const staged = context.staged.length === 0 ? ["staged: none"] : context.staged.map(renderStaged);
   return [
     ...staged,
     ...context.lines,

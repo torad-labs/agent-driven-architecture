@@ -7,8 +7,8 @@
 // rest of the session.
 
 import { describe, expect, it } from "vitest";
-import { authority } from "../../src/spine/pure/actor";
 import { triage } from "../../src/blocks/triage/register";
+import { authority } from "../../src/spine/pure/actor";
 import { harness } from "../harness";
 
 const sig = { by: "Agent", authority: authority("agent-run-7f") } as const;
@@ -16,7 +16,12 @@ const slice = triage.sliceOf([{ id: "4118", body: "refund not received" }]);
 
 describe("blocks/triage — the arm reads state before it decides (F9)", () => {
   it("a valid transition folds, and the effect fires from the SUCCESS branch", () => {
-    const out = triage.arm(slice, { outcome: "ok", tool: "setPriority", ticket: "4118", level: "High" }, 5, sig);
+    const out = triage.arm(
+      slice,
+      { outcome: "ok", tool: "setPriority", ticket: "4118", level: "High" },
+      5,
+      sig,
+    );
 
     expect(out.slice.priority.get("4118")).toBe("High");
     expect(out.effects).toEqual([
@@ -28,10 +33,17 @@ describe("blocks/triage — the arm reads state before it decides (F9)", () => {
   });
 
   it("an unknown ticket: NO effect, exactly one per-item Rejected, slice unchanged", () => {
-    const out = triage.arm(slice, { outcome: "ok", tool: "setPriority", ticket: "9999", level: "High" }, 5, sig);
+    const out = triage.arm(
+      slice,
+      { outcome: "ok", tool: "setPriority", ticket: "9999", level: "High" },
+      5,
+      sig,
+    );
 
     expect(out.effects).toEqual([]);
-    expect(out.notices).toEqual([{ kind: "Rejected", at: 5, tool: "setPriority", reason: "unknown ticket 9999" }]);
+    expect(out.notices).toEqual([
+      { kind: "Rejected", at: 5, tool: "setPriority", reason: "unknown ticket 9999" },
+    ]);
     expect(out.slice).toBe(slice);
   });
 

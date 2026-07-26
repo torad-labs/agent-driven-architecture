@@ -14,7 +14,7 @@
 // sites, all inside this block folder, zero outside it. Prove it yourself:
 //   add `| Archived` to TicketStatus, run `npm run typecheck`, expect 3 errors.
 
-import { MAX_CONTEXT_LINES_PER_BLOCK, bounded } from "../../spine/pure/context";
+import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "../../spine/pure/context";
 import type { EscalationSlice, TicketStatus } from "./slice";
 
 export interface EscalationRow {
@@ -37,13 +37,37 @@ export function escalationView(slice: EscalationSlice): EscalationView {
 function rowFor(status: TicketStatus): EscalationRow {
   switch (status.kind) {
     case "Open":
-      return { ticket: status.ticket, status: "open", canEscalate: true, escalating: false, escalated: false };
+      return {
+        ticket: status.ticket,
+        status: "open",
+        canEscalate: true,
+        escalating: false,
+        escalated: false,
+      };
     case "Escalating":
-      return { ticket: status.ticket, status: "escalating", canEscalate: false, escalating: true, escalated: false };
+      return {
+        ticket: status.ticket,
+        status: "escalating",
+        canEscalate: false,
+        escalating: true,
+        escalated: false,
+      };
     case "Escalated":
-      return { ticket: status.ticket, status: "escalated", canEscalate: false, escalating: false, escalated: true };
+      return {
+        ticket: status.ticket,
+        status: "escalated",
+        canEscalate: false,
+        escalating: false,
+        escalated: true,
+      };
     case "Resolved":
-      return { ticket: status.ticket, status: "resolved", canEscalate: false, escalating: false, escalated: false };
+      return {
+        ticket: status.ticket,
+        status: "resolved",
+        canEscalate: false,
+        escalating: false,
+        escalated: false,
+      };
     default: {
       const _never: never = status;
       return _never;

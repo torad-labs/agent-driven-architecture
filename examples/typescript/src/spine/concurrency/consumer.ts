@@ -49,6 +49,9 @@
 // rather than gate-checkable, and it is labelled as such.
 
 import type { Action, FinishedStep } from "../boundary/action";
+import type { Mailbox } from "../ports/mailbox";
+import type { RelayRead } from "../ports/relay";
+import type { Scheduler } from "../ports/scheduler";
 import type { SourceKey, SourceName, StepIndex } from "../pure/ids";
 import type {
   DrainMessage,
@@ -59,7 +62,7 @@ import type {
 } from "../pure/mailbox";
 import { CANCEL_DEADLINE_MS, DRAIN_DEADLINE_MS, policyFor } from "../pure/mailbox";
 import type { Recall, RelayEntry, StagedInput } from "../pure/staged";
-import { RECALL_DEADLINE_MS, emptyRecall, fresh, lastKnown, recalled } from "../pure/staged";
+import { emptyRecall, fresh, lastKnown, RECALL_DEADLINE_MS, recalled } from "../pure/staged";
 import type { ConsumerEvent, TurnOutcome } from "../pure/turn";
 import {
   cancelDeadlineExceeded,
@@ -71,9 +74,6 @@ import {
   turnOk,
   turnThrew,
 } from "../pure/turn";
-import type { Mailbox } from "../ports/mailbox";
-import type { RelayRead } from "../ports/relay";
-import type { Scheduler } from "../ports/scheduler";
 
 /** The boundary, seen through the three lines the consumer actually needs.
  *  Declared here rather than imported, exactly as `spine/surface/controller`
@@ -134,13 +134,13 @@ const RUNNING_KIND = "Running" as const;
 type Idle = { readonly kind: typeof IDLE_KIND };
 
 type Running = {
-      readonly kind: typeof RUNNING_KIND;
-      readonly message: Message;
-      readonly settled: Promise<TurnOutcome>;
-      readonly abort: AbortController;
-      /** flips the one-way latch inside the turn's `submit` closure */
-      readonly revoke: () => void;
-    };
+  readonly kind: typeof RUNNING_KIND;
+  readonly message: Message;
+  readonly settled: Promise<TurnOutcome>;
+  readonly abort: AbortController;
+  /** flips the one-way latch inside the turn's `submit` closure */
+  readonly revoke: () => void;
+};
 
 type RunState = Idle | Running;
 
@@ -398,7 +398,13 @@ export class SerialConsumer {
       .run(message, ctx)
       .then((): TurnOutcome => (steps === 0 ? turnIdle : turnOk(steps)))
       .catch((thrown: unknown): TurnOutcome => turnThrew(faultOf(thrown)));
-    this.state = { kind: RUNNING_KIND, message, settled, abort, revoke: () => void (revoked = true) };
+    this.state = {
+      kind: RUNNING_KIND,
+      message,
+      settled,
+      abort,
+      revoke: () => void (revoked = true),
+    };
   }
 
   /** 12.3, with the bound 12.3 itself says an unbounded join needs. */

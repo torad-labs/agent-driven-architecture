@@ -14,17 +14,17 @@
 //    two-unreconciled-actor-values problem cannot recur, because there is only
 //    one value and it is created after the tool has returned.
 
-import type { Signature } from "../pure/actor";
-import { render } from "../pure/context";
-import type { StepIndex, SessionId } from "../pure/ids";
-import { keyedEffect } from "../pure/keyed-effect";
-import type { StepRecord } from "../pure/step-record";
-import type { Ctx, Dispatchers } from "../pure/verb";
 import type { Authorization } from "../ports/authorization";
 import type { Bus } from "../ports/bus";
 import type { Clock } from "../ports/clock";
 import type { IdSource } from "../ports/id-source";
 import type { Sink } from "../ports/sink";
+import type { Signature } from "../pure/actor";
+import { render } from "../pure/context";
+import type { SessionId, StepIndex } from "../pure/ids";
+import { keyedEffect } from "../pure/keyed-effect";
+import type { StepRecord } from "../pure/step-record";
+import type { Ctx, Dispatchers } from "../pure/verb";
 import type { FinishedStep, Registry } from "./action";
 import { resolveAction, signResult } from "./action";
 import { gate } from "./gate";
@@ -75,7 +75,9 @@ export class Boundary<S> {
     };
 
     // 5  PRE-FOLD gate (F2/F3/F13)
-    const gated = results.map((r) => gate(r, sig, this.current, this.deps.registry, this.deps.authz));
+    const gated = results.map((r) =>
+      gate(r, sig, this.current, this.deps.registry, this.deps.authz),
+    );
 
     // 6  the pure decision — the only decider in the system
     const folded = this.deps.fold(this.current, gated, now, sig);

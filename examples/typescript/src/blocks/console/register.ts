@@ -21,7 +21,7 @@ export const consoleBlock = {
 } as const;
 
 export type { ConsoleCommand, ConsoleResult } from "./contract";
-export type { ConsoleSlice } from "./slice";
 export type { ConsoleView, PanelRow } from "./project";
+export type { ConsoleSlice } from "./slice";
 // `view-state` is NOT re-exported. Nothing outside this block — not even the
 // composition root — has a path to the ephemeral type (check C12).

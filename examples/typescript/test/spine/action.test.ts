@@ -5,13 +5,18 @@
 
 import { describe, expect, it } from "vitest";
 import { HOST, harness } from "../harness";
+import { must } from "../support/must";
 
 describe("resolveAction — the one closed name→ToolResult map (F1)", () => {
   it("an unregistered name folds a committed Unhandled, it is not silently dropped", () => {
     const { app, sink } = harness();
-    app.boundary.onStepFinish({ by: "Agent", staged: [], actions: [{ tool: "noSuchTool", input: {} }] });
+    app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "noSuchTool", input: {} }],
+    });
 
-    const record = app.bus.records().at(-1)!;
+    const record = must(app.bus.records().at(-1));
     expect(record.results.at(-1)).toEqual({
       outcome: "unhandled",
       tool: "noSuchTool",
@@ -32,7 +37,7 @@ describe("resolveAction — the one closed name→ToolResult map (F1)", () => {
       actions: [{ tool: "setPriority", input: { level: "Nope" } }],
     });
 
-    expect(app.bus.records().at(-1)!.results.at(-1)).toEqual({
+    expect(must(app.bus.records().at(-1)).results.at(-1)).toEqual({
       outcome: "unhandled",
       tool: "setPriority",
       note: "input failed to decode",
@@ -48,18 +53,24 @@ describe("resolveAction — the one closed name→ToolResult map (F1)", () => {
     });
 
     const human = harness();
-    human.app.controller.onAction({ tool: "setPriority", input: { ticket: "4118", level: "High" } });
+    human.app.controller.onAction({
+      tool: "setPriority",
+      input: { ticket: "4118", level: "High" },
+    });
 
-    const a = agent.app.bus.records().at(-1)!;
-    const h = human.app.bus.records().at(-1)!;
+    const a = must(agent.app.bus.records().at(-1));
+    const h = must(human.app.bus.records().at(-1));
 
     // the ToolResult, the effects and the state delta are byte-identical …
     expect(h.results).toEqual(a.results);
     expect(human.sink.performed).toEqual(agent.sink.performed);
     expect(human.app.boundary.state.triage).toEqual(agent.app.boundary.state.triage);
     // … and the committed record differs ONLY in the signature
-    expect(a.commands.at(-1)!.sig).toEqual({ by: "Agent", authority: "agent-run-7f" });
-    expect(h.commands.at(-1)!.sig).toEqual({ by: "Human", authority: HOST });
-    expect({ ...h.commands.at(-1)!, sig: null }).toEqual({ ...a.commands.at(-1)!, sig: null });
+    expect(must(a.commands.at(-1)).sig).toEqual({ by: "Agent", authority: "agent-run-7f" });
+    expect(must(h.commands.at(-1)).sig).toEqual({ by: "Human", authority: HOST });
+    expect({ ...must(h.commands.at(-1)), sig: null }).toEqual({
+      ...must(a.commands.at(-1)),
+      sig: null,
+    });
   });
 });

@@ -23,5 +23,5 @@ export const triage = {
 } as const;
 
 export type { Priority, TriageCommand, TriageEffect, TriageResult } from "./contract";
-export type { Ticket, TriageSlice } from "./slice";
 export type { TriageRow, TriageView } from "./project";
+export type { Ticket, TriageSlice } from "./slice";

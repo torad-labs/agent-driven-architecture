@@ -24,6 +24,6 @@ export const escalation = {
 } as const;
 
 export type { EscalationCommand, EscalationEffect, EscalationResult, PageOncall } from "./contract";
-export type { EscalationSlice, TicketStatus } from "./slice";
-export type { EscalationRow, EscalationView } from "./project";
 export type { OncallPort } from "./port";
+export type { EscalationRow, EscalationView } from "./project";
+export type { EscalationSlice, TicketStatus } from "./slice";

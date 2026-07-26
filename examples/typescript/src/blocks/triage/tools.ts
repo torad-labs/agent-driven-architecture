@@ -20,11 +20,21 @@ const priority = z.enum(["Low", "Normal", "High", "Urgent"]);
 
 export function triageVerbs<S>(): readonly Verb<S>[] {
   return [
-    reversible<S, { ticket: string; level: z.infer<typeof priority> }, SetPriorityResult, SetPriorityCommand>({
+    reversible<
+      S,
+      { ticket: string; level: z.infer<typeof priority> },
+      SetPriorityResult,
+      SetPriorityCommand
+    >({
       name: "setPriority",
       describe: "Set a support ticket's priority (Low | Normal | High | Urgent).",
       schema: z.object({ ticket: z.string(), level: priority }),
-      run: (input) => ({ outcome: "ok", tool: "setPriority", ticket: input.ticket, level: input.level }),
+      run: (input) => ({
+        outcome: "ok",
+        tool: "setPriority",
+        ticket: input.ticket,
+        level: input.level,
+      }),
       sign: (result, sig, id) => ({
         outcome: "ok",
         tool: "setPriority",

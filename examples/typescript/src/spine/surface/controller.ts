@@ -11,8 +11,8 @@
 // surface see `spine/boundary/action` (for `Action`) and nothing else, so the
 // seam it needs is declared here, structurally, in three lines.
 
-import type { ViewModel } from "../pure/view";
 import type { Action, FinishedStep } from "../boundary/action";
+import type { ViewModel } from "../pure/view";
 
 export interface BoundarySeam<S> {
   readonly state: S;

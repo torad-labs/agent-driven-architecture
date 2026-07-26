@@ -43,7 +43,12 @@ export function inboxVerbs<S>(): readonly Verb<S>[] {
       name: "noteFault",
       describe: "Record that a turn failed, or that a cancel exceeded its deadline.",
       schema: z.object({ source: z.string(), fault: z.string() }),
-      run: (input) => ({ outcome: "ok", tool: "noteFault", source: input.source, fault: input.fault }),
+      run: (input) => ({
+        outcome: "ok",
+        tool: "noteFault",
+        source: input.source,
+        fault: input.fault,
+      }),
       sign: (result, sig, id) => ({
         outcome: "ok",
         tool: "noteFault",

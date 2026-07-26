@@ -25,13 +25,13 @@
 // that WAS recorded re-derives exactly, bit for bit, from its own committed
 // bytes.
 
+import type { PerformMode, Sink } from "../ports/sink";
+import { render } from "../pure/context";
 import type { EffectBase } from "../pure/effect";
 import type { KeyedEffect } from "../pure/keyed-effect";
 import { keyedEffect } from "../pure/keyed-effect";
-import { render } from "../pure/context";
 import type { StepRecord } from "../pure/step-record";
 import type { Dispatchers } from "../pure/verb";
-import type { PerformMode, Sink } from "../ports/sink";
 
 export interface Refolded<S> {
   readonly state: S;

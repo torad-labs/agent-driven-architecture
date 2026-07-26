@@ -3,7 +3,7 @@
 // themselves (§5.2's growth bound): the reasoner's input must not grow with the
 // artifact.
 
-import { MAX_CONTEXT_LINES_PER_BLOCK, bounded } from "../../spine/pure/context";
+import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "../../spine/pure/context";
 import type { ArtifactLine, ArtifactSlice, SealStatus } from "./slice";
 
 export interface ArtifactView {

@@ -8,10 +8,11 @@
 // ['commands','results'] and contained no 'now'. Live at:1001 → re-folded at:0.
 
 import { describe, expect, it } from "vitest";
+import { effectSink } from "../../src/app/wire";
 import { DedupingSink } from "../../src/spine/boundary/in-memory";
 import { collectPerform, refold } from "../../src/spine/replay/replay";
-import { effectSink } from "../../src/app/wire";
-import { POLICY_TIER, fakeWorld, harness } from "../harness";
+import { fakeWorld, harness, POLICY_TIER } from "../harness";
+import { must } from "../support/must";
 
 function driveToAPage(h: ReturnType<typeof harness>): void {
   h.app.boundary.onStepFinish({
@@ -40,7 +41,9 @@ describe("F8 — `now` rides the committed record", () => {
     expect(h.app.bus.records().map((r) => r.now)).toEqual([1000, 1007, 1014]);
 
     const replayed = refold(h.app.initial, h.app.bus.records(), h.app.dispatchers);
-    expect(replayed.effects.map((k) => k.effect.at)).toEqual(h.sink.performed.map((k) => k.effect.at));
+    expect(replayed.effects.map((k) => k.effect.at)).toEqual(
+      h.sink.performed.map((k) => k.effect.at),
+    );
     expect(replayed.effects.map((k) => k.effect.at)).toEqual([1000, 1014]);
     expect(replayed.state).toEqual(h.app.boundary.state);
   });
@@ -74,6 +77,6 @@ describe("F7 — RECOVERY re-drives a timeline exactly once", () => {
     // one effect (the 9999 arm rejected and emitted none) → index 0 of step 0
     expect(h.sink.performed.map((k) => k.key)).toEqual([{ step: 0, index: 0 }]);
     // and no Effect variant carries an id at all
-    expect(Object.keys(h.sink.performed[0]!.effect).includes("id")).toBe(false);
+    expect(Object.keys(must(h.sink.performed[0]).effect).includes("id")).toBe(false);
   });
 });

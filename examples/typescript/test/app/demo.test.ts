@@ -1,19 +1,24 @@
 // ── demo smoke — the runnable script actually runs, offline ────────────────
 // `npm run demo` is the first thing a reader executes. If it breaks, the
+// ENTRY POINT is src/app/main.ts — demo.ts exports the walkthrough and binds nothing.
 // reference is broken regardless of what the unit tests say.
 
-import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
+import { describe, expect, it } from "vitest";
 
 const ROOT = join(dirname(new URL(import.meta.url).pathname), "..", "..");
 
 describe("app/demo", () => {
   it("runs end to end with no keys and no network", () => {
-    const out = execFileSync(join(ROOT, "node_modules", ".bin", "tsx"), [join(ROOT, "src", "app", "demo.ts")], {
-      encoding: "utf8",
-      cwd: ROOT,
-    });
+    const out = execFileSync(
+      join(ROOT, "node_modules", ".bin", "tsx"),
+      [join(ROOT, "src", "app", "main.ts")],
+      {
+        encoding: "utf8",
+        cwd: ROOT,
+      },
+    );
 
     expect(out).toContain("[agent] ran 2 steps");
     // the gate refuses the self-confirm and admits the host

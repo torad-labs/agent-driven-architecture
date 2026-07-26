@@ -1,10 +1,11 @@
 // ── The nine ordered steps, and the three facts that fall out of the order ─
 
 import { describe, expect, it } from "vitest";
+import { projectContext } from "../../src/app/assemble";
 import { render } from "../../src/spine/pure/context";
 import { perceived } from "../../src/spine/pure/staged";
-import { projectContext } from "../../src/app/assemble";
 import { harness } from "../harness";
+import { must } from "../support/must";
 
 describe("the boundary — the one impure seam", () => {
   it("COMMITS before it PERFORMS, because the effect key comes from the commit (F7)", () => {
@@ -64,7 +65,7 @@ describe("the boundary — the one impure seam", () => {
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
 
-    const record = h.app.bus.records()[0]!;
+    const record = must(h.app.bus.records()[0]);
     expect(Object.keys(record).sort()).toEqual([
       "actions",
       "commands",
@@ -76,7 +77,9 @@ describe("the boundary — the one impure seam", () => {
     ]);
     expect(record.now).toBe(1000);
     expect(record.staged).toEqual([perceived("inbox", "customer wrote in")]);
-    expect(record.actions).toEqual([{ tool: "setPriority", input: { ticket: "4118", level: "High" } }]);
+    expect(record.actions).toEqual([
+      { tool: "setPriority", input: { ticket: "4118", level: "High" } },
+    ]);
     // the captured context fixture is re-derivable from the state BEFORE the step
     expect(record.context.promptVersion).toBe("prompt-v1");
     expect(record.context.digest).toBe(render(projectContext(before, record.staged)));
@@ -89,7 +92,7 @@ describe("the boundary — the one impure seam", () => {
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
-    const record = h.app.bus.records()[0]!;
+    const record = must(h.app.bus.records()[0]);
     // no ToolResult carries an actor, an authority or a signature — at all
     expect(JSON.stringify(record.results)).not.toContain("Agent");
     expect(JSON.stringify(record.results)).not.toContain("agent-run-7f");
