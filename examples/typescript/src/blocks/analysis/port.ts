@@ -1,4 +1,4 @@
-// ── blocks/analysis/port — the relay's WRITE half (I8) ─────────────────────
+// ── blocks/analysis/port — the relay's WRITE half (11.2) ─────────────────────
 // An interface, nothing else (check C11). The block owns its dependency; the
 // composition root binds it, exactly like `OncallPort` and `DeliveryPort`.
 //

@@ -1,4 +1,4 @@
-// ── spine/surface/controller — ONE value out, ONE action sink in (G8, I6) ──
+// ── spine/surface/controller — ONE value out, ONE action sink in (G8) ──
 // The entire public surface of the application, for any UI: one immutable
 // ViewModel and one `onAction`. Nothing else is exported, so a view cannot
 // reach past it into State, into the fold, or into a tool.

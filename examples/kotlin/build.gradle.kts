@@ -187,6 +187,7 @@ val gateDetektExpected = mapOf(
     "C7 (result minted outside the boundary)" to "adr.contract.ToolResult.Refused.&lt;init&gt;",
     "C9 (else over a sealed subject)" to "source=\"detekt.ElseCaseInsteadOfExhaustiveWhen\"",
     "C14 (control flow in the loop)" to "source=\"detekt.CyclomaticComplexMethod\"",
+    "suppression lock (a @Suppress of a gate rule)" to "source=\"detekt.ForbiddenSuppress\"",
 )
 
 val gateDetektBlockTest by tasks.registering {

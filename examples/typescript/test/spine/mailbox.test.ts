@@ -126,7 +126,7 @@ describe("12.3 — an Interrupt preempts a turn in flight", () => {
     const r = rig(turn);
     sched = r.sched;
 
-    r.mailbox.post(input("ticket-stream", perceived("ticket-stream", "4118 is angry"), "k1"));
+    r.mailbox.post(input("ticket-stream", perceived("ticket-stream", "4118 is angry", "k1")));
     await settle();
     expect(r.consumer.running).toBe(true);
     expect(committed(r.h)).toEqual(["setPriority"]);
@@ -196,7 +196,7 @@ describe("12.3 — an Interrupt preempts a turn in flight", () => {
     };
     void brokenDrainLoop();
 
-    mailbox.post(input("ticket-stream", perceived("ticket-stream", "4118 is angry"), "k1"));
+    mailbox.post(input("ticket-stream", perceived("ticket-stream", "4118 is angry", "k1")));
     await settle();
     sched.advance(100);
     await settle();
@@ -247,7 +247,7 @@ describe("12.3 — an Interrupt preempts a turn in flight", () => {
         for (let i = 0; i < 40; i += 1) await Promise.resolve();
       };
 
-      mailbox.post(input("ticket-stream", perceived("ticket-stream", "4118 is angry"), "k1"));
+      mailbox.post(input("ticket-stream", perceived("ticket-stream", "4118 is angry", "k1")));
       await flush();
       await vi.advanceTimersByTimeAsync(100);
       await flush();
@@ -289,7 +289,7 @@ describe("12.3 — the join is BOUNDED, and the abandoned turn is revoked", () =
     };
 
     const r = rig(turn, { cancelDeadlineMs: 250 });
-    r.mailbox.post(input("ticket-stream", perceived("ticket-stream", "4118 is angry"), "k1"));
+    r.mailbox.post(input("ticket-stream", perceived("ticket-stream", "4118 is angry", "k1")));
     await settle();
     expect(committed(r.h)).toEqual(["setPriority"]);
 
@@ -335,7 +335,7 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     const turn: TurnRunner = {
       run: async (message: Message, ctx: TurnContext): Promise<void> => {
         if (message.kind !== "Input") return;
-        turns.push(message.key);
+        turns.push(message.staged.key);
         act(ctx, finding(message.staged.body));
         if (turns.length === 1) await hold.promise;
       },
@@ -343,7 +343,7 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
 
     const r = rig(turn, { policies: [perishable("sensor")] });
     const post = (key: string, body: string): void =>
-      r.mailbox.post(input("sensor", perceived("sensor", body), key));
+      r.mailbox.post(input("sensor", perceived("sensor", body, key)));
 
     post("a", "reading A");
     await settle();
@@ -383,20 +383,20 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     const turn: TurnRunner = {
       run: async (message: Message, ctx: TurnContext): Promise<void> => {
         if (message.kind !== "Input") return;
-        turns.push(message.key);
+        turns.push(message.staged.key);
         act(ctx, finding(message.staged.body));
         if (turns.length === 1) await hold.promise;
       },
     };
 
     const r = rig(turn, { policies: [perishable("sensor-a"), perishable("sensor-b")] });
-    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A1"), "a1"));
+    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A1", "a1")));
     await settle();
     // two from sensor-a get conflated against each other …
-    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A2"), "a2"));
-    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A3"), "a3"));
+    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A2", "a2")));
+    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A3", "a3")));
     // … then sensor-b takes the slot, which sheds sensor-a's remaining input
-    r.mailbox.post(input("sensor-b", perceived("sensor-b", "B1"), "b1"));
+    r.mailbox.post(input("sensor-b", perceived("sensor-b", "B1", "b1")));
     await settle();
     hold.resolve();
     await settle();
@@ -418,7 +418,7 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     const turn: TurnRunner = {
       run: async (message: Message, ctx: TurnContext): Promise<void> => {
         if (message.kind !== "Input") return;
-        turns.push(message.key);
+        turns.push(message.staged.key);
         act(ctx, finding(message.staged.body));
         if (turns.length === 1) await hold.promise;
       },
@@ -428,7 +428,7 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     // default is the safe one because losing work is unrecoverable
     const r = rig(turn);
     const post = (key: string, body: string): void =>
-      r.mailbox.post(input("tickets", perceived("tickets", body), key));
+      r.mailbox.post(input("tickets", perceived("tickets", body, key)));
 
     post("a", "ticket A");
     await settle();
@@ -459,9 +459,9 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     };
 
     const r = rig(turn);
-    r.mailbox.post(input("tickets", perceived("tickets", "ticket A"), "a"));
+    r.mailbox.post(input("tickets", perceived("tickets", "ticket A", "a")));
     await settle();
-    r.mailbox.post(input("tickets", perceived("tickets", "ticket A again"), "a"));
+    r.mailbox.post(input("tickets", perceived("tickets", "ticket A again", "a")));
     await settle();
 
     expect(r.h.app.boundary.state.artifact.lines.map((l) => l.text)).toEqual(["ticket A"]);
@@ -475,7 +475,7 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
 
   it("the lease is what makes ack-after-commit mean something", async () => {
     const mailbox: Mailbox & { redeliver(): void; depth: number } = new InMemoryMailbox();
-    const message = input("tickets", perceived("tickets", "ticket A"), "a");
+    const message = input("tickets", perceived("tickets", "ticket A", "a"));
     mailbox.post(message);
 
     expect(await mailbox.take()).toBe(message);
@@ -489,6 +489,59 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     mailbox.redeliver();
     expect(mailbox.depth).toBe(0);
   });
+
+  it("the dedupe scope SURVIVES A RESTART: committed work is refused, uncommitted work is retried", async () => {
+    // The crash window 12.2's lease exists for: after the commit, before the
+    // ack. An in-memory `seen` dies here — the timeline does not, and the key
+    // rides the committed Perceived fixture precisely so a fresh process can
+    // rebuild the scope from the bus alone.
+    const attempts = new Map<string, number>();
+    const turn: TurnRunner = {
+      run: async (message: Message, ctx: TurnContext): Promise<void> => {
+        if (message.kind !== "Input") return;
+        const n = (attempts.get(message.staged.key) ?? 0) + 1;
+        attempts.set(message.staged.key, n);
+        if (message.staged.key === "a") {
+          act(ctx, finding("ticket A")); // COMMITTED …
+          if (n === 1) throw new Error("process died after the commit");
+          return;
+        }
+        if (n === 1) throw new Error("process died before the commit");
+        act(ctx, finding("ticket B")); // … retried, and only then committed
+      },
+    };
+
+    const r = rig(turn);
+    r.mailbox.post(input("tickets", perceived("tickets", "ticket A", "a")));
+    await settle();
+    r.mailbox.post(input("tickets", perceived("tickets", "ticket B", "b")));
+    await settle();
+
+    // "a" committed then died; "b" died first. Neither was acked.
+    expect(r.h.app.boundary.state.artifact.lines.map((l) => l.text)).toEqual(["ticket A"]);
+    expect(r.mailbox.outstanding).toBe(2);
+    r.consumer.stop();
+
+    // THE RESTART: the broker outlives the process and re-delivers both
+    // leases; the NEW consumer is seeded from the committed timeline alone.
+    r.mailbox.redeliver();
+    const restarted = wireConsumer(r.h.app, { mailbox: r.mailbox, scheduler: r.sched, turn });
+    const failures: unknown[] = [];
+    void restarted.run().catch((e: unknown) => void failures.push(e));
+    await settle();
+
+    // committed ⇒ refused, reported, acked. uncommitted ⇒ folded, exactly once.
+    expect(r.h.app.boundary.state.artifact.lines.map((l) => l.text)).toEqual([
+      "ticket A",
+      "ticket B",
+    ]);
+    const drops = commandsNamed(r.h, "noteDrop");
+    expect(drops.at(-1)).toMatchObject({
+      reason: { kind: "Duplicate", source: "tickets", key: "a" },
+    });
+    expect(r.mailbox.outstanding).toBe(0);
+    expect(failures).toEqual([]);
+  });
 });
 
 // ── 7. 12.4 — a turn that throws degrades to a typed status ────────────────
@@ -498,16 +551,16 @@ describe("12.4 — a failed turn degrades and the consumer lives", () => {
     const turn: TurnRunner = {
       run: async (message: Message, ctx: TurnContext): Promise<void> => {
         if (message.kind !== "Input") return;
-        if (message.key === "boom") throw new Error("backend timeout");
+        if (message.staged.key === "boom") throw new Error("backend timeout");
         act(ctx, finding(message.staged.body));
         return Promise.resolve();
       },
     };
 
     const r = rig(turn);
-    r.mailbox.post(input("tickets", perceived("tickets", "explodes"), "boom"));
+    r.mailbox.post(input("tickets", perceived("tickets", "explodes", "boom")));
     await settle();
-    r.mailbox.post(input("tickets", perceived("tickets", "ticket B"), "b"));
+    r.mailbox.post(input("tickets", perceived("tickets", "ticket B", "b")));
     await settle();
 
     // the exception never crossed the loop
@@ -545,7 +598,7 @@ describe("12.2 — a Drain waits, finalizes, and never preempts", () => {
     };
 
     const r = rig(turn);
-    r.mailbox.post(input("tickets", perceived("tickets", "work"), "a"));
+    r.mailbox.post(input("tickets", perceived("tickets", "work", "a")));
     await settle();
     expect(committed(r.h)).toEqual(["recordFinding"]);
 

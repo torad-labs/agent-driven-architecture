@@ -39,7 +39,7 @@ val CHECKS: List<Check> = listOf(
                     import.startsWith("adr.") && allowed.none { GateTrees().matches(import, it) } ->
                         Violation(file.path, "may not import $import")
 
-                    // The agent-loop runtime is named in exactly two places (I5/G4).
+                    // The agent-loop runtime is named in exactly two places (G3/G4).
                     import.startsWith("ai.torad") &&
                         !file.path.startsWith("spine/agent/") &&
                         !file.path.startsWith("app/") ->
@@ -127,6 +127,28 @@ val CHECKS: List<Check> = listOf(
                         }
                 }
 
+            // (e) recall confers no authority BY CONSTRUCTION (11.2): no StagedInput
+            // variant may declare a stamp-typed member. The book stakes "there is no
+            // field on it that could carry one" on this shape — and a claim keyed to
+            // a shape no rule watches is how C7's derivation rotted. Red-proven
+            // before this clause existed: `val authority: Authority = …` on Recalled
+            // passed the whole gate. (The (d) slot is the detekt constructor rule.)
+            file.file.classes(includeNested = true)
+                .filter { cls -> cls.parents(indirectParents = false).any { it.name == "StagedInput" } }
+                .forEach { cls ->
+                    cls.primaryConstructor
+                        ?.parameters
+                        .orEmpty()
+                        .filter { it.type.name in STAMP_TYPES }
+                        .forEach {
+                            violations += Violation(
+                                file.path,
+                                "StagedInput variant ${cls.name} declares `${it.name}: ${it.type.name}` — " +
+                                    "recall confers no authority (11.2)",
+                            )
+                        }
+                }
+
             violations
         }
     },
@@ -158,15 +180,26 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
-    // C7 — F1: ONE production site for every ToolResult in the system, so a recorded
-    // result can never disagree with what the boundary folded.
+    // C7 — F1: ONE production site for every piece of SIGNED TRANSPORT in the
+    // system — ToolResult AND Command — so a recorded result can never disagree
+    // with what the boundary folded, and a fold arm can never stash a Command no
+    // gate ever saw into its own slice. The second half matters because State is
+    // §2.3's single source of truth: an off-bus Command in a slice re-folds
+    // deterministically on every replay and renders as if a principal had
+    // confirmed something, while the bus record stays clean.
     //
-    // The variant list is DERIVED from the block contracts, never enumerated here:
+    // The variant lists are DERIVED from the contracts, never enumerated here:
     // adding a verb stays four appends (§11.1) and is covered the moment its case
-    // exists. `is TriageResult.SetPriority ->` is a MATCH and stays legal
-    // everywhere; `TriageResult.SetPriority(` is a CONSTRUCTION and does not.
-    Check("C7", "a ToolResult is constructed only in a tool and at the boundary") { files ->
-        val variants = GateFacts().resultVariants(files)
+    // exists. `is TriageCommand.SetPriority ->` is a MATCH and stays legal
+    // everywhere; `TriageCommand.SetPriority(` is a CONSTRUCTION and does not.
+    //
+    // NAMED RESIDUE: a data-class variant also ships `copy()`, and `cmd.copy(…)`
+    // on a received command is a mint this text-level rule cannot see. The stamp
+    // itself cannot be forged that way — Signature is not a data class — so a
+    // copied Command carries its original sig; closing the rest structurally is
+    // ADR-001 §6.6's witness token.
+    Check("C7", "signed transport is constructed only in a tool and at the boundary") { files ->
+        val variants = GateFacts().transportVariants(files)
         val allowed = { file: GateFile ->
             (file.block != null && file.fileName == "Tools.kt") ||
                 file.path == "spine/boundary/Action.kt" ||
@@ -174,7 +207,7 @@ val CHECKS: List<Check> = listOf(
         }
         files.filterNot(allowed).flatMap { file ->
             variants.filter { file.codeText.contains("$it(") }
-                .map { Violation(file.path, "constructs a ToolResult: $it(…)") }
+                .map { Violation(file.path, "constructs signed transport: $it(…)") }
         }
     },
 
@@ -295,9 +328,11 @@ val CHECKS: List<Check> = listOf(
 /**
  * The two derivations the checks above read, on a constructed type. Test sources are
  * in scope for no-loose-top-level-fun, and a helper nothing can construct is no more
- * testable for living beside the tests.
+ * testable for living beside the tests. `internal`, not `private`: GateTest's ANCHORS
+ * test pins `transportVariants` against the live tree, so the derivation cannot go
+ * quietly vacuous again — which is worth more than file-privacy.
  */
-private class GateFacts {
+internal class GateFacts {
 
     /** §1.3's table, verbatim: what each folder MAY import. Anything else is denied. */
     fun allowedAdrPrefixes(file: GateFile): List<String> = when {
@@ -309,7 +344,7 @@ private class GateFacts {
         // spine/concurrency is the barge-in machinery (12). It gets the SAME bucket as
         // spine/surface: it needs the boundary's FinishedStep type to hand a turn its one
         // channel, and it must NEVER reach spine/agent — the agent-loop SDK stays confined
-        // to one file (G3/I5), which is why the TurnRunner is injected instead.
+        // to one file (G3), which is why the TurnRunner is injected instead.
         file.path.startsWith("spine/agent/") ||
             file.path.startsWith("spine/surface/") ||
             file.path.startsWith("spine/concurrency/") ||
@@ -321,13 +356,29 @@ private class GateFacts {
         else -> emptyList()
     }
 
-    /** Every `<Union>.<Variant>` spelling of a ToolResult case, DERIVED from the contracts. */
-    fun resultVariants(files: List<GateFile>): Set<String> =
+    /**
+     * Every `<Union>.<Variant>` spelling of a ToolResult or Command case, DERIVED
+     * from the contracts.
+     *
+     * It reads CLASSES as well as interfaces, and that is a scar, not a nicety: the
+     * first version read interfaces only, and the day the transport migrated to
+     * sealed classes it began deriving an EMPTY variant list from the live tree —
+     * C7 passed on anything, while its own interface-style fixtures kept its
+     * block-test green. A derivation must be written against every shape its
+     * fixtures can take, or the fixtures stop standing in for the tree.
+     */
+    fun transportVariants(files: List<GateFile>): Set<String> =
         files.flatMap { file ->
-            file.file.interfaces(includeNested = true)
-                .filter { it.name.endsWith("Result") }
+            val classUnions = file.file.classes(includeNested = true)
+                .filter { it.name.endsWith("Result") || it.name.endsWith("Command") }
                 .flatMap { union ->
                     union.classes(includeNested = false).map { "${union.name}.${it.name}" }
                 }
+            val interfaceUnions = file.file.interfaces(includeNested = true)
+                .filter { it.name.endsWith("Result") || it.name.endsWith("Command") }
+                .flatMap { union ->
+                    union.classes(includeNested = false).map { "${union.name}.${it.name}" }
+                }
+            classUnions + interfaceUnions
         }.toSet()
 }

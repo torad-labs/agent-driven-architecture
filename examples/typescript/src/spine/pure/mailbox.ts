@@ -11,7 +11,7 @@
 // because the source is the key conflation counts by, the scope dedupe runs in,
 // and the attribution an Interrupt or a Drain carries.
 
-import type { SourceKey, SourceName } from "./ids";
+import type { SourceName } from "./ids";
 import type { Perceived } from "./staged";
 
 export type MessageKind = "Input" | "Interrupt" | "Drain";
@@ -27,12 +27,14 @@ export interface MessageBase {
  *  `Recalled` has exactly one production site in the system (the consumer), so
  *  a producer cannot post a forged relay snapshot through the mailbox.
  *
- *  `key` is NON-NULL always: the durable policy dedupes on it, the perishable
- *  policy ignores it. No nullable, no branch. */
+ *  The dedupe key is `staged.key` — ONE field, and it lives on the value the
+ *  step COMMITS, so the envelope can never dedupe on one key while the record
+ *  pins another, and a restarted consumer rebuilds its dedupe scope from the
+ *  timeline alone. Non-null always: the durable policy dedupes on it, the
+ *  perishable policy ignores it. No nullable, no branch. */
 export interface InputMessage extends MessageBase {
   readonly kind: "Input";
   readonly staged: Perceived;
-  readonly key: SourceKey;
 }
 
 /** PREEMPT: cancel the in-flight turn, join it, then reason about this. */
@@ -57,8 +59,8 @@ export function isInput(message: Message): message is InputMessage {
   return message.kind === INPUT_KIND;
 }
 
-export function input(source: SourceName, staged: Perceived, key: SourceKey): InputMessage {
-  return { kind: "Input", source, staged, key };
+export function input(source: SourceName, staged: Perceived): InputMessage {
+  return { kind: "Input", source, staged };
 }
 
 export function interrupt(source: SourceName, reason: string): InterruptMessage {

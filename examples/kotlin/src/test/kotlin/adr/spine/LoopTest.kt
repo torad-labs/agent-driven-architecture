@@ -13,6 +13,7 @@ import adr.blocks.triage.Priority
 import adr.contract.TriageCommand
 import adr.contract.TriageEffect
 import adr.spine.pure.Actor
+import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.TicketId
@@ -29,7 +30,7 @@ class LoopTest {
     fun `a real ToolLoopAgent turn folds through the boundary and commits a signed Command`() =
         runTest {
             val world = World()
-            val staged = StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived")
+            val staged = StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived", SourceKey("inbox-1"))
             val app = Wiring().wireApp(
                 Env(world = world, authority = RunAuthority(), events = ScriptedEvents(listOf(staged))),
             )

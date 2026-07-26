@@ -29,13 +29,15 @@ sealed class Message(
      * (mirroring C7's one-production-site rule for `ToolResult`), so a producer
      * cannot post a forged relay snapshot into a turn.
      *
-     * `key` is non-null always: the durable policy dedupes on it, the perishable
-     * policy ignores it. No nullable field, no branch, no "which mode am I in?".
+     * The dedupe key is `staged.key` — ONE field, and it lives on the value the step
+     * COMMITS, so the envelope can never dedupe on one key while the record pins
+     * another, and a restarted consumer rebuilds its dedupe scope from the timeline
+     * alone. Non-null always: the durable policy dedupes on it, the perishable policy
+     * ignores it. No nullable field, no branch, no "which mode am I in?".
      */
     data class Input(
         override val source: SourceName,
         val staged: StagedInput.Perceived,
-        val key: SourceKey,
     ) : Message(source)
 
     /** PREEMPT: the running turn is cancelled and JOINED before this one starts (12.3). */

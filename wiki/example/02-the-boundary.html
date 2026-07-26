@@ -120,7 +120,9 @@ flowchart LR
       <div class="code"><div class="bar"><span class="path">the stamp and the signed action — what crosses to the bus</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">enum Actor    { Human, Agent }                  // WHO acted — two values; the contract never grows
 value Authority(id: Text)                       // UNDER WHOSE permission — an opaque principal, not a variant set
-data Signature(by: Actor, authority: Authority)              // minted at the boundary, and nowhere else
+Signature(by: Actor, authority: Authority)                   // minted at the boundary, and nowhere else — and
+                                                             // deliberately NO data/copy constructor: a copied stamp
+                                                             // is a forged stamp (book 5.3; the gate denies the mint)
 sealed Command(tool: ToolName, sig: Signature, id: CmdId) {  // the parent declares all three
   SetPriority(ticket: TicketId, level: Priority)
   RequestEscalation(ticket: TicketId)                 // a request — reversible
@@ -184,7 +186,7 @@ sealed Command(tool: ToolName, sig: Signature, id: CmdId) {  // the parent decla
 <pre><code class="language-plaintext">test "commit precedes perform, and the effect key comes from the committed index":
   clock = FakeClock(t0); ids = FakeIds([c1]); sink = RecordingSink()
   authz = ScriptedAuthority(Agent -&gt; "agent-run-7f")
-  boundary.onStepFinish(FinishedStep(by = Agent, staged = null,
+  boundary.onStepFinish(FinishedStep(by = Agent, staged = [],
     actions = [ Action("setPriority", { ticket: 4118, level: "High" }) ]))
   assert sink.log == [
     Append(StepRecord(now = t0, sig = Signature(Agent, "agent-run-7f"),

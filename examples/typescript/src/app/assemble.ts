@@ -1,4 +1,4 @@
-// ── app/assemble — THE THREE TOTAL DISPATCHERS (I3) ────────────────────────
+// ── app/assemble — THE THREE TOTAL DISPATCHERS (G12) ────────────────────────
 //   fold            results → (State, Effect[])      the only decider
 //   project         State   → ViewModel              the Presenter (6.9)
 //   projectContext  State   → Context                the reasoner's input (F4)

@@ -1,4 +1,4 @@
-// ── blocks/artifact/register — THE ONE PUBLIC SYMBOL (L1, I7) ──────────────
+// ── blocks/artifact/register — THE ONE PUBLIC SYMBOL (L1) ──────────────
 
 import type { BlockRegistration } from "../../spine/pure/verb";
 import { isArtifactResult } from "./contract";

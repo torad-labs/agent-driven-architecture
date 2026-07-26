@@ -28,5 +28,21 @@ value class Authority(val id: String)
 /**
  * The stamp, minted exactly once per step, at the boundary, and carried on every
  * Command. Constructible ONLY inside the spine/boundary folder (gate check C4).
+ *
+ * DELIBERATELY NOT a data class. A data class ships a synthesized `copy()`, and
+ * `sig.copy(by = Actor.Human)` is a forged stamp no constructor rule can see:
+ * C4(d) matches `Signature.<init>` as a resolved call, and `copy` is a second,
+ * synthesized production site with a different name. A plain class has exactly
+ * one production site — the constructor the gate watches. Value equality is
+ * spelled out because replay compares committed records field for field, and a
+ * GateTest pins the missing `data` modifier so it cannot quietly return.
  */
-data class Signature(val by: Actor, val authority: Authority)
+class Signature(val by: Actor, val authority: Authority) {
+
+    override fun equals(other: Any?): Boolean =
+        other is Signature && other.by == by && other.authority == authority
+
+    override fun hashCode(): Int = 31 * by.hashCode() + authority.hashCode()
+
+    override fun toString(): String = "Signature(by=$by, authority=$authority)"
+}

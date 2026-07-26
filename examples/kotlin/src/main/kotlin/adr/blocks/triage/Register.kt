@@ -1,4 +1,4 @@
-// ── blocks/triage/register — THE ONE PUBLIC SYMBOL (I7, L1) ────────────────
+// ── blocks/triage/register — THE ONE PUBLIC SYMBOL (L1) ────────────────
 // Everything the composition root needs from this block, bundled. Plug the block in
 // by constructing it at app/wire; pull it out by deleting this folder and that line.
 // Nothing outside the block reaches a triage ROLE except through this type.

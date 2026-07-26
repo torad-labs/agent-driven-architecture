@@ -15,6 +15,7 @@ import adr.spine.pure.ContextRenderer
 import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.MAX_CONTEXT_NOTICES
 import adr.spine.pure.Notice
+import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.SpineSlice
 import adr.spine.pure.StagedInput
@@ -34,7 +35,7 @@ class ContextTest {
     fun `projectContext is a pure function of committed state plus this turn's staged input`() {
         val state = Assembly().initialState(listOf(Ticket(TicketId("4118"), "refund not received")))
         val staged = listOf(
-            StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived"),
+            StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived", SourceKey("inbox-1")),
         )
 
         val context = Assembly().context(state, staged)

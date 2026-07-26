@@ -90,7 +90,7 @@ function rig(read: RelayRead): {
 }
 
 const post = (mailbox: InMemoryMailbox, key: string, body: string): void =>
-  mailbox.post(input("tickets", perceived("tickets", body), key));
+  mailbox.post(input("tickets", perceived("tickets", body, key)));
 
 // ── 1. THE HEADLINE — a re-fold resolves the SAME snapshot and the SAME branch ─
 

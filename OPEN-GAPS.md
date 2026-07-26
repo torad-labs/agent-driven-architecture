@@ -8,7 +8,12 @@ Status legend: `open` · `decided` · `done`
 
 ---
 
-## A1 · §6.8 unsigns UI tools, and that guts the differentiator — `in flight`
+## A1 · §6.8 unsigns UI tools, and that guts the differentiator — `done`
+
+**Landed in full (book + both ports).** §6.8's axis is decision-vs-ephemeral; a presentation verb
+folds *and signs* through the same four appends as a domain verb in both ports (the GateTest asserts
+the registration shapes are identical); ephemeral view-state stays in one file per block, visible only
+to its own projection (check C12). The record below is the original case, kept for its reasoning.
 
 **Severity: major.** Folded into the remediation pass rather than deferred: it is an *architectural*
 change (it grows the sealed `Command` hierarchy, puts both tool kinds through the `name → Command`
@@ -56,7 +61,11 @@ worked discriminator, §16.1's per-feature economics card, and the `name → Com
 
 ---
 
-## A2 · The guarantee is auditability, not reliability — say so — `in flight`
+## A2 · The guarantee is auditability, not reliability — say so — `done`
+
+**Landed.** The book now states plainly, in §14.1.1 ("What replay does and does not buy"), what replay does and does not buy —
+determinism over a *recorded* timeline (forensics, audit, traces-as-fixtures), never behavioural
+reproducibility — and the payoff grid carries the matching line. The record below is the original case.
 
 **Severity: moderate — framing, but it sets reader expectations that the architecture cannot meet.**
 
@@ -136,9 +145,10 @@ spine from `examples/` into an actual published package and make the claim true.
 headline claiming (b) while the repo demonstrates (a).
 
 **Taken: (a), and sharpened by something that was not true when this gap was written.** The spine is
-no longer prose scattered through a flat port — it is a **tier**: 35 files in TypeScript, the same 35
-in Kotlin, identical in shape, holding the signed bus, the fold driver, state derivation, replay, the
-barge-in mailbox, the tier relay and the enforcement gate. It can be lifted out whole and vendored.
+no longer prose scattered through a flat port — it is a **tier**: 36 files in TypeScript, 37 in Kotlin
+(the same components, spelled per language; each port pins its exact roster with a test), holding the
+signed bus, the fold driver, state derivation, replay, the barge-in mailbox, the tier relay and the
+enforcement gate. It can be lifted out whole and vendored.
 The claim is therefore restated everywhere it appeared, in these terms: **you depend on the loop, you
 vendor the spine.** The runtime is a real dependency with no source here that exactly one file names;
 the spine is source you hold but do not author per feature — every feature lands in `blocks/<X>/`
@@ -255,12 +265,12 @@ fold does not mint transport — so the arm moved into the spine. The enforcemen
 hand-written, so it cannot go stale at all: `VerbSpec.name` is typed `R["tool"]`, so the table is
 already bound to the result variant at compile time, which would make adding a verb and updating the
 predicate the same edit. Attempted and reverted — the six blocks have different verb-function
-signatures, and the change surfaced a second, genuine defect worth fixing alongside it:
+signatures.
 
-- **`isAnalysisResult` is narrower than the analysis verb table.** It does not admit `NoteDropResult`
-  or `NoteFaultResult`, so those results are unclaimed by their own block. Before the fix above they
-  would have crashed the fold; now they fold as observable `Unhandled`. Either the predicate or the
-  union is wrong — decide which, then derive the predicate so the question cannot recur.
+- ~~**`isAnalysisResult` is narrower than the analysis verb table.**~~ **Resolved by relocation:**
+  `noteDrop`/`noteFault` now live in the inbox block's own contract, claimed by the inbox's `owns`,
+  so no block's predicate under-claims its own verbs. The general derive-`owns` hardening above is
+  what remains genuinely open — the class of bug is still writable, this instance is not.
 
 ## Not in this file
 

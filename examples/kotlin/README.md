@@ -22,7 +22,7 @@ build time. Nothing in the demo or the tests reaches the network at run time.
 
 ```
 src/main/kotlin/adr/
-├── spine/                     THE TRUNK — block-agnostic, written once, never forked (35 files)
+├── spine/                     THE TRUNK — block-agnostic, written once, never forked (37 files, roster pinned by a GateTest)
 │   ├── pure/                  ZERO I/O. The transport vocabulary and the shapes the app assembles.
 │   ├── ports/                 INTERFACES ONLY. A file here with a body is a gate failure (C11).
 │   ├── boundary/              THE ONE IMPURE SEAM: action · gate · boundary · in-memory
@@ -243,7 +243,7 @@ one of the two things you get:
   Central, zero source in this repository — and `spine/agent/Loop.kt` is the only file that names it.
 * **You vendor the spine.** The signed command bus, the fold driver, state derivation, replay, the
   barge-in mailbox, the tier relay and the enforcement gate are a **fixed, small, self-contained
-  tier: 35 files**, identical in shape to the TypeScript port's 35. **No spine package is published
+  tier: 37 files, roster pinned by a test**, the same components as the TypeScript port's 36 — spelled per language, not file-for-file identical. **No spine package is published
   on any registry**, and this pass does not publish one — that is the repository owner's decision.
   What is true today is that you copy the tier once and **never author it per feature**: every
   feature you add lands in `blocks/<X>/` plus the root, and each component is swappable behind its
@@ -328,7 +328,7 @@ here rather than left to imply a parity that does not exist:
 | **A distributed or sharded bus, bespoke persistence/retention, multi-tenant isolation** | 8.5 names these as swaps. The contracts exist; no adapter does. |
 | **Snapshots, compaction, retention (14.1/16.2)** | product policy. |
 | **The per-tenant budget (F13)** | `spine/ports/authorization` is its named home and its verdict already rides the committed record; no port ships a tenant budget, because no port has tenants. |
-| **CI** | there is no `.github/` directory in this repository. The gates *are* wired into `./gradlew build`, so a developer running it gets denial — but nothing runs them on push. **Do not claim CI.** |
+| **CI** | `.github/workflows/ci.yml` runs `./gradlew check` (and the TS suite) on every push and pull request — the same entry point a developer runs locally, no CI-only rule set. |
 | **Dispatcher confinement of `submit`** | the consumer creates the turn's scope, so the reference cannot violate it — but an adopter who runs a turn on another dispatcher could interleave two folds despite the design. Enforced structurally, **not gate-checkable**. |
 | **The abandoned turn can leak** | after a cancel-deadline timeout the turn's coroutine may never unwind. The design bounds the *consumer*, not the turn; removing the leak needs an unbounded join, which 12.3 itself calls a hang. The leak is named, degraded, counted and folded — never hidden. |
 

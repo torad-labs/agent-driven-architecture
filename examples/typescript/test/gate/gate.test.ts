@@ -8,6 +8,7 @@
 // `npm run lint` and the tests below run the SAME rule objects over the same
 // path globs. There is no second implementation to drift.
 
+import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
@@ -98,6 +99,18 @@ describe("C13 — registry totality", () => {
   });
 });
 
+// ── the gate cannot be silenced from inside a file (15.2, made structural) ──
+// `linterOptions.noInlineConfig` renders every inline directive inert. The
+// fixture below carries a file-wide `/* eslint-disable */` ABOVE a C3 violation:
+// if the directive ever works again, this test is what goes red.
+describe("inline suppression is inert", () => {
+  it("DENIES a violation even under a file-wide eslint-disable", async () => {
+    const results = await eslint.lintFiles([join(FIXTURES, "suppression", "src")]);
+    const messages = results.flatMap((r) => r.messages.map((m) => m.message));
+    expect(messages.filter((m) => m.includes("[C3]"))).not.toEqual([]);
+  });
+});
+
 describe("the gate runs against the shipped tree", () => {
   it("the reference implementation passes every check", async () => {
     const results = await eslint.lintFiles([join(ROOT, "src")]);
@@ -134,5 +147,57 @@ describe("the gate runs against the shipped tree", () => {
     const pkg = (await import("../../package.json", { with: { type: "json" } })).default;
     expect(pkg.scripts.lint).toBe("eslint .");
     expect(pkg.scripts.test).toContain("npm run lint");
+  });
+
+  // §1.3's arithmetic, PINNED — the same move as the fifteen-check pin above.
+  // The book counts the spine tier's files, and a counted claim that nothing
+  // measures is how "35 files" ships while the tree holds 36. A spine file
+  // added or removed is a diff HERE too, so the prose's number can never drift
+  // from the tree again. (The Kotlin port pins its own roster of 37 — one
+  // extra ports file here, three pure files there; same components, spelled
+  // per language.)
+  it("the spine roster is pinned: exactly these 36 files", () => {
+    const files = readdirSync(join(ROOT, "src", "spine"), { recursive: true })
+      .map((f) => String(f).replaceAll("\\", "/"))
+      .filter((f) => f.endsWith(".ts"))
+      .sort();
+    expect(files).toEqual([
+      "agent/loop.ts",
+      "boundary/action.ts",
+      "boundary/boundary.ts",
+      "boundary/gate.ts",
+      "boundary/in-memory.ts",
+      "concurrency/consumer.ts",
+      "concurrency/in-memory.ts",
+      "ports/authorization.ts",
+      "ports/bus.ts",
+      "ports/clock.ts",
+      "ports/event-source.ts",
+      "ports/id-source.ts",
+      "ports/mailbox.ts",
+      "ports/model-provider.ts",
+      "ports/relay.ts",
+      "ports/scheduler.ts",
+      "ports/sink.ts",
+      "pure/actor.ts",
+      "pure/command.ts",
+      "pure/context.ts",
+      "pure/effect.ts",
+      "pure/emit.ts",
+      "pure/ids.ts",
+      "pure/keyed-effect.ts",
+      "pure/mailbox.ts",
+      "pure/notice.ts",
+      "pure/run-status.ts",
+      "pure/spine-slice.ts",
+      "pure/staged.ts",
+      "pure/step-record.ts",
+      "pure/tool-result.ts",
+      "pure/turn.ts",
+      "pure/verb.ts",
+      "pure/view.ts",
+      "replay/replay.ts",
+      "surface/controller.ts",
+    ]);
   });
 });

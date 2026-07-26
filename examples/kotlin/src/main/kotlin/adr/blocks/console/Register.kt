@@ -1,4 +1,4 @@
-// ── blocks/console/register — THE ONE PUBLIC SYMBOL (I7, L1) ───────────────
+// ── blocks/console/register — THE ONE PUBLIC SYMBOL (L1) ───────────────
 // Identical in shape to blocks/triage/register and blocks/escalation/register. A
 // presentation block plugs in exactly like a domain block (A1) — and it is a
 // CONSTRUCTED class for the same reason they are.

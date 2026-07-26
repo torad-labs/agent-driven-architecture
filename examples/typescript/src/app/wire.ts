@@ -1,4 +1,4 @@
-// ── app/wire — the SINGLE composition root (I1, G7) ────────────────────────
+// ── app/wire — the SINGLE composition root (G7) ────────────────────────
 // Exactly one file may know what is real and what is faked in a build. Removing
 // it means a service locator, which G7 forbids.
 //
@@ -41,6 +41,7 @@ import type { KeyedEffect } from "../spine/pure/keyed-effect";
 import type { DrainMessage, InputPolicy } from "../spine/pure/mailbox";
 import type { ConsumerEvent } from "../spine/pure/turn";
 import type { BlockRegistration } from "../spine/pure/verb";
+import { committedSourceKeys } from "../spine/replay/replay";
 import { Controller } from "../spine/surface/controller";
 import { dispatchers, project } from "./assemble";
 import type { AppView, Effect, State } from "./contract";
@@ -56,7 +57,7 @@ import { initialState } from "./contract";
 export interface Ports {
   readonly oncall: OncallPort;
   readonly delivery: DeliveryPort;
-  /** the tier relay's WRITE half — the deep tier's only route to a peer (I8) */
+  /** the tier relay's WRITE half — the deep tier's only route to a peer (11.2) */
   readonly relay: AnalysisRelay;
   readonly log: (line: string) => void;
 }
@@ -106,14 +107,22 @@ export interface AuthorizationConfig {
   readonly authorities: Readonly<Record<Actor, Authority>>;
   /** the product's own rule; default-allow once the gate's structural checks
    *  (a pending request exists, and it was raised by a DIFFERENT principal)
-   *  have already passed */
-  readonly mayConfirm?: (by: Actor) => boolean;
+   *  have already passed.
+   *
+   *  Keyed on the AUTHORITY, never the Actor — §5.2's "preserved for audit,
+   *  not for branching" applies to the composition root too. A default that
+   *  branched on `sig.by` here would be the exact anti-pattern G6 forbids the
+   *  gate, shipped as the line every adopter copies first: it makes "a policy
+   *  tier may confirm, this run may not" unrepresentable, because both are
+   *  truthfully `Agent`. The Kotlin port's `ConfirmingAuthorities` keys the
+   *  same way. */
+  readonly mayConfirm?: (by: Authority) => boolean;
 }
 
 export function authorization(config: AuthorizationConfig): Authorization<State> {
   return {
     authorityOf: (by: Actor, _session: SessionId): Authority => config.authorities[by],
-    mayConfirm: (sig) => config.mayConfirm?.(sig.by) ?? true,
+    mayConfirm: (sig) => config.mayConfirm?.(sig.authority) ?? true,
   };
 }
 
@@ -295,5 +304,9 @@ export function wireConsumer(app: App, env: ConsumerEnv): SerialConsumer {
     cancelDeadlineMs: env.cancelDeadlineMs,
     drainDeadlineMs: env.drainDeadlineMs,
     recallDeadlineMs: env.recallDeadlineMs,
+    // Not opt-in: the dedupe scope is ALWAYS the timeline's. On a fresh bus
+    // this is the empty set for free; after a crash it is what makes the
+    // durable queue's redelivery refuse work that already committed (12.2).
+    recovered: committedSourceKeys(app.bus.records()),
   });
 }

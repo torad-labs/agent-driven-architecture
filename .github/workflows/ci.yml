@@ -1,0 +1,46 @@
+# ── CI — the gate, on every push (15.1/17.4) ────────────────────────────────
+# §17.4 used to admit "nothing runs them on push: there is no CI" — a book that
+# stakes its answer on machine enforcement was itself enforced only on whoever
+# remembered to run the suites. This closes that. Both jobs run the SAME entry
+# points a contributor runs locally (`npm test`, `./gradlew check`), so green
+# here means exactly what green means on a laptop — no CI-only rule set, no
+# warning tier, no baseline.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  typescript:
+    name: TypeScript — npm test (typecheck + gate + biome + vitest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/typescript
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: examples/typescript/package-lock.json
+      - run: npm ci
+      - run: npm test
+
+  kotlin:
+    name: Kotlin — ./gradlew check (konsist + detekt + compiler proofs + junit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/kotlin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew check --console=plain

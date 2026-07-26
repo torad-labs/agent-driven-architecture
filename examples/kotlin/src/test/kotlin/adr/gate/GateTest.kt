@@ -108,6 +108,153 @@ class GateTest {
     }
 
     /**
+     * §1.3's arithmetic, PINNED — the same move as the fifteen-check roster above.
+     * The book counts the spine tier's files, and a counted claim nothing measures
+     * is how "35 files" ships while the tree holds 37. A spine file added or
+     * removed is a diff HERE too, so the prose's number can never drift from the
+     * tree again. (The TS port pins its own roster of 36 — one extra ports file
+     * there, three pure files here; same components, spelled per language.)
+     */
+    @Test
+    fun `the spine roster is pinned - exactly these 37 files`() {
+        val spine = live.map { it.path }.filter { it.startsWith("spine/") }.sorted()
+        assertEquals(
+            listOf(
+                "spine/agent/Loop.kt",
+                "spine/boundary/Action.kt",
+                "spine/boundary/Boundary.kt",
+                "spine/boundary/Gate.kt",
+                "spine/boundary/InMemory.kt",
+                "spine/concurrency/Consumer.kt",
+                "spine/concurrency/InMemory.kt",
+                "spine/ports/Authorization.kt",
+                "spine/ports/Bus.kt",
+                "spine/ports/Clock.kt",
+                "spine/ports/EventSource.kt",
+                "spine/ports/IdSource.kt",
+                "spine/ports/Mailbox.kt",
+                "spine/ports/ModelProvider.kt",
+                "spine/ports/Relay.kt",
+                "spine/ports/Sink.kt",
+                "spine/pure/Action.kt",
+                "spine/pure/Actor.kt",
+                "spine/pure/Block.kt",
+                "spine/pure/Command.kt",
+                "spine/pure/Context.kt",
+                "spine/pure/Effect.kt",
+                "spine/pure/Ids.kt",
+                "spine/pure/KeyedEffect.kt",
+                "spine/pure/Mailbox.kt",
+                "spine/pure/Notice.kt",
+                "spine/pure/RunStatus.kt",
+                "spine/pure/Seams.kt",
+                "spine/pure/SpineSlice.kt",
+                "spine/pure/Staged.kt",
+                "spine/pure/StepRecord.kt",
+                "spine/pure/ToolResult.kt",
+                "spine/pure/Turn.kt",
+                "spine/pure/Verb.kt",
+                "spine/pure/View.kt",
+                "spine/replay/Replay.kt",
+                "spine/surface/Controller.kt",
+            ),
+            spine,
+        )
+    }
+
+    /**
+     * THE GATE'S ANCHORS. Every konsist rule keys on a NAME, a PATH or a SHAPE —
+     * `Ctx`, `RunStatus`, `ViewState.kt`, `Tools.kt`, the `ai.torad` prefix, the
+     * `*Result`/`*Command` derivation. C7 demonstrated the failure class: its
+     * derivation was keyed to a shape the live tree migrated away from, the rule
+     * went quietly vacuous, and its own fixtures — frozen in the old shape — kept
+     * its block-test green. This test pins every such anchor against the LIVE
+     * tree, so a rename that would de-scope a rule fails HERE, loudly, instead of
+     * the rule matching nothing, silently, forever.
+     */
+    @Test
+    fun `ANCHORS - every name, path and shape the gate keys on exists in the live tree`() {
+        fun declares(name: String) =
+            live.any { f -> f.file.classes(includeNested = true).any { it.name == name } }
+
+        // C7's derivation is NON-EMPTY on the live tree and contains known spellings —
+        // the direct pin on the exact rot that shipped.
+        val variants = GateFacts().transportVariants(live)
+        listOf(
+            "TriageResult.SetPriority", "TriageCommand.SetPriority",
+            "ToolResult.Refused", "Command.Refused",
+        ).forEach { known ->
+            assertTrue(known in variants, "C7's derivation lost $known — it is going vacuous again")
+        }
+
+        // C4's shape anchors: the tool context really is a class named Ctx, the
+        // staged vocabulary really is StagedInput with its two variants, and the
+        // stamp types exist where STAMP_TYPES points.
+        listOf("Ctx", "StagedInput", "Perceived", "Recalled", "Actor", "Authority", "Signature")
+            .forEach { assertTrue(declares(it), "C4 keys on `$it`, which no live file declares") }
+
+        // C5 and C6 key on these import names.
+        listOf("KeyedEffect", "EffectKey", "RunStatus")
+            .forEach { assertTrue(declares(it), "a check keys on `$it`, which no live file declares") }
+
+        // C2/C15: the spine-owned adr.contract roots are exactly the three the
+        // allow-set names — a fourth root would be silently sibling-importable.
+        val spineContractRoots = live
+            .filter { it.packageName == "adr.contract" && it.path.startsWith("spine/") }
+            .flatMap { f -> f.file.classes(includeNested = false).map { it.name } }
+            .toSet()
+        assertEquals(setOf("ToolResult", "Command", "Effect"), spineContractRoots)
+
+        // C1/C8 key the runtime on the `ai.torad` prefix; the loop must actually
+        // import it, or the confinement clause polices a name nothing uses.
+        assertTrue(
+            live.single { it.path == "spine/agent/Loop.kt" }.imports.any { it.startsWith("ai.torad") },
+            "C1's runtime clause keys on `ai.torad`, which spine/agent/Loop.kt no longer imports",
+        )
+
+        // C12 keys on ViewState.kt; C4(b) on Tools.kt; the port/adapter pair is the
+        // shape §4.6 stakes its claim on. Pin the full per-block rosters, the same
+        // move as the spine roster above.
+        val blockFiles = live.mapNotNull { f -> f.block?.let { it to f.fileName } }
+            .groupBy({ it.first }, { it.second })
+            .mapValues { (_, names) -> names.sorted() }
+        val core = listOf("Contract.kt", "Fold.kt", "Project.kt", "Register.kt", "Slice.kt", "Tools.kt")
+        assertEquals(
+            mapOf(
+                "analysis" to (core + listOf("Adapter.kt", "Port.kt")).sorted(),
+                "artifact" to (core + listOf("Adapter.kt", "Port.kt")).sorted(),
+                "console" to (core + listOf("ViewState.kt")).sorted(),
+                "escalation" to (core + listOf("Adapter.kt", "Port.kt")).sorted(),
+                "inbox" to core.sorted(),
+                "triage" to core.sorted(),
+            ),
+            blockFiles,
+        )
+    }
+
+    /**
+     * F2/D4, the COPY half of C4(d). The detekt half denies `Signature.<init>` as a
+     * resolved call — but a `data class` ships a synthesized `copy()`, and
+     * `sig.copy(by = Actor.Human)` is a SECOND production site with a different
+     * name, invisible to any constructor rule. Signature is therefore a plain
+     * class: the second site does not exist in the language. This test is what
+     * keeps it deleted — flip the modifier back and this fails before any forge
+     * can be written.
+     */
+    @Test
+    fun `C4(d) - Signature is not a data class, so no synthesized copy() exists`() {
+        val signature = live
+            .single { it.path == "spine/pure/Actor.kt" }
+            .file.classes(includeNested = true)
+            .single { it.name == "Signature" }
+        assertTrue(
+            !signature.hasDataModifier,
+            "Signature must not be a data class: `copy()` would be a second, " +
+                "ungated production site for the stamp (F2)",
+        )
+    }
+
+    /**
      * F10/§11.2: the edit list for a new state variant is K = 3, and every one of
      * the three is INSIDE the owning block.
      *

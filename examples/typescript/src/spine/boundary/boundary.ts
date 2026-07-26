@@ -1,4 +1,4 @@
-// ── spine/boundary/boundary — THE ONE IMPURE SEAM (6.7, I4) ────────────────
+// ── spine/boundary/boundary — THE ONE IMPURE SEAM (6.7, G9) ────────────────
 // Clock, ids, bus, sink, authority, registry and the fold meet here and nowhere
 // else. Nine ordered steps; three structural facts fall out of the order, and
 // every implementation must preserve all three.

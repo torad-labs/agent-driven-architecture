@@ -77,7 +77,7 @@ private const val STUBBORN_TURN_MS = 5_000L
 private class Msgs {
 
     fun inputOf(source: SourceName, key: String, body: String) =
-        Message.Input(source, StagedInput.Perceived(source, body), SourceKey(key))
+        Message.Input(source, StagedInput.Perceived(source, body, SourceKey(key)))
 
     fun stepOf(
         tool: ToolName,
@@ -88,7 +88,7 @@ private class Msgs {
 
 /**
  * One wired tier with a mailbox. Everything is built through the composition root
- * (`wireApp` + `wireConsumer`) — a test that reached around I1 would be testing
+ * (`wireApp` + `wireConsumer`) — a test that reached around the root (G7) would be testing
  * something the application does not do.
  */
 private class Barge(
@@ -109,6 +109,10 @@ private class Barge(
 
     /** Every tool name committed to the timeline, in order. */
     fun committed(): List<String> = app.bus.records().flatMap { it.commands }.map { it.tool.value }
+
+    /** A NEW consumer over the same app, env and mailbox — the process restart.
+     *  Its dedupe scope is whatever `wireConsumer` rebuilds from the timeline. */
+    fun restarted(runner: TurnRunner) = checkNotNull(Wiring().wireConsumer(app, env, runner))
 }
 
 class MailboxTest {
@@ -367,13 +371,62 @@ class MailboxTest {
         job.cancelAndJoin()
     }
 
+    // ── 5b · 12.2 across a PROCESS RESTART — the dedupe scope is the timeline's ─
+    @Test
+    fun `RESTART - committed work is refused, uncommitted work is retried`() = runTest {
+        // The crash window 12.2's lease exists for: after the commit, before the ack.
+        // An in-memory `seen` dies here — the timeline does not, and the key rides the
+        // committed Perceived fixture precisely so a fresh process can rebuild the
+        // scope from the bus alone.
+        val attempts = mutableMapOf<String, Int>()
+        val runner = TurnRunner { message, ctx ->
+            val input = message as? Message.Input ?: return@TurnRunner
+            val key = input.staged.key.value
+            val n = (attempts[key] ?: 0) + 1
+            attempts[key] = n
+            if (key == "a") {
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "ticket A", staged = ctx.staged))
+                check(n > 1) { "process died after the commit" } // COMMITTED, then died
+            } else {
+                check(n > 1) { "process died before the commit" } // died FIRST …
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "ticket B", staged = ctx.staged))
+            }
+        }
+        val h = Barge(runner = runner)
+        val firstProcess = launch { h.consumer.run() }
+        h.mailbox.post(Msgs().inputOf(TICKETS, "a", "ticket A"))
+        advanceUntilIdle()
+        h.mailbox.post(Msgs().inputOf(TICKETS, "b", "ticket B"))
+        advanceUntilIdle()
+
+        // "a" committed then died; "b" died first. Neither was acked.
+        assertEquals(listOf("ticket A"), h.app.state.artifact.lines.map { it.text })
+        assertEquals(2, h.mailbox.unacked().size)
+        firstProcess.cancelAndJoin()
+
+        // THE RESTART: the broker outlives the process and re-delivers both leases;
+        // the NEW consumer is seeded from the committed timeline alone.
+        h.mailbox.redeliver()
+        val secondProcess = launch { h.restarted(runner).run() }
+        advanceUntilIdle()
+
+        // committed ⇒ refused, reported, acked. uncommitted ⇒ folded, exactly once.
+        assertEquals(listOf("ticket A", "ticket B"), h.app.state.artifact.lines.map { it.text })
+        val drop = h.app.bus.records().flatMap { it.commands }
+            .filterIsInstance<InboxCommand.NoteDrop>()
+            .single()
+        assertEquals(DropReason.Duplicate, drop.reason)
+        assertTrue(h.mailbox.unacked().isEmpty())
+        secondProcess.cancelAndJoin()
+    }
+
     // ── 6 · 12.4 · a thrown turn degrades; the consumer is the heartbeat ────
     @Test
     fun `12_4 - a turn that THROWS degrades to a typed status and never kills the consumer`() = runTest {
         val h = Barge(
             runner = TurnRunner { message, ctx ->
                 val input = message as? Message.Input
-                check(input?.key != SourceKey("boom")) { "backend timeout" }
+                check(input?.staged?.key != SourceKey("boom")) { "backend timeout" }
                 ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
             },
         )

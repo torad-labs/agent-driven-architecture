@@ -29,8 +29,20 @@ sealed class StagedInput(
     open val source: SourceName,
 ) {
 
-    /** UNTRUSTED perceived content (10.2). Data to reason about, never an instruction. */
-    data class Perceived(override val source: SourceName, val body: String) : StagedInput(source)
+    /**
+     * UNTRUSTED perceived content (10.2). Data to reason about, never an instruction.
+     *
+     * [key] is the source's OWN id for this work item, and it rides the COMMITTED
+     * record on purpose: the durable policy's dedupe scope is rebuilt from the
+     * timeline at recovery (12.2), so "each work item folds at most once" survives a
+     * process restart. A key held only on the uncommitted mailbox envelope dies with
+     * the process — which is exactly the double-fold this field closes.
+     */
+    data class Perceived(
+        override val source: SourceName,
+        val body: String,
+        val key: SourceKey,
+    ) : StagedInput(source)
 
     /**
      * A peer tier's conclusion, reached through the recall verb (11.2/11.3).

@@ -94,7 +94,7 @@ will eventually emit the shape no rule anticipated.
 Fixing the reference implementation is therefore necessary but not sufficient. §15 must be inverted (§5.1)
 because the book's readers, not just this repository, are the ones the law protects.
 
-### 1.1 The second, deeper defect: the core is unsubstitutable
+### 1.2.1 The second, deeper defect: the core is unsubstitutable
 
 The book's testing pitch is port substitution (§7.2 "a fake-in-test and the real-in-production runtime
 swap behind one interface"; §7.3 the composition root binds ports to adapters). The shipped core is then
@@ -110,7 +110,7 @@ declarations**. Every seam this repository made a loose function, that one made 
 buys full substitutability. **Top-level functions are a TypeScript idiom.** They are not testable in the
 sense this architecture means by testable: not injectable, not fakeable, not bindable.
 
-### 1.2 The book is wrong, not only the code
+### 1.2.2 The book is wrong, not only the code
 
 Kotlin seals a hierarchy **within one module**. A block in its own Gradle module therefore **cannot** add
 a case to a `:spine`-sealed `Command`/`ToolResult`/`Effect`. The book's §4.7 ("a block contributes
@@ -144,8 +144,11 @@ That is the same thing as having no wall. You may have compile-time exhaustivene
 vocabulary; you cannot have both.
 
 The cost is real and this ADR previously hid it: **the book's claim that a new feature touches "four
-sites inside one folder and zero sites outside" is false under this answer, and must be deleted.** Some
-of the sites are in the shared core.
+sites inside one folder and zero sites outside" is false under this answer, and must be deleted — but
+only once this ADR is accepted.** Under the current single-module layout the claim holds for verbs (with
+the one exception the book now lists itself: a novel effect kind adds a compiler-named branch in the
+root's sink), so the deletion is queued behind the decision, not owed today. Under the module DAG, some
+of the sites move into the shared core, and the claim as written stops being true.
 
 That cost is smaller than it looks, for a reason the book already argues elsewhere. Adding a case to a
 sealed set makes the compiler name every place that must handle it — §6.10's own words, "the type system
@@ -264,6 +267,10 @@ happened and a forge vector for a value that *authorizes* something. So:
 This is a split by what the type carries, not an inconsistency. Most transport is data and should be a
 `data class`. The few types that are capabilities are not.
 
+---
+
+## 2. The shape — what stays, what changes
+
 - **Three rings, dependencies point inward, only the boundary is impure.** Unchanged from the book.
 - **A block is a vertical slice whose only public symbol is a TYPE the root constructs** —
   `class TriageBlock : Block<TriageSlice, TriageResult, TriageView>`. It contributes a **tool** and a
@@ -377,6 +384,15 @@ and owns privately: its decision logic, its port interfaces, its projection, its
 **Book change required:** §4.7's "contributes to shared: `Command` case(s) the feature adds" and "the
 state slice + its fold arm(s)" become "contributes a tool and a projection; the shared language stays in
 the spine." §7.5/§7.8's folder trees become module trees.
+
+**A second book change this ADR previously failed to name: §4.6.** The book ships the live adapter
+*inside the block* — "the only file in the block that holds a client" — and its deletability story
+("pull a block out by deleting the folder") includes that adapter. Under §3's DAG a `:block:<x>` is pure
+JVM with IO libraries forbidden on the classpath, so escalation's `OncallAdapter` and artifact's
+`LiveDelivery` cannot stay where §4.6 puts them. Two resolutions, one preferred: grow the DAG a
+`:block:<x>:adapter` leaf module — the pure block plus an impure adapter sibling, deleted together, with
+only `:app` permitted to depend on the adapter leaf — or put §4.6 on the amendment list beside §4.7.
+This ADR proposes the adapter leaf, because it preserves the deletability story §4.6 exists to tell.
 
 ### 5.1 §15 is the largest book change, and it is a thesis inversion
 
@@ -501,6 +517,7 @@ Minimum for the TypeScript port:
 - one workspace package per block, `exports` limited to `./register`
 - `tsconfig` project references so `:block` cannot see a sibling's source
 - `linterOptions.noInlineConfig = true`, closing the `/* eslint-disable */` bypass the review reproduced
+  *(landed 2026-07-26, ahead of this ADR's decision — see §11)*
 - the same witness-type pattern, which TypeScript expresses with a branded type and a private constructor
 
 **State the asymmetry in the book.** The Kotlin port is the reference for structural enforcement; the
@@ -543,3 +560,47 @@ Gate between every phase: `./gradlew build` green, and for P2 onward the `.api` 
 
 Roughly a third of the review dissolves because the defect becomes unrepresentable. The rest is real work
 that this restructure does not touch, and must still be done.
+
+---
+
+## 11. Addendum (2026-07-26) — evidence update, and the subset landed ahead of the decision
+
+Status is unchanged: **proposed**. This addendum records what a second adversarial review added to the
+evidence base, and which of this ADR's own recommendations were landed at the check layer without
+waiting for the module-DAG decision. Landing them is not that decision; the thesis (§5.1) stands or
+falls on its own.
+
+**New evidence for the premise, all verified against the tree as it stood:**
+
+1. **`Signature.copy()`** — the data-class stamp shipped a synthesized second production site that the
+   detekt `<init>` rule structurally could not see. Exactly §7's prediction, live in shipped code.
+2. **The Command-mint asymmetry** — the gate policed `ToolResult` production and nothing policed
+   `Command` production, so a fold arm could stash a forged, replay-consistent Command into its own
+   slice while the bus stayed clean.
+3. **A check rotted silently under it** — C7's variant derivation read `interfaces()` while the
+   transport had migrated to sealed classes: the live-tree variant list had been **empty** since that
+   migration, the check vacuous, and its own interface-style fixtures kept its block-test green. This is
+   the strongest single datum this file has for its own thesis: a checked, fixture-paired, review-passed
+   rule still drifted to nothing, because a rule is a photo of the shapes its author anticipated.
+4. **The C2 name-prefix classification** — Kotlin block isolation rests on `symbol.startsWith(BlockName)`
+   over a shared package, convention-strength enforcement of the architecture's flagship claim.
+5. **No directive posture existed** in either port: one comment silenced the gate, as §1 stated.
+
+**Landed at the check layer (2026-07-26), the "cheap 20%" that stands regardless of this ADR's fate:**
+
+- `linterOptions.noInlineConfig` in the TS gate and detekt `ForbiddenSuppress` over the gate's rules in
+  the Kotlin one, each with a block-test watching a suppression fail to work.
+- `Signature` is a **non-data class** in the Kotlin port (spelled-out value equality, no `copy()`), with
+  a GateTest pinning the missing modifier. The `internal constructor` half of §7 still requires the
+  module split and remains open.
+- C7 extended to **Command construction** with the variant derivation fixed to read classes and
+  interfaces, and the fixture pair re-cut in the live sealed-class idiom. The named residue — `copy()`
+  on a *received* data-class Command variant — remains open and is §6.6's problem to close structurally.
+- The durable dedupe key now rides the **committed staged fixture**, so exactly-once survives a restart
+  (a correctness fix independent of enforcement, recorded here because finding 2 above is what surfaced
+  the surrounding seam).
+
+**What this addendum does not do:** decide §3's module DAG, §6.6's witness token, or §5.1's inversion of
+book §15. Those remain the open decision of this ADR. The book meanwhile gained an explicit per-law
+enforcement map (§15.3 of the book), which is §5.1's "each invariant carries its enforcement layer"
+recommendation executed at the prose layer — the honest interim state whichever way the decision goes.

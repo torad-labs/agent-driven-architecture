@@ -1,4 +1,4 @@
-// ── spine/agent/loop — the loop is a DECLARATION (G3, I5) ──────────────────
+// ── spine/agent/loop — the loop is a DECLARATION (G3) ──────────────────
 // The ONLY file in the system that imports the agent-loop runtime (the Vercel
 // AI SDK). It converts the registry's verb table into SDK tools and hooks the
 // boundary onto `onStepFinish` — that callback IS the boundary seam. There is

@@ -1,4 +1,4 @@
-// ── spine/agent/loop — the loop is a DECLARATION (G3, I5) ──────────────────
+// ── spine/agent/loop — the loop is a DECLARATION (G3) ──────────────────
 // The ONLY file in spine/ that imports the agent-loop runtime (aisdk-kotlin). It
 // does two things and nothing else:
 //
