@@ -10,7 +10,7 @@
 // The boundary compares that authority against the confirming one; this file
 // never sees a Signature and never decides anything.
 
-import { z } from "zod";
+import { object, string } from "valibot";
 import type { Verb } from "../../spine/pure/verb";
 import { irreversible, reversible } from "../../spine/pure/verb";
 import type {
@@ -22,7 +22,7 @@ import type {
 import type { EscalationSlice } from "./slice";
 import { statusOf } from "./slice";
 
-const ticketInput = z.object({ ticket: z.string() });
+const ticketInput = object({ ticket: string() });
 
 export function escalationVerbs<S>(read: (state: S) => EscalationSlice): readonly Verb<S>[] {
   return [

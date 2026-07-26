@@ -34,12 +34,29 @@ export interface Ctx<S> {
 }
 
 // ── Input decoding ──────────────────────────────────────────────────────────
-// Structural, so `spine/pure` names no schema library. A zod schema satisfies
-// it as-is; so does anything else with the same shape.
+// The spine names a STANDARD, not a library.
+//
+// This used to declare `safeParse(raw) => { success, data }` and claim to be
+// library-neutral because the shape was structural. It was not: that is zod's method
+// and zod's field names. Valibot returns `{ success, output }` from a STANDALONE
+// `safeParse(schema, input)`, so it could not satisfy the interface at all — the
+// neutrality was a comment, not a property.
+//
+// Standard Schema (https://standardschema.dev) is the vendor-neutral contract both
+// implement: a `~standard.validate` that returns `{ value }` on success and
+// `{ issues }` on failure. Zod v4, Valibot v1 and ArkType all ship it, and the Vercel
+// AI SDK accepts it directly for the model-facing tool definition — so ONE object
+// serves both the reasoner's schema and the boundary's decoder, which is what D3
+// requires.
+export interface StandardResult<I> {
+  readonly value?: I;
+  readonly issues?: readonly unknown[];
+}
+
 export interface InputSchema<I> {
-  safeParse(
-    raw: unknown,
-  ): { readonly success: true; readonly data: I } | { readonly success: false };
+  readonly "~standard": {
+    readonly validate: (value: unknown) => StandardResult<I> | Promise<StandardResult<I>>;
+  };
 }
 
 export type DecodeResult = { readonly ok: true; readonly input: unknown } | { readonly ok: false };
@@ -94,8 +111,14 @@ function erase<S, I, R extends ToolResultBase, C extends CommandBase>(
     describe: spec.describe,
     schema: spec.schema,
     decode: (raw) => {
-      const parsed = spec.schema.safeParse(raw);
-      return parsed.success ? { ok: true, input: parsed.data } : { ok: false };
+      const parsed = spec.schema["~standard"].validate(raw);
+      // A Standard Schema MAY validate asynchronously. Decoding runs inside the pure
+      // fold path, which cannot await, so an async schema is a decode failure rather
+      // than a silently-unresolved promise treated as a value.
+      if (parsed instanceof Promise) return { ok: false };
+      return parsed.issues === undefined && parsed.value !== undefined
+        ? { ok: true, input: parsed.value }
+        : { ok: false };
     },
     run: (input, ctx) => spec.run(input as I, ctx),
     sign: (result, sig, id) => spec.sign(result as R, sig, id),

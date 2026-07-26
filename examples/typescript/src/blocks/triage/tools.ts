@@ -11,24 +11,25 @@
 // The input schema for `ticket` is a plain string ON PURPOSE (6.10): the ticket
 // set is OPEN at the boundary, and the ARM is what validates it against State.
 
-import { z } from "zod";
+import type { InferOutput } from "valibot";
+import { object, picklist, string } from "valibot";
 import type { Verb } from "../../spine/pure/verb";
 import { reversible } from "../../spine/pure/verb";
 import type { SetPriorityCommand, SetPriorityResult } from "./contract";
 
-const priority = z.enum(["Low", "Normal", "High", "Urgent"]);
+const priority = picklist(["Low", "Normal", "High", "Urgent"]);
 
 export function triageVerbs<S>(): readonly Verb<S>[] {
   return [
     reversible<
       S,
-      { ticket: string; level: z.infer<typeof priority> },
+      { ticket: string; level: InferOutput<typeof priority> },
       SetPriorityResult,
       SetPriorityCommand
     >({
       name: "setPriority",
       describe: "Set a support ticket's priority (Low | Normal | High | Urgent).",
-      schema: z.object({ ticket: z.string(), level: priority }),
+      schema: object({ ticket: string(), level: priority }),
       run: (input) => ({
         outcome: "ok",
         tool: "setPriority",
