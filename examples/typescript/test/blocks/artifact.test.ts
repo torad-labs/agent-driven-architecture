@@ -5,8 +5,9 @@
 // assertion.
 
 import { describe, expect, it } from "vitest";
-import { POLICY_TIER, harness } from "../harness";
 import { refold } from "../../src/spine/replay/replay";
+import { harness, POLICY_TIER } from "../harness";
+import { must } from "../support/must";
 
 function record(h: ReturnType<typeof harness>, ...texts: string[]): void {
   h.app.boundary.onStepFinish({
@@ -20,7 +21,11 @@ describe("blocks/artifact — a folded slice, delivered once at seal (F6)", () =
   it("lines fold; the seal delivers EXACTLY ONE irreversible effect", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "first", "second");
-    h.app.boundary.onStepFinish({ by: "Agent", staged: [], actions: [{ tool: "requestSeal", input: {} }] });
+    h.app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "requestSeal", input: {} }],
+    });
     h.app.controller.onAction({ tool: "confirmSeal", input: {} }); // a DIFFERENT authority
 
     expect(h.app.boundary.state.artifact.lines.map((l) => l.text)).toEqual(["first", "second"]);
@@ -35,7 +40,11 @@ describe("blocks/artifact — a folded slice, delivered once at seal (F6)", () =
   it("the content re-folds from committed bytes — 2.2 made true", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "first", "second");
-    h.app.boundary.onStepFinish({ by: "Agent", staged: [], actions: [{ tool: "requestSeal", input: {} }] });
+    h.app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "requestSeal", input: {} }],
+    });
     h.app.controller.onAction({ tool: "confirmSeal", input: {} });
 
     const replayed = refold(h.app.initial, h.app.bus.records(), h.app.dispatchers);
@@ -48,25 +57,41 @@ describe("blocks/artifact — a folded slice, delivered once at seal (F6)", () =
   it("a self-confirmed seal is refused — session-end is gated exactly as 14.3 says", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "only");
-    h.app.boundary.onStepFinish({ by: "Agent", staged: [], actions: [{ tool: "requestSeal", input: {} }] });
-    h.app.boundary.onStepFinish({ by: "Agent", staged: [], actions: [{ tool: "confirmSeal", input: {} }] });
+    h.app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "requestSeal", input: {} }],
+    });
+    h.app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "confirmSeal", input: {} }],
+    });
 
     expect(h.world.deliveries).toEqual([]);
-    expect(h.app.bus.records().at(-1)!.results.at(-1)).toMatchObject({
+    expect(must(h.app.bus.records().at(-1)).results.at(-1)).toMatchObject({
       outcome: "refused",
       tool: "confirmSeal",
     });
 
     // a different principal on the same stream may seal it (F3)
     h.actAs("Agent", POLICY_TIER);
-    h.app.boundary.onStepFinish({ by: "Agent", staged: [], actions: [{ tool: "confirmSeal", input: {} }] });
+    h.app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "confirmSeal", input: {} }],
+    });
     expect(h.world.deliveries).toEqual([1]);
   });
 
   it("a sealed artifact refuses further lines, per item", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "only");
-    h.app.boundary.onStepFinish({ by: "Agent", staged: [], actions: [{ tool: "requestSeal", input: {} }] });
+    h.app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "requestSeal", input: {} }],
+    });
     h.app.controller.onAction({ tool: "confirmSeal", input: {} });
     record(h, "too late");
 

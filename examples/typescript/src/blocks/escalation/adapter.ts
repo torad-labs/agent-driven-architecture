@@ -8,10 +8,11 @@
 // In a real deployment it is a PagerDuty SDK, and nothing else about the block
 // changes.
 
+import type { Emit } from "../../spine/pure/emit";
 import type { TicketId } from "../../spine/pure/ids";
 import type { OncallPort } from "./port";
 
-export function livePager(emit: (line: string) => void = console.log): OncallPort {
+export function livePager(emit: Emit): OncallPort {
   return {
     page: (ticket: TicketId) => emit(`[pager] on-call paged for ticket ${ticket}`),
   };

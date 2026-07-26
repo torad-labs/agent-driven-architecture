@@ -28,10 +28,10 @@
 // verdict without calling the authorization seam again — G9 satisfied, and F3's
 // and F13's "captured as an ordered G9 fixture" are the same mechanism, not two.
 
+import type { Authorization } from "../ports/authorization";
 import type { Signature } from "../pure/actor";
 import type { ToolResultBase } from "../pure/tool-result";
 import { isSpineResult, refused } from "../pure/tool-result";
-import type { Authorization } from "../ports/authorization";
 import type { Registry } from "./action";
 
 export function gate<S>(
@@ -54,7 +54,10 @@ export function gate<S>(
       const requester = verb.requestedBy(state, result);
       if (requester === null) return refused(result.tool, "no pending request");
       if (requester === sig.authority) {
-        return refused(result.tool, "self-confirm: the confirming authority is the requesting authority");
+        return refused(
+          result.tool,
+          "self-confirm: the confirming authority is the requesting authority",
+        );
       }
       return authz.mayConfirm(sig, result, state)
         ? result

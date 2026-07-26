@@ -17,6 +17,8 @@
 // not have finished until t=10 000" is an EXACT assertion, not a race.
 
 import { describe, expect, it, vi } from "vitest";
+import type { App } from "../../src/app/wire";
+import { wireConsumer } from "../../src/app/wire";
 import type { Action } from "../../src/spine/boundary/action";
 import type { StepSeam, TurnContext, TurnRunner } from "../../src/spine/concurrency/consumer";
 import {
@@ -24,14 +26,13 @@ import {
   timerScheduler,
   virtualScheduler,
 } from "../../src/spine/concurrency/in-memory";
+import type { Mailbox } from "../../src/spine/ports/mailbox";
 import type { InputPolicy, Message } from "../../src/spine/pure/mailbox";
 import { drain, input, interrupt, perishable } from "../../src/spine/pure/mailbox";
-import type { Mailbox } from "../../src/spine/ports/mailbox";
 import { perceived } from "../../src/spine/pure/staged";
-import type { App } from "../../src/app/wire";
-import { wireConsumer } from "../../src/app/wire";
 import type { Harness } from "../harness";
 import { effectKinds, harness } from "../harness";
+import { must } from "../support/must";
 
 // ── the rig ────────────────────────────────────────────────────────────────
 
@@ -139,7 +140,7 @@ describe("12.3 — an Interrupt preempts a turn in flight", () => {
     // ── THE CLAIM ──────────────────────────────────────────────────────────
     expect(startedAt.get("Input")).toBe(0);
     expect(startedAt.get("Interrupt")).toBe(100);
-    expect(startedAt.get("Interrupt")!).toBeLessThan(10_000);
+    expect(must(startedAt.get("Interrupt"))).toBeLessThan(10_000);
     expect(sched.now()).toBe(100);
 
     // cancellation was cooperative and the turn saw it
@@ -254,7 +255,7 @@ describe("12.3 — an Interrupt preempts a turn in flight", () => {
       await flush();
 
       expect(startedAt.get("Interrupt")).toBe(100);
-      expect(startedAt.get("Interrupt")! - startedAt.get("Input")!).toBeLessThan(10_000);
+      expect(must(startedAt.get("Interrupt")) - must(startedAt.get("Input"))).toBeLessThan(10_000);
       expect(committed(h)).toEqual(["setPriority", "setPanel"]);
 
       await vi.advanceTimersByTimeAsync(60_000);
@@ -370,7 +371,7 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     });
 
     // …and the reasoner is told, in its own input, on the very turn that won
-    const winning = r.h.app.bus.records().at(-1)!;
+    const winning = must(r.h.app.bus.records().at(-1));
     expect(winning.context.digest).toContain("2 input(s) conflated from sensor");
     expect(r.failures).toEqual([]);
   });

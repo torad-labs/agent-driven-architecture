@@ -3,14 +3,14 @@
 // front of the real effect sink, and a fake world behind it so a test can ask
 // "did anything actually fire?" as well as "what descriptor crossed the seam?".
 
-import type { Actor, Authority } from "../src/spine/pure/actor";
-import { authority } from "../src/spine/pure/actor";
-import type { Authorization } from "../src/spine/ports/authorization";
-import { RecordingSink, movingClock } from "../src/spine/boundary/in-memory";
 import type { State } from "../src/app/contract";
 import { initialState } from "../src/app/contract";
 import type { App, Ports } from "../src/app/wire";
 import { effectSink, wireApp } from "../src/app/wire";
+import { movingClock, RecordingSink } from "../src/spine/boundary/in-memory";
+import type { Authorization } from "../src/spine/ports/authorization";
+import type { Actor, Authority } from "../src/spine/pure/actor";
+import { authority } from "../src/spine/pure/actor";
 
 export interface World {
   readonly pages: string[];
@@ -72,7 +72,8 @@ export function harness(opts: { initial?: State; start?: number; step?: number }
     clock: movingClock(opts.start ?? 1000, opts.step ?? 7),
     sink,
     authz,
-    initial: opts.initial ?? initialState({ tickets: [{ id: "4118", body: "refund not received" }] }),
+    initial:
+      opts.initial ?? initialState({ tickets: [{ id: "4118", body: "refund not received" }] }),
   });
   return { app, sink, world, actAs };
 }

@@ -4,6 +4,8 @@
 // layer.
 
 import { describe, expect, it } from "vitest";
+import { projectContext } from "../../src/app/assemble";
+import { initialState } from "../../src/app/contract";
 import {
   MAX_CONTEXT_LINES_PER_BLOCK,
   MAX_CONTEXT_NOTICES,
@@ -11,10 +13,8 @@ import {
 } from "../../src/spine/pure/context";
 import { rejected } from "../../src/spine/pure/notice";
 import { perceived } from "../../src/spine/pure/staged";
-import { projectContext } from "../../src/app/assemble";
-import { initialState } from "../../src/app/contract";
-import { harness } from "../harness";
 import { contextDivergence } from "../../src/spine/replay/replay";
+import { harness } from "../harness";
 
 describe("projectContext — the THIRD pure projection (F4)", () => {
   it("is a projection of committed State plus the ONE staged input", () => {

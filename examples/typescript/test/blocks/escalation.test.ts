@@ -4,8 +4,8 @@
 // its own slice and emit the irreversible effect only on success.
 
 import { describe, expect, it } from "vitest";
-import { authority } from "../../src/spine/pure/actor";
 import { escalation } from "../../src/blocks/escalation/register";
+import { authority } from "../../src/spine/pure/actor";
 
 const agent = { by: "Agent", authority: authority("agent-run-7f") } as const;
 const tier = { by: "Agent", authority: authority("policy-tier-v3") } as const;
@@ -13,7 +13,12 @@ const slice = escalation.sliceOf(["4118"]);
 
 describe("blocks/escalation — the arm (F9)", () => {
   it("a request is REVERSIBLE: state moves, nothing pages", () => {
-    const out = escalation.arm(slice, { outcome: "ok", tool: "requestEscalation", ticket: "4118" }, 5, agent);
+    const out = escalation.arm(
+      slice,
+      { outcome: "ok", tool: "requestEscalation", ticket: "4118" },
+      5,
+      agent,
+    );
 
     expect(out.slice.statuses.get("4118")).toEqual({
       kind: "Escalating",
@@ -30,7 +35,12 @@ describe("blocks/escalation — the arm (F9)", () => {
       5,
       agent,
     ).slice;
-    const out = escalation.arm(escalating, { outcome: "ok", tool: "confirmEscalation", ticket: "4118" }, 9, tier);
+    const out = escalation.arm(
+      escalating,
+      { outcome: "ok", tool: "confirmEscalation", ticket: "4118" },
+      9,
+      tier,
+    );
 
     expect(out.effects).toEqual([{ kind: "PageOncall", at: 9, ticket: "4118" }]);
     expect(out.slice.statuses.get("4118")).toEqual({
@@ -42,7 +52,12 @@ describe("blocks/escalation — the arm (F9)", () => {
   });
 
   it("a ticket this stream has never heard of is REJECTED, and nothing fires", () => {
-    const out = escalation.arm(slice, { outcome: "ok", tool: "requestEscalation", ticket: "9999" }, 5, agent);
+    const out = escalation.arm(
+      slice,
+      { outcome: "ok", tool: "requestEscalation", ticket: "9999" },
+      5,
+      agent,
+    );
 
     expect(out.effects).toEqual([]);
     expect(out.notices).toEqual([
@@ -52,11 +67,21 @@ describe("blocks/escalation — the arm (F9)", () => {
   });
 
   it("a confirm with no pending request is REJECTED by the arm too — defence in depth", () => {
-    const out = escalation.arm(slice, { outcome: "ok", tool: "confirmEscalation", ticket: "4118" }, 5, tier);
+    const out = escalation.arm(
+      slice,
+      { outcome: "ok", tool: "confirmEscalation", ticket: "4118" },
+      5,
+      tier,
+    );
 
     expect(out.effects).toEqual([]);
     expect(out.notices).toEqual([
-      { kind: "Rejected", at: 5, tool: "confirmEscalation", reason: "ticket 4118 has no pending request" },
+      {
+        kind: "Rejected",
+        at: 5,
+        tool: "confirmEscalation",
+        reason: "ticket 4118 has no pending request",
+      },
     ]);
   });
 
@@ -72,7 +97,13 @@ describe("blocks/escalation — the arm (F9)", () => {
       { ticket: "4118", status: "open", canEscalate: true, escalating: false, escalated: false },
     ]);
     expect(escalation.view(escalating).rows).toEqual([
-      { ticket: "4118", status: "escalating", canEscalate: false, escalating: true, escalated: false },
+      {
+        ticket: "4118",
+        status: "escalating",
+        canEscalate: false,
+        escalating: true,
+        escalated: false,
+      },
     ]);
     expect(escalation.contextLines(escalating)).toEqual([
       "ticket 4118: escalation requested, awaiting a different authority",

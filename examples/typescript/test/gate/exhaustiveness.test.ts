@@ -15,10 +15,10 @@
 // `src/blocks/escalation/slice.ts` and run `npm run typecheck`. Expect three
 // errors, in `blocks/escalation/fold.ts` and `blocks/escalation/project.ts`.
 
-import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { describe, expect, it } from "vitest";
 
 const HERE = dirname(new URL(import.meta.url).pathname);
 const ROOT = join(HERE, "..", "..");
@@ -26,7 +26,11 @@ const WORK = join(HERE, ".work");
 
 interface Patch {
   readonly expect: { readonly files: readonly string[]; readonly errors: number };
-  readonly edits: readonly { readonly file: string; readonly find: string; readonly replace: string }[];
+  readonly edits: readonly {
+    readonly file: string;
+    readonly find: string;
+    readonly replace: string;
+  }[];
 }
 
 const patch: Patch = JSON.parse(
@@ -75,10 +79,14 @@ function build(name: string, apply: boolean): string {
 
 function typecheck(dir: string): { code: number; output: string } {
   try {
-    const output = execFileSync(join(ROOT, "node_modules", ".bin", "tsc"), ["--noEmit", "-p", dir], {
-      encoding: "utf8",
-      cwd: ROOT,
-    });
+    const output = execFileSync(
+      join(ROOT, "node_modules", ".bin", "tsc"),
+      ["--noEmit", "-p", dir],
+      {
+        encoding: "utf8",
+        cwd: ROOT,
+      },
+    );
     return { code: 0, output };
   } catch (e) {
     const err = e as { status?: number; stdout?: string; stderr?: string };

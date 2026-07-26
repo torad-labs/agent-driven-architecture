@@ -4,10 +4,11 @@
 // `setPanel` has exactly the shape the record for `setPriority` has.
 
 import { describe, expect, it } from "vitest";
-import { authority } from "../../src/spine/pure/actor";
 import { consoleBlock } from "../../src/blocks/console/register";
 import { initialViewState } from "../../src/blocks/console/view-state";
+import { authority } from "../../src/spine/pure/actor";
 import { harness } from "../harness";
+import { must } from "../support/must";
 
 const sig = { by: "Agent", authority: authority("agent-run-7f") } as const;
 const slice = consoleBlock.sliceOf(["escalation", "findings"]);
@@ -21,7 +22,7 @@ describe("blocks/console — presentation is an authored act (A1)", () => {
       actions: [{ tool: "setPanel", input: { panel: "escalation", visible: false } }],
     });
 
-    const record = h.app.bus.records().at(-1)!;
+    const record = must(h.app.bus.records().at(-1));
     expect(record.commands.at(-1)).toEqual({
       outcome: "ok",
       tool: "setPanel",
@@ -32,7 +33,9 @@ describe("blocks/console — presentation is an authored act (A1)", () => {
     });
     expect(h.app.boundary.state.console.panels.get("escalation")).toBe(false);
     // "why did the escalation panel disappear?" is answerable from the bus
-    expect(record.actions).toEqual([{ tool: "setPanel", input: { panel: "escalation", visible: false } }]);
+    expect(record.actions).toEqual([
+      { tool: "setPanel", input: { panel: "escalation", visible: false } },
+    ]);
   });
 
   it("a presentation verb and a domain verb produce records of the SAME shape", () => {
@@ -46,25 +49,47 @@ describe("blocks/console — presentation is an authored act (A1)", () => {
       ],
     });
 
-    const [domain, presentation] = h.app.bus.records().at(-1)!.commands;
-    expect(Object.keys(domain!).filter((k) => !["ticket", "level"].includes(k)).sort()).toEqual(
-      Object.keys(presentation!).filter((k) => k !== "ticket").sort(),
+    const [domain, presentation] = must(h.app.bus.records().at(-1)).commands;
+    expect(
+      Object.keys(must(domain))
+        .filter((k) => !["ticket", "level"].includes(k))
+        .sort(),
+    ).toEqual(
+      Object.keys(must(presentation))
+        .filter((k) => k !== "ticket")
+        .sort(),
     );
-    expect(domain!.sig).toEqual(presentation!.sig);
+    expect(must(domain).sig).toEqual(must(presentation).sig);
   });
 
   it("the arm obeys the same three rules — an unknown panel is a per-item Rejected", () => {
-    const out = consoleBlock.arm(slice, { outcome: "ok", tool: "setPanel", panel: "nope", visible: true }, 5, sig);
+    const out = consoleBlock.arm(
+      slice,
+      { outcome: "ok", tool: "setPanel", panel: "nope", visible: true },
+      5,
+      sig,
+    );
 
     expect(out.slice).toBe(slice);
-    expect(out.notices).toEqual([{ kind: "Rejected", at: 5, tool: "setPanel", reason: "unknown panel nope" }]);
+    expect(out.notices).toEqual([
+      { kind: "Rejected", at: 5, tool: "setPanel", reason: "unknown panel nope" },
+    ]);
   });
 
   it("EPHEMERAL view-state never folds and never signs (4.6, untouched)", () => {
-    const focused = consoleBlock.arm(slice, { outcome: "ok", tool: "focusTicket", ticket: "4118" }, 5, sig).slice;
+    const focused = consoleBlock.arm(
+      slice,
+      { outcome: "ok", tool: "focusTicket", ticket: "4118" },
+      5,
+      sig,
+    ).slice;
 
     // hover decorates the view …
-    const view = consoleBlock.view(focused, { ...initialViewState, hoveredTicket: "4118", scrollOffset: 320 });
+    const view = consoleBlock.view(focused, {
+      ...initialViewState,
+      hoveredTicket: "4118",
+      scrollOffset: 320,
+    });
     expect(view.hoveredTicket).toBe("4118");
     // … and is absent from the slice and from the reasoner's digest
     expect(JSON.stringify(focused)).not.toContain("hovered");

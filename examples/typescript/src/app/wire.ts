@@ -8,13 +8,24 @@
 // plus `rm -rf src/blocks/<X>/`. Every one of those is an APPEND to a closed
 // set, and the compiler names each one you forget.
 
-import type { Actor, Authority } from "../spine/pure/actor";
-import { authority } from "../spine/pure/actor";
-import type { KeyedEffect } from "../spine/pure/keyed-effect";
-import type { SessionId } from "../spine/pure/ids";
-import type { DrainMessage, InputPolicy } from "../spine/pure/mailbox";
-import type { ConsumerEvent } from "../spine/pure/turn";
-import type { BlockRegistration } from "../spine/pure/verb";
+import { liveRelay } from "../blocks/analysis/adapter";
+import type { AnalysisRelay } from "../blocks/analysis/register";
+import { analysis } from "../blocks/analysis/register";
+import { liveDelivery } from "../blocks/artifact/adapter";
+import type { DeliveryPort } from "../blocks/artifact/register";
+import { artifact } from "../blocks/artifact/register";
+import { consoleBlock } from "../blocks/console/register";
+import { livePager } from "../blocks/escalation/adapter";
+import type { OncallPort } from "../blocks/escalation/register";
+import { escalation } from "../blocks/escalation/register";
+import { inbox } from "../blocks/inbox/register";
+import { triage } from "../blocks/triage/register";
+import type { Action, Registry } from "../spine/boundary/action";
+import { registryOf } from "../spine/boundary/action";
+import { Boundary } from "../spine/boundary/boundary";
+import { InMemoryBus, sequentialIds } from "../spine/boundary/in-memory";
+import type { RelayRecall, TurnRunner } from "../spine/concurrency/consumer";
+import { SerialConsumer } from "../spine/concurrency/consumer";
 import type { Authorization } from "../spine/ports/authorization";
 import type { Bus } from "../spine/ports/bus";
 import type { Clock } from "../spine/ports/clock";
@@ -22,30 +33,18 @@ import type { IdSource } from "../spine/ports/id-source";
 import type { Mailbox } from "../spine/ports/mailbox";
 import type { Scheduler } from "../spine/ports/scheduler";
 import type { PerformMode, Sink } from "../spine/ports/sink";
-import type { Action, Registry } from "../spine/boundary/action";
-import { registryOf } from "../spine/boundary/action";
-import { Boundary } from "../spine/boundary/boundary";
-import { InMemoryBus, sequentialIds } from "../spine/boundary/in-memory";
-import type { RelayRecall, TurnRunner } from "../spine/concurrency/consumer";
-import { SerialConsumer } from "../spine/concurrency/consumer";
+import type { Actor, Authority } from "../spine/pure/actor";
+import { authority } from "../spine/pure/actor";
+import type { Emit } from "../spine/pure/emit";
+import type { SessionId } from "../spine/pure/ids";
+import type { KeyedEffect } from "../spine/pure/keyed-effect";
+import type { DrainMessage, InputPolicy } from "../spine/pure/mailbox";
+import type { ConsumerEvent } from "../spine/pure/turn";
+import type { BlockRegistration } from "../spine/pure/verb";
 import { Controller } from "../spine/surface/controller";
-
-import { analysis } from "../blocks/analysis/register";
-import type { AnalysisRelay } from "../blocks/analysis/register";
-import { liveRelay } from "../blocks/analysis/adapter";
-import { artifact } from "../blocks/artifact/register";
-import type { DeliveryPort } from "../blocks/artifact/register";
-import { liveDelivery } from "../blocks/artifact/adapter";
-import { consoleBlock } from "../blocks/console/register";
-import { escalation } from "../blocks/escalation/register";
-import type { OncallPort } from "../blocks/escalation/register";
-import { livePager } from "../blocks/escalation/adapter";
-import { inbox } from "../blocks/inbox/register";
-import { triage } from "../blocks/triage/register";
-
+import { dispatchers, project } from "./assemble";
 import type { AppView, Effect, State } from "./contract";
 import { initialState } from "./contract";
-import { dispatchers, project } from "./assemble";
 
 // ── The effect sink: one branch per Effect case, exhaustive ────────────────
 // A new effect kind costs TWO appends: its case in the owning block's contract,
@@ -211,7 +210,7 @@ export function wireApp(env: Env): App {
 }
 
 /** The offline bindings: no keys, no network, no clients. */
-export function offlinePorts(log: (line: string) => void = console.log, relay?: AnalysisRelay): Ports {
+export function offlinePorts(log: Emit, relay?: AnalysisRelay): Ports {
   return {
     oncall: livePager(log),
     delivery: liveDelivery(log),

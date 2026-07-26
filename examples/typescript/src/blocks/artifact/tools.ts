@@ -28,11 +28,18 @@ export function artifactVerbs<S>(read: (state: S) => ArtifactSlice): readonly Ve
       describe: "Append one line to the session's work product.",
       schema: z.object({ text: z.string() }),
       run: (input) => ({ outcome: "ok", tool: "recordFinding", text: input.text }),
-      sign: (result, sig, id) => ({ outcome: "ok", tool: "recordFinding", sig, id, text: result.text }),
+      sign: (result, sig, id) => ({
+        outcome: "ok",
+        tool: "recordFinding",
+        sig,
+        id,
+        text: result.text,
+      }),
     }),
     reversible<S, Record<string, never>, RequestSealResult, RequestSealCommand>({
       name: "requestSeal",
-      describe: "Request that the work product be sealed and delivered. Reversible; delivers nothing.",
+      describe:
+        "Request that the work product be sealed and delivered. Reversible; delivers nothing.",
       schema: nothing,
       run: () => ({ outcome: "ok", tool: "requestSeal" }),
       sign: (_result, sig, id) => ({ outcome: "ok", tool: "requestSeal", sig, id }),

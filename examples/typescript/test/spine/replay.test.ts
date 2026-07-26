@@ -12,10 +12,10 @@
 // timestamp.
 
 import { describe, expect, it } from "vitest";
+import { effectSink } from "../../src/app/wire";
 import { RecordingSink } from "../../src/spine/boundary/in-memory";
 import { collectPerform, refold } from "../../src/spine/replay/replay";
-import { effectSink } from "../../src/app/wire";
-import { POLICY_TIER, fakeWorld, harness } from "../harness";
+import { fakeWorld, harness, POLICY_TIER } from "../harness";
 
 function driveFullSession(h: ReturnType<typeof harness>): void {
   const step = (by: "Agent" | "Human", ...actions: { tool: string; input: unknown }[]): void =>

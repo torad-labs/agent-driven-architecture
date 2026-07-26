@@ -3,8 +3,8 @@
 // the surface applies flags, it never computes them. Each block's view composes
 // into this root, so a surface receives exactly ONE immutable value (G8).
 
-import type { SpineSlice } from "./spine-slice";
 import { renderNotice } from "./notice";
+import type { SpineSlice } from "./spine-slice";
 
 export interface ViewModel {
   readonly banner: string;

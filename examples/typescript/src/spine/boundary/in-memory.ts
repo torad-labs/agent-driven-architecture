@@ -4,15 +4,15 @@
 // application would bind to a real client is a port; these are the offline
 // bindings the demo and the tests use.
 
-import type { EffectBase } from "../pure/effect";
-import type { StepIndex, Timestamp, CommandId } from "../pure/ids";
-import type { KeyedEffect } from "../pure/keyed-effect";
-import { keyOf } from "../pure/keyed-effect";
-import type { StepRecord } from "../pure/step-record";
 import type { Bus } from "../ports/bus";
 import type { Clock } from "../ports/clock";
 import type { IdSource } from "../ports/id-source";
 import type { PerformMode, Sink } from "../ports/sink";
+import type { EffectBase } from "../pure/effect";
+import type { CommandId, StepIndex, Timestamp } from "../pure/ids";
+import type { KeyedEffect } from "../pure/keyed-effect";
+import { keyOf } from "../pure/keyed-effect";
+import type { StepRecord } from "../pure/step-record";
 
 export class InMemoryBus implements Bus {
   private readonly log: StepRecord[] = [];

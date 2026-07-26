@@ -52,5 +52,9 @@ export function withDuplicate(slice: InboxSlice, source: SourceName): InboxSlice
 
 export function withFault(slice: InboxSlice, fault: InboxFault): InboxSlice {
   const faults = [...slice.faults, fault];
-  return { ...slice, faults: faults.length <= MAX_INBOX_FAULTS ? faults : faults.slice(faults.length - MAX_INBOX_FAULTS) };
+  return {
+    ...slice,
+    faults:
+      faults.length <= MAX_INBOX_FAULTS ? faults : faults.slice(faults.length - MAX_INBOX_FAULTS),
+  };
 }

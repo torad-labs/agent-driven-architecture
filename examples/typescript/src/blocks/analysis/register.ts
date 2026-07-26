@@ -47,7 +47,12 @@ export const analysis = {
   emptySlice: emptyAnalysisSlice,
 } as const;
 
-export type { AnalysisCommand, AnalysisEffect, AnalysisResult, PublishConclusion } from "./contract";
-export type { AnalysisNote, AnalysisSlice } from "./slice";
-export type { AnalysisRow, AnalysisView } from "./project";
+export type {
+  AnalysisCommand,
+  AnalysisEffect,
+  AnalysisResult,
+  PublishConclusion,
+} from "./contract";
 export type { AnalysisRelay } from "./port";
+export type { AnalysisRow, AnalysisView } from "./project";
+export type { AnalysisNote, AnalysisSlice } from "./slice";

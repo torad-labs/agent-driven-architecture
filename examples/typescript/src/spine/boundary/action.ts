@@ -21,8 +21,8 @@
 
 import type { Actor, Signature } from "../pure/actor";
 import type { CommandBase, SpineCommand } from "../pure/command";
-import type { StagedInput } from "../pure/staged";
 import type { CommandId, ToolName } from "../pure/ids";
+import type { StagedInput } from "../pure/staged";
 import type { Action } from "../pure/step-record";
 import type { ToolResultBase } from "../pure/tool-result";
 import { isSpineResult, unhandled } from "../pure/tool-result";
@@ -48,7 +48,11 @@ export function registryOf<S>(verbs: readonly Verb<S>[]): Registry<S> {
 }
 
 /** name → ToolResult. Closed, boundary-owned, pre-fold. */
-export function resolveAction<S>(registry: Registry<S>, action: Action, ctx: Ctx<S>): ToolResultBase {
+export function resolveAction<S>(
+  registry: Registry<S>,
+  action: Action,
+  ctx: Ctx<S>,
+): ToolResultBase {
   const verb = registry.get(action.tool);
   if (verb === undefined) return unhandled(action.tool, "no registered verb");
   const decoded = verb.decode(action.input);
@@ -68,11 +72,23 @@ export function signResult<S>(
   if (isSpineResult(result)) {
     switch (result.outcome) {
       case "unhandled": {
-        const cmd: SpineCommand = { outcome: "unhandled", tool: result.tool, sig, id, note: result.note };
+        const cmd: SpineCommand = {
+          outcome: "unhandled",
+          tool: result.tool,
+          sig,
+          id,
+          note: result.note,
+        };
         return cmd;
       }
       case "refused": {
-        const cmd: SpineCommand = { outcome: "refused", tool: result.tool, sig, id, reason: result.reason };
+        const cmd: SpineCommand = {
+          outcome: "refused",
+          tool: result.tool,
+          sig,
+          id,
+          reason: result.reason,
+        };
         return cmd;
       }
       default: {
@@ -85,7 +101,13 @@ export function signResult<S>(
   // Unreachable: an "ok" result can only have come out of a registered verb's
   // own `run`, six lines up. Total anyway — the spine never throws at a seam.
   if (verb === undefined) {
-    const cmd: SpineCommand = { outcome: "unhandled", tool: result.tool, sig, id, note: "no registered verb" };
+    const cmd: SpineCommand = {
+      outcome: "unhandled",
+      tool: result.tool,
+      sig,
+      id,
+      note: "no registered verb",
+    };
     return cmd;
   }
   return verb.sign(result, sig, id);

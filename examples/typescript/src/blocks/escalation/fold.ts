@@ -45,7 +45,11 @@ export function escalationArm(
       // this arm has exactly ONE status match (`canRequest`, below) and a fifth
       // TicketStatus variant costs it exactly one edit, not two.
       if (status.requestedBy === null) {
-        return armOut(slice, [], [rejected(now, r.tool, `ticket ${r.ticket} has no pending request`)]);
+        return armOut(
+          slice,
+          [],
+          [rejected(now, r.tool, `ticket ${r.ticket} has no pending request`)],
+        );
       }
       const page: PageOncall = { kind: "PageOncall", at: now, ticket: r.ticket };
       return armOut(withStatus(slice, escalated(r.ticket, sig.authority)), [page], []);

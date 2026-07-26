@@ -7,7 +7,7 @@
 // FRESH, and "nothing published yet" is never presented as stale. Three facts,
 // three lines, and neither the operator nor the model can confuse them.
 
-import { MAX_CONTEXT_LINES_PER_BLOCK, bounded } from "../../spine/pure/context";
+import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "../../spine/pure/context";
 import type { Recall } from "../../spine/pure/staged";
 import { ageOf } from "../../spine/pure/staged";
 import type { AnalysisNote, AnalysisSlice } from "./slice";
@@ -36,7 +36,11 @@ function rowFor(note: AnalysisNote): AnalysisRow {
     case "Fresh":
       return { recalled: note.recall.text, fresh: true, ageMs };
     case "LastKnown":
-      return { recalled: `${note.recall.text} (last known — relay did not answer)`, fresh: false, ageMs };
+      return {
+        recalled: `${note.recall.text} (last known — relay did not answer)`,
+        fresh: false,
+        ageMs,
+      };
     case "Empty":
       return { recalled: "no conclusion published", fresh: false, ageMs };
     default: {

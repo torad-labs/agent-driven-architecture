@@ -22,6 +22,6 @@ export const artifact = {
 } as const;
 
 export type { ArtifactCommand, ArtifactEffect, ArtifactResult, DeliverArtifact } from "./contract";
-export type { ArtifactLine, ArtifactSlice, SealStatus } from "./slice";
-export type { ArtifactView } from "./project";
 export type { DeliveryPort } from "./port";
+export type { ArtifactView } from "./project";
+export type { ArtifactLine, ArtifactSlice, SealStatus } from "./slice";

@@ -20,5 +20,5 @@ export const inbox = {
 } as const;
 
 export type { DropReason, InboxCommand, InboxResult } from "./contract";
-export type { InboxFault, InboxSlice } from "./slice";
 export type { InboxRow, InboxView } from "./project";
+export type { InboxFault, InboxSlice } from "./slice";

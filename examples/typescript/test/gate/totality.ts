@@ -33,7 +33,9 @@ export function registryGaps(declared: readonly string[], registry: VerbTable): 
     if (verb.kind !== "Reversible" && verb.kind !== "Irreversible") {
       return [`"${tool}" is registered but unclassified — 14.3's default-deny has no default`];
     }
-    return signs(tool, verb) ? [] : [`"${tool}" is registered but does not sign — 6.8's name→Command map has a hole`];
+    return signs(tool, verb)
+      ? []
+      : [`"${tool}" is registered but does not sign — 6.8's name→Command map has a hole`];
   });
   const orphans = [...registry.keys()]
     .filter((tool) => !declared.includes(tool))

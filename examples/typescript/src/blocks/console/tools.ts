@@ -20,13 +20,24 @@ export function consoleVerbs<S>(): readonly Verb<S>[] {
       describe: "Bring a ticket into focus on the console.",
       schema: z.object({ ticket: z.string() }),
       run: (input) => ({ outcome: "ok", tool: "focusTicket", ticket: input.ticket }),
-      sign: (result, sig, id) => ({ outcome: "ok", tool: "focusTicket", sig, id, ticket: result.ticket }),
+      sign: (result, sig, id) => ({
+        outcome: "ok",
+        tool: "focusTicket",
+        sig,
+        id,
+        ticket: result.ticket,
+      }),
     }),
     reversible<S, { panel: string; visible: boolean }, SetPanelResult, SetPanelCommand>({
       name: "setPanel",
       describe: "Show or hide a console panel (e.g. 'escalation', 'findings').",
       schema: z.object({ panel: z.string(), visible: z.boolean() }),
-      run: (input) => ({ outcome: "ok", tool: "setPanel", panel: input.panel, visible: input.visible }),
+      run: (input) => ({
+        outcome: "ok",
+        tool: "setPanel",
+        panel: input.panel,
+        visible: input.visible,
+      }),
       sign: (result, sig, id) => ({
         outcome: "ok",
         tool: "setPanel",

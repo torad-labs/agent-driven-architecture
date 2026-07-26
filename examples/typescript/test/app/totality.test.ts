@@ -2,18 +2,19 @@
 // Every "ok" ToolResult case has a Verb entry and a `sign` branch, and the
 // runtime binding drives the whole thing offline.
 
-import { describe, expect, it } from "vitest";
 import { MockLanguageModelV3 } from "ai/test";
-import type { Signature } from "../../src/spine/pure/actor";
-import { authority } from "../../src/spine/pure/actor";
-import { signResult } from "../../src/spine/boundary/action";
-import { refused } from "../../src/spine/pure/tool-result";
-import { runTurn } from "../../src/spine/agent/loop";
+import { describe, expect, it } from "vitest";
+import { fold } from "../../src/app/assemble";
 import type { OkResult } from "../../src/app/contract";
 import { initialState } from "../../src/app/contract";
-import { AGENT_RUN, harness } from "../harness";
-import { fold } from "../../src/app/assemble";
+import { runTurn } from "../../src/spine/agent/loop";
+import { signResult } from "../../src/spine/boundary/action";
+import type { Signature } from "../../src/spine/pure/actor";
+import { authority } from "../../src/spine/pure/actor";
 import type { Timestamp } from "../../src/spine/pure/ids";
+import { refused } from "../../src/spine/pure/tool-result";
+import { AGENT_RUN, harness } from "../harness";
+import { must } from "../support/must";
 
 // A compile-time half: this table must name every "ok" tool in the system, and
 // the compiler fails the build if the union grows past it (mapped type over the
@@ -106,10 +107,13 @@ describe("the runtime binding — the boundary is hooked onto onStepFinish", () 
     expect(out.steps).toBe(2);
     expect(h.app.boundary.state.triage.priority.get("4118")).toBe("High");
     // the loop forwarded an ACTION; the boundary produced the recorded result
-    expect(h.app.bus.records()[0]!.actions).toEqual([
+    expect(must(h.app.bus.records()[0]).actions).toEqual([
       { tool: "setPriority", input: { ticket: "4118", level: "High" } },
     ]);
-    expect(h.app.bus.records()[0]!.commands[0]).toMatchObject({ tool: "setPriority", sig: { by: "Agent" } });
+    expect(must(h.app.bus.records()[0]).commands[0]).toMatchObject({
+      tool: "setPriority",
+      sig: { by: "Agent" },
+    });
     expect(h.sink.performed.map((k) => k.effect.kind)).toEqual(["LogDecision"]);
   });
 });

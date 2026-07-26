@@ -20,25 +20,26 @@
 // The last block below is the indirect-injection case, run for real.
 
 import { describe, expect, it } from "vitest";
+import { project } from "../../src/app/assemble";
+import type { Ports } from "../../src/app/wire";
+import { DEEP_TIER, effectSink, FAST_TIER, wireApp, wireConsumer } from "../../src/app/wire";
+import { liveRelay } from "../../src/blocks/analysis/adapter";
 import type { Action } from "../../src/spine/boundary/action";
-import { InMemoryBus, RecordingSink, movingClock } from "../../src/spine/boundary/in-memory";
+import { InMemoryBus, movingClock, RecordingSink } from "../../src/spine/boundary/in-memory";
 import type { TurnContext, TurnRunner } from "../../src/spine/concurrency/consumer";
 import {
   InMemoryMailbox,
   InMemoryRelay,
   virtualScheduler,
 } from "../../src/spine/concurrency/in-memory";
+import type { RelayRead } from "../../src/spine/ports/relay";
 import { input } from "../../src/spine/pure/mailbox";
 import type { RelayEntry } from "../../src/spine/pure/staged";
 import { fresh, perceived, recalled } from "../../src/spine/pure/staged";
-import type { RelayRead } from "../../src/spine/ports/relay";
 import { contextDivergence, refold } from "../../src/spine/replay/replay";
-import { liveRelay } from "../../src/blocks/analysis/adapter";
-import { project } from "../../src/app/assemble";
-import type { Ports } from "../../src/app/wire";
-import { DEEP_TIER, FAST_TIER, effectSink, wireApp, wireConsumer } from "../../src/app/wire";
 import type { Harness } from "../harness";
 import { fakeWorld, harness } from "../harness";
+import { must } from "../support/must";
 
 function settle(): Promise<void> {
   return new Promise<void>((resolve) => void setImmediate(resolve));
@@ -108,7 +109,7 @@ describe("11.2 — a recall is captured, and replay never re-queries the relay",
     await settle();
 
     expect(relay.reads).toBe(1);
-    const record = r.h.app.bus.records()[0]!;
+    const record = must(r.h.app.bus.records()[0]);
 
     // the ordered off-bus fixture: [Perceived, Recalled] — the order is law
     expect(record.staged.map((s) => s.kind)).toEqual(["Perceived", "Recalled"]);
@@ -122,7 +123,7 @@ describe("11.2 — a recall is captured, and replay never re-queries the relay",
     });
 
     const liveState = r.h.app.boundary.state;
-    expect(liveState.analysis.notes[0]!.recall.kind).toBe("Fresh");
+    expect(must(liveState.analysis.notes[0]).recall.kind).toBe("Fresh");
 
     // THE RELAY NOW SAYS SOMETHING ELSE. A replay that re-queried would resolve
     // "B"; a replay that reads committed bytes cannot.
@@ -169,7 +170,7 @@ describe("11.2 — the read is bounded and it degrades to a TYPED last-known", (
     // turn 1 — the relay answers, so the fast tier gets Fresh
     post(r.mailbox, "a", "first");
     await settle();
-    expect(r.h.app.bus.records()[0]!.staged[1]).toMatchObject({ recall: { kind: "Fresh" } });
+    expect(must(r.h.app.bus.records()[0]).staged[1]).toMatchObject({ recall: { kind: "Fresh" } });
 
     // turn 2 — the relay hangs. The consumer is parked in its BOUNDED race …
     post(r.mailbox, "b", "second");
@@ -181,8 +182,8 @@ describe("11.2 — the read is bounded and it degrades to a TYPED last-known", (
     await settle();
     expect(r.sched.now()).toBe(50);
 
-    const degraded = r.h.app.bus.records()[1]!;
-    const staged = degraded.staged[1]!;
+    const degraded = must(r.h.app.bus.records()[1]);
+    const staged = must(degraded.staged[1]);
     expect(staged).toEqual(
       recalled("analysis", {
         kind: "LastKnown",
@@ -206,8 +207,10 @@ describe("11.2 — the read is bounded and it degrades to a TYPED last-known", (
     post(r.mailbox, "a", "first");
     await settle();
 
-    const record = r.h.app.bus.records()[0]!;
-    expect(record.staged[1]).toEqual(recalled("analysis", { kind: "Empty", text: "", publishedAt: null }));
+    const record = must(r.h.app.bus.records()[0]);
+    expect(record.staged[1]).toEqual(
+      recalled("analysis", { kind: "Empty", text: "", publishedAt: null }),
+    );
     expect(record.context.digest).toContain("no conclusion published");
     expect(record.context.digest).not.toContain("LAST KNOWN");
     expect(record.context.digest).not.toContain("stale");
@@ -227,7 +230,10 @@ describe("11.4 — a second tier is OPTIONAL, and it plugs in without editing th
     const store = new InMemoryRelay();
 
     const deepWorld = fakeWorld();
-    const deepPorts: Ports = { ...deepWorld.ports, relay: liveRelay((at, text) => store.publish(at, text)) };
+    const deepPorts: Ports = {
+      ...deepWorld.ports,
+      relay: liveRelay((at, text) => store.publish(at, text)),
+    };
     const deepSink = new RecordingSink(effectSink(deepPorts));
     const deep = wireApp({
       clock: movingClock(500, 5),
@@ -277,7 +283,7 @@ describe("11.4 — a second tier is OPTIONAL, and it plugs in without editing th
     post(mailbox, "a", "customer reports a failed charge");
     await settle();
 
-    expect(fast.boundary.state.analysis.notes[0]!.recall).toEqual({
+    expect(must(fast.boundary.state.analysis.notes[0]).recall).toEqual({
       kind: "Fresh",
       text: "root cause: expired card token",
       publishedAt: 500,
@@ -287,14 +293,14 @@ describe("11.4 — a second tier is OPTIONAL, and it plugs in without editing th
     expect(deep.bus.records()).toHaveLength(1);
     expect(fast.bus.records()).toHaveLength(1);
     expect(deep.bus).not.toBe(fast.bus);
-    expect(deep.bus.records()[0]!.commands.map((c) => c.tool)).toEqual(["publishAnalysis"]);
-    expect(fast.bus.records()[0]!.commands.map((c) => c.tool)).toEqual([
+    expect(must(deep.bus.records()[0]).commands.map((c) => c.tool)).toEqual(["publishAnalysis"]);
+    expect(must(fast.bus.records()[0]).commands.map((c) => c.tool)).toEqual([
       "recallAnalysis",
       "recordFinding",
     ]);
     // two clocks, and neither read the other's: 500 vs 1000
-    expect(deep.bus.records()[0]!.now).toBe(500);
-    expect(fast.bus.records()[0]!.now).toBe(1000);
+    expect(must(deep.bus.records()[0]).now).toBe(500);
+    expect(must(fast.bus.records()[0]).now).toBe(1000);
     // the fast tier never published, and the deep tier reached nothing of its
     expect(fastWorld.world.published).toEqual([]);
     expect(deepWorld.world.pages).toEqual([]);
@@ -323,7 +329,7 @@ describe("10.2 / 11.3 — recalled content is untrusted and buys the model nothi
       actions: [RECALL, { tool: "confirmEscalation", input: { ticket: "4118" } }],
     });
 
-    const record = h.app.bus.records().at(-1)!;
+    const record = must(h.app.bus.records().at(-1));
     expect(record.results[1]).toEqual({
       outcome: "refused",
       tool: "confirmEscalation",
@@ -354,7 +360,7 @@ describe("10.2 / 11.3 — recalled content is untrusted and buys the model nothi
       actions: [{ tool: "confirmEscalation", input: { ticket: "4118" } }],
     });
 
-    expect(h.app.bus.records().at(-1)!.results[0]).toEqual({
+    expect(must(h.app.bus.records().at(-1)).results[0]).toEqual({
       outcome: "refused",
       tool: "confirmEscalation",
       reason: "self-confirm: the confirming authority is the requesting authority",

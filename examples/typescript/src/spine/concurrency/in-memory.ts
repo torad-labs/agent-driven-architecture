@@ -22,12 +22,12 @@
 //                       and what `vi.useFakeTimers()` virtualises, so the same
 //                       consumer proves the same property under either.
 
-import type { Timestamp } from "../pure/ids";
-import type { Message } from "../pure/mailbox";
-import type { RelayEntry } from "../pure/staged";
 import type { Mailbox } from "../ports/mailbox";
 import type { RelayRead } from "../ports/relay";
 import type { Elapsed, Scheduler } from "../ports/scheduler";
+import type { Timestamp } from "../pure/ids";
+import type { Message } from "../pure/mailbox";
+import type { RelayEntry } from "../pure/staged";
 
 export class InMemoryMailbox implements Mailbox {
   private readonly queue: Message[] = [];

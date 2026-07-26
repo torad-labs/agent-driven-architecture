@@ -16,12 +16,11 @@
 // is free, and that is the price of one production site. (See the matching
 // comment at the second call site in `spine/boundary/action.ts`.)
 
-import { generateText, stepCountIs, tool, type LanguageModel, type ToolSet } from "ai";
-import type { StagedInput } from "../pure/staged";
-import type { Ctx, Verb } from "../pure/verb";
+import { generateText, type LanguageModel, stepCountIs, type ToolSet, tool } from "ai";
 import type { Registry } from "../boundary/action";
 import type { Boundary } from "../boundary/boundary";
-import type { Dispatchers } from "../pure/verb";
+import type { StagedInput } from "../pure/staged";
+import type { Ctx, Dispatchers, Verb } from "../pure/verb";
 
 type FlexibleInputSchema = Parameters<typeof tool>[0]["inputSchema"];
 

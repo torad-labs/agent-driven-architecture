@@ -37,7 +37,9 @@ export interface Ctx<S> {
 // Structural, so `spine/pure` names no schema library. A zod schema satisfies
 // it as-is; so does anything else with the same shape.
 export interface InputSchema<I> {
-  safeParse(raw: unknown): { readonly success: true; readonly data: I } | { readonly success: false };
+  safeParse(
+    raw: unknown,
+  ): { readonly success: true; readonly data: I } | { readonly success: false };
 }
 
 export type DecodeResult = { readonly ok: true; readonly input: unknown } | { readonly ok: false };

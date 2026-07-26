@@ -11,13 +11,14 @@
 // unrepresentable upstream of the boundary, so the forged path does not exist.
 
 import { describe, expect, it } from "vitest";
-import { AGENT_RUN, HOST, POLICY_TIER, fakeWorld, harness } from "../harness";
-import { escalation } from "../../src/blocks/escalation/register";
-import { RecordingSink, fixedClock } from "../../src/spine/boundary/in-memory";
 import type { State, ToolResult } from "../../src/app/contract";
 import { initialState } from "../../src/app/contract";
-import type { Ctx } from "../../src/spine/pure/verb";
 import { effectSink, wireApp } from "../../src/app/wire";
+import { escalation } from "../../src/blocks/escalation/register";
+import { fixedClock, RecordingSink } from "../../src/spine/boundary/in-memory";
+import type { Ctx } from "../../src/spine/pure/verb";
+import { AGENT_RUN, fakeWorld, HOST, harness, POLICY_TIER } from "../harness";
+import { must } from "../support/must";
 
 function request(h: ReturnType<typeof harness>): void {
   h.app.boundary.onStepFinish({
@@ -42,11 +43,18 @@ function confirm(h: ReturnType<typeof harness>, by: "Agent" | "Human"): void {
 // member, or `Ctx` gains a field beyond the two it is allowed. `npm run
 // typecheck` runs before `vitest` in `npm test`, so these are blocking.
 type Actorish = "by" | "actor" | "authority" | "sig" | "signature";
-type Offending<T> = T extends unknown ? ([Extract<keyof T, Actorish>] extends [never] ? never : T) : never;
+type Offending<T> = T extends unknown
+  ? [Extract<keyof T, Actorish>] extends [never]
+    ? never
+    : T
+  : never;
 
 const NO_ACTOR_ON_ANY_TOOL_RESULT: [Offending<ToolResult>] extends [never] ? true : never = true;
-const CTX_IS_STATE_AND_CONTEXT_ONLY: [Exclude<keyof Ctx<State>, "state" | "context">] extends [never] ? true : never =
-  true;
+const CTX_IS_STATE_AND_CONTEXT_ONLY: [Exclude<keyof Ctx<State>, "state" | "context">] extends [
+  never,
+]
+  ? true
+  : never = true;
 
 describe("F2/D4 — an Actor cannot ride upstream of the boundary", () => {
   it("no ToolResult variant has an actor-typed member, and `Ctx` has no actor at all", () => {
@@ -67,9 +75,12 @@ describe("F2/D4 — an Actor cannot ride upstream of the boundary", () => {
       actions: [{ tool: "confirmEscalation", input: { ticket: "4118", by: "Human" } }],
     });
 
-    const record = h.app.bus.records().at(-1)!;
+    const record = must(h.app.bus.records().at(-1));
     // what was ASKED is kept verbatim — that is the audit half F1 named …
-    expect(record.actions.at(-1)).toEqual({ tool: "confirmEscalation", input: { ticket: "4118", by: "Human" } });
+    expect(record.actions.at(-1)).toEqual({
+      tool: "confirmEscalation",
+      input: { ticket: "4118", by: "Human" },
+    });
     // … and what was FOLDED carries no actor field of any kind. The decoder
     // dropped `by` before the tool body ran, and the gate compared the
     // Signature the boundary minted afterwards.
@@ -78,11 +89,13 @@ describe("F2/D4 — an Actor cannot ride upstream of the boundary", () => {
       tool: "confirmEscalation",
       reason: "self-confirm: the confirming authority is the requesting authority",
     });
-    expect(record.commands.at(-1)!.sig).toEqual({ by: "Agent", authority: AGENT_RUN });
+    expect(must(record.commands.at(-1)).sig).toEqual({ by: "Agent", authority: AGENT_RUN });
     // OLD (measured): performed [{"kind":"PageOncall","ticket":"4118","at":9}], status Escalated
     expect(h.world.pages).toEqual([]);
     expect(h.sink.performed.some((k) => k.effect.kind === "PageOncall")).toBe(false);
-    expect(escalation.statusOf(h.app.boundary.state.escalation, "4118")!.kind).toBe("Escalating");
+    expect(must(escalation.statusOf(h.app.boundary.state.escalation, "4118")).kind).toBe(
+      "Escalating",
+    );
   });
 });
 
@@ -92,31 +105,33 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
     request(h);
     confirm(h, "Agent");
 
-    const record = h.app.bus.records().at(-1)!;
+    const record = must(h.app.bus.records().at(-1));
     expect(record.results.at(-1)).toEqual({
       outcome: "refused",
       tool: "confirmEscalation",
       reason: "self-confirm: the confirming authority is the requesting authority",
     });
     // the Actor is still stamped TRUTHFULLY on the committed command
-    expect(record.commands.at(-1)!.sig.by).toBe("Agent");
+    expect(must(record.commands.at(-1)).sig.by).toBe("Agent");
     expect(h.sink.performed.some((k) => k.effect.kind === "PageOncall")).toBe(false);
     expect(h.world.pages).toEqual([]);
     // the status is unchanged — still awaiting a different authority
-    expect(escalation.statusOf(h.app.boundary.state.escalation, "4118")!.kind).toBe("Escalating");
+    expect(must(escalation.statusOf(h.app.boundary.state.escalation, "4118")).kind).toBe(
+      "Escalating",
+    );
   });
 
   it("a confirm with NO prior request is refused before the fold — status stays Open", () => {
     const h = harness();
     confirm(h, "Human");
 
-    expect(h.app.bus.records().at(-1)!.results.at(-1)).toEqual({
+    expect(must(h.app.bus.records().at(-1)).results.at(-1)).toEqual({
       outcome: "refused",
       tool: "confirmEscalation",
       reason: "no pending request",
     });
     expect(h.world.pages).toEqual([]);
-    expect(escalation.statusOf(h.app.boundary.state.escalation, "4118")!.kind).toBe("Open");
+    expect(must(escalation.statusOf(h.app.boundary.state.escalation, "4118")).kind).toBe("Open");
     // F9: the failure lands as exactly ONE per-item marker beside the item …
     expect(h.app.boundary.state.spine.notices).toEqual([
       { kind: "Refused", at: 1000, tool: "confirmEscalation", reason: "no pending request" },
@@ -150,7 +165,7 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
     confirm(h, "Agent");
 
     expect(h.world.pages).toEqual(["4118"]);
-    expect(h.app.bus.records().at(-1)!.commands.at(-1)!.sig).toEqual({
+    expect(must(must(h.app.bus.records().at(-1)).commands.at(-1)).sig).toEqual({
       by: "Agent", // truthful: it acted through the agent's stream
       authority: POLICY_TIER, // the field that differs
     });
@@ -166,7 +181,10 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
     confirm(h, "Human");
 
     expect(h.world.pages).toEqual(["4118"]);
-    expect(h.app.bus.records().at(-1)!.commands.at(-1)!.sig).toEqual({ by: "Human", authority: HOST });
+    expect(must(must(h.app.bus.records().at(-1)).commands.at(-1)).sig).toEqual({
+      by: "Human",
+      authority: HOST,
+    });
   });
 
   it("a confirm on a ticket this stream never heard of is refused, and fires nothing", () => {
@@ -182,7 +200,7 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
     // (arm). The arm rejects it too — see test/blocks/escalation.test.ts — but
     // control never reaches it. What F9 measured (a page fired, and the session
     // went Degraded) cannot happen either way.
-    expect(h.app.bus.records().at(-1)!.results.at(-1)).toMatchObject({
+    expect(must(h.app.bus.records().at(-1)).results.at(-1)).toMatchObject({
       outcome: "refused",
       tool: "confirmEscalation",
     });
@@ -222,7 +240,7 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
       actions: [{ tool: "confirmEscalation", input: { ticket: "4118" } }],
     });
 
-    expect(app.bus.records().at(-1)!.results.at(-1)).toEqual({
+    expect(must(app.bus.records().at(-1)).results.at(-1)).toEqual({
       outcome: "refused",
       tool: "confirmEscalation",
       reason: "authority may not confirm this action",
@@ -237,7 +255,7 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
     confirm(h, "Human");
 
     expect(h.world.pages).toEqual(["4118"]);
-    expect(h.app.bus.records().at(-1)!.results.at(-1)).toMatchObject({
+    expect(must(h.app.bus.records().at(-1)).results.at(-1)).toMatchObject({
       outcome: "refused",
       reason: "no pending request",
     });

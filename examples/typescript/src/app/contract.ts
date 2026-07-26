@@ -7,25 +7,55 @@
 // TS/Kotlin delta in blast radius (§11.4): three extra appends in this file per
 // new block. The guarantee is identical; the ceremony is not.
 
+import type {
+  AnalysisCommand,
+  AnalysisEffect,
+  AnalysisResult,
+  AnalysisSlice,
+  AnalysisView,
+} from "../blocks/analysis/register";
+import { analysis } from "../blocks/analysis/register";
+import type {
+  ArtifactCommand,
+  ArtifactEffect,
+  ArtifactResult,
+  ArtifactSlice,
+  ArtifactView,
+} from "../blocks/artifact/register";
+import { artifact } from "../blocks/artifact/register";
+import type {
+  ConsoleCommand,
+  ConsoleResult,
+  ConsoleSlice,
+  ConsoleView,
+} from "../blocks/console/register";
+import { consoleBlock } from "../blocks/console/register";
+import type {
+  EscalationCommand,
+  EscalationEffect,
+  EscalationResult,
+  EscalationSlice,
+  EscalationView,
+} from "../blocks/escalation/register";
+import { escalation } from "../blocks/escalation/register";
+import type { InboxCommand, InboxResult, InboxSlice, InboxView } from "../blocks/inbox/register";
+import { inbox } from "../blocks/inbox/register";
+import type {
+  Priority,
+  Ticket,
+  TriageCommand,
+  TriageEffect,
+  TriageResult,
+  TriageSlice,
+  TriageView,
+} from "../blocks/triage/register";
+import { triage } from "../blocks/triage/register";
 import type { SpineCommand } from "../spine/pure/command";
 import type { SpineEffect } from "../spine/pure/effect";
 import type { SpineSlice } from "../spine/pure/spine-slice";
 import { emptySpineSlice } from "../spine/pure/spine-slice";
 import type { SpineResult } from "../spine/pure/tool-result";
 import type { ViewModel } from "../spine/pure/view";
-
-import { analysis } from "../blocks/analysis/register";
-import type { AnalysisCommand, AnalysisEffect, AnalysisResult, AnalysisSlice, AnalysisView } from "../blocks/analysis/register";
-import { artifact } from "../blocks/artifact/register";
-import type { ArtifactCommand, ArtifactEffect, ArtifactResult, ArtifactSlice, ArtifactView } from "../blocks/artifact/register";
-import { consoleBlock } from "../blocks/console/register";
-import type { ConsoleCommand, ConsoleResult, ConsoleSlice, ConsoleView } from "../blocks/console/register";
-import { escalation } from "../blocks/escalation/register";
-import type { EscalationCommand, EscalationEffect, EscalationResult, EscalationSlice, EscalationView } from "../blocks/escalation/register";
-import { inbox } from "../blocks/inbox/register";
-import type { InboxCommand, InboxResult, InboxSlice, InboxView } from "../blocks/inbox/register";
-import { triage } from "../blocks/triage/register";
-import type { Priority, Ticket, TriageCommand, TriageEffect, TriageResult, TriageSlice, TriageView } from "../blocks/triage/register";
 
 // ── The three closed sets ───────────────────────────────────────────────────
 
@@ -47,7 +77,12 @@ export type Command =
   | AnalysisCommand
   | InboxCommand;
 
-export type Effect = SpineEffect | TriageEffect | EscalationEffect | ArtifactEffect | AnalysisEffect;
+export type Effect =
+  | SpineEffect
+  | TriageEffect
+  | EscalationEffect
+  | ArtifactEffect
+  | AnalysisEffect;
 
 /** Everything a block's arm may be handed. The spine's own two cases are folded
  *  by the spine's own arm, so they are excluded here. */

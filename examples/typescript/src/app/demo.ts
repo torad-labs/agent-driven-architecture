@@ -4,22 +4,23 @@
 // harness re-derives the session from committed bytes alone.
 
 import { MockLanguageModelV3 } from "ai/test";
+import { liveRelay } from "../blocks/analysis/adapter";
+import { runTurn } from "../spine/agent/loop";
+import { movingClock, RecordingSink } from "../spine/boundary/in-memory";
+import type { TurnContext } from "../spine/concurrency/consumer";
+import { InMemoryMailbox, InMemoryRelay, virtualScheduler } from "../spine/concurrency/in-memory";
 import { authority } from "../spine/pure/actor";
 import { input, interrupt, isInput } from "../spine/pure/mailbox";
 import { perceived } from "../spine/pure/staged";
-import { movingClock, RecordingSink } from "../spine/boundary/in-memory";
-import { InMemoryMailbox, InMemoryRelay, virtualScheduler } from "../spine/concurrency/in-memory";
-import type { TurnContext } from "../spine/concurrency/consumer";
-import { runTurn } from "../spine/agent/loop";
 import { refold } from "../spine/replay/replay";
-import { liveRelay } from "../blocks/analysis/adapter";
-import { initialState } from "./contract";
 import { project } from "./assemble";
+import { initialState } from "./contract";
+import type { Narrator } from "./narrator";
 import {
-  DEEP_TIER,
-  FAST_TIER,
   authorization,
+  DEEP_TIER,
   effectSink,
+  FAST_TIER,
   offlinePorts,
   wireApp,
   wireConsumer,
@@ -63,7 +64,9 @@ function scriptedModel(): MockLanguageModelV3 {
         };
       }
       return {
-        content: [{ type: "text" as const, text: "Raised #4118 to High and opened the escalation panel." }],
+        content: [
+          { type: "text" as const, text: "Raised #4118 to High and opened the escalation panel." },
+        ],
         finishReason: { unified: "stop" as const, raw: undefined },
         usage,
         warnings: [],
@@ -72,8 +75,8 @@ function scriptedModel(): MockLanguageModelV3 {
   });
 }
 
-async function main(): Promise<void> {
-  const performed = new RecordingSink(effectSink(offlinePorts()));
+export async function main(out: Narrator): Promise<void> {
+  const performed = new RecordingSink(effectSink(offlinePorts((line) => out.say(line))));
   const app = wireApp({
     clock: movingClock(1000, 7),
     sink: performed,
@@ -92,9 +95,9 @@ async function main(): Promise<void> {
     registry: app.registry,
     dispatchers: app.dispatchers,
   });
-  console.log(`\n[agent] ran ${turn.steps} steps, said: "${turn.text}"`);
-  console.log("[state] triage:", project(app.boundary.state).triage.rows[0]);
-  console.log("[state] panels:", project(app.boundary.state).console.panels);
+  out.say(`\n[agent] ran ${turn.steps} steps, said: "${turn.text}"`);
+  out.say("[state] triage:", project(app.boundary.state).triage.rows[0]);
+  out.say("[state] panels:", project(app.boundary.state).console.panels);
 
   // 2) The agent requests escalation — reversible, so nothing pages.
   app.boundary.onStepFinish({
@@ -111,11 +114,11 @@ async function main(): Promise<void> {
     staged: [],
     actions: [{ tool: "confirmEscalation", input: { ticket: "4118" } }],
   });
-  console.log("\n[gate] agent self-confirm →", app.bus.records().at(-1)?.results.at(-1));
+  out.say("\n[gate] agent self-confirm →", app.bus.records().at(-1)?.results.at(-1));
 
   // 4) The HOST confirms: a different principal. Granted; on-call is paged once.
   app.controller.onAction({ tool: "confirmEscalation", input: { ticket: "4118" } });
-  console.log("[gate] host confirm     →", app.bus.records().at(-1)?.results.at(-1));
+  out.say("[gate] host confirm     →", app.bus.records().at(-1)?.results.at(-1));
 
   // 5) The work product: folded lines, then ONE gated delivery at seal time.
   app.boundary.onStepFinish({
@@ -134,25 +137,33 @@ async function main(): Promise<void> {
   const same =
     JSON.stringify(replayed.state) === JSON.stringify(app.boundary.state) &&
     JSON.stringify(replayed.effects) === JSON.stringify(performed.performed);
-  console.log("\n[effects] ", performed.performed.map((k) => `${k.key.step}:${k.key.index} ${k.effect.kind}`).join(" · "));
-  console.log("[replay]  state and full effect sequence re-derived from the bus:", same);
-  console.log("[banner]  ", project(app.boundary.state).banner);
-  console.log("[notices] ", project(app.boundary.state).notices);
+  out.say(
+    "\n[effects] ",
+    performed.performed.map((k) => `${k.key.step}:${k.key.index} ${k.effect.kind}`).join(" · "),
+  );
+  out.say("[replay]  state and full effect sequence re-derived from the bus:", same);
+  out.say("[banner]  ", project(app.boundary.state).banner);
+  out.say("[notices] ", project(app.boundary.state).notices);
 
-  await tieringAndBargeIn();
+  await tieringAndBargeIn(out);
 }
 
 // ── The two advanced rungs, run end to end (11 and 12) ─────────────────────
 // Both are OPTIONAL, and this is what optional looks like: a separate wiring,
 // two extra registration lists, and nothing above this line had to change.
 
-async function tieringAndBargeIn(): Promise<void> {
+async function tieringAndBargeIn(out: Narrator): Promise<void> {
   // ── 11 · TIERING. Two units of work, two buses, two clocks, ONE relay, and
   //    no handle between them. The deep tier publishes; the fast tier recalls.
   const store = new InMemoryRelay();
   const deep = wireApp({
     clock: movingClock(500, 5),
-    sink: effectSink(offlinePorts(() => undefined, liveRelay((at, text) => store.publish(at, text)))),
+    sink: effectSink(
+      offlinePorts(
+        () => undefined,
+        liveRelay((at, text) => store.publish(at, text)),
+      ),
+    ),
     session: "deep-1",
     verbs: DEEP_TIER,
   });
@@ -161,7 +172,7 @@ async function tieringAndBargeIn(): Promise<void> {
     staged: [],
     actions: [{ tool: "publishAnalysis", input: { text: "root cause: expired card token" } }],
   });
-  console.log("\n[tier]     deep tier published:", store.published);
+  out.say("\n[tier]     deep tier published:", store.published);
 
   const fastSink = new RecordingSink(effectSink(offlinePorts(() => undefined)));
   const fast = wireApp({
@@ -209,19 +220,26 @@ async function tieringAndBargeIn(): Promise<void> {
 
   mailbox.post(input("tickets", perceived("tickets", "customer reports a failed charge"), "t1"));
   await settle();
-  console.log("[tier]     fast tier recalled:", fast.boundary.state.analysis.notes.at(-1)?.recall);
+  out.say("[tier]     fast tier recalled:", fast.boundary.state.analysis.notes.at(-1)?.recall);
 
   sched.advance(100);
   await settle();
   mailbox.post(interrupt("operator", "the customer is on the phone"));
   await settle();
 
-  console.log(
+  out.say(
     `[barge-in] long turn started at t=${startedAt.get("Input")}, would finish at t=10000; ` +
       `interrupt handled at t=${startedAt.get("Interrupt")}`,
   );
-  console.log("[barge-in] committed:", fast.bus.records().flatMap((r) => r.commands.map((c) => c.tool)));
-  console.log("[barge-in] cancelled turn's steps are still folded:", fast.boundary.state.artifact.lines.length, "line(s)\n");
+  out.say(
+    "[barge-in] committed:",
+    fast.bus.records().flatMap((r) => r.commands.map((c) => c.tool)),
+  );
+  out.say(
+    "[barge-in] cancelled turn's steps are still folded:",
+    fast.boundary.state.artifact.lines.length,
+    "line(s)\n",
+  );
 }
 
-void main();
+export { main as runDemo };

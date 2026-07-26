@@ -112,6 +112,9 @@ export function turnFailed(source: SourceName, fault: string): TurnFailed {
   return { kind: "TurnFailed", source, fault };
 }
 
-export function cancelDeadlineExceeded(source: SourceName, afterMs: number): CancelDeadlineExceeded {
+export function cancelDeadlineExceeded(
+  source: SourceName,
+  afterMs: number,
+): CancelDeadlineExceeded {
   return { kind: "CancelDeadlineExceeded", source, afterMs };
 }
