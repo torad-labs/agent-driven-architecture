@@ -182,12 +182,44 @@ const C3 = [
   { selector: 'MemberExpression[object.name="performance"][property.name="now"]', message: "[C3] `now` comes from the Clock port, read once per step at the boundary" },
 ];
 
+// C4, third half — the DECLARATIONS the stamp claims are staked on. Two shapes
+// the book calls unrepresentable had no watcher here: `Ctx` gaining a
+// stamp-typed member (§5.3/G1 — "no field of the read-only context may declare
+// one"; verb.ts legitimately imports Signature for the sign seam, so the import
+// rule cannot guard this), and a staged-input variant gaining an Authority
+// (11.2 — "recall confers no authority BY CONSTRUCTION": the field's ABSENCE is
+// the guarantee). Both were red-proven silent before this rule existed. The
+// declaration is denied by NAME, and test/gate/anchors.test.ts pins that the
+// named declarations still exist in the live tree — a name-keyed rule whose
+// anchor drifts goes quietly vacuous, which is how C7's derivation rotted.
+//
+// NAMED RESIDUE (TS-structural): `Actor` is a string union, so an inline
+// literal union (`by: "Human" | "Agent"`) spells the same shape with no type
+// reference for this selector to see. Kotlin's enum has no such spelling.
+const C4_SHAPE = [
+  {
+    selector: 'TSInterfaceDeclaration[id.name="Ctx"] TSTypeReference[typeName.name=/^(Actor|Authority|Signature)$/]',
+    message: "[C4] Ctx carries no stamp — a tool cannot ask who is asking; the answer is minted after it returns",
+  },
+  {
+    selector: 'TSInterfaceDeclaration[id.name=/^(StagedInputBase|Perceived|Recalled)$/] TSTypeReference[typeName.name=/^(Actor|Authority|Signature)$/]',
+    message: "[C4] a staged input carries no stamp — recall confers no authority BY CONSTRUCTION (11.2)",
+  },
+];
+
 // C7, second half — a ToolResult is an object literal with an `outcome` key.
 // (`r.outcome === "ok"` is a READ, and reads are everywhere they should be.)
+//
+// The SAME key rides CommandBase, so this selector also denies a COMMAND
+// literal outside a verb body or the boundary — a fold arm cannot stash a
+// Command no gate ever saw into its own slice. That coverage is structural,
+// not incidental: `outcome` is a REQUIRED member of CommandBase, so no Command
+// literal can be spelled without the key this selector matches, and the C7
+// block-fixture pins the Command half so it cannot rot away unnoticed.
 const C7_LITERAL = [
   {
     selector: 'ObjectExpression > Property[key.name="outcome"]',
-    message: "[C7] a ToolResult may only be produced by a verb body or by the boundary",
+    message: "[C7] signed transport (a ToolResult or a Command) may only be produced by a verb body or by the boundary",
   },
 ];
 
@@ -268,6 +300,12 @@ const C9_RULE = {
 
 const bucket = (files, { imports, syntax, globals = [] }) => ({
   files,
+  // THE GATE CANNOT BE SILENCED FROM INSIDE A FILE. Without this line, one
+  // `/* eslint-disable */` comment turns every check below into prose — 15.2's
+  // "a wrong rule is fixed and re-tested, never disabled" was a discipline,
+  // and this is what makes it structural. A directive in the tree is inert,
+  // and the block-test in test/gate/gate.test.ts watches one fail to work.
+  linterOptions: { noInlineConfig: true },
   languageOptions: {
     parser: tseslint.parser,
     parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
@@ -297,7 +335,7 @@ const blockImports = (allowed, extra = []) => [
 ];
 
 const BLOCK_ALLOWED = [SIBLING, BLOCK_PURE];
-const PURE_SYNTAX = [...C3, ...C7_LITERAL, ...C8_SYNTAX, ...C10];
+const PURE_SYNTAX = [...C3, ...C4_SHAPE, ...C7_LITERAL, ...C8_SYNTAX, ...C10];
 
 // ── §1.3, folder by folder ─────────────────────────────────────────────────
 // Ordered general → specific. Flat config merges rule-by-rule, so a later
@@ -309,7 +347,7 @@ export const gate = [
   // a new folder cannot quietly opt out of the gate by not being listed.
   bucket(["**/src/**/*.ts"], {
     imports: [only("this file is in no folder §1.3 declares — it belongs under spine/, blocks/<X>/ or app/")],
-    syntax: [...C3, ...C7_LITERAL, ...C8_SYNTAX, ...C10],
+    syntax: [...C3, ...C4_SHAPE, ...C7_LITERAL, ...C8_SYNTAX, ...C10],
     globals: [...C3_GLOBALS, ...C8_GLOBALS],
   }),
 

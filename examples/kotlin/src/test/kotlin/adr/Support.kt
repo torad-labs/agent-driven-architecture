@@ -17,6 +17,7 @@ import adr.spine.boundary.FinishedStep
 import adr.spine.pure.Action
 import adr.spine.pure.Actor
 import adr.spine.pure.Authority
+import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
 import adr.spine.pure.ToolName
@@ -82,7 +83,7 @@ class Driver {
             "ticket" to "4118",
             "level" to "Normal",
             staged = listOf(
-                StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived"),
+                StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived", SourceKey("inbox-1")),
             ),
         )
         human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")

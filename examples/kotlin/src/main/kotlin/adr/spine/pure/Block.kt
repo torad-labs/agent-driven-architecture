@@ -19,7 +19,7 @@
 //
 // This is NOT a bindability seam. Nothing stores a `Block` in a variable: the root's
 // three dispatchers match exhaustively over the sealed transport, so every call site
-// already knows the concrete slice type (I3). What the interface buys is that the
+// already knows the concrete slice type (app/Assemble.kt). What the interface buys is that the
 // shared half of "every block looks the same" is CHECKED BY THE COMPILER instead of
 // asserted in a comment — which is this reference's whole thesis applied to itself.
 

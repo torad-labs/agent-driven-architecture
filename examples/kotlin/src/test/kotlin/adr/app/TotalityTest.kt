@@ -27,6 +27,20 @@ private class Sealed {
             .replaceFirstChar { it.lowercase() }
 }
 
+/**
+ * The C13 checker itself, on a constructed type. C13 is a question about VALUES, so
+ * its fixture pair is a pair of INPUTS to one checker rather than a pair of files on
+ * disk — same checker, two inputs, exactly like the TS port's `registryGaps`. The
+ * ALLOW half runs it over the shipped registry; the BLOCK half pulls one verb out
+ * and watches it deny. A check nobody has watched fail is not a check.
+ */
+private class Totality {
+
+    fun gaps(cases: Set<String>, names: Set<String>): List<String> =
+        (cases - names).map { "\"$it\" is a declared ToolResult case with no Verb entry" } +
+            (names - cases).map { "\"$it\" is registered but declares no ToolResult case" }
+}
+
 class TotalityTest {
 
     private val registry = Wiring().wireApp(Env()).registry
@@ -34,13 +48,25 @@ class TotalityTest {
     /** The spine's own two cases are not verbs — nobody calls them; the boundary mints them. */
     private val spineCases = setOf("unhandled", "refused")
 
+    private fun declaredCases(): Set<String> =
+        Sealed().leaves(ToolResult::class).map { Sealed().verbName(it) }.toSet() - spineCases
+
     @Test
     fun `C13 - every ToolResult case has a registry entry, and every entry has a case`() {
-        val cases = Sealed().leaves(ToolResult::class).map { Sealed().verbName(it) }.toSet()
         val names = registry.keys.map { it.value }.toSet()
 
-        assertEquals(names, cases - spineCases)
+        assertEquals(emptyList(), Totality().gaps(declaredCases(), names))
         assertEquals(12, names.size, "six blocks, twelve verbs")
+    }
+
+    @Test
+    fun `C13 BLOCK-TEST - a registry with a verb pulled out is DENIED`() {
+        val thinned = registry.keys.map { it.value }.toSet() - "confirmSeal"
+
+        assertEquals(
+            listOf("\"confirmSeal\" is a declared ToolResult case with no Verb entry"),
+            Totality().gaps(declaredCases(), thinned),
+        )
     }
 
     @Test

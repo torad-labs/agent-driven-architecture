@@ -19,7 +19,7 @@ import { harness } from "../harness";
 describe("projectContext — the THIRD pure projection (F4)", () => {
   it("is a projection of committed State plus the ONE staged input", () => {
     const state = initialState({ tickets: [{ id: "4118", body: "refund not received" }] });
-    const staged = [perceived("inbox", "customer wrote in")];
+    const staged = [perceived("inbox", "customer wrote in", "inbox-1")];
     const context = projectContext(state, staged);
 
     expect(context.staged).toEqual(staged);
@@ -54,7 +54,7 @@ describe("projectContext — the THIRD pure projection (F4)", () => {
     const h = harness();
     h.app.boundary.onStepFinish({
       by: "Agent",
-      staged: [perceived("inbox", "urgent")],
+      staged: [perceived("inbox", "urgent", "inbox-2")],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
     h.app.boundary.onStepFinish({

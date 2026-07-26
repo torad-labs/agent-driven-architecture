@@ -33,7 +33,7 @@
 // mutable state" (true, and the whole point).
 //
 // THE TURN RUNNER IS INJECTED, NOT IMPORTED. This folder never names the agent-loop
-// SDK — that stays confined to spine/agent/loop (G3/I5, gate check C1) — and it
+// SDK — that stays confined to spine/agent/loop (G3, gate check C1) — and it
 // never names a block or the root (C15).
 //
 // DISPATCHER CONFINEMENT (law, and not gate-checkable — see the README's
@@ -156,6 +156,11 @@ private data class Read(val entry: RelayEntry?)
  *   existing path (resolveAction → gate → fold → commit → signed Command). A
  *   busy-drop is a decision, so it signs, exactly like A1's presentation verbs.
  * @param finalize what a Drain commits before the consumer stops (the session seal).
+ * @param recovered the durable dedupe scope, REBUILT FROM THE TIMELINE at recovery:
+ *   every source key a committed step already consumed (`Recovery` in spine/replay).
+ *   A consumer seeded with it refuses the redelivery of work that committed before a
+ *   crash — the half of "each work item folds exactly once" (12.2) that an in-memory
+ *   set cannot carry alone.
  * @param relay optional. Wire one and every turn is staged with a BOUNDED recall of
  *   the peer tier's newest conclusion; leave it null and the tier rung costs nothing.
  */
@@ -166,6 +171,7 @@ class SerialConsumer(
     private val report: Report<ConsumerEvent>,
     private val finalize: Report<Message.Drain>,
     private val policies: List<InputPolicy> = emptyList(),
+    recovered: Set<SourceKey> = emptySet(),
     private val relay: RelayRead? = null,
     private val recallSource: SourceName = SourceName("relay"),
     private val cancelDeadlineMs: Millis = CANCEL_DEADLINE_MS,
@@ -180,8 +186,10 @@ class SerialConsumer(
     private var pending: Message.Input? = null
     private var dropped = 0
 
-    /** The durable policy's in-session dedupe scope. See the note on [ack] below. */
-    private val seen = mutableSetOf<SourceKey>()
+    /** The durable dedupe scope: seeded from the timeline ([recovered]), grown
+     *  in-session. The KEY rides the committed `Perceived` fixture, so this set is
+     *  always re-derivable from the bus — restart does not reset it. */
+    private val seen: MutableSet<SourceKey> = recovered.toMutableSet()
 
     /** Consumer-owned, single-writer: the newest entry a successful recall ever returned. */
     private var lastKnown: RelayEntry? = null
@@ -233,8 +241,8 @@ class SerialConsumer(
 
     /** 12.2's own note: for a durable queue, do NOT conflate. Dedupe, queue, ack on commit. */
     private suspend fun onDurable(scope: CoroutineScope, message: Message.Input) {
-        if (seen.contains(message.key)) {
-            emit(ConsumerEvent.Duplicate(message.source, message.key))
+        if (seen.contains(message.staged.key)) {
+            emit(ConsumerEvent.Duplicate(message.source, message.staged.key))
             mailbox.ack(message)
             return
         }
@@ -244,7 +252,7 @@ class SerialConsumer(
             taking = false
             return
         }
-        seen += message.key
+        seen += message.staged.key
         start(scope, message)
     }
 
@@ -299,8 +307,10 @@ class SerialConsumer(
     private suspend fun joinWithin(running: RunState.Running, bound: Millis) {
         val joined = withTimeoutOrNull(bound) { running.job.join() }
         if (joined == null) {
+            // NOT acked: the abandoned turn never settled, so its lease stays out
+            // and a restart re-delivers rather than loses. `revoke()` is what keeps
+            // the abandoned coroutine from folding anything after this line.
             running.turn.gate.revoke()
-            mailbox.ack(running.turn.message)
             emit(ConsumerEvent.CancelDeadlineExceeded(running.turn.source, bound))
             return
         }
@@ -316,25 +326,26 @@ class SerialConsumer(
 
     /**
      * ACK AFTER THE COMMIT (12.2). By the time a turn settles its steps are already on
-     * the bus, so a crash between take and ack re-delivers rather than loses — and
-     * the durable policy's key dedupe is what makes that redelivery safe.
+     * the bus, so a crash between take and ack re-delivers rather than loses — and the
+     * durable policy's key dedupe is what makes that redelivery safe: [seen] is seeded
+     * from the timeline at construction, so the scope survives the restart that
+     * redelivery exists for.
      *
-     * NAMED LIMIT: [seen] is the consumer's IN-SESSION dedupe scope. Across a process
-     * restart the durable answer is the timeline itself, which records what committed.
+     * A turn that THREW is not acked: the lease stays out, a restart re-delivers, and
+     * the timeline decides — a key that committed is refused, one that never committed
+     * is retried.
      */
     private fun finish(turn: Turn) {
         outcomes += turn.outcome
-        mailbox.ack(turn.message)
-        degrade(turn)
-    }
-
-    /** 12.4: a failed turn becomes a typed status carrying its cause. Never a dead loop. */
-    private fun degrade(turn: Turn) {
         when (val outcome = turn.outcome) {
-            is TurnOutcome.Ok -> Unit
+            is TurnOutcome.Ok -> mailbox.ack(turn.message)
+            is TurnOutcome.Cancelled -> mailbox.ack(turn.message)
+            TurnOutcome.Idle -> mailbox.ack(turn.message)
+            // 12.4: a failed turn becomes a typed status carrying its cause — and it
+            // is NOT acked, so the lease stays out and a crash re-delivers rather
+            // than loses. The exception never crossed the loop; the consumer is the
+            // heartbeat and it does not stop.
             is TurnOutcome.Threw -> emit(ConsumerEvent.TurnFailed(turn.source, outcome.fault))
-            is TurnOutcome.Cancelled -> Unit
-            TurnOutcome.Idle -> Unit
         }
     }
 
@@ -350,7 +361,7 @@ class SerialConsumer(
             dropped = 0
         }
         if (InputPolicies(policies).forSource(next.source) is InputPolicy.DurableQueue) {
-            seen += next.key
+            seen += next.staged.key
         }
         start(scope, next)
     }

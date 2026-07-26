@@ -61,7 +61,7 @@ describe("the boundary — the one impure seam", () => {
     const before = h.app.boundary.state;
     h.app.boundary.onStepFinish({
       by: "Agent",
-      staged: [perceived("inbox", "customer wrote in")],
+      staged: [perceived("inbox", "customer wrote in", "inbox-1")],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
 
@@ -76,7 +76,7 @@ describe("the boundary — the one impure seam", () => {
       "staged",
     ]);
     expect(record.now).toBe(1000);
-    expect(record.staged).toEqual([perceived("inbox", "customer wrote in")]);
+    expect(record.staged).toEqual([perceived("inbox", "customer wrote in", "inbox-1")]);
     expect(record.actions).toEqual([
       { tool: "setPriority", input: { ticket: "4118", level: "High" } },
     ]);

@@ -1,4 +1,4 @@
-// ── spine/boundary/boundary — THE ONE IMPURE SEAM (I4) ─────────────────────
+// ── spine/boundary/boundary — THE ONE IMPURE SEAM (G9) ─────────────────────
 // Nine ordered steps. Everything impure in the system happens here or in a block's
 // single adapter; nothing else.
 //

@@ -162,7 +162,7 @@ const val DECODE_FAILED = "input failed to decode"
 /** The one closed table the boundary reads: name → verb. It supplies BOTH maps (F1). */
 typealias Registry<S> = Map<ToolName, Verb<S, *, *>>
 
-/** A block's single public contribution to the spine (I7). */
+/** A block's single public contribution to the spine (L1). */
 data class BlockRegistration<S>(val block: String, val verbs: List<Verb<S, *, *>>)
 
 /**

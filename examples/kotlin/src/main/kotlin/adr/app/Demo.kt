@@ -48,7 +48,7 @@ class Demo(private val out: Narrator) {
         val world = World()
         val authority = RunAuthority()
         val events = ScriptedEvents(
-            listOf(StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived")),
+            listOf(StagedInput.Perceived(SourceName("inbox"), "customer says the refund never arrived", SourceKey("inbox-1"))),
         )
         val app = Wiring().wireApp(Env(world = world, authority = authority, events = events))
 
@@ -132,11 +132,7 @@ class Demo(private val out: Narrator) {
         checkNotNull(consumer)
 
         mailbox.post(
-            Message.Input(
-                source = SourceName("tickets"),
-                staged = StagedInput.Perceived(SourceName("tickets"), "ticket 4119: refund missing"),
-                key = SourceKey("t-4119"),
-            ),
+            Message.Input(source = SourceName("tickets"), staged = StagedInput.Perceived(SourceName("tickets"), "ticket 4119: refund missing", SourceKey("t-4119"))),
         )
         mailbox.post(Message.Drain(SourceName("operator"), "walkthrough over"))
         consumer.run()
@@ -186,11 +182,7 @@ class Demo(private val out: Narrator) {
 
         val running = scope.launch { consumer.run() }
         mailbox.post(
-            Message.Input(
-                SourceName("sensor"),
-                StagedInput.Perceived(SourceName("sensor"), "reading A"),
-                SourceKey("a"),
-            ),
+            Message.Input(SourceName("sensor"), StagedInput.Perceived(SourceName("sensor"), "reading A", SourceKey("a"))),
         )
         delay(30)
         mailbox.post(Message.Interrupt(SourceName("operator"), "stop and answer me"))

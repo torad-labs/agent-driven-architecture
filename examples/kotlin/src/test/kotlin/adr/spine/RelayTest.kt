@@ -96,7 +96,7 @@ private class Tier(
     val consumer = checkNotNull(Wiring().wireConsumer(app, env, runner))
 
     fun post(body: String, key: String = "k1") = mailbox.post(
-        adr.spine.pure.Message.Input(TICKETS, StagedInput.Perceived(TICKETS, body), SourceKey(key)),
+        adr.spine.pure.Message.Input(TICKETS, StagedInput.Perceived(TICKETS, body, SourceKey(key))),
     )
 
     /** The `Recall` this tier actually resolved, as it was committed to State. */

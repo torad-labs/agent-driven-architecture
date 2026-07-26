@@ -123,7 +123,7 @@ export async function main(out: Narrator): Promise<void> {
   // 5) The work product: folded lines, then ONE gated delivery at seal time.
   app.boundary.onStepFinish({
     by: "Agent",
-    staged: [perceived("inbox", "customer says the refund never arrived")],
+    staged: [perceived("inbox", "customer says the refund never arrived", "inbox-1")],
     actions: [
       { tool: "recordFinding", input: { text: "customer reports a missing refund" } },
       { tool: "recordFinding", input: { text: "escalated to on-call" } },
@@ -218,7 +218,7 @@ async function tieringAndBargeIn(out: Narrator): Promise<void> {
   });
   void consumer.run();
 
-  mailbox.post(input("tickets", perceived("tickets", "customer reports a failed charge"), "t1"));
+  mailbox.post(input("tickets", perceived("tickets", "customer reports a failed charge", "t1")));
   await settle();
   out.say("[tier]     fast tier recalled:", fast.boundary.state.analysis.notes.at(-1)?.recall);
 

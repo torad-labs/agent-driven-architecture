@@ -49,6 +49,8 @@ import adr.spine.pure.Fold
 import adr.spine.pure.KeyedEffect
 import adr.spine.pure.PerformMode
 import adr.spine.pure.ProjectContext
+import adr.spine.pure.SourceKey
+import adr.spine.pure.StagedInput
 import adr.spine.pure.StepIndex
 import adr.spine.pure.StepRecord
 import adr.spine.pure.ContextRenderer
@@ -88,6 +90,26 @@ class Replay<S>(private val fold: Fold<S>) {
     fun collectPerform(initial: S, records: List<StepRecord>, sink: Sink, mode: PerformMode) {
         refold(initial, records).effects.forEach { sink.perform(it, mode) }
     }
+}
+
+/**
+ * The durable dedupe scope, re-derived from the bus alone (12.2). It needs no fold —
+ * the keys are committed data, not derived — so it is its own small host rather than
+ * a member of [Replay], which exists to re-run one.
+ */
+class Recovery {
+
+    /**
+     * Every source key a committed step consumed. The key rides the committed
+     * `Perceived` fixture for exactly this reason: a restarted consumer is seeded
+     * with these, so redelivered work that already committed is refused instead of
+     * folded twice. Work that never committed leaves no key here and is retried —
+     * the other half of the same contract.
+     */
+    fun committedSourceKeys(records: List<StepRecord>): Set<SourceKey> =
+        records.flatMap { record ->
+            record.staged.filterIsInstance<StagedInput.Perceived>().map { it.key }
+        }.toSet()
 }
 
 /**

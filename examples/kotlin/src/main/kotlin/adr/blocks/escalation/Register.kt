@@ -1,4 +1,4 @@
-// ── blocks/escalation/register — THE ONE PUBLIC SYMBOL (I7, L1) ────────────
+// ── blocks/escalation/register — THE ONE PUBLIC SYMBOL (L1) ────────────
 // A CLASS, not an `object`, for the reason blocks/triage/register spells out: an
 // uninstantiable facade delegating to top-level functions hosts the same disease
 // twice. Read the two files together — this one is a scripted derivation of that one,

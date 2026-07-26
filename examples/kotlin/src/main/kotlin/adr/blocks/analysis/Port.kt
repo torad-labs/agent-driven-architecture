@@ -8,7 +8,7 @@
 //
 // An interface only. The concrete relay lives in spine/concurrency/in-memory and
 // app/wire adapts it to this port, because the root is the only cross-layer
-// importer (I1/G10). The spine therefore still names no block (gate check C15).
+// importer (G7/G10). The spine therefore still names no block (gate check C15).
 
 package adr.blocks.analysis
 

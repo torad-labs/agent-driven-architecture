@@ -200,7 +200,9 @@ type  State = { tickets: Map&lt;TicketId, Ticket&gt;,   // triage + escalation
                 notices: [Notice] }               // spine — one entry per rejection or refusal
 
 // ───────── The stamp, and the signed action that crosses the bus (seam 02) ─────────
-data Signature(by: Actor, authority: Authority)              // minted at the boundary, and nowhere else
+Signature(by: Actor, authority: Authority)                   // minted at the boundary, and nowhere else — and
+                                                             // deliberately NO data/copy constructor: a copied stamp
+                                                             // is a forged stamp (book 5.3; the gate denies the mint)
 sealed Command(tool: ToolName, sig: Signature, id: CmdId) {  // the parent declares all three
   SetPriority(ticket: TicketId, level: Priority)
   RequestEscalation(ticket: TicketId)                 // a request — reversible
@@ -253,7 +255,7 @@ VERB confirmEscalation = Irreversible {
 
 // ───────── The context projection · the third pure map (seam 03) ─────────
 data StagedInput = { source: Text, body: Text }        // untrusted perceived content — one per turn
-data Context     = { staged: StagedInput?, lines: [Text], notices: [Text] }
+data Context     = { staged: [StagedInput], lines: [Text], notices: [Text] }   // ORDERED off-bus fixture (book 6.11)
 MAX_CONTEXT_LINES = 8 ; MAX_CONTEXT_NOTICES = 8        // O(1) in session length — a bound, not a hope
 
 projectContext(state, staged) -&gt; Context:              // PURE. Recomputed each step; never appended to.
@@ -302,8 +304,8 @@ sealed Effect(at: Timestamp) { LogDecision(...) | PageOncall(...) | Diag(note) }
 
 // ───────── What the boundary is handed, and what it commits (seam 02) ─────────
 data Action       = { tool: ToolName, input: RawInput }   // an OPEN name — the one open input in the system
-data FinishedStep = { by: Actor, staged: StagedInput?, actions: [Action] }
-data StepRecord   = { now: Timestamp, sig: Signature, staged: StagedInput?,
+data FinishedStep = { by: Actor, staged: [StagedInput], actions: [Action] }
+data StepRecord   = { now: Timestamp, sig: Signature, staged: [StagedInput],
                       actions:  [Action],        // what was ASKED
                       results:  [ToolResult],    // what was FOLDED — post-gate; the two differ when refused
                       commands: [Command], context: ContextFixture }
@@ -384,7 +386,7 @@ wireApp(env):
   model    = env.live ? HttpModel(env.url) : ScriptedModel(env.fixtures)   // ← the swap
   sink     = env.live ? LiveSinks(pager, store) : RecordingSink()
   sensing  = TicketQueue(env.queue)
-  registry = register(triage) + register(escalation) + register(console)   // one line per block
+  registry = register(triage) + register(escalation) + register(console)   // one line per block — the ports register THREE MORE (artifact, analysis, inbox), elided here
   boundary = Boundary(clock, ids, bus, sink, authz, registry, fold, projectContext)
   return App(boundary, sensing, model)
 

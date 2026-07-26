@@ -28,8 +28,10 @@
 import type { PerformMode, Sink } from "../ports/sink";
 import { render } from "../pure/context";
 import type { EffectBase } from "../pure/effect";
+import type { SourceKey } from "../pure/ids";
 import type { KeyedEffect } from "../pure/keyed-effect";
 import { keyedEffect } from "../pure/keyed-effect";
+import { isPerceived } from "../pure/staged";
 import type { StepRecord } from "../pure/step-record";
 import type { Dispatchers } from "../pure/verb";
 
@@ -67,6 +69,16 @@ export function collectPerform<S>(
   mode: PerformMode,
 ): void {
   refold(initial, records, dispatchers).effects.forEach((keyed) => sink.perform(keyed, mode));
+}
+
+/** The durable dedupe scope, re-derived from the bus alone (12.2): every
+ *  source key a committed step consumed. The key rides the committed
+ *  `Perceived` fixture for exactly this reason — a restarted consumer is
+ *  seeded with these, so redelivered work that already committed is refused
+ *  instead of folded twice. Work that never committed leaves no key here and
+ *  is retried, which is the other half of the same contract. */
+export function committedSourceKeys(records: readonly StepRecord[]): readonly SourceKey[] {
+  return records.flatMap((record) => record.staged.filter(isPerceived).map((p) => p.key));
 }
 
 /** F4/G15: the committed context digest must be re-derivable from committed

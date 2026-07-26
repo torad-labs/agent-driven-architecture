@@ -1,4 +1,4 @@
-// ── app/assemble — the THREE total dispatchers (I3) ────────────────────────
+// ── app/assemble — the THREE total dispatchers (G12) ────────────────────────
 //   foldApp            results → (state, effects)     the decision
 //   projectApp         state   → AppView              what a human reads (6.9)
 //   projectContextApp  state   → Context              what the reasoner reads (F4/G15)

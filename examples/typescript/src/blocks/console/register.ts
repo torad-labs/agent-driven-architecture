@@ -1,4 +1,4 @@
-// ── blocks/console/register — THE ONE PUBLIC SYMBOL (L1, I7) ───────────────
+// ── blocks/console/register — THE ONE PUBLIC SYMBOL (L1) ───────────────
 // Identical in shape to `blocks/triage/register.ts`. A reader comparing the two
 // sees A1's whole point: there is one kind of block.
 

@@ -1,4 +1,4 @@
-// ── app/contract — the app's closed sets (I2) ──────────────────────────────
+// ── app/contract — the app's closed sets (G10) ──────────────────────────────
 // The ONE place in the system that may name every block. The spine may not name a
 // block and a block may not name a sibling (both L1), so the product of the slices
 // has exactly one legal home: the root.

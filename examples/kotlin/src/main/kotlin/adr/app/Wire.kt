@@ -1,4 +1,4 @@
-// ── app/wire — THE SINGLE COMPOSITION ROOT (I1, G7) ────────────────────────
+// ── app/wire — THE SINGLE COMPOSITION ROOT (G7) ────────────────────────
 // Exactly one file may know what is real and what is faked in a build. Removing it
 // means a service locator, which G7 forbids.
 //
@@ -67,6 +67,7 @@ import adr.spine.pure.StagedInput
 import adr.spine.pure.TicketId
 import adr.spine.pure.RawInput
 import adr.spine.pure.RegistryBuilder
+import adr.spine.replay.Recovery
 import adr.spine.surface.Controller
 import ai.torad.aisdk.LanguageModel
 
@@ -239,7 +240,7 @@ class App(
 }
 
 /**
- * I2/I7: the six registrations. Each block is CONSTRUCTED here and handed a LENS onto
+ * G7/L1: the six registrations. Each block is CONSTRUCTED here and handed a LENS onto
  * its own slice, so it never has to know what else is in State (L1).
  *
  * This is the composition root doing what a composition root is for. A block used to be
@@ -333,7 +334,7 @@ class Wiring {
 
         return App(boundary, controller, registry, env.bus, sink, log, initial, env.events)
     }
-    /** I5: the verb table meets the runtime. The loop is the only file that converts. */
+    /** G3: the verb table meets the runtime. The loop is the only file that converts. */
     fun agentLoop(
         app: App,
         models: ModelProvider<LanguageModel>,
@@ -410,12 +411,16 @@ class Wiring {
                 report = ::consumerActions,
                 finalize = ::drainActions,
                 policies = env.policies,
+                // Not opt-in: the dedupe scope is ALWAYS the timeline's. On a fresh
+                // bus this is the empty set for free; after a crash it is what makes
+                // the durable queue's redelivery refuse work that already committed.
+                recovered = Recovery().committedSourceKeys(env.bus.records()),
                 relay = env.relayRead,
                 recallSource = SourceName("analysis"),
             )
         }
     /**
-     * I5 once more, one level up: the TurnRunner the consumer drives.
+     * G3 once more, one level up: the TurnRunner the consumer drives.
      *
      * It builds the agent loop with THIS TURN'S OWN staged inputs, so the recall the
      * consumer already bounded is exactly what the model is shown and exactly what rides

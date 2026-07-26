@@ -165,7 +165,7 @@ flowchart LR
 
       <div class="code"><div class="bar"><span class="path">the context projection — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">data StagedInput = { source: Text, body: Text }        // untrusted perceived content — one per turn
-data Context     = { staged: StagedInput?, lines: [Text], notices: [Text] }
+data Context     = { staged: [StagedInput], lines: [Text], notices: [Text] }   // ORDERED off-bus fixture (book 6.11)
 MAX_CONTEXT_LINES = 8 ; MAX_CONTEXT_NOTICES = 8        // O(1) in session length — a bound, not a hope
 
 projectContext(state, staged) -&gt; Context:              // PURE. Recomputed each step; never appended to.
@@ -176,7 +176,7 @@ render(context) -&gt; Text                                // the exact text the 
 
       <p>Three properties, and each rules out a specific way this seam usually rots.</p>
 
-      <p><strong>It is a projection, not an accumulator.</strong> <code class="i">projectContext</code> is a pure function of committed <code class="i">State</code> plus the one input staged for this turn. It is recomputed from scratch at line (2) of every step and never appended to. A running buffer that the loop pushes onto is the natural thing to build and the wrong thing to have: it becomes a second source of truth that no fold wrote, that no bus recorded, and that no re-fold can reconstruct. Here there is nothing to reconstruct — you recompute it, and the same <code class="i">State</code> gives the same <code class="i">Context</code>, always.</p>
+      <p><strong>It is a projection, not an accumulator.</strong> <code class="i">projectContext</code> is a pure function of committed <code class="i">State</code> plus the ordered inputs staged for this turn. It is recomputed from scratch at line (2) of every step and never appended to. A running buffer that the loop pushes onto is the natural thing to build and the wrong thing to have: it becomes a second source of truth that no fold wrote, that no bus recorded, and that no re-fold can reconstruct. Here there is nothing to reconstruct — you recompute it, and the same <code class="i">State</code> gives the same <code class="i">Context</code>, always.</p>
 
       <p><strong>It is bounded, by a declared constant.</strong> The caps are named in the source, and the artifact contributes a <em>count</em> rather than its content. So the reasoner's input does not grow with session length: a thousand-step session and a three-step session hand the model the same size of thing. That is a property you can state and test, not a hope you re-audit whenever a prompt gets long.</p>
 
@@ -247,8 +247,8 @@ test "focusTicket is the same mechanic, tested the same way":
   // That is the fold's job, against the state it is about to write. (seam 01)
 
 test "projectContext is a bounded projection of committed State":
-  c = projectContext(stateWith(tickets = 500, notices = 200), staged = TicketArrived(4118))
-  assert c.staged  == TicketArrived(4118)                 // the one event staged for this turn
+  c = projectContext(stateWith(tickets = 500, notices = 200), staged = [TicketArrived(4118)])
+  assert c.staged  == [TicketArrived(4118)]               // the ORDERED off-bus fixture staged for this turn
   assert c.lines.size   &lt;= MAX_CONTEXT_LINES              // the bound holds at any session length …
   assert c.notices.size &lt;= MAX_CONTEXT_NOTICES
   assert projectContext(s, x) == projectContext(s, x)     // recomputed, never accumulated</code></pre></div>

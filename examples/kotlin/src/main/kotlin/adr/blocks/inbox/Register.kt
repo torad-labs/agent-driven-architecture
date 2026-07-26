@@ -1,4 +1,4 @@
-// ── blocks/inbox/register — THE ONE PUBLIC SYMBOL (I7, L1) ─────────────────
+// ── blocks/inbox/register — THE ONE PUBLIC SYMBOL (L1) ─────────────────
 // Identical in shape to every other block's register. The barge-in rung plugs in as
 // an ORDINARY BLOCK — that is the whole claim: concurrency machinery is spine,
 // concurrency OBSERVABILITY is product state, and neither needed a new mechanic.

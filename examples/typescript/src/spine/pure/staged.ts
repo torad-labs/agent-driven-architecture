@@ -26,7 +26,7 @@
 // "`clock.now()` is the only clock read in the system" literally true, and makes
 // the age deterministic under replay.
 
-import type { SourceName, Timestamp } from "./ids";
+import type { SourceKey, SourceName, Timestamp } from "./ids";
 
 // ── The relay's own record ──────────────────────────────────────────────────
 // What an append-only relay hands back. Declared here, in `spine/pure`, because
@@ -105,10 +105,17 @@ export interface StagedInputBase {
   readonly source: SourceName;
 }
 
-/** Untrusted perceived content staged for this turn (10.2). */
+/** Untrusted perceived content staged for this turn (10.2).
+ *
+ *  `key` is the source's OWN id for this work item, and it rides the COMMITTED
+ *  record on purpose: the durable policy's dedupe scope is rebuilt from the
+ *  timeline at recovery (12.2), so "each work item folds at most once" survives
+ *  a process restart. A key held only on the uncommitted mailbox envelope dies
+ *  with the process — which is exactly the double-fold this field closes. */
 export interface Perceived extends StagedInputBase {
   readonly kind: "Perceived";
   readonly body: string;
+  readonly key: SourceKey;
 }
 
 /** A peer tier's conclusion, staged for this turn (11.2). There is exactly ONE
@@ -122,8 +129,17 @@ export interface Recalled extends StagedInputBase {
 
 export type StagedInput = Perceived | Recalled;
 
-export function perceived(source: SourceName, body: string): Perceived {
-  return { kind: "Perceived", source, body };
+/** The discriminant as a CONSTANT, and the ONE place it is compared — the same
+ *  move `spine/pure/mailbox` makes for `Input`. Recovery filters a committed
+ *  timeline through this guard to rebuild the durable dedupe scope. */
+export const PERCEIVED_KIND = "Perceived" as const;
+
+export function isPerceived(staged: StagedInput): staged is Perceived {
+  return staged.kind === PERCEIVED_KIND;
+}
+
+export function perceived(source: SourceName, body: string, key: SourceKey): Perceived {
+  return { kind: "Perceived", source, body, key };
 }
 
 export function recalled(source: SourceName, recall: Recall): Recalled {

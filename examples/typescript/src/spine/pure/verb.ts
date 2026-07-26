@@ -174,7 +174,7 @@ export interface Dispatchers<S> {
   projectContext(state: S, staged: readonly StagedInput[]): Context;
 }
 
-/** A block's ONE public contribution to the composition root (L1, I7). */
+/** A block's ONE public contribution to the composition root (L1). */
 export interface BlockRegistration<S> {
   readonly block: string;
   readonly verbs: readonly Verb<S>[];

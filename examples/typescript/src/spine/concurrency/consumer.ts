@@ -38,7 +38,7 @@
 // "no *shared* mutable state" (true, and the whole point).
 //
 // THE TURN RUNNER IS INJECTED, NEVER IMPORTED. This folder does not name the
-// agent-loop SDK; the SDK stays confined to `spine/agent/loop` (G3/I5, C1).
+// agent-loop SDK; the SDK stays confined to `spine/agent/loop` (G3, C1).
 // This folder also names no block and no composition root (C15).
 //
 // DISPATCHER CONFINEMENT. The consumer mints the turn's only channel into the
@@ -120,6 +120,12 @@ export interface ConsumerDeps {
   readonly cancelDeadlineMs?: number;
   readonly drainDeadlineMs?: number;
   readonly recallDeadlineMs?: number;
+  /** The durable dedupe scope, REBUILT FROM THE TIMELINE at recovery: every
+   *  source key a committed step already consumed (`committedSourceKeys` in
+   *  spine/replay). A consumer seeded with it refuses the redelivery of work
+   *  that committed before a crash — which is the half of "each work item folds
+   *  exactly once" (12.2) that an in-memory set cannot carry alone. */
+  readonly recovered?: readonly SourceKey[];
 }
 
 // ── The consumer's PRIVATE run-state handle ─────────────────────────────────
@@ -194,13 +200,18 @@ export class SerialConsumer {
   private held: InputMessage | null = null;
   /** the perishable path's ONE slot, plus the count it owes the timeline */
   private conflating: Conflating | null = null;
-  private readonly seen = new Set<SourceKey>();
+  /** the durable dedupe scope: seeded from the timeline (`recovered`), grown
+   *  in-session. The KEY rides the committed `Perceived` fixture, so this set
+   *  is always re-derivable from the bus — restart does not reset it. */
+  private readonly seen: Set<SourceKey>;
   /** consumer-owned, single-owner, same justification as the run handle */
   private lastKnown: RelayEntry | null = null;
   private stopped = false;
   private readonly log: TurnOutcome[] = [];
 
-  constructor(private readonly deps: ConsumerDeps) {}
+  constructor(private readonly deps: ConsumerDeps) {
+    this.seen = new Set(deps.recovered ?? []);
+  }
 
   /** every turn that ended, in order — the heartbeat, for tests and operators */
   get outcomes(): readonly TurnOutcome[] {
@@ -275,10 +286,10 @@ export class SerialConsumer {
     const policy = policyFor(this.deps.policies ?? [], message.source);
     switch (policy.kind) {
       case "DurableQueue": {
-        if (this.seen.has(message.key)) {
+        if (this.seen.has(message.staged.key)) {
           // 12.2's own catalog row: a durable queue re-delivers, so the second
           // arrival is refused, reported, and acked — never folded twice.
-          this.emit(duplicate(message.source, message.key));
+          this.emit(duplicate(message.source, message.staged.key));
           this.deps.mailbox.ack(message);
           return;
         }
@@ -286,7 +297,7 @@ export class SerialConsumer {
           this.held = message;
           return;
         }
-        this.seen.add(message.key);
+        this.seen.add(message.staged.key);
         return this.start(message);
       }
       case "Perishable": {

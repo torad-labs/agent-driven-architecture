@@ -57,6 +57,20 @@ potential-bugs:
 
 style:
   active: true
+  # THE GATE CANNOT BE SILENCED FROM INSIDE A FILE. Without this rule, one
+  # `@Suppress("ForbiddenMethodCall")` annotation turns C3, C4(d), C6 and C7's
+  # detekt halves into prose — 15.2's "a wrong rule is fixed and re-tested,
+  # never disabled" was a discipline, and this is what makes it structural. The
+  # rule reports the @Suppress itself, it is scoped to the gate's own rules (an
+  # unrelated `@Suppress("unused")` stays legal — the allow-fixture proves it),
+  # and detekt does not honour a suppression of ForbiddenSuppress.
+  ForbiddenSuppress:
+    active: true
+    rules:
+      - 'ForbiddenMethodCall'
+      - 'ElseCaseInsteadOfExhaustiveWhen'
+      - 'CyclomaticComplexMethod'
+
   # C3 — G9: time, randomness and identity are PORTS. The boundary reads the clock
   # exactly once per step (Boundary.kt step 1) and mints ids from IdSource;
   # everything upstream is handed the value. `excludes` names the one folder where
