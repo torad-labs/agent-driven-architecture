@@ -9,8 +9,7 @@ import type { OkResult } from "../../src/app/contract";
 import { initialState } from "../../src/app/contract";
 import { runTurn } from "../../src/spine/agent/loop";
 import { signResult } from "../../src/spine/boundary/action";
-import type { Signature } from "../../src/spine/pure/actor";
-import { authority } from "../../src/spine/pure/actor";
+import { authority, Signature } from "../../src/spine/pure/actor";
 import type { Timestamp } from "../../src/spine/pure/ids";
 import { refused } from "../../src/spine/pure/tool-result";
 import { AGENT_RUN, harness } from "../harness";
@@ -34,7 +33,7 @@ const EXPECTED: Record<OkResult["tool"], true> = {
   noteFault: true,
 };
 
-const sig: Signature = { by: "Agent", authority: authority("agent-run-7f") };
+const sig = new Signature("Agent", authority("agent-run-7f"));
 
 describe("registry totality (C13)", () => {
   it("every declared verb is registered, and every registered verb signs", () => {
@@ -131,7 +130,7 @@ describe("the runtime binding — the boundary is hooked onto onStepFinish", () 
 describe("an unclaimed result folds observably instead of crashing (§6.5)", () => {
   it("emits a diagnostic and a notice rather than returning undefined", () => {
     const state = initialState({ tickets: [{ id: "4118", body: "refund not received" }] });
-    const sig: Signature = { by: "Agent", authority: AGENT_RUN };
+    const sig = new Signature("Agent", AGENT_RUN);
     const stale = { outcome: "ok", tool: "resolveTicket", ticket: "4118" } as never;
 
     const out = fold(state, [stale], 1 as Timestamp, sig);

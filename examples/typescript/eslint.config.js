@@ -97,6 +97,118 @@ const C4 = [
   },
 ];
 
+// C4, fourth half — ONE PRODUCTION SITE FOR THE STAMP, in THREE layers.
+// The Kotlin port denies the resolved call `adr.spine.pure.Signature.<init>` in
+// every folder but `**/spine/boundary/**` (detekt ForbiddenMethodCall).
+// TypeScript has no module-internal visibility, so the analogue denies the
+// VALUE BINDING instead: `Signature` is a CLASS, and a file that can only name
+// it as a TYPE cannot construct one at all — `new Signature(…)` against a
+// type-only import is a compile error, aliased or not.
+//
+// C4_MINT is ONE `no-restricted-imports` entry, deliberately not a set of
+// esquery selectors. MEASURED: this single entry denies the named import, the
+// aliased import, the inline-`type`-mixed import, the namespace import and the
+// re-export, at ANY specifier spelling — including the `.js` suffix and any
+// future rename of `actor.ts`, both of which defeated the path-keyed selectors
+// this replaced. `allowTypeImports` keeps every `import type` fold arm and
+// every `export type` register.ts clean. It is also this file's own idiom (C4,
+// C5_MINT, C7_IMPORT all ride `importNames`), so it EXTENDS the owner rather
+// than planting a rival detector at the same layer.
+//
+// THE ASYMMETRY IS THE POINT, and it is what closes the two-hop:
+//
+//   C4_MINT   is exempted for the minting bucket — the boundary MUST import
+//             the constructor, or there is nothing to mint with.
+//   C4_LAUNDER rides EVERY bucket, boundary included — a second module
+//             republishing the constructor puts it back within reach under a
+//             name an import rule cannot key on.
+//   C4_SEAL   rides the minting bucket ONLY, and is the price of the
+//             exemption: the one folder that holds a value binding of
+//             `Signature` publishes NO value binding at all, because
+//             `import { Signature as S }; export { S }` rebinds the name and a
+//             name-keyed rule cannot follow a rebinding.
+//
+// NAMED RESIDUE, in the C4_SHAPE tradition of writing down what a rule cannot
+// see. These three layers close STATIC ESM VALUE BINDINGS of the name, and
+// nothing else:
+//   · an explicit assertion (`{} as Signature`) or an `any` still produces a
+//     value the type system accepts. It can no longer ride a Command — the
+//     boundary refuses a Command whose stamp is not the one this step minted
+//     (spine/boundary/action.ts) — but no rule here denies writing it.
+//   · `boundary.ts` could wrap `new Signature(…)` in an exported function. That
+//     is not a re-export and no selector sees it; it is a one-file diff inside
+//     the one folder whose whole job is minting, and the runtime identity check
+//     is what makes it non-load-bearing.
+// The claim these rules earn is "the constructor cannot be BOUND outside the
+// boundary", never "a Signature cannot be produced".
+const C4_LAUNDER = [
+  {
+    selector: 'ExportNamedDeclaration[exportKind="value"] > ExportSpecifier[local.name="Signature"]',
+    message:
+      "[C4] `Signature` is never re-exported as a value — not even from `spine/boundary`, because a second module publishing the constructor puts it back within reach under a name the import denial cannot key on",
+  },
+  {
+    selector: 'ExportAllDeclaration[exportKind="value"]',
+    message:
+      "[C4] a value `export * from` is denied everywhere — it republishes every binding of its source, including the Signature constructor, under no name at all",
+  },
+  // The DECLARATION spellings of the same republication. An ExportSpecifier
+  // selector is structurally blind to `export const Stamp = Signature`,
+  // `export default Signature` and `export class X extends Signature` — one
+  // keystroke from the specifier form, and each one either rebinds the
+  // constructor or IS a second production site. Name-keyed, so they ride every
+  // bucket: outside the declaring file the value name cannot even enter scope
+  // (C4_MINT), and the declaring file has no legitimate alias.
+  {
+    selector: 'VariableDeclarator[init.name="Signature"]',
+    message:
+      "[C4] binding `Signature` to a second name is denied everywhere — `const Stamp = Signature` is the declaration spelling of the re-export the specifier rule already denies, one keystroke apart",
+  },
+  {
+    selector: 'ExportDefaultDeclaration[declaration.name="Signature"]',
+    message:
+      "[C4] `export default Signature` republishes the constructor under the one name an import denial cannot key on",
+  },
+  {
+    selector: 'ClassDeclaration[superClass.name="Signature"]',
+    message:
+      "[C4] subclassing `Signature` forges a second constructor whose instances pass every check on the first — the subclass IS a production site",
+  },
+];
+
+const C4_SEAL = [
+  {
+    selector: 'ExportNamedDeclaration[exportKind="value"] > ExportSpecifier',
+    message:
+      "[C4] the folder that mints the stamp publishes no value binding at all — `import { Signature as S }; export { S }` renames the constructor, and a name-keyed rule cannot follow a rebinding",
+  },
+  // The declaration spellings of the same leak. Inside the exempt folder the
+  // constructor is legitimately in scope under ANY local name, so a name-keyed
+  // selector cannot follow it; the seal must deny the FORM. The folder exports
+  // only interfaces, classes, functions and types today, so banning
+  // `export const` and `export default` wholesale costs nothing.
+  {
+    selector: 'ExportNamedDeclaration[exportKind="value"][declaration.type="VariableDeclaration"]',
+    message:
+      "[C4] the folder that mints the stamp publishes no value binding at all — `export const X = …` is the declaration spelling of the specifier re-export this bucket already denies",
+  },
+  {
+    selector: 'ExportDefaultDeclaration',
+    message:
+      "[C4] the folder that mints the stamp publishes no value binding at all — a default export is a value binding under the one name no import rule can key on",
+  },
+];
+
+const C4_MINT = [
+  {
+    regex: ".",
+    importNames: ["Signature"],
+    allowTypeImports: true,
+    message:
+      "[C4] only `spine/boundary` may name `Signature` as a value — upstream of the stamp it is a TYPE, so there is nothing to construct",
+  },
+];
+
 // C5 — F7/G9: the fold cannot mint an effect key. `Effect` is the FOLD's
 // transport and carries no identity; `KeyedEffect` is the BOUNDARY's and is
 // built from the COMMITTED step index, so it is literally unavailable until
@@ -298,7 +410,7 @@ const C9_RULE = {
 
 // ── composition helpers ─────────────────────────────────────────────────────
 
-const bucket = (files, { imports, syntax, globals = [] }) => ({
+const bucket = (files, { imports, syntax, globals = [], mintsStamp = false }) => ({
   files,
   // THE GATE CANNOT BE SILENCED FROM INSIDE A FILE. Without this line, one
   // `/* eslint-disable */` comment turns every check below into prose — 15.2's
@@ -314,9 +426,24 @@ const bucket = (files, { imports, syntax, globals = [] }) => ({
   rules: {
     ...C9_RULE,
     "no-restricted-imports": imports.length === 0 ? "off" : ["error", { patterns: imports }],
-    // NO_DYNAMIC_IMPORT rides every bucket: an import table with an escape
-    // hatch is not a table.
-    "no-restricted-syntax": ["error", ...NO_DYNAMIC_IMPORT, ...syntax],
+    // NO_DYNAMIC_IMPORT and C4_LAUNDER ride every bucket, so a bucket added
+    // later is denied both by DEFAULT: an import table with an escape hatch is
+    // not a table, and a stamp with a second publication site is not a stamp.
+    // `mintsStamp` TRADES one wall for another rather than switching a wall
+    // off — the minting bucket loses C4_MINT and gains C4_SEAL — which is what
+    // keeps the single exemption watched from both sides.
+    "no-restricted-syntax": [
+      "error",
+      ...NO_DYNAMIC_IMPORT,
+      ...C4_LAUNDER,
+      ...(mintsStamp ? C4_SEAL : []),
+      ...syntax,
+    ],
+    // The BASE `no-restricted-imports` above is §1.3's per-bucket import table;
+    // this one is C4's mint denial. Two rules, two pattern sets, both on.
+    "@typescript-eslint/no-restricted-imports": mintsStamp
+      ? "off"
+      : ["error", { patterns: C4_MINT }],
     "no-restricted-globals": globals.length === 0 ? "off" : ["error", ...globals],
   },
 });
@@ -386,6 +513,9 @@ export const gate = [
   bucket(["**/src/spine/boundary/**/*.ts"], {
     imports: [only("`spine/boundary` may import `spine/pure` and `spine/ports`", SIBLING, SPINE_PURE, SPINE_PORTS), ...C12, ...C15],
     syntax: [...C10],
+    // the ONE folder that may bind the `Signature` constructor as a value (C4),
+    // and in exchange the one folder that may publish no value binding at all
+    mintsStamp: true,
   }),
 
   // spine/agent — the ONLY file in the system that may name the agent runtime.

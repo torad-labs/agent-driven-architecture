@@ -15,7 +15,7 @@
 // and the block-test (a registry with a verb pulled out of it). One checker,
 // two inputs — a check nobody has watched deny is not a check.
 
-import type { Signature } from "../../src/spine/pure/actor";
+import { Signature } from "../../src/spine/pure/actor";
 import type { CommandBase } from "../../src/spine/pure/command";
 import type { ToolResultBase } from "../../src/spine/pure/tool-result";
 import type { Verb } from "../../src/spine/pure/verb";
@@ -23,7 +23,7 @@ import type { Verb } from "../../src/spine/pure/verb";
 /** The shape C13 needs; `Registry<S>` satisfies it. */
 export type VerbTable = ReadonlyMap<string, Verb<never>>;
 
-const PROBE: Signature = { by: "Agent", authority: "gate-probe" as Signature["authority"] };
+const PROBE = new Signature("Agent", "gate-probe" as Signature["authority"]);
 
 /** Every way a registry can fail to be total. Empty means C13 passes. */
 export function registryGaps(declared: readonly string[], registry: VerbTable): readonly string[] {

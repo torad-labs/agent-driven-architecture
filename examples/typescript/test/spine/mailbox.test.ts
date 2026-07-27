@@ -365,9 +365,14 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     // …and the drop is a SIGNED COMMAND on the timeline, carrying the count
     const drops = commandsNamed(r.h, "noteDrop");
     expect(drops).toHaveLength(1);
+    // …and its AUTHORSHIP is the spine's, not the busy run's. This one value is
+    // only reachable if the union grew, the consumer's stamp site moved AND the
+    // authority table resolved `Spine`: it travels mailbox → consumer → boundary
+    // → authorityOf → gate → committed record.
     expect(drops[0]).toMatchObject({
       tool: "noteDrop",
       reason: { kind: "Conflated", source: "sensor", dropped: 2 },
+      sig: { by: "Spine", authority: "spine:consumer" },
     });
 
     // …and the reasoner is told, in its own input, on the very turn that won
@@ -613,7 +618,70 @@ describe("12.2 — a Drain waits, finalizes, and never preempts", () => {
     expect(abortSeen.value).toBe(false);
     expect(r.consumer.outcomes.at(-1)).toEqual({ kind: "Ok", steps: 2 });
     expect(committed(r.h)).toEqual(["recordFinding", "recordFinding", "requestSeal"]);
+    // …and the seal request is SPINE-authored. This is the drain-finalize stamp site,
+    // a different literal from `emit`'s, so it needs its own witness — and the folded
+    // `requestedBy` is the consequence the next describe pins end to end.
+    expect(commandsNamed(r.h, "requestSeal")[0]).toMatchObject({
+      sig: { by: "Spine", authority: "spine:consumer" },
+    });
+    expect(r.h.app.boundary.state.artifact.seal.requestedBy).toBe("spine:consumer");
     expect(r.consumer.running).toBe(false);
+    expect(r.failures).toEqual([]);
+  });
+});
+
+// ── 8b. What the drain's SPINE-authored seal MEANS at the gate ─────────────
+//
+// The seal the drain requests is `requestedBy: spine:consumer` (test 8 above),
+// and this gate compares PRINCIPALS — so the agent, a different principal, may
+// confirm it, and the irreversible delivery FIRES. Before the consumer stamped
+// `Spine` the identical sequence was refused as a self-confirm and delivered
+// nothing: the consumer was borrowing the agent's principal, which is the lie
+// D15 exists to end.
+//
+// THIS TEST IS A PIN, NOT A DECISION. A stamp that moves a value the
+// irreversibility gate compares moves a VERDICT, and a moved verdict that no
+// test names is a security-shaped change nobody can see. If the owner ever
+// rules the other way the fix is the product-owned confirm seam (`mayConfirm`),
+// and this test is what goes red to say so.
+
+describe("14.3 — the drain-requested seal and its confirmer", () => {
+  it("the agent may confirm a SPINE-requested seal, and the delivery actually fires", async () => {
+    const turn: TurnRunner = {
+      run: async (message: Message, ctx: TurnContext): Promise<void> => {
+        if (message.kind !== "Input") return;
+        act(ctx, finding("a finding"));
+        return Promise.resolve();
+      },
+    };
+
+    const r = rig(turn);
+    r.mailbox.post(input("tickets", perceived("tickets", "work", "a")));
+    await settle();
+    r.mailbox.post(drain("operator", "shift over"));
+    await settle();
+
+    // THE REQUESTER IS THE SPINE — not the run that happened to be busy — and a
+    // request on its own delivers nothing.
+    expect(r.h.app.boundary.state.artifact.seal.requestedBy).toBe("spine:consumer");
+    expect(r.h.world.deliveries).toEqual([]);
+
+    // …so the AGENT is a DIFFERENT principal, and 14.3's rule grants.
+    r.h.app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "confirmSeal", input: {} }],
+    });
+
+    expect(must(r.h.app.bus.records().at(-1)).commands[0]).toMatchObject({
+      tool: "confirmSeal",
+      outcome: "ok",
+      sig: { by: "Agent", authority: "agent-run-7f" },
+    });
+    expect(r.h.app.boundary.state.artifact.seal.kind).toBe("Sealed");
+    // THE IRREVERSIBLE EFFECT FIRED: one delivery, carrying the one folded line.
+    // Before D15's stamp this array stayed empty and the seal stayed `Sealing`.
+    expect(r.h.world.deliveries).toEqual([1]);
     expect(r.failures).toEqual([]);
   });
 });

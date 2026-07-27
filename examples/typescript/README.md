@@ -277,7 +277,7 @@ one **allow-test** over `test/gate/fixtures/`. There is no warning tier.
 | C1 | G4/G10 — dependencies point inward (the §1.3 import table, verbatim) |
 | C2 | G11 — no cross-block symbol import |
 | C3 | G9 — no clock, random or id outside the boundary |
-| C4 | F2/D4 — `Actor`/`Authority`/`Signature` unnameable where a `ToolResult` is declared |
+| C4 | F2/D4 — `Actor`/`Authority`/`Signature` unnameable where a `ToolResult` is declared; the `Signature` constructor bindable only inside `spine/boundary`, re-exportable as a value from nowhere |
 | C5 | F7/G9 — the fold cannot key an effect |
 | C6 | F9 — a block may not touch the session-global `RunStatus` |
 | C7 | F1 — one production site for `ToolResult` |

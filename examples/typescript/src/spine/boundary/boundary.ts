@@ -19,7 +19,7 @@ import type { Bus } from "../ports/bus";
 import type { Clock } from "../ports/clock";
 import type { IdSource } from "../ports/id-source";
 import type { Sink } from "../ports/sink";
-import type { Signature } from "../pure/actor";
+import { Signature } from "../pure/actor";
 import { render } from "../pure/context";
 import type { SessionId, StepIndex } from "../pure/ids";
 import { keyedEffect } from "../pure/keyed-effect";
@@ -69,10 +69,7 @@ export class Boundary<S> {
     const results = step.actions.map((action) => resolveAction(this.deps.registry, action, ctx));
 
     // 4  stamp AND resolve authority (G1 + F3) — one value, created here, ever
-    const sig: Signature = {
-      by: step.by,
-      authority: this.deps.authz.authorityOf(step.by, this.deps.session),
-    };
+    const sig = new Signature(step.by, this.deps.authz.authorityOf(step.by, this.deps.session));
 
     // 5  PRE-FOLD gate (F2/F3/F13)
     const gated = results.map((r) =>

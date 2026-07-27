@@ -19,10 +19,12 @@
 
 package adr.spine
 
+import adr.Driver
 import adr.app.State
 import adr.app.World
 import adr.app.Env
 import adr.app.Wiring
+import adr.blocks.artifact.CONFIRM_SEAL
 import adr.blocks.artifact.RECORD_FINDING
 import adr.blocks.artifact.SealStatus
 import adr.blocks.inbox.DropReason
@@ -36,10 +38,12 @@ import adr.spine.concurrency.InMemoryMailbox
 import adr.spine.concurrency.TurnRunner
 import adr.spine.pure.Action
 import adr.spine.pure.Actor
+import adr.spine.pure.Authority
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.CANCEL_DEADLINE_MS
 import adr.spine.pure.InputPolicy
 import adr.spine.pure.Message
+import adr.spine.pure.Signature
 import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
 import adr.spine.pure.StagedInput
@@ -60,6 +64,7 @@ import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 private val TICKETS = SourceName("tickets")
@@ -284,6 +289,12 @@ class MailboxTest {
         assertEquals(2, drop.dropped)
         assertEquals(DropReason.Conflated, drop.reason)
         assertEquals(SENSOR, drop.source)
+
+        // AUTHORSHIP. A conflation is SPINE-authored: the consumer decided it, not the
+        // model whose turn was busy. This one value is only reachable if the enum grew,
+        // the consumer's stamp site moved AND the authority table resolved `Spine` — it
+        // travels mailbox → consumer → boundary → authorityOf → gate → committed record.
+        assertEquals(Signature(Actor.Spine, Authority("spine:consumer")), drop.sig)
         assertEquals(mapOf(SENSOR to 2), h.app.state.inbox.conflated)
 
         // …AND THE MODEL IS TOLD. The conflation is folded BEFORE the next turn starts,
@@ -479,7 +490,61 @@ class MailboxTest {
         )
         assertEquals(listOf(TurnOutcome.Ok(2)), h.consumer.settled)
         assertTrue(h.app.state.artifact.seal is SealStatus.Sealing, "…then it finalized")
+        // …UNDER THE SPINE'S PRINCIPAL. The drain seal travels the same `emitActions`
+        // literal the conflation above does, so this pins the OTHER caller of the one
+        // stamp site — and the next test pins what the gate then DOES with it.
+        assertEquals(
+            SealStatus.Sealing(Authority("spine:consumer")),
+            h.app.state.artifact.seal,
+        )
         assertTrue(h.consumer.isStopped, "…then it stopped")
         assertTrue(h.mailbox.unacked().isEmpty())
+    }
+
+    // ── 7b · 14.3 · what the drain's SPINE-authored seal MEANS at the gate ──
+    //
+    // The seal the drain requests is `requestedBy = spine:consumer` (test 7 above),
+    // and the gate compares PRINCIPALS — so the agent, a different principal, may
+    // confirm it, and the irreversible delivery FIRES. Before the consumer stamped
+    // `Actor.Spine` the identical sequence was refused as a self-confirm and
+    // delivered nothing: the consumer was borrowing the agent's principal, which is
+    // the lie D15 exists to end.
+    //
+    // THIS TEST IS A PIN, NOT A DECISION. A stamp that moves a value the gate
+    // compares moves a VERDICT, and a moved verdict no test names is invisible. If
+    // the owner rules the other way the fix is `ConfirmingAuthorities`, the
+    // product-owned seam — and this test is what goes red to say so.
+    @Test
+    fun `DRAIN SEAL - the agent may confirm a SPINE-requested seal, a different principal`() = runTest {
+        val h = Barge(
+            runner = TurnRunner { _, ctx ->
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to "a finding", staged = ctx.staged))
+            },
+        )
+        val job = launch { h.consumer.run() }
+        h.mailbox.post(Msgs().inputOf(TICKETS, "k1", "reading"))
+        advanceTimeBy(10)
+        h.mailbox.post(Message.Drain(OPERATOR, "shutting down"))
+        job.join()
+
+        // THE REQUESTER IS THE SPINE, and a request on its own delivers nothing.
+        assertEquals(SealStatus.Sealing(Authority("spine:consumer")), h.app.state.artifact.seal)
+        assertTrue(h.world.deliveries.isEmpty(), "a seal REQUEST delivers nothing")
+
+        // …so the AGENT is a DIFFERENT principal, and 14.3's rule grants.
+        Driver().agent(h.app, CONFIRM_SEAL)
+
+        val last = h.app.bus.records().last().commands.first()
+        assertIs<ArtifactCommand.ConfirmSeal>(last, "granted, not Command.Refused: $last")
+        assertEquals(Signature(Actor.Agent, Authority("agent-run-7f")), last.sig)
+
+        val seal = h.app.state.artifact.seal
+        assertIs<SealStatus.Sealed>(seal, "the seal closed: $seal")
+        assertEquals(Authority("agent-run-7f"), seal.by)
+
+        // THE IRREVERSIBLE EFFECT FIRED: one delivery, carrying the one folded line.
+        // Before D15's stamp this list stayed empty and the seal stayed Sealing.
+        assertEquals(1, h.world.deliveries.size, "exactly one delivery")
+        assertTrue(h.world.deliveries.single().endsWith("Agent: a finding"))
     }
 }

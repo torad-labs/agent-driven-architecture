@@ -593,6 +593,31 @@ falls on its own.
 - `Signature` is a **non-data class** in the Kotlin port (spelled-out value equality, no `copy()`), with
   a GateTest pinning the missing modifier. The `internal constructor` half of §7 still requires the
   module split and remains open.
+- `Signature` in the TypeScript port is a **nominal class carrying a private `#` brand**, minted at one
+  site, with C4 extended to deny every static ESM value binding of it outside `spine/boundary` — the
+  local analogue of §7's `internal constructor`, since TypeScript has no module-internal visibility.
+  MEASURED before the change: both `{ by: "Human", authority: sig.authority }` and
+  `{ ...sig, by: "Human" }` compiled clean inside a block fold arm at `tsc` exit 0. The `unique symbol`
+  brand this port already uses for `Authority` denies only the first — an object spread propagates the
+  brand property from its source — which is why the shape is a class.
+  **This is the first seam this ADR records as only PARTLY compile-enforceable, and the title's word
+  "compile-enforced" does not hold for it.** Measured against the shape-plus-lint version: eight
+  assertion-free vectors — `Object.assign`'s `T & U`, `structuredClone`'s `T -> T`, a user-written
+  `<T>(base: T, over: Partial<T>) => T`, a structural widening write, `Reflect.set`, and
+  `new (sig.constructor as …)()` — compiled AND linted clean inside a real fold arm with the whole gate
+  green, and one of them relabelled the boundary's own stamp in place so the committed record carried an
+  actor the gate never saw. The launder lives in the generic signature, not in the brand, so no brand
+  spelling reaches it. What closes it is a RUNTIME pair: `Object.freeze` in the constructor, and an
+  identity check at the single `verb.sign` call site, where a Command carrying anything but the stamp
+  its own step minted becomes a signed refusal. Three layers, and the claim is bounded to them:
+  *the stamp cannot be spelled, the constructor cannot be bound outside the boundary, and a forged stamp
+  cannot ride a Command* — never "unforgeable". Named residue: `Reflect.set` on the frozen stamp returns
+  `false` instead of throwing (pinned by a test); a cast still produces a value the type system accepts,
+  though it can no longer ride a Command; and a fold arm may still write a literal actor string into its
+  own slice, which is not a stamp forge at all. Enforcement: `test/gate/forge.test.ts` runs the real
+  compiler over three spelling vectors, the C4 fixture pairs cover the binding vectors per file, and
+  `test/spine/stamp-residue.test.ts` is the runtime pair's declared layer — every one of them proven red
+  against the pre-repair tree.
 - C7 extended to **Command construction** with the variant derivation fixed to read classes and
   interfaces, and the fixture pair re-cut in the live sealed-class idiom. The named residue — `copy()`
   on a *received* data-class Command variant — remains open and is §6.6's problem to close structurally.
