@@ -19,6 +19,7 @@ import type { Narrator } from "./narrator";
 import {
   authorization,
   DEEP_TIER,
+  defaultAuthorities,
   effectSink,
   FAST_TIER,
   offlinePorts,
@@ -82,7 +83,16 @@ export async function main(out: Narrator): Promise<void> {
     sink: performed,
     initial: initialState({ tickets: [{ id: "4118", body: "refund not received" }] }),
     authz: authorization({
-      authorities: { Human: authority("host:marcos"), Agent: authority("agent-run-7f") },
+      authorities: {
+        Human: authority("host:marcos"),
+        Agent: authority("agent-run-7f"),
+        // DERIVED, not copied: `spine:consumer` has exactly one production
+        // literal (wire.ts's `defaultAuthorities`), so a typo there is red
+        // everywhere rather than only where a test happens to read it. `Human`
+        // and `Agent` keep their literals — the demo teaches `host:marcos`,
+        // which is NOT `defaultAuthorities.Human`.
+        Spine: defaultAuthorities.Spine,
+      },
     }),
   });
 

@@ -129,6 +129,7 @@ export function authorization(config: AuthorizationConfig): Authorization<State>
 export const defaultAuthorities: Readonly<Record<Actor, Authority>> = {
   Human: authority("host:operator"),
   Agent: authority("agent-run-7f"),
+  Spine: authority("spine:consumer"),
 };
 
 // ── The application ────────────────────────────────────────────────────────
@@ -286,7 +287,15 @@ export function reportActions(event: ConsumerEvent): readonly Action[] {
 }
 
 /** A Drain finalizes with the artifact block's seal REQUEST. It cannot confirm
- *  it — that needs a different principal, and the gate says so. */
+ *  it — that needs a different principal, and the gate says so.
+ *
+ *  NAMED CONSEQUENCE of the spine stamp: the consumer signs its steps `Spine`, so
+ *  this request is recorded under `spine:consumer` rather than `agent-run-7f`. The
+ *  seal's `requestedBy` is now the spine, which makes the AGENT a legal confirmer
+ *  of a drain-requested seal where it used to be the self-confirming requester the
+ *  gate refused. `14.3 — the drain-requested seal and its confirmer` in
+ *  test/spine/mailbox.test.ts pins that verdict, so a flip back is a red test
+ *  rather than a discovery. */
 export function finalizeActions(_message: DrainMessage): readonly Action[] {
   return [{ tool: "requestSeal", input: {} }];
 }

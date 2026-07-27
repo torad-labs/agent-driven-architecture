@@ -412,8 +412,15 @@ class SerialConsumer(
 
     private fun emit(event: ConsumerEvent) = emitActions(report(event))
 
+    /**
+     * THE ONE STAMP SITE for consumer-authored steps, and it serves BOTH callers:
+     * `emit(ConsumerEvent)` just above, and the drain seal — `emitActions(finalize(message))`
+     * in `onDrain`. `Actor.Spine`, not `Actor.Agent`: no model chose a conflation, a
+     * fault or a blown deadline, and a timeline that stamped them `Agent` was lying
+     * about authorship in the one record that is supposed to be the truth.
+     */
     private fun emitActions(actions: List<Action>) {
         if (actions.isEmpty()) return
-        submit(FinishedStep(by = Actor.Agent, staged = emptyList(), actions = actions))
+        submit(FinishedStep(by = Actor.Spine, staged = emptyList(), actions = actions))
     }
 }

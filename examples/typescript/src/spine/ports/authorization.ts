@@ -5,7 +5,8 @@
 // F3's unattended confirmer becomes reachable. `authorityOf` answers "under
 // whose permission is this stream acting right now" — a policy tier, a
 // second-agent reviewer, a deferred approval queue and a human host are all
-// just different Authority ids, so the two-value Actor contract never grows.
+// just different Authority ids, so no product-owned confirmer ever adds an Actor
+// variant — the actor contract grows at architecture revision, never per app.
 //
 // F13's per-tenant budget has the same home: a folded budget bounds only
 // aggregates within the unit of work its stream is scoped to, so anything

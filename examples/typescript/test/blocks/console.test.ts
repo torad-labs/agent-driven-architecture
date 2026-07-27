@@ -6,11 +6,11 @@
 import { describe, expect, it } from "vitest";
 import { consoleBlock } from "../../src/blocks/console/register";
 import { initialViewState } from "../../src/blocks/console/view-state";
-import { authority } from "../../src/spine/pure/actor";
+import { authority, Signature } from "../../src/spine/pure/actor";
 import { harness } from "../harness";
 import { must } from "../support/must";
 
-const sig = { by: "Agent", authority: authority("agent-run-7f") } as const;
+const sig = new Signature("Agent", authority("agent-run-7f"));
 const slice = consoleBlock.sliceOf(["escalation", "findings"]);
 
 describe("blocks/console — presentation is an authored act (A1)", () => {

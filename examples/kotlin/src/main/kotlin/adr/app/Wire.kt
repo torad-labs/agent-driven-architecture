@@ -122,12 +122,19 @@ class AppSink(
 class RunAuthority(
     private val agent: Authority = Authority("agent-run-7f"),
     private val human: Authority = Authority("host:marcos"),
+    private val spine: Authority = Authority("spine:consumer"),
 ) : AuthorityResolver {
     var acting: Authority? = null
 
+    /**
+     * `acting` still short-circuits EVERY Actor, `Spine` included — unchanged from the
+     * behaviour `Agent` already had. A test that promotes a principal promotes it for
+     * whatever acts next, which is the point of a one-line override.
+     */
     override fun authorityOf(by: Actor, session: SessionId): Authority = acting ?: when (by) {
         Actor.Agent -> agent
         Actor.Human -> human
+        Actor.Spine -> spine
     }
 }
 
@@ -396,6 +403,13 @@ class Wiring {
      * than confirming it: `confirmSeal` is irreversible and 14.3 requires a different
      * principal, so a drain cannot rubber-stamp its own finalization. The gate is not
      * suspended because the session is ending.
+     *
+     * NAMED CONSEQUENCE of the spine stamp: the consumer signs its steps `Actor.Spine`,
+     * so this request is recorded under `spine:consumer` rather than `agent-run-7f`. The
+     * seal's `requestedBy` is now the spine, which makes the AGENT a legal confirmer of a
+     * drain-requested seal where it used to be the self-confirming requester the gate
+     * refused. `DRAIN SEAL - the agent may confirm a SPINE-requested seal` in MailboxTest
+     * pins that verdict, so a flip back is a red test rather than a discovery.
      */
     fun drainActions(message: Message.Drain): List<Action> = listOf(Action(REQUEST_SEAL, RawInput()))
     /**

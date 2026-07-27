@@ -8,10 +8,10 @@
 
 import { describe, expect, it } from "vitest";
 import { triage } from "../../src/blocks/triage/register";
-import { authority } from "../../src/spine/pure/actor";
+import { authority, Signature } from "../../src/spine/pure/actor";
 import { harness } from "../harness";
 
-const sig = { by: "Agent", authority: authority("agent-run-7f") } as const;
+const sig = new Signature("Agent", authority("agent-run-7f"));
 const slice = triage.sliceOf([{ id: "4118", body: "refund not received" }]);
 
 describe("blocks/triage — the arm reads state before it decides (F9)", () => {

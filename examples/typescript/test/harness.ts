@@ -6,7 +6,7 @@
 import type { State } from "../src/app/contract";
 import { initialState } from "../src/app/contract";
 import type { App, Ports } from "../src/app/wire";
-import { effectSink, wireApp } from "../src/app/wire";
+import { defaultAuthorities, effectSink, wireApp } from "../src/app/wire";
 import { movingClock, RecordingSink } from "../src/spine/boundary/in-memory";
 import type { Authorization } from "../src/spine/ports/authorization";
 import type { Actor, Authority } from "../src/spine/pure/actor";
@@ -36,6 +36,13 @@ export function fakeWorld(): { world: World; ports: Ports } {
 export const HOST = authority("host:marcos");
 export const AGENT_RUN = authority("agent-run-7f");
 export const POLICY_TIER = authority("policy-tier-v3");
+/** The consumer's own principal: conflations, faults and blown deadlines commit
+ *  under this, never under the run that happened to be busy.
+ *
+ *  DERIVED FROM THE SHIPPED TABLE ON PURPOSE. Re-minting `authority("spine:consumer")`
+ *  here would make every assertion below a witness to this line rather than to
+ *  `wire.ts`, and corrupting the shipped value would leave the gate green. */
+export const SPINE = defaultAuthorities.Spine;
 
 /** An AuthorityResolver a test can move: the same Actor.Agent acting first as
  *  the run that raised a request, then as a policy tier that approves it. That
@@ -45,7 +52,7 @@ export function switchableAuthz(start?: Partial<Record<Actor, Authority>>): {
   authz: Authorization<State>;
   actAs: (by: Actor, principal: Authority) => void;
 } {
-  let table: Record<Actor, Authority> = { Human: HOST, Agent: AGENT_RUN, ...start };
+  let table: Record<Actor, Authority> = { Human: HOST, Agent: AGENT_RUN, Spine: SPINE, ...start };
   return {
     authz: {
       authorityOf: (by) => table[by],

@@ -110,5 +110,35 @@ export function signResult<S>(
     };
     return cmd;
   }
-  return verb.sign(result, sig, id);
+  // A COMMAND MAY ONLY CARRY THE STAMP THIS STEP MINTED — checked by IDENTITY,
+  // and this is the ONLY layer that closes the constructed-forge class.
+  //
+  // `CommandBase.sig` (pure/command.ts) is the ONLY Signature-typed value block
+  // code can emit — `ArmOut` and `FoldOut` carry none — and `verb.sign` has
+  // exactly ONE call site, which is this line. So reference equality here is
+  // TOTAL over "a forged stamp reaching committed transport", where no
+  // type-level wall can be: `Object.assign`'s `T & U`, `structuredClone`'s
+  // `T -> T`, any user-written `<T>(t: T, o: Partial<T>) => T` or
+  // `<T, K extends keyof T>(t: T, k: K, v: T[K]) => T`, and
+  // `new (sig.constructor as new (…) => Signature)(…)` reflection — the last of
+  // which produces a REAL branded, frozen Signature, so no shape check could
+  // ever catch it — all yield values the compiler accepts as `Signature` no
+  // matter how the brand is spelled. Every one of them fails to be THIS object.
+  //
+  // Total, not a throw: the "no registered verb" fallback ten lines up is the
+  // idiom to mirror, and this file's header already says the spine never throws
+  // at a seam. A refusal is a decision, so it is signed — with the stamp the
+  // boundary minted, never the one the verb handed back.
+  const cmd = verb.sign(result, sig, id);
+  if (cmd.sig !== sig) {
+    const refused: SpineCommand = {
+      outcome: "refused",
+      tool: result.tool,
+      sig,
+      id,
+      reason: "forged signature",
+    };
+    return refused;
+  }
+  return cmd;
 }

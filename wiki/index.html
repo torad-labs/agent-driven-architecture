@@ -2379,7 +2379,7 @@ onStepFinish(step):
     <table>
       <thead><tr><th>Law</th><th>Enforcement layer today</th></tr></thead>
       <tbody>
-        <tr><td class="r">G1</td><td><strong>Denying checks + behavior.</strong> The declaration rule (no Actor/Authority/Signature upstream) is C4; one production site for signed transport is C7; the Kotlin stamp additionally ships without a <code>copy()</code> constructor. That the boundary <em>stamps correctly</em> is behavioral (the boundary tests).</td></tr>
+        <tr><td class="r">G1</td><td><strong>Denying checks + behavior.</strong> The declaration rule (no Actor/Authority/Signature upstream) is C4; one production site for signed transport is C7; the Kotlin stamp additionally ships without a <code>copy()</code> constructor, and the TypeScript one is a nominal class whose constructor only the boundary folder may name. Neither type shape closes the forge on its own — a generic helper launders any brand — so the TypeScript stamp is also frozen when minted, and a Command carrying a stamp other than the one its own step minted is refused at the boundary by identity. That the boundary <em>stamps correctly</em> is behavioral (the boundary tests).</td></tr>
         <tr><td class="r">G2</td><td><strong>Denying check.</strong> C8: the pure ring imports no I/O, awaits nothing, reads no ambient environment.</td></tr>
         <tr><td class="r">G3</td><td><strong>Denying check.</strong> C14: the loop fails the build at its first decision point.</td></tr>
         <tr><td class="r">G4</td><td><strong>Denying check.</strong> C1: §1.3's import table as an allow-list.</td></tr>

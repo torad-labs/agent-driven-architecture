@@ -364,7 +364,10 @@ export class SerialConsumer {
     if (slot !== null) this.flush(slot);
 
     const actions = this.deps.finalize(message);
-    if (actions.length > 0) this.deps.seam.onStepFinish({ by: "Agent", staged: [], actions });
+    // SPINE-AUTHORED, exactly like `emit` below: the drain's finalization is the
+    // consumer's own decision, not a model turn. Kotlin's `emitActions` is one
+    // literal serving both paths, so stamping this one keeps the ports identical.
+    if (actions.length > 0) this.deps.seam.onStepFinish({ by: "Spine", staged: [], actions });
     this.deps.mailbox.ack(message);
     this.stop();
   }
@@ -549,11 +552,12 @@ export class SerialConsumer {
 
   // ── Reporting: never silent, and it travels the ONE existing path ─────────
   // resolveAction → gate → fold → commit → signed Command. A busy-drop is a
-  // decision, so it signs, exactly like A1's presentation verbs.
+  // decision, so it signs, exactly like A1's presentation verbs — and it signs
+  // as `Spine`, because no model chose to shed that load, this consumer did.
   private emit(event: ConsumerEvent): void {
     const actions = this.deps.report(event);
     if (actions.length === 0) return;
-    this.deps.seam.onStepFinish({ by: "Agent", staged: [], actions });
+    this.deps.seam.onStepFinish({ by: "Spine", staged: [], actions });
   }
 
   private flush(slot: Conflating): void {

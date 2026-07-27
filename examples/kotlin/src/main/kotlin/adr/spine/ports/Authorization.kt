@@ -4,9 +4,10 @@
 // and their verdict rides the committed record as an ordered G9 fixture — so a
 // re-fold reproduces the decision without calling either of these again.
 //
-// Note what does NOT happen here: Actor does not grow a variant. 5.1 fixes the
-// actor contract at two values and says it "does not grow with the application".
-// Authority is an opaque id, so a tenth kind of confirmer adds no type and no case.
+// Note what does NOT happen here: Actor does not grow a variant. The actor
+// contract grows only at architecture revision, never per application — and a
+// product's tenth kind of confirmer is not a revision. Authority is an opaque id,
+// so it adds no type and no case.
 
 package adr.spine.ports
 

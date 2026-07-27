@@ -5,10 +5,10 @@
 
 import { describe, expect, it } from "vitest";
 import { escalation } from "../../src/blocks/escalation/register";
-import { authority } from "../../src/spine/pure/actor";
+import { authority, Signature } from "../../src/spine/pure/actor";
 
-const agent = { by: "Agent", authority: authority("agent-run-7f") } as const;
-const tier = { by: "Agent", authority: authority("policy-tier-v3") } as const;
+const agent = new Signature("Agent", authority("agent-run-7f"));
+const tier = new Signature("Agent", authority("policy-tier-v3"));
 const slice = escalation.sliceOf(["4118"]);
 
 describe("blocks/escalation — the arm (F9)", () => {

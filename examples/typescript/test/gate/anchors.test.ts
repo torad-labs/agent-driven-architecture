@@ -21,8 +21,8 @@ import { readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 // C4 keys on these import names (and C4_SHAPE on the type names):
-import type { Actor, Authority, Signature } from "../../src/spine/pure/actor";
-import { authority } from "../../src/spine/pure/actor";
+import type { Actor, Authority } from "../../src/spine/pure/actor";
+import { authority, Signature } from "../../src/spine/pure/actor";
 // C7_LITERAL rides the `outcome` key of BOTH transport bases:
 import type { CommandBase } from "../../src/spine/pure/command";
 // C5 keys on these:
@@ -69,8 +69,15 @@ type TypeAnchors = [
 describe("the gate's anchors hold", () => {
   it("every VALUE name a rule keys on is still exported where the rule expects it", () => {
     // C3/C4/C5/C6/C7 key on these by name; a rename must break here, not there.
+    // `Signature` is in this VALUE list on purpose: C4's mint denial is a rule
+    // about a VALUE BINDING, so it goes vacuous the moment `Signature` stops
+    // being a value (revert it to an interface and no file can value-import
+    // it, so the rule matches nothing — silently, forever). The forge probe
+    // catches that too; this catches it in one line, here, where every other
+    // anchor lives.
     for (const anchored of [
       authority,
+      Signature,
       keyedEffect,
       keyOf,
       degraded,

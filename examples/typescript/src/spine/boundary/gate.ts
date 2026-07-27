@@ -19,10 +19,21 @@
 //   a second-agent reviewer           Agent    reviewer-a2       granted
 //   a human host                      Human    host:marcos       granted
 //   a deferred approval queue         Agent    approval-queue    granted
+//   the agent confirming a SPINE-
+//     requested drain seal            Agent    agent-run-7f      granted
 //
 // The confirming Command still stamps its Actor TRUTHFULLY; the Authority is
 // the field that differs. No second bus (5.2 holds); recall confers no
-// authority (11.3 holds); the two-value Actor contract does not grow (5.1).
+// authority (11.3 holds); and no row above adds an Actor variant — the actor
+// contract grows only at architecture revision, never per application.
+//
+// THE LAST ROW IS NEW, AND IT IS THE ONE THAT SURPRISES. `agent-run-7f` appears
+// twice with opposite verdicts: refused when the run itself raised the Request,
+// granted when the SPINE did (`spine:consumer`, the consumer's own principal for
+// conflations, faults, blown deadlines and the drain seal). Nothing about the
+// confirmer changed — the REQUESTER did, and this gate compares principals, so a
+// drain-requested seal is no longer a self-confirm. Pinned in both ports by
+// `14.3 — the drain-requested seal and its confirmer`.
 //
 // A refusal is COMMITTED as `ToolResult.Refused`, so a re-fold reproduces the
 // verdict without calling the authorization seam again — G9 satisfied, and F3's

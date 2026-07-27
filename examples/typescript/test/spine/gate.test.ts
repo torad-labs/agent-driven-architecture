@@ -17,7 +17,7 @@ import { effectSink, wireApp } from "../../src/app/wire";
 import { escalation } from "../../src/blocks/escalation/register";
 import { fixedClock, RecordingSink } from "../../src/spine/boundary/in-memory";
 import type { Ctx } from "../../src/spine/pure/verb";
-import { AGENT_RUN, fakeWorld, HOST, harness, POLICY_TIER } from "../harness";
+import { AGENT_RUN, fakeWorld, HOST, harness, POLICY_TIER, SPINE } from "../harness";
 import { must } from "../support/must";
 
 function request(h: ReturnType<typeof harness>): void {
@@ -224,7 +224,11 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
       // the seam 14.3 routes actor-keyed checks to: a product rule, applied
       // after the gate's structural checks have already passed
       authz: {
-        authorityOf: (by) => (by === "Human" ? HOST : AGENT_RUN),
+        // TOTAL BY CONSTRUCTION, not by an `else`. The ternary silently absorbed
+        // every non-Human Actor into AGENT_RUN, so `Spine` arrived here wearing
+        // the run's principal and nothing said so. An object literal makes a
+        // missing Actor a COMPILE error (TS2339/TS2322) instead.
+        authorityOf: (by) => ({ Human: HOST, Agent: AGENT_RUN, Spine: SPINE })[by],
         mayConfirm: () => false,
       },
     });
@@ -246,6 +250,18 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
       reason: "authority may not confirm this action",
     });
     expect(world.pages).toEqual([]);
+
+    // WITNESS for the resolver's TOTALITY, not just its current shape. A future
+    // "simplify this back" to a Human/other ternary silently hands Spine the
+    // run's principal; this assertion is what goes red when that happens.
+    app.boundary.onStepFinish({
+      by: "Spine",
+      staged: [],
+      actions: [{ tool: "requestEscalation", input: { ticket: "4118" } }],
+    });
+    expect(must(app.bus.records().at(-1)).commands[0]).toMatchObject({
+      sig: { by: "Spine", authority: SPINE },
+    });
   });
 
   it("a second confirm cannot re-page: no pending request survives the first", () => {
