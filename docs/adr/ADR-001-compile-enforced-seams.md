@@ -1,14 +1,21 @@
 # ADR-001 — Compile-enforced seams: the reference implementation becomes a module DAG
 
-Status: **proposed** · Supersedes the single-module `examples/kotlin` layout · Requires a change to the book (§4.7, §7.5/7.8, §15)
+Status: **ratified 2026-07-26** — `docs/DECISIONS.md` **D1** adopts the module DAG below, as amended by **D9** (§3/§4), and
+schedules its execution in that record's phase **P4**; **D3** adopts §5.1's inversion of book §15. Execution is pending; the
+decision is not.
+· Supersedes the single-module `examples/kotlin` layout
+· Book changes required: **§4.7 and §7.5/7.8** — D1's own list, verbatim, is "§4.7, §7.5/7.8; D3 owns §15" — plus **§15** (D3),
+plus **§4.6**, which follows from **D9**'s adapter leaf (§5) and which D1's list does not name. That last one is *reported* here,
+not added to D1: `docs/DECISIONS.md` is a locked record and only its owner widens it.
 
 This is the execution blueprint for restructuring this repository's reference implementations so the
 architecture's laws are **walls that do not compile**, not lint rules a comment switches off. It defines
 the module DAG, the convention plugins that enforce every edge, the file structure, what moves to
 compile-time versus what stays a residual check, and the execution order.
 
-Reference: `grailseeker-xr` ADR-009 and its fold-stays-central addendum, which already execute this shape
-against the same book. Builders execute against this doc; they do not invent structure.
+This document is **self-contained**: every module, plugin, rejection mechanism and measurement below is
+stated here in full and is re-derivable against this repository alone, with no other checkout involved.
+Builders execute against this doc; they do not invent structure.
 
 ---
 
@@ -21,8 +28,9 @@ together they are **one** finding, and it is a layering error:
 > independent routes around it**, and the fifteen checks meant to catch that class were **switchable off
 > by a one-line comment** (`/* eslint-disable */` in TypeScript, `@Suppress` in Kotlin).
 
-The governing law is brain concept **#924 — "You make drift not compile"**, the enforcement law for
-agent-driven codebases:
+The governing law this ADR is built on is stated here in full, so that nothing below depends on a
+document outside this repository. Its name is **"You make drift not compile"** and it is the enforcement
+law for agent-driven codebases:
 
 > CLAUDE.md, write-time hooks, and code review are probabilistic filters over an **unbounded output
 > space**. An agent will, with certainty over time, emit a structure none of them anticipated — a new
@@ -35,7 +43,7 @@ PR #1 put lint on the front line. Every finding below is that mistake, seen from
 
 ### 1.0 The corollary, and why this review nearly missed the point
 
-#924's corollary is the **parameterization trap**:
+The law's corollary is the **parameterization trap**:
 
 > When deciding whether to invest in structural enforcement, do NOT measure the current snapshot's
 > cleanliness — measure the **GENERATOR**. "The code is clean now" is the wrong bar; the right bar is
@@ -62,10 +70,10 @@ generator is an unbounded stream of agent-written Kotlin and TypeScript.
 
 ### 1.1 Scope: the trigger is authorship, not size or domain
 
-#924 is the enforcement law for **any codebase written by an LLM**. Its trigger condition is stated in
-its own framing — *"because the code is written by agents/LLMs"* — not the domain it was discovered in
-and not the size of the codebase. RealTour and grailseeker are where it was found; they are not its
-boundary.
+The law is the enforcement law for **any codebase written by an LLM**. Its trigger condition is stated
+in its own framing — *"because the code is written by agents/LLMs"* — not the domain it was first
+observed in and not the size of the codebase. The domain it was found in is not its boundary; the
+authorship of the code is.
 
 Two arguments against applying it here are both instances of the parameterization trap and are both
 rejected:
@@ -83,7 +91,7 @@ binds it twice:
 1. **As a codebase** — it is agent-written, so its own seams must be walls.
 2. **As a specification** — every application built from it will be agent-written *by definition*. §16.3's
    own adoption rubric lists "code is generated fast, at volume" as one of four signals that the pattern
-   pays for itself. The book therefore identifies #924's exact trigger condition, and then answers it in
+   pays for itself. The book therefore identifies the law's exact trigger condition, and then answers it in
    §15 with four dozen bypassable checks.
 
 That is the sharpest statement of the defect: **a book about agent-driven architecture teaches the
@@ -94,21 +102,34 @@ will eventually emit the shape no rule anticipated.
 Fixing the reference implementation is therefore necessary but not sufficient. §15 must be inverted (§5.1)
 because the book's readers, not just this repository, are the ones the law protects.
 
-### 1.2.1 The second, deeper defect: the core is unsubstitutable
+### 1.2.1 The second, deeper defect: the core was unsubstitutable
 
 The book's testing pitch is port substitution (§7.2 "a fake-in-test and the real-in-production runtime
-swap behind one interface"; §7.3 the composition root binds ports to adapters). The shipped core is then
-expressed as **top-level functions** — `fold(state, results, now)`, `project(state)`, `wireApp(env)` —
-and `object` singletons, none of which can be bound, faked, or swapped at that root.
-
-Measured on the reference project doing this correctly: `grailseeker-xr:core` has **78
-classes/interfaces/objects against 11 top-level `fun`s, and 10 of those 11 are `fun interface`
-declarations**. Every seam this repository made a loose function, that one made a SAM interface:
-`public fun interface Projection`, `Clock`, `IdSource`, `Sink`, `ActionDispatcher`, `ToolRun<I, O>`.
+swap behind one interface"; §7.3 the composition root binds ports to adapters). The core **as reviewed**
+was expressed as **top-level functions** — `fold(state, results, now)`, `project(state)`, `wireApp(env)` —
+and `object` singletons, none of which could be bound, faked, or swapped at that root.
 
 `fun interface` costs nothing at the call site (SAM conversion keeps `Projection { state -> ... }`) and
 buys full substitutability. **Top-level functions are a TypeScript idiom.** They are not testable in the
 sense this architecture means by testable: not injectable, not fakeable, not bindable.
+
+**The prescription has since landed, and the measurement is now this repository's own.** Re-derive it by
+running these three commands from the repository root. No other checkout is involved, and no commit id is
+cited, so the evidence survives a rebase or a squash of the branch that produced it:
+
+```
+$ S=examples/kotlin/src/main/kotlin/adr/spine
+$ grep -rE '\b(class|interface|object) [A-Z]' $S | wc -l                     # 132
+$ grep -rE '^(public |internal |private )?fun ' $S | wc -l                    # 14
+$ grep -rE '^(public |internal |private )?fun ' $S | grep -vc 'fun interface' #  0
+```
+
+**132 class/interface/object declarations against 14 top-level `fun`s — and all 14 are `fun interface`
+declarations.** Every seam this section named a loose function is now a SAM interface (`Fold`,
+`ProjectContext`, `Lens`, `Source`, `Emit`, `Report`, `Submit`, `TurnRunner`, `Decode`, `Run`, `Sign`,
+`Narrow`, `RequestedBy`, `Barrier`); `wireApp` is a member of a constructed `Wiring`; the only top-level
+function left under `src/main/kotlin/adr/` is `fun main()`. The diagnosis is kept because §5 and §6 are
+built on it: it records a defect that was closed, not one that is open.
 
 ### 1.2.2 The book is wrong, not only the code
 
@@ -163,8 +184,9 @@ the review already measured the current claim as an undercount because §6.8 nev
 
 The isolation that matters is that **feature A cannot reach feature B**. Whether the shared core knows
 both exist is a different and much weaker concern: the core is the shared language, and a language
-naming its speakers is not coupling in the harmful sense. The reference project accepts exactly this —
-its root state is the union of its blocks' slices.
+naming its speakers is not coupling in the harmful sense. This repository already does exactly this:
+`examples/kotlin/src/main/kotlin/adr/app/Contract.kt`'s `data class State` carries one field per block
+slice, **plus the spine's own** — `val spine: SpineSlice` first, then the six block slices: seven fields.
 
 Better: if each feature's slice is its own type in the core, then a projection typed to one slice
 **cannot read another one at all**. That lifts "a feature writes only its own slice" from a residual
@@ -174,10 +196,12 @@ check to a compile-time wall. Naming the features makes the wall stronger, not w
 *dissolving* the review finding that a spine type named a block. It does not dissolve it; it makes it
 deliberate. Both passages are wrong and are corrected.
 
-### Q3. What is a feature's one public symbol?
+### Q3. What is a feature's public surface?
 
-**Answer: a type the root constructs** — `public class TriageBlock : Block<TriageSlice, TriageResult,
-TriageView>`, implementing an `interface Block` declared in the core.
+**Answer: it is led by a type the root constructs** — `public class TriageBlock : Block<TriageSlice,
+TriageResult, TriageView>`, implementing an `interface Block` declared in the core. It is not one symbol:
+§4 measures the whole frozen set — the block type, its slice and view types and everything those reach,
+its block ports where it declares any, and the verb constants `:app` names.
 
 `public fun register(spine: Spine)` contradicts this ADR's own first decision, which forbids top-level
 functions precisely because they cannot be bound, faked or swapped.
@@ -272,9 +296,11 @@ This is a split by what the type carries, not an inconsistency. Most transport i
 ## 2. The shape — what stays, what changes
 
 - **Three rings, dependencies point inward, only the boundary is impure.** Unchanged from the book.
-- **A block is a vertical slice whose only public symbol is a TYPE the root constructs** —
+- **A block is a vertical slice whose frozen public surface is led by a TYPE the root constructs** —
   `class TriageBlock : Block<TriageSlice, TriageResult, TriageView>`. It contributes a **tool** and a
-  **projection**. It owns **privately** its ports, its decision logic, and its view model.
+  **projection**. What it keeps `internal` is its fold/arm implementation, the internals of its tool
+  declarations, its projection class, and every helper type no public type reaches. Its slice and view
+  types are *not* among those — §4 measures the surface and says why they cannot be.
 - **Blocks couple only through the one folded `State` and the one bus — never by import.**
 - **The kernel stays whole.** `Command`, `ToolResult`, `Effect`, `State`, the fold, the boundary and the
   bus live in `:spine` and nowhere else. They are the shared language every block speaks; they are not
@@ -287,14 +313,24 @@ This is a split by what the type carries, not an inconsistency. Most transport i
 ## 3. Module DAG (the dependency law — compile-enforced)
 
 ```
-build-logic/                        convention plugins (adr.*) — an included build; ENFORCES every edge
+build-logic/                     convention plugins (adr.*) — an included build; ENFORCES every edge
 
-:spine        → (nothing)           THE KERNEL: sealed Command/ToolResult/Effect/State,
-                                    the exhaustive fold, the boundary, the bus, replay, ports
-:block:<x>    → :spine              a vertical slice: its tool(s), its decision logic,
-                                    its port interfaces, its projection.  PURE JVM.
-:app          → :spine, :block:*    THE ROOT: register()s every block, binds every adapter,
-                                    constructs the boundary, builds the agent, runs the demo
+:spine             → (nothing)   THE KERNEL: sealed Command/ToolResult/Effect/State,
+                                 the exhaustive fold, the boundary, the bus, replay, ports.
+                                 PURE JVM — no IO on the classpath.
+                                 The KERNEL PORTS live here and nowhere else — Authorization,
+                                 Bus, Clock, EventSource, IdSource, Mailbox, ModelProvider,
+                                 Relay, Sink (adr/spine/ports/, nine files today).
+:block:<x>         → :spine      a vertical slice: its tool(s), its decision logic, its own BLOCK
+                                 PORT INTERFACES, its projection.  PURE JVM — no IO on the classpath.
+                                 A block port is that block's own — OncallPort, DeliveryPort,
+                                 AnalysisRelay — and never restates a kernel port.
+:block:<x>:adapter → :block:<x>, :spine
+                                 that block's live IO — client, SDK, socket.  IMPURE.  Implements
+                                 that block's BLOCK ports; lives in the block's own folder (§5).
+:app → :spine, :block:*, :block:*:adapter
+                                 THE ROOT: CONSTRUCTS every block, constructs every adapter and
+                                 binds it to its port, constructs the boundary, builds the agent
 ```
 
 Blocks: `triage · escalation · console · artifact · analysis · inbox` (the six the current code already
@@ -302,8 +338,13 @@ has).
 
 **Forbidden edges, rejected at configuration time by the convention plugin:**
 
-- `:block:*` may depend on **`:spine` only**. Not a sibling block. Not `:app`. Not an adapter library.
-- `:app` is the **only** module permitted to name a concrete adapter or an IO dependency.
+- `:block:<x>` may depend on **`:spine` only** — not a sibling block, not `:app`, not its own adapter,
+  and no IO library.
+- `:block:<x>:adapter` may depend on **`:block:<x>` and `:spine` and nothing else BY PROJECT EDGE**. Its
+  IO client, SDK or socket **library** is permitted — holding it is the whole reason the module exists
+  (§4). Only `:app` may depend on *it*.
+- `:app` is the **only** module permitted to name a concrete adapter CLASS, and the only module outside
+  an adapter leaf permitted an IO dependency of its own.
 - Exactly **one** boundary, bus and fold, in `:spine`. No block can stand up a second, because their
   constructors are `internal` to `:spine` and therefore **not visible** across the module boundary.
 
@@ -319,11 +360,12 @@ build code, not a review comment.
 | plugin | applied by | wires and enforces |
 |---|---|---|
 | `adr.kotlin.library` | every module | Kotlin JVM, `explicitApi()`, jvmTarget 21, binary-compatibility-validator (`.api` dump wired into `check`) |
-| `adr.spine` | `:spine` only | asserts it is the only module declaring the boundary, bus or fold |
-| `adr.block` | `:block:*` | auto-adds `implementation(project(":spine"))`; **rejects every other project dependency**; forbids IO libraries on the classpath |
-| `adr.root` | `:app` only | the only plugin permitting adapters and IO dependencies |
+| `adr.spine` | `:spine` only | asserts it is the only module declaring the boundary, bus or fold; forbids IO libraries on the classpath |
+| `adr.block` | `:block:<x>` | auto-adds `implementation(project(":spine"))`; **rejects every other project dependency**, including the block's own adapter; forbids IO libraries on the classpath |
+| `adr.block.adapter` | `:block:<x>:adapter` | auto-adds `implementation(project(":spine"))` and a dependency on its parent `:block:<x>`; **rejects every other project dependency**; IO libraries **allowed**; asserts no module but `:app` depends on it |
+| `adr.root` | `:app` only | the only plugin permitting `:app` to name a concrete adapter CLASS and to depend on a `:block:*:adapter`. The IO ban has exactly two owners — `adr.block` and `adr.spine`, each forbidding it on its own module — and no other plugin carries IO policy: `check()`s compose by conjunction, so a ban in `adr.kotlin.library` (applied by every module) would fail the very `:app` and `:block:<x>:adapter` classpaths this table permits |
 
-Rejection mechanism, verbatim in shape from grailseeker:
+Rejection mechanism:
 
 ```kotlin
 project.afterEvaluate {
@@ -340,10 +382,64 @@ project.afterEvaluate {
 }
 ```
 
-**API freeze.** `apiDump`/`apiCheck` commits a `<module>.api` per block whose entire content is one
-symbol: the block's type, `class TriageBlock`. A second public declaration fails `apiCheck` in CI. `internal` on
-everything else makes that automatic. This replaces the current situation, where the review measured
-**14 to 20 public declarations per block and zero uses of `internal` repository-wide.**
+`adr.block.adapter` applies the identical mechanism with `allowed = setOf(":spine", project.parent!!.path)`
+— same check, same failure message, exactly one more permitted edge. `adr.root` inverts it: it asserts
+that every `:block:*:adapter` in the build is depended on by `:app` and by nothing else.
+
+**API freeze, over a MEASURED surface.** `apiDump`/`apiCheck` commits a `<module>.api` per block. Its
+content is **not one symbol** — an earlier draft of this ADR said it was, and that claim is retracted
+here. A block's frozen public surface is: {its `Block` type} ∪ {its slice type} ∪ {its view type} ∪
+{every type those two reach — `TicketRow` from `TriageView`; `Ticket` and `Priority` from `TriageSlice`,
+`Ticket` also from `TriageBlock.slice(...)`} ∪ {its block port interfaces, where it declares any} ∪ {the
+verb / `ToolName` constants `:app` names}.
+
+Re-derive it from the repository root. Under §3's DAG `:app` is a separate module, so every block symbol
+`:app` names has to be public, which makes this command the surface's lower bound:
+
+```
+$ for b in triage console inbox escalation artifact analysis; do echo -n "$b: "; \
+    grep -rho "adr\.blocks\.$b\.[A-Za-z_]*" examples/kotlin/src/main/kotlin/adr/app/ \
+    | sort -u | sed "s/adr.blocks.$b.//" | tr '\n' ' '; echo; done
+triage: Ticket TriageBlock TriageSlice TriageView
+console: ConsoleBlock ConsoleSlice ConsoleView SET_PANEL
+inbox: InboxBlock InboxSlice InboxView NOTE_DROP NOTE_FAULT
+escalation: CONFIRM_ESCALATION EscalationBlock EscalationSlice EscalationView LivePager OncallPort REQUEST_ESCALATION
+artifact: ArtifactBlock ArtifactSlice ArtifactView CONFIRM_SEAL DeliveryPort LiveDelivery RECORD_FINDING REQUEST_SEAL
+analysis: AnalysisBlock AnalysisRelay AnalysisSlice AnalysisView LiveRelayWriter PUBLISH_ANALYSIS RECALL_ANALYSIS
+```
+
+Four, four, five, seven, eight, seven today. Under D9 the three concrete adapter classes in that output —
+`LivePager`, `LiveDelivery`, `LiveRelayWriter` — leave `:block:<x>` for the adapter leaf and are frozen in
+*that* module's `.api` instead, leaving **4 · 4 · 5 · 6 · 7 · 6** as the `:app`-named **lower bound** for
+triage · console · inbox · escalation · artifact · analysis. The frozen `.api` set is **strictly larger**
+than that floor: the formula above adds the types the slice and view reach, which `:app` never names but
+Kotlin's `explicitApi` forces public (`TicketRow` and `Priority` for triage — marking them `internal`
+does not compile). Measured against the live tree, the frozen sets are **6 · 5 · 5 · 8 · 9 · 8**. A
+public declaration beyond the frozen set fails `apiCheck` in CI, and `internal` on everything else makes
+that automatic. This still replaces what
+the review measured — **14 to 20 public declarations per block and zero uses of `internal`
+repository-wide** — but by shrinking the surface to a measured floor rather than to one symbol.
+
+**Why the surface cannot be one symbol.** Kotlin `internal` does not cross a module edge, and under §3
+`:app` is a different module from every block. `:app`'s `State` (`adr/app/Contract.kt`: one field per
+block slice plus the spine's own) names every block's **slice** type; its `AppView` names every block's
+**view** type; and each of those drags its own property types along. That forces the surface open for
+*every* block, including the three that declare no port at all — `triage`, `console` and `inbox` have no
+`Port.kt` and still name four, four and five symbols. So the port edge is not what decides this, and for
+half the blocks it does not arise at all.
+
+**What is still open is the mechanism, not the measurement.** This ADR does not ship a mechanism it has
+not compiled — §6.6 holds itself to the same bar — so the choice is recorded open rather than guessed:
+
+- **Accept the public surface** and let the `.api` freeze be the wall. Cheap, and the surface above is
+  small and measured.
+- **Friend association** — `-Xfriend-paths`, or Gradle's `associateWith` — letting `:app` and
+  `:block:<x>:adapter` see `internal` declarations of `:block:<x>`, shrinking the surface further. It has
+  to be shown to hold across an `api`/`implementation` edge and under binary-compatibility-validator.
+
+Neither has been compiled in this repository, so neither is prescribed here. What does **not** depend on
+the choice: a *sibling* block is kept out by §3's dependency law, rejected at configuration time before
+visibility is consulted at all. Visibility is the second lock on a welded door.
 
 ---
 
@@ -367,7 +463,10 @@ public interface Block<Slice, R : ToolResult, View> {
     public fun view(slice: Slice): View
 }
 
-// each :block:<x> exposes exactly one public symbol — a TYPE the root CONSTRUCTS:
+// the LEAD symbol of each :block:<x> — the TYPE the root CONSTRUCTS.  The rest of the
+// frozen surface (slice, view, what those reach, block ports where the block has any,
+// and the verb constants :app names) is MEASURED in §4, which also says why it cannot
+// be reduced to one symbol and which visibility mechanism is still open.
 public class TriageBlock : Block<TriageSlice, TriageResult, TriageView>
 ```
 
@@ -379,24 +478,59 @@ substituted in a test", and a top-level `val` is a global that every consumer ha
 property being cured rather than the cure. A class satisfies Q3's *reason*. The root constructs it,
 and a test constructs a different one.
 
-and owns privately: its decision logic, its port interfaces, its projection, its view model.
+and keeps `internal`: its fold/arm implementation, the internals of its tool declarations, its
+projection class, and every helper type no public type reaches. Its slice type, its view type and the
+types those reach are **not** internal and cannot be — `:app`'s `State` and `AppView` name them across a
+module edge (§4). Its block port interfaces are public for that reason plus one more: its own adapter
+module implements them.
 
 **Book change required:** §4.7's "contributes to shared: `Command` case(s) the feature adds" and "the
 state slice + its fold arm(s)" become "contributes a tool and a projection; the shared language stays in
 the spine." §7.5/§7.8's folder trees become module trees.
 
-**A second book change this ADR previously failed to name: §4.6.** The book ships the live adapter
-*inside the block* — "the only file in the block that holds a client" — and its deletability story
-("pull a block out by deleting the folder") includes that adapter. Under §3's DAG a `:block:<x>` is pure
-JVM with IO libraries forbidden on the classpath, so escalation's `OncallAdapter` and artifact's
-`LiveDelivery` cannot stay where §4.6 puts them. Two resolutions, one preferred: grow the DAG a
-`:block:<x>:adapter` leaf module — the pure block plus an impure adapter sibling, deleted together, with
-only `:app` permitted to depend on the adapter leaf — or put §4.6 on the amendment list beside §4.7.
-This ADR proposes the adapter leaf, because it preserves the deletability story §4.6 exists to tell.
+**Where the retracted one-symbol claim is still published.** Measured case-insensitively across both
+spellings in use — `one public symbol` and `only public symbol` — this is a report of sites, none of
+which this ADR edits:
+
+| file | lines | count |
+|---|---|---|
+| the book, `wiki/index.html` | 1314, 1350, 1383, 2738 | 4 |
+| `wiki/example/06-blocks-and-root.html` | 51, 169, 210 | 3 |
+| `README.md` | 90 | 1 |
+| source-file headers under `examples/` | — | 12 |
+
+Twenty sites, and note the trap in measuring them — it is §11 point 3's trap one layer up. A
+case-sensitive `grep -c 'one public symbol'` over the book returns **0**; concluding from that number
+that the book is clean is wrong. The book spells it "only public symbol" three times and
+"THE ONE PUBLIC SYMBOL" once, so a variant-blind grep reports a file clean while it states the claim
+four times.
+
+**Two of those book sites sit on no amendment list at all** — not D1's (`docs/DECISIONS.md` lines 14–19,
+which names §4.7 and §7.5/7.8 only) and not this ADR's Status line. Book **§7.9** (book line 1383) and
+book **§17.6** (line 2738, the vocabulary table) state the claim outside every section anyone has
+undertaken to amend, and §17.6's number is frozen forever, so a miss there is a permanently published
+contradiction. This is a **report**, not a re-decision: whether D1's list needs widening is the owner's
+call on a locked record, and nothing under `wiki/` is touched by this ADR.
+
+**A second book change this ADR previously failed to name: §4.6 — now settled.** The book ships the live
+adapter *inside the block* — "the only file in the block that holds a client" — and its deletability
+story ("pull a block out by deleting the folder") includes that adapter. Under §3's DAG a `:block:<x>` is
+pure JVM with IO libraries forbidden on the classpath, so escalation's `LivePager` and artifact's
+`LiveDelivery` cannot stay where §4.6 puts them. This ADR previously left two resolutions open — grow the
+DAG an adapter leaf, or amend §4.6 away. **`docs/DECISIONS.md` D9 chose the leaf:** two Gradle modules per
+block, `:block:<x>` pure and `:block:<x>:adapter` impure, both inside the block's own folder — because
+Gradle cannot scope a dependency ban below module granularity, and this is the structure that keeps "pull
+a block out by deleting the folder" true under the DAG. §3 and §4 above are written to that decision.
+
+§4.6 therefore keeps its story and gains a module tree, exactly as §7.5/§7.8 do. It joins §4.7 on the
+book's amendment list as a **module-tree** edit rather than a retraction: the adapter is still the
+block's own file, and the block still deletes as one folder. It reaches that list as a consequence of D9,
+and D1's own list does not name it — see the Status line.
 
 ### 5.1 §15 is the largest book change, and it is a thesis inversion
 
-§15 ("Executable architecture: enforce, don't review") asks **exactly** the question #924 answers:
+§15 ("Executable architecture: enforce, don't review") asks **exactly** the question §1's governing law
+answers:
 
 > "This is the answer to 'how do you keep AI-written code correct at volume?' You make the architecture
 > executable: a specification that fails the build rather than a wiki page nobody reads. In one
@@ -431,14 +565,23 @@ so a reader can see at a glance which laws are walls and which are hopes.
 
 **Impossible to express (compile or configuration time):**
 
-1. `block ↛ sibling`, `block ↛ app`, only-`:app`-names-adapters — module DAG plus convention plugins (§3, §4).
+1. `block ↛ sibling`, `block ↛ app`, and the IO law as D9's adapter leaf leaves it: IO is permitted in
+   `:block:<x>:adapter`, forbidden in `:block:<x>` and in `:spine`, only `:app` may depend on an adapter
+   leaf, and only `:app` may name a concrete adapter class — module DAG plus convention plugins (§3, §4).
 2. **One baseplate** — boundary, bus and fold have `internal` constructors in `:spine`. A block cannot
    instantiate a second because it is not visible across the module boundary. *(currently a lint rule)*
-3. **Tool purity** — the tool `Ctx` carries only `{state, context}`, and `:block:*` has no IO library on
-   the classpath. A tool cannot read a clock or perform IO because neither is in scope. *(currently a lint rule)*
+3. **Tool purity** — the tool `Ctx` carries only `{state, context}`, and `:block:<x>` has no IO library
+   on the classpath (its adapter leaf does, which is exactly why that is a separate module — §3, §4). A
+   tool cannot read a clock or perform IO because neither is in scope. *(currently a lint rule)*
 4. **Fold exhaustiveness** — sealed `ToolResult` plus `when` with no `else` is a Kotlin compile error.
    *(already correct; preserve it by keeping the kernel whole)*
-5. **One public symbol per block** — `internal` everywhere plus the `.api` freeze. *(currently unenforced)*
+5. **A block's public surface is the measured frozen set** — its `Block` type, its slice and view types
+   and everything those reach, its block port interfaces where it declares any, and the verb constants
+   `:app` names; §4 pastes the command that measures the `:app`-named lower bound and publishes both
+   series — the floor and the strictly larger frozen set the reached types force (6 · 5 · 5 · 8 · 9 · 8
+   across the six blocks). `internal` on everything else plus the `.api` freeze, with `:app` and the
+   block's own adapter leaf the only modules permitted to depend on the block at all (§3, §4).
+   *(currently unenforced)*
 6. **The irreversible-action gate** — a **witness type**, stated as a requirement rather than a snippet,
    because the first draft of this item was itself a rule wearing a compile-time label.
 
@@ -515,6 +658,10 @@ the book must say so rather than implying parity.
 Minimum for the TypeScript port:
 
 - one workspace package per block, `exports` limited to `./register`
+  *(this line is the TypeScript port's pre-D9 phrasing and is left standing on purpose: **D11** has
+  settled what a TS block package exports — "`exports` limited to the registration" — landing in the
+  ratified P4, so §5's removal of `public fun register(spine: Spine)` on the Kotlin side does not
+  reach it.)*
 - `tsconfig` project references so `:block` cannot see a sibling's source
 - `linterOptions.noInlineConfig = true`, closing the `/* eslint-disable */` bypass the review reproduced
   *(landed 2026-07-26, ahead of this ADR's decision — see §11)*
@@ -528,20 +675,31 @@ identically is the kind of overclaim this whole review exists to remove.
 
 ## 9. Execution order
 
-- **P1 — sequential, one builder.** `build-logic/` plugins plus `:spine` (kernel moved verbatim, seams
-  converted from top-level functions to `fun interface`, `internal` constructors, the `Confirmed`
-  witness). Gate: `:spine` compiles, its `.api` is dumped and reviewed.
-- **P2 — sequential, one builder.** The reference block `:block:triage` end to end: `register()`,
-  `internal` everything, `.api` frozen to one symbol. This is the template every other block copies.
-- **P3 — parallel, one builder per block.** `escalation · console · artifact · analysis · inbox`. Each
-  creates its module, moves its files, wires `register()`, applies `adr.block`. Blocks do not import each
-  other so they do not contend; the only shared write is `:app`'s registration list, which the
-  orchestrator applies serially.
-- **P4 — sequential.** `:app`: the root, adapters, agent binding, demo. Delete what the restructure orphans.
-- **P5.** Residual konsist invariants, `.api` baselines, the TypeScript workspace split, and the book
-  edits (§4.7, §7.5/7.8, §15, plus the honest TS asymmetry).
+These are **stages inside this ADR**, not phases of the ratified programme. All five sit within
+`docs/DECISIONS.md`'s phase **P4** ("the walls"); that record's P0–P5 are a different and larger
+sequence, and this section deliberately does not reuse its numbers.
 
-Gate between every phase: `./gradlew build` green, and for P2 onward the `.api` diff reviewed.
+- **Stage 1 — sequential, one builder.** `build-logic/` plugins plus `:spine` (kernel moved verbatim,
+  `internal` constructors, the `Confirmed` witness). The top-level-function conversion §1.2.1 prescribed
+  has already landed. Gate: `:spine` compiles, its `.api` is dumped and reviewed.
+- **Stage 2 — sequential, one builder.** The reference block `:block:triage` end to end, **as the module
+  pair D9 requires**: `:block:triage` pure, `internal` on everything §4's frozen set does not name, `.api`
+  frozen to that measured surface; `:block:triage:adapter` holding its live IO. Triage declares no port
+  and still freezes the six-symbol set §4 measures for it — the four names `:app` uses plus the two
+  reached types `explicitApi` forces public — so this template shows the general case rather than a
+  degenerate one. Every other block copies it.
+- **Stage 3 — parallel, one builder per block.** `escalation · console · artifact · analysis · inbox`.
+  Each creates its module pair, moves its files, applies `adr.block` and `adr.block.adapter`. Blocks do
+  not import each other so they do not contend; the only shared write is `:app`'s construction list,
+  which the orchestrator applies serially.
+- **Stage 4 — sequential.** `:app`: the root constructs every block, constructs every adapter and binds
+  it to its port, wires the agent and the demo. Delete what the restructure orphans.
+- **Stage 5.** Residual konsist invariants, `.api` baselines, and the book's module-tree edits (§4.6,
+  §4.7, §7.5/7.8) plus the honest TS asymmetry (§8). Two neighbours are **not** this ADR's to schedule
+  and are named only so the dependency is visible: the TypeScript workspace split is **D11**, landing in
+  the same ratified P4; book §15's inversion is **D3**, landing earlier, in the ratified P2.
+
+Gate between every stage: `./gradlew build` green, and for Stage 2 onward the `.api` diff reviewed.
 
 ---
 
@@ -554,7 +712,7 @@ Gate between every phase: `./gradlew build` green, and for P2 onward the `.api` 
 | cross-block coupling | 1 | dissolved by the module DAG (§3) |
 | spine naming a block | 1 | **not dissolved** — per Q2 the core names every feature deliberately, and per-feature slice types make cross-feature reads fail to compile. The finding is answered, not removed. |
 | enforcement bypasses (`eslint-disable`, `@Suppress`, missing task inputs) | 3 | mostly dissolved: the checks they defeat stop being load-bearing (§6) |
-| Kotlin idiom and concurrency (`Consumer.kt` cluster) | ~12 | **survive** — real defects, fixed under the kotlin-best-practices skill in P1/P2 |
+| Kotlin idiom and concurrency (`Consumer.kt` cluster) | ~12 | **survive** — real defects, fixed as Kotlin-idiom work |
 | prose and worked-example drift | ~15 | **survive** — plus the new book edits from §5 and §8 |
 | tests, build config, nits | ~12 | **survive**, unchanged |
 
@@ -565,10 +723,15 @@ that this restructure does not touch, and must still be done.
 
 ## 11. Addendum (2026-07-26) — evidence update, and the subset landed ahead of the decision
 
-Status is unchanged: **proposed**. This addendum records what a second adversarial review added to the
-evidence base, and which of this ADR's own recommendations were landed at the check layer without
-waiting for the module-DAG decision. Landing them is not that decision; the thesis (§5.1) stands or
-falls on its own.
+> **Historical record.** This section states the ADR's position as it stood on 2026-07-26 *before*
+> `docs/DECISIONS.md` was ratified later the same day. It is kept verbatim because its evidence is still
+> the evidence; where it calls a question open, a bracketed note names the D-number that has since closed
+> it. The Status line at the top of this file is the current one.
+
+Status was, at the time of writing, unchanged: **proposed** *(since ratified — D1; see the Status line
+above)*. This addendum records what a second adversarial review added to the evidence base, and which of
+this ADR's own recommendations were landed at the check layer without waiting for the module-DAG
+decision. Landing them is not that decision; the thesis (§5.1) stands or falls on its own.
 
 **New evidence for the premise, all verified against the tree as it stood:**
 
@@ -592,7 +755,8 @@ falls on its own.
   the Kotlin one, each with a block-test watching a suppression fail to work.
 - `Signature` is a **non-data class** in the Kotlin port (spelled-out value equality, no `copy()`), with
   a GateTest pinning the missing modifier. The `internal constructor` half of §7 still requires the
-  module split and remains open.
+  module split and remains open as execution *(the split itself is ratified — **D1** as amended by
+  **D9**, landing at P4)*.
 - `Signature` in the TypeScript port is a **nominal class carrying a private `#` brand**, minted at one
   site, with C4 extended to deny every static ESM value binding of it outside `spine/boundary` — the
   local analogue of §7's `internal constructor`, since TypeScript has no module-internal visibility.
@@ -626,6 +790,11 @@ falls on its own.
   the surrounding seam).
 
 **What this addendum does not do:** decide §3's module DAG, §6.6's witness token, or §5.1's inversion of
-book §15. Those remain the open decision of this ADR. The book meanwhile gained an explicit per-law
-enforcement map (§15.3 of the book), which is §5.1's "each invariant carries its enforcement layer"
-recommendation executed at the prose layer — the honest interim state whichever way the decision goes.
+book §15. Those were the open decision of this ADR when it was written. *(Since closed, the same day, by
+`docs/DECISIONS.md`: the module DAG by **D1** as amended by **D9**, and §15's inversion by **D3**. **D16**
+closes only the witness token's **requirement** — an irreversible effect must be unconstructible without
+a gate-minted, payload-bound token — and does not choose between §6.6's two candidate mechanisms. That
+choice stays open, and is still an open decision of this ADR, now alongside §4's block-surface
+visibility mechanism — accept the measured public surface, or shrink it by friend association.)* The book meanwhile gained an explicit per-law enforcement map (§15.3 of the book), which is
+§5.1's "each invariant carries its enforcement layer" recommendation executed at the prose layer — the
+honest interim state whichever way the decision goes.
