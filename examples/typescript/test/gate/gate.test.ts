@@ -252,13 +252,14 @@ describe("the gate runs against the shipped tree", () => {
     expect(pkg.scripts.test).toContain("npm run lint");
   });
 
-  // §1.3's arithmetic, PINNED — the same move as the fifteen-check pin above.
-  // The book counts the spine tier's files, and a counted claim that nothing
-  // measures is how "35 files" ships while the tree holds 36. A spine file
-  // added or removed is a diff HERE too, so the prose's number can never drift
-  // from the tree again. (The Kotlin port pins its own roster of 37 — one
-  // extra ports file here, three pure files there; same components, spelled
-  // per language.)
+  // This port's own arithmetic, PINNED — the same move as the fifteen-check pin
+  // above. A counted claim that nothing measures is how "35 files" ships while
+  // the tree holds 36, so the count lives HERE, where a spine file added or
+  // removed is a diff. This port's README quotes the number; the README text is
+  // not itself measured, so a README that disagrees with this pin is a review
+  // catch, not a build catch. (The Kotlin port pins its own roster of 37 — one
+  // extra ports file here, three pure files there; same components, spelled per
+  // language.)
   it("the spine roster is pinned: exactly these 36 files", () => {
     const files = readdirSync(join(ROOT, "src", "spine"), { recursive: true })
       .map((f) => String(f).replaceAll("\\", "/"))

@@ -185,7 +185,7 @@ sequenceDiagram
       <div class="code"><div class="bar"><span class="path">support-ticket triage console — the whole program</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">// ───────── Entities · the inner ring · pure, no I/O (seam 01) ─────────
 enum Priority { Low, Normal, High, Urgent }
-enum Actor    { Human, Agent }                  // WHO acted — two values; the contract never grows
+enum Actor    { Human, Agent, Spine }           // WHO acted — grows only at architecture revision
 value Authority(id: Text)                       // UNDER WHOSE permission — an opaque principal, not a variant set
 sealed TicketStatus(ticket: TicketId) {
   Open | Escalating(requestedBy: Authority) | Escalated(confirmedBy: Authority) | Resolved
