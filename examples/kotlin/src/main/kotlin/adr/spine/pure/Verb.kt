@@ -8,7 +8,7 @@
 // lives. Registering a tool FORCES the classification decision, and the
 // classification is a reviewed row in the registry, not a guess.
 //
-// A1: there is exactly ONE tool mechanic. A presentation verb (focusTicket,
+// 6.8: there is exactly ONE tool mechanic. A presentation verb (focusTicket,
 // setPanel) is a Verb with the same five properties, the same signer and the same
 // blast radius as a domain verb (setPriority). There is no second table.
 
@@ -21,7 +21,7 @@ import adr.contract.ToolResult
  * What a tool may read: the committed snapshot, and the bounded projection the
  * reasoner also saw.
  *
- * NO actor. NO authority. NO Signature (F2/D4). Deleting ctx.actor is what makes an
+ * NO actor. NO authority. NO Signature (G1). Deleting ctx.actor is what makes an
  * Actor UNREPRESENTABLE upstream of the boundary — a tool asking "who is asking?"
  * is asking the wrong question, because the answer is stamped after it returns.
  */
@@ -46,7 +46,7 @@ fun interface Run<S, I, R : ToolResult> {
 }
 
 fun interface Sign<R : ToolResult> {
-    /** The name→Command entry (6.8). Every verb signs — domain and presentation alike (A1). */
+    /** The name→Command entry (6.8). Every verb signs — domain and presentation alike. */
     operator fun invoke(result: R, sig: Signature, id: CommandId): Command
 }
 
@@ -81,7 +81,7 @@ sealed class Gating {
  * interface the parent held nothing and each variant re-declared all six.
  */
 sealed class Verb<S, I, R : ToolResult>(
-    /** The verb name — the discriminant of its ToolResult, of its Command, and the registry key (D3). */
+    /** The verb name — the discriminant of its ToolResult, of its Command, and the registry key (6.8). */
     open val name: ToolName,
     /** The model-facing description. The only prose the reasoner is given about this tool. */
     open val describe: String,
@@ -89,7 +89,7 @@ sealed class Verb<S, I, R : ToolResult>(
     open val decode: Decode<I>,
     /** The PURE tool body. Reads Ctx; returns a payload; mutates nothing (G2). */
     open val run: Run<S, I, R>,
-    /** The name→Command entry (6.8). Every verb signs — domain and presentation alike (A1). */
+    /** The name→Command entry (6.8). Every verb signs — domain and presentation alike. */
     open val sign: Sign<R>,
     /** Narrow an erased result back to this verb's own case, CHECKED at construction. */
     open val narrow: Narrow<R>,
@@ -112,7 +112,7 @@ sealed class Verb<S, I, R : ToolResult>(
     /**
      * Sign a result whose static type the registry erased.
      *
-     * Null means the result did not belong to this verb, which D3 says cannot happen: a
+     * Null means the result did not belong to this verb, which 6.8 says cannot happen: a
      * result reaches this verb only because its `tool` name looked this verb up, and one
      * name means one result case. Gate check C13 re-proves that mapping mechanically for
      * every case in the system. So the null branch is unreachable by proof — and it is
@@ -156,13 +156,13 @@ sealed class Verb<S, I, R : ToolResult>(
     }
 }
 
-/** The one word the system uses when an input did not decode. Spelled once (F1). */
+/** The one word the system uses when an input did not decode. Spelled once (G1). */
 const val DECODE_FAILED = "input failed to decode"
 
-/** The one closed table the boundary reads: name → verb. It supplies BOTH maps (F1). */
+/** The one closed table the boundary reads: name → verb. It supplies BOTH maps (G1). */
 typealias Registry<S> = Map<ToolName, Verb<S, *, *>>
 
-/** A block's single public contribution to the spine (L1). */
+/** A block's single public contribution to the spine (G11). */
 data class BlockRegistration<S>(val block: String, val verbs: List<Verb<S, *, *>>)
 
 /**

@@ -1,4 +1,4 @@
-// ── spine/pure/verb — a registration, and what a tool may read (A1, F2) ─────
+// ── spine/pure/verb — a registration, and what a tool may read (6.8, G1) ────
 // ONE TOOL MECHANIC. 6.8's "a UI tool folds, does not sign" carve-out is gone.
 // A presentation verb (focusTicket, setPanel) declares exactly what a domain
 // verb declares — name, description, input schema, pure run, sign, and its
@@ -22,14 +22,14 @@ import type { ToolResultBase } from "./tool-result";
 
 // ── What a tool may read ────────────────────────────────────────────────────
 // NO actor. NO authority. NO Signature. Deleting `ctx.actor` is what makes an
-// Actor UNREPRESENTABLE upstream of the boundary (F2/D4): a tool asking "who is
+// Actor UNREPRESENTABLE upstream of the boundary (G1): a tool asking "who is
 // asking?" is asking the wrong question, because the answer is stamped after it
 // returns. The two-unreconciled-actor-values bug cannot recur, because there is
 // only one value and it is created after the tool has returned.
 export interface Ctx<S> {
   /** the committed snapshot, read-only */
   readonly state: S;
-  /** the bounded projection the reasoner also saw (F4/G15) */
+  /** the bounded projection the reasoner also saw (G15) */
   readonly context: Context;
 }
 
@@ -46,7 +46,7 @@ export interface Ctx<S> {
 // implement: a `~standard.validate` that returns `{ value }` on success and
 // `{ issues }` on failure. Zod v4, Valibot v1 and ArkType all ship it, and the Vercel
 // AI SDK accepts it directly for the model-facing tool definition — so ONE object
-// serves both the reasoner's schema and the boundary's decoder, which is what D3
+// serves both the reasoner's schema and the boundary's decoder, which is what 6.8
 // requires.
 export interface StandardResult<I> {
   readonly value?: I;
@@ -63,7 +63,7 @@ export type DecodeResult = { readonly ok: true; readonly input: unknown } | { re
 
 // ── The typed spec a block writes ───────────────────────────────────────────
 export interface VerbSpec<S, I, R extends ToolResultBase, C extends CommandBase> {
-  /** D3 — the tool name IS the result's discriminant and the registry key */
+  /** 6.8 — the tool name IS the result's discriminant and the registry key */
   readonly name: R["tool"] & ToolName;
   /** the model-facing description */
   readonly describe: string;
@@ -141,7 +141,7 @@ export function irreversible<S, I, R extends ToolResultBase, C extends CommandBa
   };
 }
 
-// ── What a fold arm returns (F9) ────────────────────────────────────────────
+// ── What a fold arm returns (12.4) ──────────────────────────────────────────
 // Three rules, mechanical, no exceptions:
 //   1. every arm reads current state before it decides;
 //   2. every effect push lives INSIDE the success branch;
@@ -174,7 +174,7 @@ export interface Dispatchers<S> {
   projectContext(state: S, staged: readonly StagedInput[]): Context;
 }
 
-/** A block's ONE public contribution to the composition root (L1). */
+/** A block's ONE public contribution to the composition root (G11). */
 export interface BlockRegistration<S> {
   readonly block: string;
   readonly verbs: readonly Verb<S>[];

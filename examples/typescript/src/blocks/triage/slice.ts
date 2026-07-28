@@ -1,7 +1,7 @@
 // ── blocks/triage/slice — the block's own state, copy-on-write ─────────────
 // PURE. No I/O, no clock, no Actor. Every transition returns a NEW slice; a
 // transition that cannot be applied returns nothing, so the ARM has to decide
-// what to fold instead (F9 rule 1).
+// what to fold instead (12.4 rule 1).
 
 import type { TicketId } from "../../spine/pure/ids";
 import type { Priority } from "./contract";

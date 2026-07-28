@@ -1,0 +1,156 @@
+# BLOCK-TEST for the registry check. Eight deliberate violations, one per law:
+#   G1  a law with NO enforcement layer             (the first bar)
+#   G2  a denying-check law whose pointer is GONE   (the un-resolved-string trap)
+#   G3  a denying-check law that names no check     (the second bar)
+#   G4  a LINT-OWNED check claiming an in-checker pair (the value-check escape)
+#   G5  a pointer that resolves to an EMPTY tree    (a fixture dir with nothing)
+#   G6  a law whose NOTE credits a check while the law names none
+#   G7  a law enforced on ONE PORT only
+#   G8  a law that dropped one PORT of a check id another law also holds
+# G9 is the control: it holds the same duplicated id on BOTH ports and must not
+# be reported. A registry check that accepts this file is not a check.
+
+vocabulary = ["denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+
+[[laws]]
+id = "G1"
+name = "law-with-no-layer"
+layers = []
+headline = "Nothing holds it."
+note = "No layer declared at all."
+
+[[laws]]
+id = "G2"
+name = "law-with-a-dangling-pointer"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "Its fixture pointer names a directory that does not exist."
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/GONE"
+compliant = "fixtures/compliant/GONE"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/GONE"
+compliant = "fixtures/compliant/GONE"
+
+[[laws]]
+id = "G3"
+name = "law-with-no-check"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It claims a denying layer and names nothing at all."
+
+[[laws]]
+id = "G4"
+name = "law-whose-lint-check-claims-a-value-pair"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "A lint-owned rule cannot carry its pair inside the checker."
+
+[[laws.checks]]
+port = "typescript"
+id = "C2"
+home = "eslint"
+pair = "in-checker"
+violating = ""
+compliant = ""
+
+[[laws.checks]]
+port = "kotlin"
+id = "C2"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C2"
+compliant = "fixtures/compliant/C2"
+
+[[laws]]
+id = "G5"
+name = "law-with-an-empty-fixture-tree"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The directory is there and holds nothing."
+
+[[laws.checks]]
+port = "typescript"
+id = "C3"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/EMPTY"
+compliant = "fixtures/compliant/EMPTY"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C3"
+home = "detekt"
+pair = "on-disk"
+violating = "fixtures/violating/C3.kt"
+compliant = "fixtures/compliant/C3.kt"
+
+[[laws]]
+id = "G6"
+name = "law-whose-note-credits-a-check-it-does-not-name"
+layers = ["behavioral"]
+headline = "Behavioral."
+note = "The golden trace re-derives the digest; the purity check keeps the projections pure."
+
+[[laws]]
+id = "G7"
+name = "law-enforced-on-one-port-only"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It names a TypeScript rule and forgets that the other port has one too."
+
+[[laws.checks]]
+port = "typescript"
+id = "C4"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C4"
+compliant = "fixtures/compliant/C4"
+
+[[laws]]
+id = "G8"
+name = "law-that-dropped-one-port-of-a-shared-id"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It holds C11, which G9 also holds — so the surviving occurrence answers for both unless the trace is per port."
+
+[[laws.checks]]
+port = "typescript"
+id = "C11"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C11"
+compliant = "fixtures/compliant/C11"
+
+[[laws]]
+id = "G9"
+name = "the-control-law-that-is-correct"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The same duplicated id, held on BOTH ports. Nothing here may be reported."
+
+[[laws.checks]]
+port = "typescript"
+id = "C11"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C11"
+compliant = "fixtures/compliant/C11"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C11"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C11"
+compliant = "fixtures/compliant/C11"

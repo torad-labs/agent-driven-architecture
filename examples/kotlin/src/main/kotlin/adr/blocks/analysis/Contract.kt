@@ -4,14 +4,14 @@
 // registration list a tier is wired with (app/wire's FAST_TIER / DEEP_TIER), not in
 // a second mechanic.
 //
-// PACKAGE NOTE (§1.5): this file sits in blocks/analysis/ but declares package
+// PACKAGE NOTE (G12, in Kotlin): this file sits in blocks/analysis/ but declares package
 // adr.contract, because Kotlin requires every variant of a sealed hierarchy to live
 // in one package. Gate check C2 compensates.
 //
-// HARD CONSTRAINT (F2/D4 + 11.3): no case declares an Actor, an Authority or a
+// HARD CONSTRAINT (G1 + 11.3): no case declares an Actor, an Authority or a
 // Signature — so A RECALLED CONCLUSION CANNOT CARRY AUTHORITY. `Recall` itself
 // declares only text and publishedAt. Recall confers no permission: it is
-// unrepresentable, not merely unused, which is the same bar F2 cleared.
+// unrepresentable, not merely unused, which is the same bar G1 cleared.
 
 package adr.contract
 
@@ -45,7 +45,7 @@ sealed class AnalysisResult(override val tool: ToolName) : ToolResult(tool) {
 
 /**
  * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
- * every variant carries authorship, permission and identity by construction (L3).
+ * every variant carries authorship, permission and identity by construction (G12).
  */
 sealed class AnalysisCommand(
     override val tool: ToolName,

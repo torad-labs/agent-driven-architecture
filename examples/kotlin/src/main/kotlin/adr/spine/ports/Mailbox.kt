@@ -11,7 +11,7 @@
 // that loses does not consume — so a message the race discarded is still in the
 // channel. A `suspend take()` would have to be wrapped in a Deferred to be
 // selectable, and a Deferred that loses HAS consumed. That difference is the whole
-// reason F11's drain loop could not preempt.
+// reason 12.3's drain loop could not preempt.
 //
 // take LEASES; the message is not gone until `ack`. `ack` is called only AFTER the
 // commit (12.2), so a crash between the two re-delivers rather than loses — and the

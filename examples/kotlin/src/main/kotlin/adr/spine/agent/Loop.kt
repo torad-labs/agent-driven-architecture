@@ -3,7 +3,7 @@
 // does two things and nothing else:
 //
 //   1. it declares one SDK tool per registered Verb — the verb TABLE is the tool
-//      surface, so adding a verb touches no file here (L5);
+//      surface, so adding a verb touches no file here (16.1);
 //   2. it forwards each finished step's raw tool CALLS to the boundary as Actions.
 //
 // It forwards ACTIONS, NOT RESULTS. That is what makes spine/boundary/action the

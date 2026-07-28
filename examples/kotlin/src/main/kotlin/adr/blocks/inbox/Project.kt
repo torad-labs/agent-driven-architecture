@@ -1,6 +1,6 @@
 // ── blocks/inbox/project — TWO pure projections of the SAME slice ──────────
 // slice → view    what a human reads      (6.9)
-// slice → lines   what the reasoner reads (F4/G15)
+// slice → lines   what the reasoner reads (G15)
 //
 // THE SECOND ONE IS WHAT MAKES "OBSERVABLE, NEVER SILENT" MEAN SOMETHING. A counter
 // only an operator can see tells the agent nothing; a context line tells the

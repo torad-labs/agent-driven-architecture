@@ -8,7 +8,7 @@
 // when they run.
 //
 // The input schema stays a plain string for `ticket`: the ticket set is OPEN at the
-// boundary (6.10), and the ARM is what validates against state (F9).
+// boundary (6.10), and the ARM is what validates against state (12.4).
 //
 // The table and its decoder are members of a CONSTRUCTED type. `lens` is the one
 // argument the split rule promotes to constructor state: it is fixed for a whole

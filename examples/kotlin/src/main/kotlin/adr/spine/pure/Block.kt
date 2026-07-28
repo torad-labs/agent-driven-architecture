@@ -32,7 +32,7 @@ import adr.contract.ToolResult
  *
  * [Slice] is the block's own state, [R] its sealed sub-union of the transport, and
  * [View] what a human reads. The spine names none of the three concretely — that is
- * L1, and it is why all three are type parameters rather than imports.
+ * G11, and it is why all three are type parameters rather than imports.
  */
 interface Block<Slice, R : ToolResult, View> {
 

@@ -1,4 +1,4 @@
-// ── blocks/console/tools — presentation verbs, ONE tool mechanic (A1) ──────
+// ── blocks/console/tools — presentation verbs, ONE tool mechanic (6.8) ─────
 // Compare line for line with `blocks/triage/tools.ts`. Same declarations, same
 // `sign` entry, same reversibility decision. The authoring discipline is
 // identical (4.4) because there is only one discipline.

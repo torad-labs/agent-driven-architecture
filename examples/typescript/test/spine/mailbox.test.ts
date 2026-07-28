@@ -1,6 +1,6 @@
 // ── 12 — THE BARGE-IN MAILBOX, PROVED RATHER THAN ASSERTED ─────────────────
 //
-// F11, restated: the book's 12.3 drain loop puts `outcome = await(inFlight)` at
+// 12.3, restated: the book's 12.3 drain loop puts `outcome = await(inFlight)` at
 // loop-body indentation while `mailbox.take()` blocks at the top. Control never
 // reaches `take()` during a turn, `turnInFlight` is false at every `take()`, all
 // three guards are dead, and Fig 12.1's mid-turn "take Interrupt" is
@@ -395,11 +395,11 @@ describe("12.2 — the input policy is a closed choice, per source", () => {
     };
 
     const r = rig(turn, { policies: [perishable("sensor-a"), perishable("sensor-b")] });
-    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A1", "a1")));
+    r.mailbox.post(input("sensor-a", perceived("sensor-a", "n1", "a1")));
     await settle();
     // two from sensor-a get conflated against each other …
-    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A2", "a2")));
-    r.mailbox.post(input("sensor-a", perceived("sensor-a", "A3", "a3")));
+    r.mailbox.post(input("sensor-a", perceived("sensor-a", "n2", "a2")));
+    r.mailbox.post(input("sensor-a", perceived("sensor-a", "n3", "a3")));
     // … then sensor-b takes the slot, which sheds sensor-a's remaining input
     r.mailbox.post(input("sensor-b", perceived("sensor-b", "B1", "b1")));
     await settle();
@@ -637,7 +637,7 @@ describe("12.2 — a Drain waits, finalizes, and never preempts", () => {
 // confirm it, and the irreversible delivery FIRES. Before the consumer stamped
 // `Spine` the identical sequence was refused as a self-confirm and delivered
 // nothing: the consumer was borrowing the agent's principal, which is the lie
-// D15 exists to end.
+// G1 exists to end.
 //
 // THIS TEST IS A PIN, NOT A DECISION. A stamp that moves a value the
 // irreversibility gate compares moves a VERDICT, and a moved verdict that no
@@ -680,7 +680,7 @@ describe("14.3 — the drain-requested seal and its confirmer", () => {
     });
     expect(r.h.app.boundary.state.artifact.seal.kind).toBe("Sealed");
     // THE IRREVERSIBLE EFFECT FIRED: one delivery, carrying the one folded line.
-    // Before D15's stamp this array stayed empty and the seal stayed `Sealing`.
+    // Before G1's stamp this array stayed empty and the seal stayed `Sealing`.
     expect(r.h.world.deliveries).toEqual([1]);
     expect(r.failures).toEqual([]);
   });

@@ -51,7 +51,7 @@ import { initialState } from "./contract";
 // A new effect kind costs TWO appends: its case in the owning block's contract,
 // and one branch here. The compiler names the second one.
 //
-// REPLAY touches nothing (F5). RECOVERY re-drives; the deduping sink in front
+// REPLAY touches nothing (G9). RECOVERY re-drives; the deduping sink in front
 // of it drops anything already acknowledged, keyed on the committed step index.
 
 export interface Ports {
@@ -97,7 +97,7 @@ export function effectSink(ports: Ports): Sink {
   };
 }
 
-// ── Authorization: the PRODUCT-OWNED seam (14.3, F3, F13) ──────────────────
+// ── Authorization: the PRODUCT-OWNED seam (14.3, G6) ───────────────────────
 // A real deployment resolves a principal from a session token, a policy tier's
 // identity, or an approval queue's record. Here it is a supplied table, so the
 // unattended-confirmer cases are exercisable offline.
@@ -188,7 +188,7 @@ export const DEEP_TIER: readonly BlockRegistration<State>[] = [
 ];
 
 export function wireApp(env: Env): App {
-  // ONE registration line per block. This is the plug (L1).
+  // ONE registration line per block. This is the plug (G11).
   const registry = registryOf<State>((env.verbs ?? ALL_BLOCKS).flatMap((r) => r.verbs));
 
   const bus = env.bus ?? new InMemoryBus();
@@ -230,7 +230,7 @@ export function offlinePorts(log: Emit, relay?: AnalysisRelay): Ports {
 }
 
 // ── The barge-in consumer (12) — wired ONLY when a mailbox is supplied ──────
-// Two mappings live here and only here, and both are L1-forced: the spine's
+// Two mappings live here and only here, and both are G11-forced: the spine's
 // `ConsumerEvent` and the inbox block's `DropReason` are separate closed sets,
 // so something has to join them, and the composition root is the one place
 // allowed to name both. Same for a Drain's finalization, which is the artifact

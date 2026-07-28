@@ -1,4 +1,4 @@
-// ── D2(b) — THE RUNTIME HALF OF THE STAMP WALL, AND ITS NAMED RESIDUE ──────
+// ── G1 — THE RUNTIME HALF OF THE STAMP WALL, AND ITS NAMED RESIDUE ─────────
 //
 // test/gate/forge.test.ts proves the stamp cannot be SPELLED, and C4 proves the
 // constructor cannot be BOUND outside `spine/boundary`. Neither closes the
@@ -23,7 +23,7 @@
 // instance that no shape check could ever distinguish.
 //
 // Two runtime walls close the class, and this file is their enforcement layer —
-// D5's bar met with a vitest probe rather than a fixture pair, because the
+// G6's bar met with a vitest probe rather than a fixture pair, because the
 // invariant is about values at run time and not about syntax:
 //
 //   FREEZE    the minted stamp cannot be relabelled IN PLACE, so the record the
@@ -48,7 +48,7 @@ import { reversible } from "../../src/spine/pure/verb";
 import { harness } from "../harness";
 import { must } from "../support/must";
 
-describe("D2(b) — the minted stamp is frozen", () => {
+describe("G1 — the minted stamp is frozen", () => {
   it("the stamp on a committed record cannot be relabelled in place", () => {
     const h = harness();
     h.app.boundary.onStepFinish({
@@ -137,7 +137,7 @@ const LAUNDERS: readonly (readonly [string, (sig: Signature) => Signature])[] = 
   ["an explicit assertion", (sig) => ({ by: "Human", authority: sig.authority }) as Signature],
 ];
 
-describe("D2(b) — a Command may only carry the stamp its own step minted", () => {
+describe("G1 — a Command may only carry the stamp its own step minted", () => {
   it("REFUSES every forged stamp by identity — and passes the honest verb through", () => {
     const minted = new Signature("Agent", authority("agent-run-7f"));
 

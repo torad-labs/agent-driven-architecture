@@ -1,4 +1,4 @@
-// ── blocks/artifact/adapter — THE ONLY IMPURE FILE IN THIS BLOCK (L4) ──────
+// ── blocks/artifact/adapter — THE ONLY IMPURE FILE IN THIS BLOCK (G13) ─────
 // The delivery client lives here and nowhere else. In a real deployment this
 // writes to object storage or a ticketing system; here it writes lines to a
 // caller-supplied emitter, so the demo runs offline.

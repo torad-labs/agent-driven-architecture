@@ -1,4 +1,4 @@
-// ── F12 — the gate DENIES, and every check has a BLOCK-test AND an ALLOW-test ─
+// ── 15.2 — the gate DENIES, and every check has a BLOCK- and an ALLOW-test ────
 // 15.2's discipline, restated for builders: a wrong rule is fixed and re-tested,
 // never disabled. No check ships without its allow-test — that is what keeps a
 // check from drifting into a nuisance authors turn off.

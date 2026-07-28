@@ -1,4 +1,4 @@
-// ── spine/pure/context — the reasoner's input, as a named seam (F4/G15) ────
+// ── spine/pure/context — the reasoner's input, as a named seam (G15) ───────
 // The agent's own input context used to be the one seam with no type, no
 // projection, no bound, no capture rule and no test layer. It is now the THIRD
 // pure projection, beside State→ViewModel and the fold:
@@ -16,7 +16,7 @@
 // catches a change to projectContext that silently alters what the model sees,
 // WITHOUT re-running the model.
 //
-// SCOPE, STATED (A3). **The context SEAM is in scope; context ENGINEERING is not.**
+// SCOPE, STATED (6.11). **The context SEAM is in scope; context ENGINEERING is not.**
 // In scope, specified and enforced: this projection is pure, it is bounded, the
 // rendered text is exactly what the model saw, and that text plus the active prompt
 // version ride the committed record. Out of scope and PRODUCT-OWNED — beside
@@ -49,7 +49,7 @@ data class Context(
     val artifactLineCount: Int,
 )
 
-/** What rides the committed record (14.7 + F4): the prompt version and the rendered digest. */
+/** What rides the committed record (14.7 + G15): the prompt version and the rendered digest. */
 data class ContextFixture(val promptVersion: String, val digest: String)
 
 /**

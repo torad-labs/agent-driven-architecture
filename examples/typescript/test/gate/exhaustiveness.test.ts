@@ -1,4 +1,4 @@
-// ── F10 / §8.6 — adding a variant BREAKS THE BUILD at every consumer ───────
+// ── G12 / §15.4 — adding a variant BREAKS THE BUILD at every consumer ──────
 //
 // MEASURED against the shipped reference: adding
 //   | { readonly kind: "Archived"; readonly at: number }
@@ -94,7 +94,7 @@ function typecheck(dir: string): { code: number; output: string } {
   }
 }
 
-describe("F10 — the compiler produces the edit list 15.4 promises", () => {
+describe("G12 — the compiler produces the edit list §15.4 promises", () => {
   it("ALLOW: the shipped tree compiles clean", () => {
     const result = typecheck(build("compliant", false));
     expect(result.output).toBe("");

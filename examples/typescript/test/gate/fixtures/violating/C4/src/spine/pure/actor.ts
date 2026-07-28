@@ -1,4 +1,4 @@
-// VIOLATION: F2/D4, fourth half — THE DECLARING-FILE ESCAPES. The one file
+// VIOLATION: G1, fourth half — THE DECLARING-FILE ESCAPES. The one file
 // that declares the class needs no import to hold the constructor, so the
 // import denial (C4_MINT) never fires here and each declaration-form
 // republication below must be denied by shape, not by import path.

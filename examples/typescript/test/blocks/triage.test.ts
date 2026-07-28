@@ -1,6 +1,6 @@
 // ── blocks/triage in ISOLATION — no siblings, no root, no live adapters ────
 //
-// F9, MEASURED against the shipped reference: setPriority on unknown ticket
+// 12.4, MEASURED against the shipped reference: setPriority on unknown ticket
 // 9999 performed Effect.Log{ticket:"9999"}, committed SetPriority(…,"9999"),
 // left folded state UNCHANGED — a clean-looking audit record for a mutation
 // that never happened — and flipped the session banner to "degraded" for the
@@ -14,7 +14,7 @@ import { harness } from "../harness";
 const sig = new Signature("Agent", authority("agent-run-7f"));
 const slice = triage.sliceOf([{ id: "4118", body: "refund not received" }]);
 
-describe("blocks/triage — the arm reads state before it decides (F9)", () => {
+describe("blocks/triage — the arm reads state before it decides (§12.4)", () => {
   it("a valid transition folds, and the effect fires from the SUCCESS branch", () => {
     const out = triage.arm(
       slice,

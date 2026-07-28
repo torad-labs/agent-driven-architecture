@@ -1,6 +1,6 @@
-// ── test/spine/rejection — F9, end to end through the real boundary ───────
+// ── test/spine/rejection — 12.4, end to end through the real boundary ─────
 // The block tests exercise each arm in isolation. This file drives the SAME three
-// failures through the whole nine-step boundary, because F9's damage was not in
+// failures through the whole nine-step boundary, because 12.4's damage was not in
 // any one arm: it was that a per-item failure reached the session-global status
 // and stayed there.
 //
@@ -43,13 +43,13 @@ class RejectionTest {
     private val known = TicketId("4118")
 
     @Test
-    fun `F9 - confirm with NO prior request folds a marker and fires nothing`() {
+    fun `PER-ITEM - confirm with NO prior request folds a marker and fires nothing`() {
         val world = World()
         val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
         Driver().human(app, CONFIRM_ESCALATION, "ticket" to "4118")
 
-        // The gate refused it PRE-FOLD, so the refusal is what got committed (D5).
+        // The gate refused it PRE-FOLD, so the refusal is what got committed (G6).
         assertEquals(
             ToolResult.Refused(CONFIRM_ESCALATION, "no pending request"),
             app.bus.records().single().results.single(),
@@ -67,7 +67,7 @@ class RejectionTest {
     }
 
     @Test
-    fun `F9 - confirm on an UNKNOWN ticket folds a marker and fires nothing`() {
+    fun `PER-ITEM - confirm on an UNKNOWN ticket folds a marker and fires nothing`() {
         val world = World()
         val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 
@@ -83,13 +83,13 @@ class RejectionTest {
     }
 
     @Test
-    fun `F9 - setPriority on an unknown ticket mutates nothing and fires nothing`() {
+    fun `PER-ITEM - setPriority on an unknown ticket mutates nothing and fires nothing`() {
         val world = World()
         val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
         val before = app.state.triage
 
         // setPriority is Reversible, so the GATE passes it through: this is the ARM
-        // reading its own state before deciding, which is where F9's rule 1 lives.
+        // reading its own state before deciding, which is where 12.4's rule 1 lives.
         Driver().human(app, SET_PRIORITY, "ticket" to "9999", "level" to "High")
 
         assertTrue(
@@ -107,7 +107,7 @@ class RejectionTest {
     }
 
     @Test
-    fun `F9 - a rejection does not poison the session - the NEXT good action still works`() {
+    fun `PER-ITEM - a rejection does not poison the session - the NEXT good action still works`() {
         val world = World()
         val app = Wiring().wireApp(Env(world = world, authority = RunAuthority()))
 

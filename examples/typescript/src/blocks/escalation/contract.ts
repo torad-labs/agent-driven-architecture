@@ -1,4 +1,4 @@
-// ── blocks/escalation/contract — the block's TRANSPORT (L3) ────────────────
+// ── blocks/escalation/contract — the block's TRANSPORT (G12) ───────────────
 // Two verbs, one reversible and one not; identical declarations otherwise.
 // No Actor, no Authority, no Signature anywhere in this file (check C4) — the
 // Command's `sig` is declared on the spine's parent, and a ToolResult never

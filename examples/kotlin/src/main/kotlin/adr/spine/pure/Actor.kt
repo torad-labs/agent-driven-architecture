@@ -1,5 +1,5 @@
 // ── spine/pure/actor — the stamp: who acted, and under whose permission ─────
-// Two orthogonal questions, two types (F3, §4):
+// Two orthogonal questions, two types (G6, §4):
 //
 //   Actor      answers WHO ACTED.              Closed; grows only at architecture
 //                                              revision, never per application.

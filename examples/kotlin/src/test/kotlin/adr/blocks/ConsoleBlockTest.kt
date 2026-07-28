@@ -1,6 +1,6 @@
-// ── test/blocks/console — A1: a presentation block, tested like any other ─
+// ── test/blocks/console — 6.8: a presentation block, like any other ───────
 // Read this file next to TriageBlockTest. There is no difference to find: the same
-// arm shape, the same rejection rule, the same signed Command. That is A1.
+// arm shape, the same rejection rule, the same signed Command. That is 6.8.
 
 package adr.blocks
 

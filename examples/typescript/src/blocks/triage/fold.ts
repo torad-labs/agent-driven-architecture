@@ -1,4 +1,4 @@
-// ── blocks/triage/fold — the block's ARM (F9) ──────────────────────────────
+// ── blocks/triage/fold — the block's ARM (12.4) ────────────────────────────
 // Three rules, mechanical, no exceptions:
 //   1. the arm READS CURRENT STATE before it decides;
 //   2. every effect push lives INSIDE the success branch;

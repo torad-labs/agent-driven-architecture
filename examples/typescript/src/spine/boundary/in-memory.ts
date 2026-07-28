@@ -32,7 +32,7 @@ export function fixedClock(at: Timestamp): Clock {
 }
 
 /** A MOVING clock. Every replay test uses one: a frozen clock cannot tell a
- *  faithful re-fold from a lucky one (F8). */
+ *  faithful re-fold from a lucky one (G9). */
 export function movingClock(start: Timestamp, step: Timestamp): Clock {
   let t = start - step;
   return {

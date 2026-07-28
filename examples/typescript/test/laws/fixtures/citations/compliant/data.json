@@ -1,0 +1,5 @@
+{
+  "//why": "G12 / §15.4 — adding a variant breaks the build at every consumer",
+  "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+  "ai": "^6.0.208"
+}

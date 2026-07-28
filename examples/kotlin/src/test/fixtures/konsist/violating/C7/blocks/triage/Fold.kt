@@ -1,8 +1,8 @@
-// BLOCK-TEST C7 (F1) — an ARM mints transport. Two forgeries, one file:
+// BLOCK-TEST C7 (G1) — an ARM mints transport. Two forgeries, one file:
 //
 //   (a) a ToolResult manufactured here never went through the boundary's
 //       name→ToolResult map — never gated, never committed as what was actually
-//       folded, which is precisely the disagreement F1 measured;
+//       folded, which is precisely the disagreement the review measured (G1);
 //   (b) a Command manufactured here never crossed the bus at all. Stashed into
 //       the block's own slice it re-folds deterministically on every replay and
 //       renders as if a principal had confirmed something no gate ever saw —

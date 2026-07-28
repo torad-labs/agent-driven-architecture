@@ -7,7 +7,7 @@
 //   3. a rejection folds a per-item Notice.Rejected — never RunStatus, never a
 //      mutation.
 //
-// F9's measured bug lived exactly here: setPriority on unknown ticket 9999 performed
+// the review's measured (12.4) bug lived exactly here: setPriority on unknown ticket 9999 performed
 // an Effect.Log, committed a SetPriority command and left the folded state
 // UNCHANGED — a clean-looking audit record for a mutation that never happened.
 //

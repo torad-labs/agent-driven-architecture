@@ -7,7 +7,7 @@
 //       (§11.2). Adding `Archived` fails to compile until it lands here, and in the two
 //       matches in Project.kt. Nowhere else in the system names TicketStatus at all.
 //
-// F9's measured bugs lived in this arm's ancestor:
+// the review's measured (12.4) bugs lived in this arm's ancestor:
 //   confirm with NO prior Request (ticket Open) → PageOncall fired, status Escalated
 //   confirm on a ticket absent from State       → PageOncall("nope") fired AND run → Degraded
 // Both are structurally impossible now: the gate refuses the first before the fold ever

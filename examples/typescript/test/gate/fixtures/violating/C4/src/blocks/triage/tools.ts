@@ -1,4 +1,4 @@
-// VIOLATION: F2/D4, fourth half — THE `.js` SPECIFIER, which is why C4_MINT is
+// VIOLATION: G1, fourth half — THE `.js` SPECIFIER, which is why C4_MINT is
 // path-agnostic. The rule this replaced keyed on the module BASENAME with
 // `/(^|\/)actor$/`, so appending the extension TypeScript's own ESM guidance
 // asks for slipped it entirely: the launder compiled, linted and shipped the

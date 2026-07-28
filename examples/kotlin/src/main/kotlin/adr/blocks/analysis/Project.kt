@@ -1,9 +1,9 @@
 // ── blocks/analysis/project — TWO pure projections of the SAME slice ───────
 // slice → view    what a human reads      (6.9, the Presenter)
-// slice → lines   what the reasoner reads (F4/G15, the third projection)
+// slice → lines   what the reasoner reads (G15, the third projection)
 //
 // BOTH are exhaustive `when`s over `Recall`'s three variants with no else arm, so
-// `Recall` gets exactly the three-consumer treatment `TicketStatus` has (F10's
+// `Recall` gets exactly the three-consumer treatment `TicketStatus` has (G12's
 // pattern, proved again): adding a fourth variant breaks the build at both sites
 // here plus `render` in spine/pure/context, and the compiler names each one.
 //

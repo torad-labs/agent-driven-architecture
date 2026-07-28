@@ -1,4 +1,4 @@
-// ── spine/pure/notice — PER-ITEM failure (F9) ───────────────────────────────
+// ── spine/pure/notice — PER-ITEM failure (12.4) ─────────────────────────────
 // A closed set whose parent declares all three shared fields once.
 //
 // The distinction this type exists to enforce: a per-item failure is NOT a
@@ -19,12 +19,12 @@ export interface NoticeBase {
   readonly reason: string;
 }
 
-/** A fold ARM refused the transition — invalid against current state (F9). */
+/** A fold ARM refused the transition — invalid against current state (12.4). */
 export interface Rejected extends NoticeBase {
   readonly kind: "Rejected";
 }
 
-/** The BOUNDARY gate refused the action — not permitted (F2/F3). */
+/** The BOUNDARY gate refused the action — not permitted (G1/G6). */
 export interface RefusedNotice extends NoticeBase {
   readonly kind: "Refused";
 }

@@ -1,4 +1,4 @@
-// VIOLATION: F2/D4, fourth half — THE DECLARATION SPELLINGS of the rebinding
+// VIOLATION: G1, fourth half — THE DECLARATION SPELLINGS of the rebinding
 // two-hop launder.ts pins in specifier form. One keystroke apart: an
 // ExportSpecifier selector cannot see `export const` or `export default`, so
 // without the FORM ban the exempt folder republishes the constructor under a

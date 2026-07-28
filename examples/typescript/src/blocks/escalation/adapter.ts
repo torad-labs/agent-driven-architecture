@@ -1,4 +1,4 @@
-// ── blocks/escalation/adapter — THE ONLY IMPURE FILE IN THIS BLOCK (L4) ────
+// ── blocks/escalation/adapter — THE ONLY IMPURE FILE IN THIS BLOCK (G13) ───
 // Anything holding a client, a DB handle or a socket lives here — one clearly
 // named place per block, never inline in a tool. The DB call ships INSIDE the
 // block as port+adapter (4.6/G11); `app/wire` is the only file that decides

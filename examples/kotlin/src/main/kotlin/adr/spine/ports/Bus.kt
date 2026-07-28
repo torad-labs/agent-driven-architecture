@@ -1,4 +1,4 @@
-// ── spine/ports/bus — the append-only timeline (F8/D6) ─────────────────────
+// ── spine/ports/bus — the append-only timeline (G9/14.1) ───────────────────
 // append() takes a whole StepRecord and returns the offset it landed at. The
 // returned StepIndex is the ORIGIN of every effect key in that step, which is what
 // makes "commit strictly precedes perform" a fact about the code rather than a

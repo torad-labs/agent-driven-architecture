@@ -11,7 +11,7 @@ const agent = new Signature("Agent", authority("agent-run-7f"));
 const tier = new Signature("Agent", authority("policy-tier-v3"));
 const slice = escalation.sliceOf(["4118"]);
 
-describe("blocks/escalation — the arm (F9)", () => {
+describe("blocks/escalation — the arm (§12.4)", () => {
   it("a request is REVERSIBLE: state moves, nothing pages", () => {
     const out = escalation.arm(
       slice,
@@ -85,7 +85,7 @@ describe("blocks/escalation — the arm (F9)", () => {
     ]);
   });
 
-  it("both projections are CLOSED matches over TicketStatus (F10)", () => {
+  it("both projections are CLOSED matches over TicketStatus (G12)", () => {
     const escalating = escalation.arm(
       slice,
       { outcome: "ok", tool: "requestEscalation", ticket: "4118" },

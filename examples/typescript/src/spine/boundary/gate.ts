@@ -1,4 +1,4 @@
-// ── spine/boundary/gate — the irreversibility gate (F2, F3, F13; 14.3) ─────
+// ── spine/boundary/gate — the irreversibility gate (G1, G6; 14.3) ──────────
 // PRE-FOLD, AT THE BOUNDARY, KEYED ON AUTHORITY.
 //
 // The shipped reference branched inside the fold on an Actor the TOOL had
@@ -36,8 +36,8 @@
 // `14.3 — the drain-requested seal and its confirmer`.
 //
 // A refusal is COMMITTED as `ToolResult.Refused`, so a re-fold reproduces the
-// verdict without calling the authorization seam again — G9 satisfied, and F3's
-// and F13's "captured as an ordered G9 fixture" are the same mechanism, not two.
+// verdict without calling the authorization seam again — G9 satisfied, and G6's
+// and G6's "captured as an ordered G9 fixture" are the same mechanism, not two.
 
 import type { Authorization } from "../ports/authorization";
 import type { Signature } from "../pure/actor";

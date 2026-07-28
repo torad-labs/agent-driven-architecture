@@ -4,7 +4,7 @@
 // index can never be mistaken for a timestamp.
 //
 // Why the ticket/panel ids live in the SPINE and not in a block: three blocks
-// (triage, escalation, console) each hold a slice keyed by TicketId, and L1
+// (triage, escalation, console) each hold a slice keyed by TicketId, and G11
 // forbids a block naming a sibling. A shared opaque id type is the only legal
 // home for a vocabulary two blocks must both be able to spell. It carries no
 // domain logic — that stays in the owning block.
@@ -12,7 +12,7 @@
 package adr.spine.pure
 
 
-/** ONE NAME PER VERB (D3): the discriminant of ToolResult, of Command, and the registry key. */
+/** ONE NAME PER VERB (6.8): the discriminant of ToolResult, of Command, and the registry key. */
 @JvmInline
 value class ToolName(val value: String)
 
@@ -24,11 +24,11 @@ value class CommandId(val value: String)
 @JvmInline
 value class Timestamp(val value: Long)
 
-/** The offset the bus returned when a step was committed — the origin of every EffectKey (F7). */
+/** The offset the bus returned when a step was committed — the origin of every EffectKey (G9). */
 @JvmInline
 value class StepIndex(val value: Int)
 
-/** The unit of work the stream is scoped to (5.2) — the only bound a folded budget may claim (F13). */
+/** The unit of work the stream is scoped to (5.2) — the only bound a folded budget may claim (G6). */
 @JvmInline
 value class SessionId(val value: String)
 

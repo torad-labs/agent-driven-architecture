@@ -1,4 +1,4 @@
-// ── blocks/console/contract — A PRESENTATION BLOCK, and it SIGNS (A1) ──────
+// ── blocks/console/contract — A PRESENTATION BLOCK, and it SIGNS (6.8) ─────
 // 6.8's "a UI tool folds, does not sign" carve-out is deleted. An agent that can
 // show/hide, reposition and restructure the interface — AUDITABLY AND REPLAYABLY —
 // is a primary advantage of this architecture, and unsigning UI tools removes
@@ -41,7 +41,7 @@ sealed class ConsoleResult(override val tool: ToolName) : ToolResult(tool) {
 
 /**
  * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
- * every variant carries authorship, permission and identity by construction (L3).
+ * every variant carries authorship, permission and identity by construction (G12).
  */
 sealed class ConsoleCommand(
     override val tool: ToolName,

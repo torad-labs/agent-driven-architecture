@@ -18,7 +18,7 @@ import adr.spine.pure.ToolName
 sealed class EscalationResult(
     override val tool: ToolName,
     /**
-     * L3 one level down: a BLOCK's sub-union declares its own shared property on its own
+     * G12 one level down: a BLOCK's sub-union declares its own shared property on its own
      * parent — IN THE CONSTRUCTOR, as `open val`, so the parent actually holds it. Every
      * escalation verb is about a ticket, so every variant carries one by construction,
      * and the block's fold arm never has to ask which case it has just to find out which
@@ -40,7 +40,7 @@ sealed class EscalationResult(
 
 /**
  * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
- * every variant carries authorship, permission and identity by construction (L3).
+ * every variant carries authorship, permission and identity by construction (G12).
  */
 sealed class EscalationCommand(
     override val tool: ToolName,

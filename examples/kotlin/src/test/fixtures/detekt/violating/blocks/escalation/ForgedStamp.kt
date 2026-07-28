@@ -1,16 +1,16 @@
-// ── BLOCK-TEST for gate checks C4(d), C6 and C7 (F2 / F9 / F1) ────────────
+// ── BLOCK-TEST for gate checks C4(d), C6 and C7 (G1 / 12.4 / G1) ──────────
 // One file, three of the exact failures the findings measured. It names the REAL
 // transport types — the rules match RESOLVED constructors, so a fixture that made
 // up its own local `Signature` would prove nothing.
 //
-//   C4(d)  F2 — a block mints its own stamp. The shipped reference had two
+//   C4(d)  G1 — a block mints its own stamp. The shipped reference had two
 //               unreconciled actor values: one the tool copied into its payload
 //               and branched on, one the boundary stamped after the fold had
 //               already run. Making a Signature here is how that comes back.
-//   C6     F9 — a per-item failure reaches for the SESSION status. Measured:
+//   C6     12.4 — a per-item failure reaches for the SESSION status. Measured:
 //               "one bad ticket leaves the banner degraded for the rest of the
 //               session."
-//   C7     F1 — a block mints the boundary's own Refused verdict, so a committed
+//   C7     G1 — a block mints the boundary's own Refused verdict, so a committed
 //               result could disagree with what the gate actually decided.
 //
 // EXPECTED: detekt.ForbiddenMethodCall fires four times.

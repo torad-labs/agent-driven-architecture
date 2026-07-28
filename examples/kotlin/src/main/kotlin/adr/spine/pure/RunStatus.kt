@@ -4,7 +4,7 @@
 //
 // Degraded and Error may be constructed only in spine/boundary/** (gate check C6).
 // A block cannot reach the session banner at all — which is the structural fix for
-// F9, not a convention an author has to keep.
+// 12.4, not a convention an author has to keep.
 
 package adr.spine.pure
 

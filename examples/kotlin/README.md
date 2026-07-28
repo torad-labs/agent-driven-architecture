@@ -55,7 +55,7 @@ same line is drawn again by file name — `contract · slice · tools · fold ·
 
 Kotlin requires **every variant of a sealed hierarchy to be declared in the same package and module.**
 Blocks contribute cases to three spine-rooted sealed types (`ToolResult`, `Command`, `Effect`) which
-L3 requires to be sealed. Therefore:
+G12 requires to be sealed. Therefore:
 
 * **Package `adr.contract` holds every transport declaration** — `spine/pure/ToolResult.kt`,
   `Command.kt`, `Effect.kt` **and** every block's `Contract.kt`. The files stay in their owning
@@ -67,7 +67,7 @@ L3 requires to be sealed. Therefore:
   the three spine roots or symbols prefixed with `X` (`TriageResult`, `TriageCommand`, …). Everything
   else is denied by package.
 
-This is a documented consequence of L3 plus Kotlin, not an accident. It reads oddly; the alternative
+This is a documented consequence of G12 plus Kotlin, not an accident. It reads oddly; the alternative
 (an open marker root) would make TypeScript strictly stronger than Kotlin on the very property this
 port exists to demonstrate. **No builder may "fix" it by opening the hierarchies.**
 
@@ -123,9 +123,9 @@ all**: the sealed hierarchies close themselves, which is the whole TypeScript/Ko
 is an append, and the compiler names each one (a missing dispatch arm, a missing field or a missing
 sink branch fails to compile). Removing a block is the same list, subtracted, plus `rm -rf blocks/<X>/`.
 
-L1's literal "one line" is unattainable *with* compile-time exhaustiveness. The design keeps every
+G11's literal "one line" is unattainable *with* compile-time exhaustiveness. The design keeps every
 edit inside `app/`, makes every edit an append, and makes the compiler name each one. That is the
-strongest available form of L1 under L3, and no builder should pretend otherwise.
+strongest available form of G11 under G12, and no builder should pretend otherwise.
 
 ### Prove the edit list yourself (the 15.4 G12 self-check, for real)
 
@@ -161,21 +161,21 @@ tier, no baseline file, and no `ignoreFailures` on any task that defends the liv
 | C1 | G4/G10 — dependencies point inward (the §1.3 import table, verbatim) | Konsist |
 | C2 | G11 — no cross-block symbol import (the `adr.contract` compensation) | Konsist |
 | C3 | G9 — no clock, randomness or identity outside the boundary | detekt `ForbiddenMethodCall` |
-| C4 | F2/D4 — no `Actor`/`Authority`/`Signature` on a `ToolResult` variant, in a tool or on `Ctx`… | Konsist |
+| C4 | G1 — no `Actor`/`Authority`/`Signature` on a `ToolResult` variant, in a tool or on `Ctx`… | Konsist |
 | C4 | …and the stamp is *minted* only at the boundary | detekt (`Signature.<init>`) |
-| C5 | F7/G9 — only the boundary, the perform port and replay may name an effect key | Konsist |
-| C6 | F9 — a block may not reference the session-global `RunStatus`… | Konsist |
+| C5 | G9 — only the boundary, the perform port and replay may name an effect key | Konsist |
+| C6 | §12.4 — a block may not reference the session-global `RunStatus`… | Konsist |
 | C6 | …nor construct `Degraded`/`Error` | detekt (`RunStatus.Degraded.<init>`) |
-| C7 | F1 — a block's `ToolResult` is constructed only in its `Tools.kt`… | Konsist (variants *derived* from the contracts) |
+| C7 | G1 — a block's `ToolResult` is constructed only in its `Tools.kt`… | Konsist (variants *derived* from the contracts) |
 | C7 | …and the spine's `Unhandled`/`Refused` only at the boundary | detekt (`ToolResult.Refused.<init>`) |
 | C8 | G2 — the pure ring performs no I/O and declares no `suspend` | Konsist |
-| C9 | G12/F10 — no `else ->` arm in a `when` over a sealed or enum subject | detekt `ElseCaseInsteadOfExhaustiveWhen` |
+| C9 | G12 — no `else ->` arm in a `when` over a sealed or enum subject | detekt `ElseCaseInsteadOfExhaustiveWhen` |
 | C10 | G7 — no top-level mutable state outside the boundary | Konsist |
 | C11 | 7.9/G13 — every declaration under `spine/ports` is an interface | Konsist |
-| C12 | 4.6/A1 — ephemeral view-state is visible only to its own projection | Konsist |
-| C13 | registry totality, and D3's one-name-per-verb law | JUnit + reflection |
+| C12 | §4.6 — ephemeral view-state is visible only to its own projection | Konsist |
+| C13 | registry totality, and §6.8's one-name-per-verb law | JUnit + reflection |
 | C14 | G3 — the agent loop is a declaration: no branching, no looping | detekt `CyclomaticComplexMethod` |
-| C15 | A4 — the spine tier is self-contained: `spine/**` names no block and no root | Konsist |
+| C15 | G14 — the spine tier is self-contained: `spine/**` names no block and no root | Konsist |
 
 **Why C15 is not redundant with C1.** C1 is a per-folder **allow**-list; C15 is a tier-level
 **denial** that no per-folder rule can accidentally relax, and it survives a future spine folder
@@ -206,7 +206,7 @@ hypothetical, it is what this build did until the block-test caught it.
 ### Every check ships a block-test and an allow-test
 
 * **BLOCK-test** — a checked-in violating fixture the check must reject. Without it, a rule that
-  silently stopped working would look exactly like a rule that is being obeyed. That is what F12
+  silently stopped working would look exactly like a rule that is being obeyed. That is what §15.2
   measured.
 * **ALLOW-test** — the same shape written the way the architecture asks, which the check must accept
   untouched. Without it, a rule drifts into a nuisance and the first thing an author does is turn it
@@ -217,7 +217,7 @@ hypothetical, it is what this build did until the block-test caught it.
 |---|---|---|
 | Konsist checks | `src/test/fixtures/konsist/{violating,compliant}/<check>/` | `GateTest.verify` — three assertions per check, on every build |
 | detekt checks | `src/test/fixtures/detekt/{violating,compliant}/` | `gateDetektBlockTest` / `gateDetektAllowTest` |
-| F10 exhaustiveness | `src/test/fixtures/exhaustive/{violating,compliant}/` | `gateExhaustiveBlockTest` — runs the real Kotlin compiler |
+| G12 exhaustiveness | `src/test/fixtures/exhaustive/{violating,compliant}/` | `gateExhaustiveBlockTest` — runs the real Kotlin compiler |
 
 `gateExhaustiveBlockTest` is the strongest of the three and worth calling out: it compiles a faithful
 copy of `blocks/escalation`'s three `TicketStatus` consumers with a **fifth variant added**, and fails
@@ -233,7 +233,7 @@ never given a baseline.
 
 ---
 
-## What you inherit, and what you vendor (A4)
+## What you inherit, and what you vendor (G14)
 
 The honest statement, because "zero of their source lives in your repository" was only ever true of
 one of the two things you get:
@@ -257,7 +257,7 @@ you vendor once and never author per feature.**
 
 ---
 
-## Context engineering is out of scope; the context SEAM is not (A3)
+## Context engineering is out of scope; the context SEAM is not (§6.11)
 
 * **In scope, specified and enforced.** `projectContext(state, staged) -> Context` is a pure
   projection of committed State plus this step's *ordered* staged input; it carries a stated growth
@@ -327,7 +327,7 @@ here rather than left to imply a parity that does not exist:
 | **Cross-session global ordering** | 5.2 puts causal consistency across independent streams out of scope. The two-tier test proves *separate* buses; it proves nothing about ordering between them. |
 | **A distributed or sharded bus, bespoke persistence/retention, multi-tenant isolation** | 8.5 names these as swaps. The contracts exist; no adapter does. |
 | **Snapshots, compaction, retention (14.1/16.2)** | product policy. |
-| **The per-tenant budget (F13)** | `spine/ports/authorization` is its named home and its verdict already rides the committed record; no port ships a tenant budget, because no port has tenants. |
+| **The per-tenant budget (G6)** | `spine/ports/authorization` is its named home and its verdict already rides the committed record; no port ships a tenant budget, because no port has tenants. |
 | **CI** | `.github/workflows/ci.yml` runs `./gradlew check` (and the TS suite) on every push and pull request — the same entry point a developer runs locally, no CI-only rule set. |
 | **Dispatcher confinement of `submit`** | the consumer creates the turn's scope, so the reference cannot violate it — but an adopter who runs a turn on another dispatcher could interleave two folds despite the design. Enforced structurally, **not gate-checkable**. |
 | **The abandoned turn can leak** | after a cancel-deadline timeout the turn's coroutine may never unwind. The design bounds the *consumer*, not the turn; removing the leak needs an unbounded join, which 12.3 itself calls a hang. The leak is named, degraded, counted and folded — never hidden. |

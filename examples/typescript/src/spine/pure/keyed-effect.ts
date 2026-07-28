@@ -1,4 +1,4 @@
-// ── spine/pure/keyed-effect — the boundary's transport (F7, G9) ─────────────
+// ── spine/pure/keyed-effect — the boundary's transport (G9) ─────────────────
 // 14.6 rests the whole recovery-path safety claim on "the effect's id is its
 // idempotency key" — and no port ever constructed one. The fix is NOT an id on
 // Effect: that would put key construction inside the fold, which G9 forbids.

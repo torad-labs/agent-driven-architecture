@@ -1,4 +1,4 @@
-// ── blocks/artifact/contract — the work product's transport (F6) ───────────
+// ── blocks/artifact/contract — the work product's transport (G16) ──────────
 // The artifact used to be built by PERFORMED EFFECTS — which replay stubs — so 2.2's
 // "the folded, replayable result of the session" was false, and a reducer change
 // that corrupted artifact content while leaving State byte-identical passed every
@@ -32,7 +32,7 @@ sealed class ArtifactResult(override val tool: ToolName) : ToolResult(tool) {
 
 /**
  * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
- * every variant carries authorship, permission and identity by construction (L3).
+ * every variant carries authorship, permission and identity by construction (G12).
  */
 sealed class ArtifactCommand(
     override val tool: ToolName,

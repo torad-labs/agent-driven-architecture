@@ -1,4 +1,4 @@
-// ── test/blocks/artifact — F6: the artifact is compared BY VALUE ──────────
+// ── test/blocks/artifact — G16: the artifact is compared BY VALUE ─────────
 // The regression the old shape could not catch: a reducer change that corrupts
 // artifact content while leaving State byte-identical. Impossible now, because the
 // content IS State.
@@ -80,7 +80,7 @@ class ArtifactBlockTest {
     }
 
     @Test
-    fun `F6 - end to end, the artifact re-folds by VALUE and delivers exactly once`() {
+    fun `G16 - end to end, the artifact re-folds by VALUE and delivers exactly once`() {
         val world = World()
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))

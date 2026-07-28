@@ -1,4 +1,4 @@
-// ── spine/pure/context — the THIRD pure projection (F4, G15) ────────────────
+// ── spine/pure/context — the THIRD pure projection (G15) ────────────────────
 // The reasoner's own input seam, promoted to a named type beside State→ViewModel.
 //
 //   projectContext(state, staged) -> Context     PURE. A projection of committed
@@ -8,7 +8,7 @@
 //                                                never appended to.
 //   render(context) -> Text                      PURE. The exact text the model saw.
 //
-// SCOPE, STATED SO THE SILENCE READS AS A BOUNDARY (A3). The context SEAM is in
+// SCOPE, STATED SO THE SILENCE READS AS A BOUNDARY (6.11). The contxt SEAM is in
 // scope: this projection is pure, its growth bound is stated below, and the text
 // it renders rides the committed record as a fixture. Context ENGINEERING —
 // WHAT you choose to project, how you rank, retrieve or compact it, and how you

@@ -6,7 +6,7 @@
 // fixture stayed interface-style when the live tree migrated to sealed classes:
 // the derivation went vacuous on the LIVE tree while the fixture kept the
 // block-test green — a fixture that stops sharing the tree's shape stops
-// standing in for it, which is the silent rot F12 exists to deny.
+// standing in for it, which is the silent rot 15.2 exists to deny.
 package adr.contract
 
 import adr.spine.pure.CommandId

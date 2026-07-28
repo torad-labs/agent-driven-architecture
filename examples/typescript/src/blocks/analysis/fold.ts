@@ -1,4 +1,4 @@
-// ── blocks/analysis/fold — the block's ARM (F9) ────────────────────────────
+// ── blocks/analysis/fold — the block's ARM (12.4) ──────────────────────────
 // The asymmetry between the two arms IS the untrusted-recall rule, written as
 // code rather than as a warning:
 //

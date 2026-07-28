@@ -1,5 +1,5 @@
-// ── blocks/escalation/slice — a sealed status set, used FULLY (L3) ─────────
-// `TicketStatus` is the worked instance of L3's central instruction: declare
+// ── blocks/escalation/slice — a sealed status set, used FULLY (G12) ────────
+// `TicketStatus` is the worked instance of G12's central instruction: declare
 // shared properties on the sealed parent so every variant carries them BY
 // CONSTRUCTION. Two properties earn their place there:
 //

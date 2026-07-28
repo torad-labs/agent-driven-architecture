@@ -48,7 +48,7 @@ Every import rule above is machine-enforced (`npm run lint`, check C1).
 
 ---
 
-## How L3 is expressed in a language with no sealed classes
+## How G12 is expressed in a language with no sealed classes
 
 Kotlin writes `sealed interface ToolResult { val tool: ToolName }`. TypeScript expresses the same
 guarantee natively, in three parts, all of which are load-bearing:
@@ -84,7 +84,7 @@ the context line match — all three inside `blocks/escalation/`, zero outside i
 
 ---
 
-## Blast radius (L5), measured on the code in this folder
+## Blast radius (§16.1), measured on the code in this folder
 
 **A new verb — domain OR presentation — 4 appends, 3 files, 1 folder. UNIFORM.**
 
@@ -97,7 +97,7 @@ the context line match — all three inside `blocks/escalation/`, zero outside i
 
 Adding `setPriority` (domain) and adding `setPanel` (presentation) touch **the same four sites**.
 6.8's "a UI tool folds, does not sign" carve-out is gone, and with it the two tool mechanics that
-made L1 and L5 worse, not better.
+made G11 and §16.1 worse, not better.
 
 **Re-measured after the tiering and barge-in rungs landed, and the number did not move.** Adding a
 throwaway `resolveTicket` verb with only sites 1 and 2 written, the compiler names the fold arm:
@@ -132,12 +132,12 @@ compiler-forced.
 root's effect sink (compiler-forced).
 **A whole new block — 8 appends at the root, across 2 files** (`app/contract`, `app/assemble`,
 `app/wire`), every one an append the compiler names. Kotlin needs 5; the delta is purely
-TypeScript's need to write the union out. L1's literal "one line" is unattainable *with* compile-time
+TypeScript's need to write the union out. G11's literal "one line" is unattainable *with* compile-time
 exhaustiveness, and no builder should pretend otherwise.
 
 ---
 
-## What you inherit, and what you vendor (A4)
+## What you inherit, and what you vendor (G14)
 
 The honest statement, because "zero of their source lives in your repository" was only ever true of
 one of the two things you get:
@@ -160,7 +160,7 @@ you vendor once and never author per feature.**
 
 ---
 
-## Context engineering is out of scope; the context SEAM is not (A3)
+## Context engineering is out of scope; the context SEAM is not (§6.11)
 
 * **In scope, specified and enforced.** `projectContext(state, staged) -> Context` is a pure
   projection of committed State plus this step's *ordered* staged input; it carries a stated growth
@@ -239,7 +239,7 @@ here rather than left to imply a parity that does not exist:
 * **Schema evolution (14.7) is out of scope.** `StepRecord` carries no `schemaVersion` and no
   upcaster ships. That is a decision, not an omission; a reader arriving from 14.7 will notice the
   gap.
-* **A per-tenant budget (F13) is specified, not implemented.** `spine/ports/authorization` is its
+* **A per-tenant budget (G6) is specified, not implemented.** `spine/ports/authorization` is its
   named home and its verdict already rides the committed record; no port ships a tenant budget,
   because no port has tenants.
 * **The pure tool body runs twice per agent action.** Once in the SDK's `execute` so the model gets a
@@ -267,7 +267,7 @@ definition and was measured to catch nothing. What is asserted is a live run aga
 
 ---
 
-## The gate (F12)
+## The gate (§15.2)
 
 Fifteen checks, each **denying** (`npm run lint` exits non-zero), each with one **block-test** and
 one **allow-test** over `test/gate/fixtures/`. There is no warning tier.
@@ -277,18 +277,18 @@ one **allow-test** over `test/gate/fixtures/`. There is no warning tier.
 | C1 | G4/G10 — dependencies point inward (the §1.3 import table, verbatim) |
 | C2 | G11 — no cross-block symbol import |
 | C3 | G9 — no clock, random or id outside the boundary |
-| C4 | F2/D4 — `Actor`/`Authority`/`Signature` unnameable where a `ToolResult` is declared; the `Signature` constructor bindable only inside `spine/boundary`, re-exportable as a value from nowhere |
-| C5 | F7/G9 — the fold cannot key an effect |
-| C6 | F9 — a block may not touch the session-global `RunStatus` |
-| C7 | F1 — one production site for `ToolResult` |
+| C4 | G1 — `Actor`/`Authority`/`Signature` unnameable where a `ToolResult` is declared; the `Signature` constructor bindable only inside `spine/boundary`, re-exportable as a value from nowhere |
+| C5 | G9 — the fold cannot key an effect |
+| C6 | §12.4 — a block may not touch the session-global `RunStatus` |
+| C7 | G1 — one production site for `ToolResult` |
 | C8 | G2 — tools (and everything pure) are pure |
-| C9 | G12/F10 — closed matches, no catch-all |
+| C9 | G12 — closed matches, no catch-all |
 | C10 | G7 — no module-level mutable state |
 | C11 | 7.9/G13 — ports are interfaces only |
-| C12 | 4.6/A1 — ephemeral view-state never folds |
+| C12 | §4.6 — ephemeral view-state never folds |
 | C13 | registry totality — every declared case has a `Verb` entry that signs |
 | C14 | G3 — the loop is a declaration, not a program |
-| C15 | A4 — the spine tier is self-contained: `spine/**` names no block and no root |
+| C15 | G14 — the spine tier is self-contained: `spine/**` names no block and no root |
 
 **Boring tooling on purpose.** Fourteen of the fifteen are ordinary ESLint rules in
 `eslint.config.js` — `no-restricted-imports` (with one allow-list regex per folder, which is §1.3's

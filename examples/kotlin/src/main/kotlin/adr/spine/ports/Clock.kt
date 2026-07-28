@@ -7,7 +7,7 @@ package adr.spine.ports
 
 import adr.spine.pure.Timestamp
 
-/** Read exactly once per step, by the boundary, and committed on the StepRecord (G9/F8). */
+/** Read exactly once per step, by the boundary, and committed on the StepRecord (G9). */
 interface Clock {
     fun now(): Timestamp
 }

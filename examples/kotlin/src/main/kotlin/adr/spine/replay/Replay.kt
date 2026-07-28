@@ -1,11 +1,11 @@
-// ── spine/replay/replay — a LIVE run against its REPLAY (F5) ───────────────
+// ── spine/replay/replay — a LIVE run against its REPLAY (G9) ───────────────
 // The shipped harness folded the same in-memory array TWICE through a pure
 // function and asserted equality — true by definition, and measured to pass even
 // with seam 07's own named violation injected (a tool reading a mutable global and
 // performing a side effect). That double-fold is DELETED. It caught nothing, and
 // the thing it claimed to catch is structurally impossible for it to see.
 //
-// What replay actually buys (A2): determinism over a RECORDED TIMELINE —
+// What replay actually buys (14.1.1): determinism over a RECORDED TIMELINE —
 // forensics, audit, production-traces-as-fixtures. It is NOT behavioural
 // reproducibility: re-running the model is not deterministic, and inputs conflated
 // away were never recorded. What IS guaranteed is that the run that WAS recorded
@@ -67,7 +67,7 @@ class Replay<S>(private val fold: Fold<S>) {
     /**
      * Re-fold ONLY the committed bytes. Every effect is re-keyed from the record's own
      * offset, so the re-derived sequence is comparable to the live one key for key —
-     * including every timestamp, which is why `now` had to ride the record (F8).
+     * including every timestamp, which is why `now` had to ride the record (G9).
      */
     fun refold(initial: S, records: List<StepRecord>): RefoldOutcome<S> {
         var state = initial
@@ -119,7 +119,7 @@ class Recovery {
  *   1. the re-folded state equals the live state;
  *   2. the re-derived effect sequence equals the live one — keys AND timestamps;
  *   3. every step's recorded context digest still matches what projectContext
- *      produces from the state as it was BEFORE that step (F4/§5.3), so a change to
+ *      produces from the state as it was BEFORE that step (G15/§5.3), so a change to
  *      the reasoner's input that silently alters what the model saw fails the
  *      golden trace — without re-running the model.
  *

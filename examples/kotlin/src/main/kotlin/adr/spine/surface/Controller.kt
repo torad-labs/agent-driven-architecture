@@ -3,7 +3,7 @@
 // render, and one sink to push an Action into. Nothing else.
 //
 // A person tapping a control and the agent calling a tool resolve to the IDENTICAL
-// Command (3.2) — including a presentation verb, because A1 deleted the carve-out
+// Command (3.2) — including a presentation verb, because 6.8 deleted the carve-out
 // that made that sentence false.
 
 package adr.spine.surface

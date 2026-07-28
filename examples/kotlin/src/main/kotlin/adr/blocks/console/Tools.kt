@@ -1,7 +1,7 @@
 // ── blocks/console/tools — presentation verbs, authored EXACTLY like domain ones ─
 // Same five properties, same signer, same registry, same four sites (§11.1). Put
 // this file beside blocks/triage/tools and read them together: there is no
-// difference to find, which is the point of A1.
+// difference to find, which is the point of 6.8.
 
 package adr.blocks.console
 

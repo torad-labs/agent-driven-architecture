@@ -1,7 +1,7 @@
 // ALLOW-TEST C6 — the same rejection, as a PER-ITEM Notice.
 // Notice.Rejected says the arm refused this transition against current state;
 // Notice.Refused says the boundary gate refused the action. Neither touches the
-// banner, so the next good ticket is unaffected — which is the behaviour F9's
+// banner, so the next good ticket is unaffected — which is the behaviour 12.4's
 // measured bug did not have, expressed as two types rather than as discipline.
 package adr.blocks.escalation
 

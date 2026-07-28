@@ -1,5 +1,5 @@
 {
-  "why": "F10 / §8.6 — 15.4's G12 self-check, shipped as a test instead of asserted as prose. Adding a fifth TicketStatus variant MUST break the build at every consumer, and at nothing else.",
+  "why": "G12 / §15.4 — §15.4's G12 self-check, shipped as a test instead of asserted as prose. Adding a fifth TicketStatus variant MUST break the build at every consumer, and at nothing else.",
   "expect": {
     "files": ["blocks/escalation/fold.ts", "blocks/escalation/project.ts"],
     "errors": 3

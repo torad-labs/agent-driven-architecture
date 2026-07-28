@@ -552,7 +552,7 @@ export class SerialConsumer {
 
   // ── Reporting: never silent, and it travels the ONE existing path ─────────
   // resolveAction → gate → fold → commit → signed Command. A busy-drop is a
-  // decision, so it signs, exactly like A1's presentation verbs — and it signs
+  // decision, so it signs, exactly like 6.8's presentation verbs — and it signs
   // as `Spine`, because no model chose to shed that load, this consumer did.
   private emit(event: ConsumerEvent): void {
     const actions = this.deps.report(event);

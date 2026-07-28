@@ -1,6 +1,6 @@
 // ── spine/concurrency/consumer — the barge-in loop that ACTUALLY PREEMPTS (12) ─
 //
-// F11, restated so it cannot be re-shipped. The book's 12.3 drain loop puts
+// 12.3, restated so it cannot be re-shipped. The book's 12.3 drain loop puts
 // `outcome = await(inFlight)` at LOOP-BODY indentation while `mailbox.take()` blocks
 // at the top. Under the ordinary reading of await, control never reaches take()
 // during a turn: `turnInFlight` is false at every take(), all three guards are dead,
@@ -95,7 +95,7 @@ fun interface TurnRunner {
 }
 
 /**
- * The revocation latch — the load-bearing move of §1.6.
+ * The revocation latch — the load-bearing move of 12.3.
  *
  * A turn's only channel into the system is this closure. `revoke()` flips a one-way
  * latch inside it, so 12.3's "two folds cannot interleave" holds EVEN WHEN THE JOIN
@@ -154,7 +154,7 @@ private data class Read(val entry: RelayEntry?)
  * @param report REQUIRED — default-deny applied to observability. The composition
  *   root maps each spine-shaped event to app Actions, which then travel the ONE
  *   existing path (resolveAction → gate → fold → commit → signed Command). A
- *   busy-drop is a decision, so it signs, exactly like A1's presentation verbs.
+ *   busy-drop is a decision, so it signs, exactly like 6.8's presentation verbs.
  * @param finalize what a Drain commits before the consumer stops (the session seal).
  * @param recovered the durable dedupe scope, REBUILT FROM THE TIMELINE at recovery:
  *   every source key a committed step already consumed (`Recovery` in spine/replay).

@@ -36,7 +36,7 @@ class GateFile(val path: String, val file: KoFileDeclaration) {
     /** Fully-qualified import names, straight off the parse tree. */
     val imports: List<String> = file.imports.map { it.name }
 
-    /** The declared package — `adr.contract` for every transport file (§1.5). */
+    /** The declared package — `adr.contract` for every transport file (G12, in Kotlin). */
     val packageName: String = file.packagee?.name.orEmpty()
 
     /**

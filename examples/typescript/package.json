@@ -11,7 +11,8 @@
     "demo": "tsx src/app/main.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "biome": "biome check ."
+    "biome": "biome check .",
+    "laws:regenerate": "tsx test/laws/regenerate.ts"
   },
   "dependencies": {
     "@valibot/to-json-schema": "^1.7.1",

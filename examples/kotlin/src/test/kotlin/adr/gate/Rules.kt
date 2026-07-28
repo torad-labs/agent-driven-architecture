@@ -1,10 +1,10 @@
-// ── test/gate/rules — the structural half of the gate (F12) ───────────────
+// ── test/gate/rules — the structural half of the gate (15.2) ──────────────
 // Eleven denying checks, written against Konsist's parse tree. The other three
 // (C3, C9, C14) need the compiler's TYPES and live in config/detekt/gate.yml; the
 // roster in GateTest.kt names all fourteen and where each one runs.
 //
 // 15.1 stakes the architecture's answer to its own central problem on machine
-// enforcement, and F12 measured that ZERO checks shipped: Date.now() inside a tool
+// enforcement, and the review measured (15.2) that ZERO checks shipped: Date.now() inside a tool
 // and an `fs` import in the domain both passed a clean build in both reference
 // ports. Each rule below ships a violating fixture it must REJECT and a compliant
 // fixture it must ACCEPT — the second half is what keeps a rule from drifting into
@@ -19,7 +19,7 @@ import com.lemonappdev.konsist.api.declaration.KoObjectDeclaration
 import com.lemonappdev.konsist.api.declaration.KoPropertyDeclaration
 import com.lemonappdev.konsist.api.declaration.KoTypeAliasDeclaration
 
-/** The stamp (F2/D4). None of these three may be nameable upstream of the boundary. */
+/** The stamp (G1). None of these three may be nameable upstream of the boundary. */
 private val STAMP_TYPES = setOf("Actor", "Authority", "Signature")
 
 /** The pure ring inside a block: everything but `port`, `adapter` and `view-state`. */
@@ -52,7 +52,7 @@ val CHECKS: List<Check> = listOf(
     },
 
     // C2 — G11: no cross-block symbol import. This is the compensation for the
-    // shared `adr.contract` package that Kotlin's sealed rule forces on us (§1.5):
+    // shared `adr.contract` package that Kotlin's sealed rule forces on us (G12, in Kotlin):
     // a sibling's transport case is import-denied BY NAME PREFIX, because it cannot
     // be denied by package.
     Check("C2", "no cross-block symbol import") { files ->
@@ -81,7 +81,7 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
-    // C4 — F2/D4: an Actor is UNREPRESENTABLE upstream of the boundary. Not merely
+    // C4 — G1: an Actor is UNREPRESENTABLE upstream of the boundary. Not merely
     // unused: there is no field to put one in, and no tool can name one.
     //
     // The fourth part of C4 — "a Signature is MINTED only at the boundary" — is a
@@ -153,7 +153,7 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
-    // C5 — F7/G9: the fold cannot key an effect. Effect carries no identity; the key
+    // C5 — G9: the fold cannot key an effect. Effect carries no identity; the key
     // is derived from the COMMITTED step index, so it does not exist until after the
     // append returned. Only the two seams that see a committed index may name it.
     Check("C5", "only the boundary and replay may name an effect key") { files ->
@@ -168,7 +168,7 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
-    // C6 — F9: a per-item failure is never session-global. A block cannot reach the
+    // C6 — 12.4: a per-item failure is never session-global. A block cannot reach the
     // session banner AT ALL, which is the structural fix for "one bad ticket leaves
     // the banner degraded for the rest of the session" — not a flag to remember to
     // clear. The constructor half is in detekt; this is the reference half.
@@ -180,7 +180,7 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
-    // C7 — F1: ONE production site for every piece of SIGNED TRANSPORT in the
+    // C7 — G1: ONE production site for every piece of SIGNED TRANSPORT in the
     // system — ToolResult AND Command — so a recorded result can never disagree
     // with what the boundary folded, and a fold arm can never stash a Command no
     // gate ever saw into its own slice. The second half matters because State is
@@ -211,10 +211,10 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
-    // C8 — G2: tools, arms, projections, slices and contracts are PURE. F12 measured
+    // C8 — G2: tools, arms, projections, slices and contracts are PURE. The review measured (15.2)
     // an `fs` import in the domain shipping green; seam 07's own named violation —
     // a tool that reads a live source — is caught HERE, not by the replay harness,
-    // which structurally cannot see it (F5).
+    // which structurally cannot see it (G9).
     Check("C8", "the pure ring performs no I/O") { files ->
         files.filter { file ->
             file.path.startsWith("spine/pure/") ||
@@ -270,7 +270,7 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
-    // C12 — 4.6/A1: ephemeral view-state never folds. The axis is DECISION vs
+    // C12 — 4.6: ephemeral view-state never folds. The axis is DECISION vs
     // EPHEMERAL, not UI vs domain: a deliberate repositioning is a verb that folds
     // and signs; a scroll offset is this file, and only the block's own projection
     // may see it. Same package, so there is no import to key on — the reference
@@ -284,7 +284,7 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
-    // C15 — A4: THE SPINE TIER IS SELF-CONTAINED, therefore vendorable.
+    // C15 — G14: THE SPINE TIER IS SELF-CONTAINED, therefore vendorable.
     //
     // 1.3 used to promise "zero of their source lives in your repository" for the
     // spine, and no spine package exists on any registry. The honest claim is

@@ -1,5 +1,5 @@
 // ALLOW-TEST C12 — the arm folds DECISIONS and never sees the ephemeral state.
-// A1's axis, applied: showing a panel is an authored act, so it is a verb that
+// 6.8's axis, applied: showing a panel is an authored act, so it is a verb that
 // folds and signs exactly like setPriority. The scroll offset is not, so the arm
 // cannot name it.
 package adr.blocks.console

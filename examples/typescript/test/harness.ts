@@ -46,7 +46,7 @@ export const SPINE = defaultAuthorities.Spine;
 
 /** An AuthorityResolver a test can move: the same Actor.Agent acting first as
  *  the run that raised a request, then as a policy tier that approves it. That
- *  is F3's unattended promotion, and it is only expressible because Authority
+ *  is G6's unattended promotion, and it is only expressible because Authority
  *  and Actor are different types. */
 export function switchableAuthz(start?: Partial<Record<Actor, Authority>>): {
   authz: Authorization<State>;

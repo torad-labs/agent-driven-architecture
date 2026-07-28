@@ -1,5 +1,5 @@
 // ── blocks/analysis/adapter — the ONLY file in this block that may hold a store ─
-// L4 in one file name (11.2): if you want to know what this block can touch in the
+// G13 in one file name (11.2): if you want to know what this block can touch in the
 // world, this is the only place to look. It is bound at the single composition
 // root, where `wireApp` hands it the relay the other tier reads from.
 

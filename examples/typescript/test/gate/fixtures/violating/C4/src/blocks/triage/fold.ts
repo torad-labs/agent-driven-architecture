@@ -1,4 +1,4 @@
-// VIOLATION: F2/D4, fourth half — a fold arm that can CONSTRUCT the stamp.
+// VIOLATION: G1, fourth half — a fold arm that can CONSTRUCT the stamp.
 // An arm legitimately RECEIVES a Signature (that is the whole point of the
 // stamp arriving with the fold); what it may never do is BIND the constructor.
 // The value import IS the forge: with it, the arm that folds an agent's tool

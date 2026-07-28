@@ -1,4 +1,4 @@
-// ── test/spine/action — F1: the ONE name→ToolResult map ───────────────────
+// ── test/spine/action — G1: the ONE name→ToolResult map ───────────────────
 // The conversion the shipped reference never named. ToolResult appeared three times
 // in 1885 lines of prose and in neither the glossary nor the nomenclature table,
 // though 17.6 opens "the gate keys off names".
@@ -51,7 +51,7 @@ class ActionTest {
     }
 
     @Test
-    fun `F1 - the human path and the agent path resolve IDENTICALLY`() {
+    fun `G1 - the human path and the agent path resolve IDENTICALLY`() {
         val agentApp = Wiring().wireApp(Env(authority = RunAuthority(), world = World()))
         val humanApp = Wiring().wireApp(Env(authority = RunAuthority(), world = World()))
 

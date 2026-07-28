@@ -1,6 +1,6 @@
 // ── test/app/totality — gate check C13, by reflection ─────────────────────
 // Every ToolResult case has a Verb entry and signs; every Verb entry has a case; and
-// the NAME is the same in all three places (D3). That mapping is what makes the one
+// the NAME is the same in all three places (6.8). That mapping is what makes the one
 // unchecked cast in Verb.signOf total, and what makes 17.6's "the gate keys off
 // names" literally true.
 
@@ -94,7 +94,7 @@ class TotalityTest {
     }
 
     @Test
-    fun `A1 - a presentation verb and a domain verb have the SAME registration shape`() {
+    fun `ONE MECHANIC - a presentation verb and a domain verb have the SAME registration shape`() {
         val domain = registry.getValue(ToolName("setPriority"))
         val presentation = registry.getValue(ToolName("setPanel"))
         assertEquals(domain::class, presentation::class, "one tool mechanic, not two")

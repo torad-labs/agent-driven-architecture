@@ -1,4 +1,4 @@
-// ── blocks/escalation/register — THE ONE PUBLIC SYMBOL (L1) ────────────
+// ── blocks/escalation/register — THE ONE PUBLIC SYMBOL (G11) ───────────
 
 import type { BlockRegistration } from "../../spine/pure/verb";
 import { isEscalationResult } from "./contract";

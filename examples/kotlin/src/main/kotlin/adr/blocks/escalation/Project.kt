@@ -4,7 +4,7 @@
 // the compiler's edit list for `Archived(ticket, at)` is exactly these three sites,
 // all inside blocks/escalation/. Zero sites outside the block.
 //
-// This is also F10's fix in place: `t.status is Open` as a way to compute
+// This is also G12's fix in place: `t.status is Open` as a way to compute
 // `canEscalate` is NOT a closed match — it compiles happily after a variant is
 // added and silently answers the wrong thing.
 

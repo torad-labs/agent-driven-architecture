@@ -1,7 +1,7 @@
-// ── spine/pure/ids — value types (L2: the purity boundary is a folder) ──────
+// ── spine/pure/ids — value types (G4: the purity boundary is a folder) ──────
 // ZERO I/O, zero logic. These are the names the whole system agrees on.
 //
-// NOTE (D3): `ToolName` is a bare alias, NOT a branded type. The tool name is
+// NOTE (6.8): `ToolName` is a bare alias, NOT a branded type. The tool name is
 // the discriminant of both `ToolResult` and `Command`, and a branded type
 // cannot be a discriminant — a literal `"setPriority"` would not be assignable
 // to it. One name per verb, and that name is a plain string.
@@ -18,7 +18,7 @@ export type SessionId = string;
 export type RawInput = unknown;
 
 // Shared identifier vocabulary. These are strings, not entities; several blocks
-// name the same ticket without any of them naming each other (L1).
+// name the same ticket without any of them naming each other (G11).
 export type TicketId = string;
 export type PanelId = string;
 

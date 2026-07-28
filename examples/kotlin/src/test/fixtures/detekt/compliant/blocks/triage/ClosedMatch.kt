@@ -1,7 +1,7 @@
-// ── ALLOW-TEST for gate check C9 (G12/F10) ────────────────────────────────
+// ── ALLOW-TEST for gate check C9 (G12) ────────────────────────────────────
 // The same closed set, matched the way the architecture asks: every variant named,
 // no `else`. Add `Archived` to the hierarchy and THIS file stops compiling — which
-// is the edit list §11.2 promises and F10 measured missing.
+// is the edit list §11.2 promises and the review measured (G12) missing.
 //
 // Note the second function: a `when` over an OPEN subject (a String) still gets its
 // `else`, and the rule leaves it alone. C9 denies catch-alls over closed sets, not

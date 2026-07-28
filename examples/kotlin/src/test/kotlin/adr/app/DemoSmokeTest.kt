@@ -15,8 +15,9 @@ class DemoSmokeTest {
         main()
     }
 
+    // 12.4: a per-item failure is never session-global.
     @Test
-    fun `F9 - after every kind of rejection the SESSION banner is still ok`() {
+    fun `PER-ITEM - after every kind of rejection the SESSION banner is still ok`() {
         val world = World()
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))

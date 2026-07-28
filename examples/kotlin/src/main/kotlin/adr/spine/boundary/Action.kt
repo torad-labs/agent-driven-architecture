@@ -1,4 +1,4 @@
-// ── spine/boundary/action — the name→ToolResult map (F1) ───────────────────
+// ── spine/boundary/action — the name→ToolResult map (G1) ───────────────────
 // The human path into the fold used to be unspecified: fold consumed [ToolResult],
 // the surface emitted Action, and NOTHING named the conversion. This file is that
 // conversion, and it is the symmetric twin of 6.8's name→Command map — both fed by
@@ -21,7 +21,7 @@
 // actually arrives — the fold has no `else` arm at all. It is exhaustive over a
 // fully sealed ToolResult including Unhandled and Refused. That is 6.10's "close
 // what you own; guard what you do not" put in the right place, and it is what makes
-// F10's compile-time edit list total.
+// G12's compile-time edit list total.
 //
 // This is also the SINGLE PRODUCTION SITE of every ToolResult in the system
 // (gate check C7), so a recorded result can never disagree with what was folded.
@@ -79,18 +79,18 @@ class ActionResolution<S>(private val registry: Registry<S>) {
 
     /**
      * The name→Command map (6.8), supplied by the same registry. EVERY verb signs —
-     * presentation and domain alike (A1) — and so do the spine's own two results,
+     * presentation and domain alike (6.8) — and so do the spine's own two results,
      * because a refusal is a decision and 5.4's discriminator answers yes.
      *
      * The two `is` checks are not an open match dressed up as a closed one: the spine
-     * structurally CANNOT enumerate block cases (that is L1), and the registry is what
+     * structurally CANNOT enumerate block cases (that is G11), and the registry is what
      * closes the set instead. Gate check C13 proves every case in the system has a verb
      * and signs, so the fallback is total by test.
      */
     fun sign(result: ToolResult, sig: Signature, id: CommandId): Command {
         if (result is ToolResult.Unhandled) return Command.Unhandled(result.tool, sig, id, result.note)
         if (result is ToolResult.Refused) return Command.Refused(result.tool, sig, id, result.reason)
-        // D3 says this cannot be null: a result reaches this verb only because its own
+        // 6.8 says this cannot be null: a result reaches this verb only because its own
         // `tool` name looked the verb up, and one name means one result case. Gate check
         // C13 re-proves that mapping mechanically for every case in the system. The
         // branch exists because the narrowing is now CHECKED rather than an unchecked

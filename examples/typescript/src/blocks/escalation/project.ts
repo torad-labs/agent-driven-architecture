@@ -1,4 +1,4 @@
-// ── blocks/escalation/project — CONSUMERS 2 and 3 of TicketStatus (F10) ────
+// ── blocks/escalation/project — CONSUMERS 2 and 3 of TicketStatus (G12) ────
 // This is the file the shipped reference failed 15.4's own G12 self-check in:
 //
 //     canEscalate: t.status.kind === "Open",

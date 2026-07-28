@@ -1,4 +1,4 @@
-// ── blocks/artifact/contract — the work product's TRANSPORT (F6, G16) ──────
+// ── blocks/artifact/contract — the work product's TRANSPORT (G16) ──────────
 // The artifact was built by PERFORMED EFFECTS, which replay stubs — so 2.2's
 // "the folded, replayable result of the session" was false, and a reducer
 // change that corrupted artifact content while leaving State byte-identical

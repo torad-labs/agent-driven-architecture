@@ -1,4 +1,4 @@
-// ── blocks/escalation/fold — the block's ARM (F9) ──────────────────────────
+// ── blocks/escalation/fold — the block's ARM (12.4) ────────────────────────
 // CONSUMER 1 of 3 of the sealed `TicketStatus`. Adding a fifth variant fails to
 // compile here, and the compiler names the file and the line — which is the
 // edit list 15.4 promises and the shipped reference could not produce.

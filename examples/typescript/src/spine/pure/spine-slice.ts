@@ -1,6 +1,6 @@
 // ── spine/pure/spine-slice — the spine's own slice of State ─────────────────
 // Two fields with two different scopes, and keeping them apart is the whole of
-// F9's structural fix:
+// 12.4's structural fix:
 //
 //   run      SESSION-GLOBAL. Only the boundary writes it.
 //   notices  PER-ITEM. Every arm writes here when it refuses a transition.
