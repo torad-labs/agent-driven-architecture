@@ -1,7 +1,7 @@
 // ── app/assemble — the THREE total dispatchers (G12) ────────────────────────
 //   foldApp            results → (state, effects)     the decision
 //   projectApp         state   → AppView              what a human reads (6.9)
-//   projectContextApp  state   → Context              what the reasoner reads (F4/G15)
+//   projectContextApp  state   → Context              what the reasoner reads (G15)
 //
 // Three, not one, because they consume different things and 6.9 forbids fusing the
 // fold with the projections.
@@ -126,7 +126,7 @@ class Assembly {
             }
         }
 
-        // Per-item notices land in the spine's slice. RunStatus is NEVER touched here (F9).
+        // Per-item notices land in the spine's slice. RunStatus is NEVER touched here (12.4).
         return s.copy(spine = s.spine.withNotices(notices)) to effects.toList()
     }
 

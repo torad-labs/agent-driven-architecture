@@ -1,4 +1,4 @@
-// VIOLATION: G12/F10 — an open default is not a closed match.
+// VIOLATION: G12 — an open default is not a closed match.
 // This is the exact shape the shipped reference shipped: three of the four
 // variants go unhandled, `default` swallows them, and so adding a FIFTH changes
 // nothing — the compiler hands you no edit list.

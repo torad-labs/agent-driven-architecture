@@ -1,4 +1,4 @@
-// ── spine/replay/replay — a LIVE run against its REPLAY (F5) ───────────────
+// ── spine/replay/replay — a LIVE run against its REPLAY (G9) ───────────────
 // The shipped harness folded the same in-memory array twice through a pure
 // function and asserted the two were equal. That is f(x) == f(x): true by
 // definition, and measured to catch nothing — an impure tool that read a
@@ -18,7 +18,7 @@
 //                                             digest and compare it to the
 //                                             fixture the step committed
 //
-// What REPLAY buys, exactly (A2): determinism over a RECORDED TIMELINE —
+// What REPLAY buys, exactly (14.1.1): determinism over a RECORDED TIMELINE —
 // forensics, audit, production-traces-as-fixtures. NOT behavioural
 // reproducibility: re-running the model is not deterministic, and inputs that
 // were conflated away were never recorded. What IS guaranteed is that the run
@@ -40,9 +40,9 @@ export interface Refolded<S> {
   readonly effects: readonly KeyedEffect<EffectBase>[];
 }
 
-/** Re-fold ONLY the committed bytes. `now` comes off the record (F8); the
+/** Re-fold ONLY the committed bytes. `now` comes off the record (G9); the
  *  effect key comes off the record's position, which is exactly the committed
- *  step index the live boundary keyed with (F7). */
+ *  step index the live boundary keyed with (G9). */
 export function refold<S>(
   initial: S,
   records: readonly StepRecord[],
@@ -81,7 +81,7 @@ export function committedSourceKeys(records: readonly StepRecord[]): readonly So
   return records.flatMap((record) => record.staged.filter(isPerceived).map((p) => p.key));
 }
 
-/** F4/G15: the committed context digest must be re-derivable from committed
+/** G15: the committed context digest must be re-derivable from committed
  *  State. A change to `projectContext` that silently alters what the model saw
  *  fails HERE — without re-running the model. */
 export function contextDivergence<S>(

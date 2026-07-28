@@ -1,4 +1,4 @@
-// ── blocks/inbox/fold — the block's ARM (F9) ───────────────────────────────
+// ── blocks/inbox/fold — the block's ARM (12.4) ─────────────────────────────
 // Two `never`-guarded matches, nested: one over the block's own verbs, one over
 // its own sealed `DropReason`. Adding a third drop reason breaks the build here
 // and in `project.ts`, and nowhere outside this folder.

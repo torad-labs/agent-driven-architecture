@@ -1,4 +1,4 @@
-// ── eslint.config.js — THE GATE (F12) ──────────────────────────────────────
+// ── eslint.config.js — THE GATE (15.2) ─────────────────────────────────────
 // 15.1 stakes the architecture's answer to its own central problem on machine
 // enforcement, and 15.4 closes: "the payoff … is contingent on these checks
 // being present and blocking." The shipped reference shipped NONE — `Date.now()`
@@ -31,18 +31,18 @@ export const CHECKS = [
   { id: "C1", invariant: "G4/G10 — dependencies point inward", by: "tag", rule: "" },
   { id: "C2", invariant: "G11 — no cross-block symbol import", by: "tag", rule: "" },
   { id: "C3", invariant: "G9 — no clock, random or id outside the boundary", by: "tag", rule: "" },
-  { id: "C4", invariant: "F2/D4 — an Actor is unrepresentable upstream", by: "tag", rule: "" },
-  { id: "C5", invariant: "F7/G9 — the fold cannot key an effect", by: "tag", rule: "" },
-  { id: "C6", invariant: "F9 — per-item failures are not session-global", by: "tag", rule: "" },
-  { id: "C7", invariant: "F1 — one production site for ToolResult", by: "tag", rule: "" },
+  { id: "C4", invariant: "G1 — an Actor is unrepresentable upstream", by: "tag", rule: "" },
+  { id: "C5", invariant: "G9 — the fold cannot key an effect", by: "tag", rule: "" },
+  { id: "C6", invariant: "§12.4 — per-item failures are not session-global", by: "tag", rule: "" },
+  { id: "C7", invariant: "G1 — one production site for ToolResult", by: "tag", rule: "" },
   { id: "C8", invariant: "G2 — tools are pure", by: "tag", rule: "" },
-  { id: "C9", invariant: "G12/F10 — closed matches, no catch-all", by: "rule", rule: "@typescript-eslint/switch-exhaustiveness-check" },
+  { id: "C9", invariant: "G12 — closed matches, no catch-all", by: "rule", rule: "@typescript-eslint/switch-exhaustiveness-check" },
   { id: "C10", invariant: "G7 — no service locators, no module-level mutable state", by: "tag", rule: "" },
-  { id: "C11", invariant: "7.9/G13 — ports are interfaces only", by: "tag", rule: "" },
-  { id: "C12", invariant: "4.6/A1 — ephemeral view-state never folds", by: "tag", rule: "" },
+  { id: "C11", invariant: "§7.9/G13 — ports are interfaces only", by: "tag", rule: "" },
+  { id: "C12", invariant: "§4.6 — ephemeral view-state never folds", by: "tag", rule: "" },
   { id: "C13", invariant: "registry totality — every ok result has a Verb that signs", by: "vitest", rule: "" },
   { id: "C14", invariant: "G3 — the loop is a declaration", by: "tag", rule: "" },
-  { id: "C15", invariant: "A4 — the spine tier is self-contained and vendorable", by: "tag", rule: "" },
+  { id: "C15", invariant: "G14 — the spine tier is self-contained and vendorable", by: "tag", rule: "" },
 ];
 
 // ── import-specifier vocabulary ─────────────────────────────────────────────
@@ -83,7 +83,7 @@ const C2 = [
   { regex: "^\\.\\./\\.\\./blocks/", message: "[C2] a block may not reach another block by path — blocks talk through the one folded State" },
 ];
 
-// C4 — F2/D4: an Actor is UNREPRESENTABLE where a tool could forge one.
+// C4 — G1: an Actor is UNREPRESENTABLE where a tool could forge one.
 // Scoped to the files that DECLARE transport cases: a block's `slice`
 // legitimately stores an Authority (that is the value the gate compares
 // against, §2.2's `Escalating(requestedBy)`), and a fold arm legitimately
@@ -209,7 +209,7 @@ const C4_MINT = [
   },
 ];
 
-// C5 — F7/G9: the fold cannot mint an effect key. `Effect` is the FOLD's
+// C5 — G9: the fold cannot mint an effect key. `Effect` is the FOLD's
 // transport and carries no identity; `KeyedEffect` is the BOUNDARY's and is
 // built from the COMMITTED step index, so it is literally unavailable until
 // `bus.append` has returned.
@@ -228,7 +228,7 @@ const C5_TYPE = [
   },
 ];
 
-// C6 — F9: a per-item failure is not session-global. `Degraded`/`Error`
+// C6 — 12.4: a per-item failure is not session-global. `Degraded`/`Error`
 // describe the SESSION (a budget exceeded, an append that failed, a turn that
 // threw) and belong to the boundary. A block that rejects one bad ticket folds
 // a per-item `Notice.Rejected`.
@@ -240,7 +240,7 @@ const C6 = [
   },
 ];
 
-// C7 — F1: ONE production site for every ToolResult. The spine's own two cases
+// C7 — G1: ONE production site for every ToolResult. The spine's own two cases
 // are minted at the boundary; a block's are minted by its verb bodies.
 const C7_IMPORT = [
   {
@@ -253,7 +253,7 @@ const C7_IMPORT = [
 // C8 — G2: a pure file names no I/O.
 const C8_IMPORT = [{ regex: "^node:", message: "[C8] a pure file may not import a runtime module" }];
 
-// C15 — A4: THE SPINE TIER IS SELF-CONTAINED, so it can be lifted out whole.
+// C15 — G14: THE SPINE TIER IS SELF-CONTAINED, so it can be lifted out whole.
 // 1.3 sells the spine as something you inherit rather than author. No package
 // exists on any registry, and both reference ports carry the spine as source —
 // so the honest claim is narrower and this check is what makes it PROVABLE
@@ -271,7 +271,7 @@ const C15 = [
   { regex: "(^|/)app/", message: "[C15] the spine tier is self-contained — it may not name the composition root" },
 ];
 
-// C12 — 4.6/A1: ephemeral view-state never folds. Hover, scroll offset and an
+// C12 — 4.6: ephemeral view-state never folds. Hover, scroll offset and an
 // unsubmitted draft never enter a tool, never fold and never sign; only the
 // owning block's `project` may read them.
 const C12 = [{ regex: "view-state$", message: "[C12] only a block's own `project` may see its ephemeral view-state" }];
@@ -391,7 +391,7 @@ const C8_GLOBALS = [
   { name: "process", message: "[C8] a pure file reads no ambient environment" },
 ];
 
-// C9 — G12/F10: a closed match, never a catch-all. Type-aware: the rule reads
+// C9 — G12: a closed match, never a catch-all. Type-aware: the rule reads
 // the union from the type checker, so adding a variant breaks every consumer.
 const C9_RULE = {
   "@typescript-eslint/switch-exhaustiveness-check": [

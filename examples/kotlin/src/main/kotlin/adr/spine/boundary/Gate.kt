@@ -1,4 +1,4 @@
-// ── spine/boundary/gate — the irreversibility gate, PRE-FOLD (F2/F3/F13) ───
+// ── spine/boundary/gate — the irreversibility gate, PRE-FOLD (G1/G6) ───────
 // The shipped reference branched on `r.by`, an Actor the TOOL copied into its own
 // payload, while the log recorded a different Actor the boundary stamped after the
 // fold had already run. Two unreconciled values, and the stamp was causally
@@ -13,7 +13,7 @@
 // implements "a human". It is implemented by comparing principals.
 //
 // A refusal is COMMITTED as ToolResult.Refused, so it re-folds without re-running
-// the authorization check (G9). F3's "captured as an ordered G9 fixture" and F13's
+// the authorization check (G9). G6's "captured as an ordered G9 fixture" and its per-tenant budget's
 // "verdict captured as an ordered G9 fixture" are the SAME mechanism, not two.
 
 package adr.spine.boundary

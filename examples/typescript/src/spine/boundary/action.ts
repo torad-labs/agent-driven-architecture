@@ -1,4 +1,4 @@
-// ── spine/boundary/action — the ONE name→ToolResult map (F1) ───────────────
+// ── spine/boundary/action — the ONE name→ToolResult map (G1) ───────────────
 // The human path into the fold, named at last. `fold` consumes ToolResults; a
 // surface (and the agent loop) emits Actions; THIS is the conversion, and it is
 // closed, boundary-owned, and executed BEFORE the fold.
@@ -60,7 +60,7 @@ export function resolveAction<S>(
   return verb.run(decoded.input, ctx);
 }
 
-/** name → Command. The other half of the same registration (6.8). Under A1
+/** name → Command. The other half of the same registration (6.8). Under it
  *  EVERY verb signs — presentation and domain alike — and so do the spine's own
  *  two cases, because a refusal is a decision someone may need to ask about. */
 export function signResult<S>(

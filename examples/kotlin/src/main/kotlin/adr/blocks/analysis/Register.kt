@@ -1,4 +1,4 @@
-// ── blocks/analysis/register — THE ONE PUBLIC SYMBOL (L1) ──────────────
+// ── blocks/analysis/register — THE ONE PUBLIC SYMBOL (G11) ─────────────
 // Everything the composition root needs from this block, bundled. Plug the tier rung
 // in by constructing it at app/wire; pull it out by deleting this folder and those
 // lines. A SECOND TIER IS OPTIONAL (11's own framing) — nothing in the four shipped

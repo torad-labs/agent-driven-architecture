@@ -8,7 +8,7 @@ import { harness } from "../harness";
 import { must } from "../support/must";
 
 describe("the boundary — the one impure seam", () => {
-  it("COMMITS before it PERFORMS, because the effect key comes from the commit (F7)", () => {
+  it("COMMITS before it PERFORMS, because the effect key comes from the commit (G9)", () => {
     const order: string[] = [];
     const h = harness();
     const bus = h.app.bus;
@@ -56,7 +56,7 @@ describe("the boundary — the one impure seam", () => {
     ]);
   });
 
-  it("commits the STEP — `now`, the stamp, the actions, the post-gate results and the context (F8)", () => {
+  it("commits the STEP — `now`, the stamp, the actions, the post-gate results and the context (G9)", () => {
     const h = harness({ start: 1000, step: 7 });
     const before = h.app.boundary.state;
     h.app.boundary.onStepFinish({

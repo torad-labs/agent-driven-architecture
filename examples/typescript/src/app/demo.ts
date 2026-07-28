@@ -52,7 +52,7 @@ function scriptedModel(): MockLanguageModelV3 {
               input: JSON.stringify({ ticket: "4118", level: "High" }),
             },
             {
-              // A1: a presentation verb travels the SAME path as a domain verb.
+              // 6.8: a presentation verb travels the SAME path as a domain verb.
               type: "tool-call" as const,
               toolCallId: "t2",
               toolName: "setPanel",

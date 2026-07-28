@@ -1,4 +1,4 @@
-// ── A1 — a PRESENTATION verb folds AND signs, identically to a domain verb ─
+// ── 6.8 — a PRESENTATION verb folds AND signs, exactly like a domain verb ──
 // 6.8 bought a cheaper UI tool (1 declared site vs 3) at the cost of TWO tool
 // mechanics. These tests pin the one mechanic: the committed record for
 // `setPanel` has exactly the shape the record for `setPriority` has.
@@ -13,7 +13,7 @@ import { must } from "../support/must";
 const sig = new Signature("Agent", authority("agent-run-7f"));
 const slice = consoleBlock.sliceOf(["escalation", "findings"]);
 
-describe("blocks/console — presentation is an authored act (A1)", () => {
+describe("blocks/console — presentation is an authored act (§6.8)", () => {
   it("an agent repositioning the interface MINTS A COMMAND, signed like any other", () => {
     const h = harness();
     h.app.boundary.onStepFinish({

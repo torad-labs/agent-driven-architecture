@@ -44,7 +44,7 @@ fun interface Fold<S> {
 }
 
 /**
- * The THIRD pure projection (F4/G15): committed State + this step's ORDERED staged
+ * The THIRD pure projection (G15): committed State + this step's ORDERED staged
  * inputs -> Context. Plural because 5.4 already specifies plural off-bus inputs
  * "in their staging order, keyed to the consuming step" — a step may consume a
  * perceived event AND a recall from a peer tier.

@@ -1,14 +1,14 @@
-// ── spine/ports/authorization — the PRODUCT-OWNED seam (14.3, F3, F13) ─────
+// ── spine/ports/authorization — the PRODUCT-OWNED seam (14.3, G6) ──────────
 // INTERFACES ONLY (C11).
 //
 // This is where the book already routes actor-keyed checks, and it is where
-// F3's unattended confirmer becomes reachable. `authorityOf` answers "under
+// G6's unattended confirmer becomes reachable. `authorityOf` answers "under
 // whose permission is this stream acting right now" — a policy tier, a
 // second-agent reviewer, a deferred approval queue and a human host are all
 // just different Authority ids, so no product-owned confirmer ever adds an Actor
 // variant — the actor contract grows at architecture revision, never per app.
 //
-// F13's per-tenant budget has the same home: a folded budget bounds only
+// G6's per-tenant budget has the same home: a folded budget bounds only
 // aggregates within the unit of work its stream is scoped to, so anything
 // spanning k concurrent sessions is enforced HERE, before the fold, with its
 // verdict captured on the committed record like any other decision.

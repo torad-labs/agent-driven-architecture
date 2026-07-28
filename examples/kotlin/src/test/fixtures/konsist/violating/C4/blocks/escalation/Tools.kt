@@ -1,4 +1,4 @@
-// BLOCK-TEST C4 (F2/D4), second half — a PURE TOOL names the stamp.
+// BLOCK-TEST C4 (G1), second half — a PURE TOOL names the stamp.
 // A tool asking "who is asking?" is asking the wrong question: it runs at step 3
 // of the boundary's nine, and the signature is not minted until step 4. There is
 // nothing truthful for it to read.

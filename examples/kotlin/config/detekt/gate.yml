@@ -1,4 +1,4 @@
-# ── config/detekt/gate.yml — the type-aware half of the gate (F12) ─────────
+# ── config/detekt/gate.yml — the type-aware half of the gate (15.2) ────────
 #
 # THIS FILE IS THE WHOLE detekt CONFIGURATION. `buildUponDefaultConfig` is false,
 # so a rule that is not written here does not run. That is deliberate: 15.2's
@@ -46,7 +46,7 @@ complexity:
 
 potential-bugs:
   active: true
-  # C9 — G12/F10: closed matches, no catch-all. An `else` arm is how a new variant
+  # C9 — G12: closed matches, no catch-all. An `else` arm is how a new variant
   # stops breaking the build: the compiler goes quiet and the arm silently answers
   # the wrong thing. The rule is type-aware, so it fires only when the subject
   # really is sealed, an enum or a boolean — which is why it can be on tree-wide
@@ -103,24 +103,24 @@ style:
       - reason: 'G9: randomness is ambient. A fold that rolls dice cannot be re-folded.'
         value: 'kotlin.random.Random.nextDouble'
 
-      # C4(d) — F2/D4: the stamp is MINTED at the boundary and nowhere else. This
+      # C4(d) — G1: the stamp is MINTED at the boundary and nowhere else. This
       # is the constructor, resolved: a data class named Signature in someone
       # else's package does not trip it, and a comment mentioning one does not
       # either. Reading `sig.by` and `sig.authority` stays legal everywhere; it is
-      # MAKING one that is denied, because a forged stamp is F2's whole bug.
-      - reason: 'G1/F2: the Signature is minted once per step, at the boundary. Upstream it is unrepresentable.'
+      # MAKING one that is denied, because a forged stamp is G1's whole bug.
+      - reason: 'G1: the Signature is minted once per step, at the boundary. Upstream it is unrepresentable.'
         value: 'adr.spine.pure.Signature.<init>'
 
-      # C6 — F9: a per-item failure is never session-global. Idle and Working
+      # C6 — 12.4: a per-item failure is never session-global. Idle and Working
       # describe the turn and stay constructible; Degraded and Error describe the
-      # SESSION, and F9's measured bug was one bad ticket leaving the banner
+      # SESSION, and the review's measured (12.4) bug was one bad ticket leaving the banner
       # "degraded: ..." for the rest of the session. A block folds a Notice.
-      - reason: 'F9: the session status is the boundary''s. A per-item failure folds a Notice.Rejected.'
+      - reason: '§12.4: the session status is the boundary''s. A per-item failure folds a Notice.Rejected.'
         value: 'adr.spine.pure.RunStatus.Degraded.<init>'
-      - reason: 'F9: the session status is the boundary''s. A per-item failure folds a Notice.Refused.'
+      - reason: '§12.4: the session status is the boundary''s. A per-item failure folds a Notice.Refused.'
         value: 'adr.spine.pure.RunStatus.Error.<init>'
 
-      # C7 — F1: ONE production site. These are the SPINE's own two results, and
+      # C7 — G1: ONE production site. These are the SPINE's own two results, and
       # the boundary's name->ToolResult map is the only thing entitled to mint
       # them. The shipped Kotlin port minted neither: it wrote
       # `runCatching { … }.getOrNull()` and dropped the step on the floor.
@@ -128,7 +128,7 @@ style:
       # The block-owned results are covered by the Konsist half of C7, which
       # DERIVES the variant list from each block's Contract.kt — so adding a verb
       # stays four appends and never touches this file.
-      - reason: 'F1: Unhandled is minted by the boundary''s name->ToolResult map, never upstream of it.'
+      - reason: 'G1: Unhandled is minted by the boundary''s name->ToolResult map, never upstream of it.'
         value: 'adr.contract.ToolResult.Unhandled.<init>'
-      - reason: 'F1/D5: Refused is the gate''s verdict. Only the gate may reach it.'
+      - reason: 'G1/G6: Refused is the gate''s verdict. Only the gate may reach it.'
         value: 'adr.contract.ToolResult.Refused.<init>'

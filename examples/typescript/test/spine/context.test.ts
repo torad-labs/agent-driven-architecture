@@ -1,4 +1,4 @@
-// ── F4 / G15 — the reasoner's input is a named, typed, BOUNDED projection ──
+// ── G15 — the reasoner's input is a named, typed, BOUNDED projection ───────
 // The shipped reference had one sentence for this seam: no type, no projection,
 // no bound, no capture rule, no invariant, no test layer. Below is the test
 // layer.
@@ -16,7 +16,7 @@ import { perceived } from "../../src/spine/pure/staged";
 import { contextDivergence } from "../../src/spine/replay/replay";
 import { harness } from "../harness";
 
-describe("projectContext — the THIRD pure projection (F4)", () => {
+describe("projectContext — the THIRD pure projection (G15)", () => {
   it("is a projection of committed State plus the ONE staged input", () => {
     const state = initialState({ tickets: [{ id: "4118", body: "refund not received" }] });
     const staged = [perceived("inbox", "customer wrote in", "inbox-1")];

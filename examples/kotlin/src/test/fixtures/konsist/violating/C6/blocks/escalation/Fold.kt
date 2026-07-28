@@ -1,4 +1,4 @@
-// BLOCK-TEST C6 (F9) — a per-item failure reaches the SESSION status.
+// BLOCK-TEST C6 (12.4) — a per-item failure reaches the SESSION status.
 // Measured: "confirm on a ticket absent from State -> PageOncall fired AND run ->
 // Degraded", and the banner then read "degraded: ..." for the rest of the session.
 // One bad ticket, one poisoned session. The fix is not to remember to clear a

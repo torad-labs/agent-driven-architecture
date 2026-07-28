@@ -3,12 +3,12 @@
 // edits the root. The sub-union is also what makes the block's fold arm exhaustive
 // on its own, without naming a sibling.
 //
-// PACKAGE NOTE (§1.5): this file sits in blocks/triage/ but declares package
+// PACKAGE NOTE (G12, in Kotlin): this file sits in blocks/triage/ but declares package
 // adr.contract, because Kotlin requires every variant of a sealed hierarchy to live
 // in one package. Gate check C2 compensates: a file under blocks/X may import from
 // adr.contract only the spine roots or X-prefixed symbols.
 //
-// HARD CONSTRAINT (F2/D4): no *Result case has an Actor, Authority or Signature
+// HARD CONSTRAINT (G1): no *Result case has an Actor, Authority or Signature
 // field. The Command cases carry `sig` — the whole stamp, minted at the boundary.
 
 package adr.contract
@@ -34,7 +34,7 @@ sealed class TriageResult(override val tool: ToolName) : ToolResult(tool) {
 
 /**
  * A sealed CLASS extending the sealed CLASS Command: tool/sig/id pass up the chain and
- * every variant carries authorship, permission and identity by construction (L3).
+ * every variant carries authorship, permission and identity by construction (G12).
  */
 sealed class TriageCommand(
     override val tool: ToolName,

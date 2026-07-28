@@ -5,7 +5,7 @@
 // These are ORDINARY verbs, and that is the whole reason the consumer needs no
 // new spine machinery to be observable. The consumer emits an Action; the Action
 // resolves through the one name→ToolResult map, passes the gate, folds, commits
-// and signs. A busy-drop is a decision, so it signs — exactly like A1's
+// and signs. A busy-drop is a decision, so it signs — exactly like 6.8's
 // presentation verbs. Wire a consumer without this block and the Action still
 // resolves, to a committed `Unhandled`: still on the timeline, never silent.
 

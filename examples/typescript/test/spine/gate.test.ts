@@ -1,6 +1,6 @@
-// ── F2 / F3 — the pre-fold gate, keyed on AUTHORITY ────────────────────────
+// ── G1 / G6 — the pre-fold gate, keyed on AUTHORITY ────────────────────────
 //
-// F2, MEASURED against the shipped reference:
+// G1, MEASURED against the shipped reference:
 //   onStepFinish({actor:"Agent", results:[{kind:"EscalationConfirmed", ticket:"4118", by:"Human"}]})
 //     → performed [{"kind":"PageOncall","ticket":"4118","at":9}]
 //       committed [{"kind":"ConfirmEscalation","by":"Agent","id":"c1",…}]
@@ -36,7 +36,7 @@ function confirm(h: ReturnType<typeof harness>, by: "Agent" | "Human"): void {
   });
 }
 
-// ── F2 / D4 — an Actor is UNREPRESENTABLE upstream of the boundary ─────────
+// ── G1 — an Actor is UNREPRESENTABLE upstream of the boundary ──────────────
 // The fix for two unreconciled actor values is not a rule against writing the
 // second one; it is that there is nowhere to write it. The two declarations
 // below stop compiling the moment any ToolResult variant gains an actor-ish
@@ -56,7 +56,7 @@ const CTX_IS_STATE_AND_CONTEXT_ONLY: [Exclude<keyof Ctx<State>, "state" | "conte
   ? true
   : never = true;
 
-describe("F2/D4 — an Actor cannot ride upstream of the boundary", () => {
+describe("G1 — an Actor cannot ride upstream of the boundary", () => {
   it("no ToolResult variant has an actor-typed member, and `Ctx` has no actor at all", () => {
     // a type-level assertion needs a runtime witness so the suite reports it
     expect(NO_ACTOR_ON_ANY_TOOL_RESULT).toBe(true);
@@ -76,7 +76,7 @@ describe("F2/D4 — an Actor cannot ride upstream of the boundary", () => {
     });
 
     const record = must(h.app.bus.records().at(-1));
-    // what was ASKED is kept verbatim — that is the audit half F1 named …
+    // what was ASKED is kept verbatim — that is the audit half G1 named …
     expect(record.actions.at(-1)).toEqual({
       tool: "confirmEscalation",
       input: { ticket: "4118", by: "Human" },
@@ -99,7 +99,7 @@ describe("F2/D4 — an Actor cannot ride upstream of the boundary", () => {
   });
 });
 
-describe("the irreversible gate (F2/F3) — at the boundary, before the fold", () => {
+describe("the irreversible gate (G1/G6) — at the boundary, before the fold", () => {
   it("an agent confirming its OWN request is refused: same authority, no page", () => {
     const h = harness();
     request(h);
@@ -132,7 +132,7 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
     });
     expect(h.world.pages).toEqual([]);
     expect(must(escalation.statusOf(h.app.boundary.state.escalation, "4118")).kind).toBe("Open");
-    // F9: the failure lands as exactly ONE per-item marker beside the item …
+    // 12.4: the failure lands as exactly ONE per-item marker beside the item …
     expect(h.app.boundary.state.spine.notices).toEqual([
       { kind: "Refused", at: 1000, tool: "confirmEscalation", reason: "no pending request" },
     ]);
@@ -152,7 +152,7 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
     expect(h.app.controller.view.banner).toBe("ok");
   });
 
-  it("an UNATTENDED confirmer promotes: Actor.Agent, a different Authority (F3)", () => {
+  it("an UNATTENDED confirmer promotes: Actor.Agent, a different Authority (G6)", () => {
     const h = harness();
     request(h);
     expect(escalation.statusOf(h.app.boundary.state.escalation, "4118")).toMatchObject({
@@ -198,7 +198,7 @@ describe("the irreversible gate (F2/F3) — at the boundary, before the fold", (
     // NOTE: the gate is strictly EARLIER than the arm for an irreversible verb,
     // so an unknown ticket lands as Refused (boundary) rather than Rejected
     // (arm). The arm rejects it too — see test/blocks/escalation.test.ts — but
-    // control never reaches it. What F9 measured (a page fired, and the session
+    // control never reaches it. What the review measured (12.4) (a page fired, and the session
     // went Degraded) cannot happen either way.
     expect(must(h.app.bus.records().at(-1)).results.at(-1)).toMatchObject({
       outcome: "refused",

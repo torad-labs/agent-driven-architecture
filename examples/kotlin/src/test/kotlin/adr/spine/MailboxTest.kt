@@ -1,6 +1,6 @@
 // ── test/spine/mailbox — the barge-in rung, PROVEN (12) ───────────────────
 //
-// F11 (measured, on the shipped prose): 12.3's drain loop puts
+// the review (measured on the shipped prose; 12.3): 12.3's drain loop puts
 // `outcome = await(inFlight)` at LOOP-BODY indentation while `mailbox.take()` blocks
 // at the top. Control never reaches take() during a turn, `turnInFlight` is false at
 // every take(), all three guards are dead, and Fig 12.1's mid-turn "take Interrupt"
@@ -508,7 +508,7 @@ class MailboxTest {
     // confirm it, and the irreversible delivery FIRES. Before the consumer stamped
     // `Actor.Spine` the identical sequence was refused as a self-confirm and
     // delivered nothing: the consumer was borrowing the agent's principal, which is
-    // the lie D15 exists to end.
+    // the lie G1 exists to end.
     //
     // THIS TEST IS A PIN, NOT A DECISION. A stamp that moves a value the gate
     // compares moves a VERDICT, and a moved verdict no test names is invisible. If
@@ -543,7 +543,7 @@ class MailboxTest {
         assertEquals(Authority("agent-run-7f"), seal.by)
 
         // THE IRREVERSIBLE EFFECT FIRED: one delivery, carrying the one folded line.
-        // Before D15's stamp this list stayed empty and the seal stayed Sealing.
+        // Before G1's stamp this list stayed empty and the seal stayed Sealing.
         assertEquals(1, h.world.deliveries.size, "exactly one delivery")
         assertTrue(h.world.deliveries.single().endsWith("Agent: a finding"))
     }

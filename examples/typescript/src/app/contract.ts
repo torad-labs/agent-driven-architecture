@@ -1,5 +1,5 @@
 // ── app/contract — THE ROOT: the only place that names every block (G10) ────
-// The spine may not name a block and a block may not name a sibling (both L1),
+// The spine may not name a block and a block may not name a sibling (both G11),
 // so the closed unions have exactly one legal home: here.
 //
 // Kotlin closes these hierarchies for itself — a sealed interface knows its own

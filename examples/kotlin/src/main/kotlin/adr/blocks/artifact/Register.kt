@@ -1,4 +1,4 @@
-// ── blocks/artifact/register — THE ONE PUBLIC SYMBOL (L1) ──────────────
+// ── blocks/artifact/register — THE ONE PUBLIC SYMBOL (G11) ─────────────
 // A CONSTRUCTED class, like every other block. It is the first of the three blocks
 // that do NOT match triage's role set exactly, and the difference is visible right
 // here: there is no `contextLines`, because the artifact contributes a COUNT to the

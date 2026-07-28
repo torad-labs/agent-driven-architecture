@@ -47,7 +47,7 @@ tasks.test {
     workingDir = project.projectDir
 }
 
-// ── the gate (F12) ─────────────────────────────────────────────────────────
+// ── the gate (15.2) ────────────────────────────────────────────────────────
 // 15.1 stakes the architecture's answer to its own central problem on MACHINE
 // ENFORCEMENT, and 15.4 closes "the payoff the whole reference promises is
 // contingent on these checks being present and blocking". The shipped reference
@@ -86,7 +86,7 @@ val gateFixtures = layout.projectDirectory.dir("src/test/fixtures/detekt")
  * Type resolution needs the classpath the compiler saw. Without it,
  * ElseCaseInsteadOfExhaustiveWhen cannot tell a sealed subject from any other and
  * ForbiddenMethodCall cannot resolve a call at all — both would silently pass, and
- * a silently-passing check is the exact failure F12 measured.
+ * a silently-passing check is the exact failure the review measured (15.2).
  */
 val gateAnalysisClasspath: FileCollection = files(
     configurations.named("detekt"),
@@ -134,7 +134,7 @@ tasks.named<Detekt>("detektMain") {
  * Its source is narrowed to src/main (see the `detekt { }` block above). The gate
  * defends the PRODUCTION tree: §1.3's table is about spine/, blocks/ and app/, and
  * test code deliberately constructs stamps and refusals in order to assert on them
- * — GateTest's own F2/D4 test builds a Signature and a Refused on purpose. Denying
+ * — GateTest's own G1 test builds a Signature and a Refused on purpose. Denying
  * that would be the nuisance 15.2 warns about, and the first thing an author would
  * switch off.
  */
@@ -223,11 +223,11 @@ val gateDetektAllowTest by tasks.registering {
     }
 }
 
-// ── F10: the edit list, PROVEN by the compiler ─────────────────────────────
+// ── G12: the edit list, PROVEN by the compiler ─────────────────────────────
 // §11.2 promises that adding a state variant costs 1 append plus 3 compiler-named
 // arms, all inside one block folder. 15.4 lists that as a G12 self-check —
 // "introduce a variant; the build must break at the fold arm, the view projection
-// and the context projection" — and F10 measured that the self-check had never
+// and the context projection" — and the review measured (G12) that the self-check had never
 // been run: `t.status.kind === "Open"` is not a closed match, and it compiles
 // happily after a variant is added while silently answering the wrong thing.
 //
@@ -263,9 +263,9 @@ fun registerExhaustiveCheck(
     val logFile = layout.buildDirectory.file("reports/gate/exhaustive-$fixture.txt")
 
     description = if (expectFailure) {
-        "F10 BLOCK-TEST: a fifth TicketStatus variant must BREAK the build at three sites."
+        "G12 BLOCK-TEST: a fifth TicketStatus variant must BREAK the build at three sites."
     } else {
-        "F10 ALLOW-TEST: the same three consumers must compile cleanly at four variants."
+        "G12 ALLOW-TEST: the same three consumers must compile cleanly at four variants."
     }
 
     classpath = kotlinCompilerCli
@@ -294,12 +294,12 @@ fun registerExhaustiveCheck(
 
         if (expectFailure) {
             check(exit != 0) {
-                "F10 BLOCK-TEST failed: adding a fifth TicketStatus variant COMPILED.\n" +
-                    "The edit list §11.2 promises is not real, which is exactly what F10 measured.\n$log"
+                "G12 BLOCK-TEST failed: adding a fifth TicketStatus variant COMPILED.\n" +
+                    "The edit list §11.2 promises is not real, which is exactly what the review measured (G12).\n$log"
             }
             val missing = mustName.filterNot { log.contains(it) }
             check(missing.isEmpty()) {
-                "F10 BLOCK-TEST failed: the build broke, but not for the expected reason.\n" +
+                "G12 BLOCK-TEST failed: the build broke, but not for the expected reason.\n" +
                     "The compiler never said: $missing\n$log"
             }
             // Count the EXHAUSTIVENESS errors specifically. The compiler also emits
@@ -311,13 +311,13 @@ fun registerExhaustiveCheck(
                 .map { it.groupValues[1] }
                 .toSet()
             check(sites.size == 3) {
-                "F10 BLOCK-TEST failed: expected THREE compiler-named sites, got ${sites.size} " +
+                "G12 BLOCK-TEST failed: expected THREE compiler-named sites, got ${sites.size} " +
                     "at lines $sites. §11.2's K = 3 is the claim under test.\n$log"
             }
-            logger.lifecycle("F10 BLOCK-TEST: the compiler named 3 sites (lines ${sites.sorted()}) — edit list earned.")
+            logger.lifecycle("G12 BLOCK-TEST: the compiler named 3 sites (lines ${sites.sorted()}) — edit list earned.")
         } else {
             check(exit == 0) {
-                "F10 ALLOW-TEST failed: the compliant four-variant tree did NOT compile.\n" +
+                "G12 ALLOW-TEST failed: the compliant four-variant tree did NOT compile.\n" +
                     "A negative-compilation fixture that never compiles proves nothing.\n$log"
             }
         }

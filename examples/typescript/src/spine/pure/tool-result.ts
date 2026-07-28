@@ -1,7 +1,7 @@
-// ── spine/pure/tool-result — the sealed ROOT of the fold's input (L3, F1) ───
+// ── spine/pure/tool-result — the sealed ROOT of the fold's input (G12, G1) ──
 // The payload a verb returns; the ONLY thing the fold consumes. Kotlin gets a
 // `sealed interface ToolResult { val tool: ToolName }`. TypeScript has no
-// sealed classes, so L3 is expressed natively as:
+// sealed classes, so G12 is expressed natively as:
 //
 //   a SHARED BASE INTERFACE (`ToolResultBase`) declaring the common fields ONCE
 //   + a discriminated union closed at `app/contract`
@@ -11,11 +11,11 @@
 //   `outcome` — the TS stand-in for Kotlin's sealed-subclass dispatch. It is
 //               what lets a consumer separate the spine's own two cases from a
 //               block's, since a spine case carries someone ELSE's tool name.
-//   `tool`    — D3: the verb name. The same string is the registry key, the
+//   `tool`    — 6.8: the verb name. The same string is the registry key, the
 //               Command's name and the Notice's key. "The gate keys off names"
 //               (17.6) is literally true here.
 //
-// HARD CONSTRAINT (F2 / D4): no variant of this hierarchy has a field of type
+// HARD CONSTRAINT (G1): no variant of this hierarchy has a field of type
 // Actor, Authority or Signature, and none may gain one. Enforced by check C4.
 
 import type { ToolName } from "./ids";
@@ -34,7 +34,7 @@ export interface Unhandled extends ToolResultBase {
   readonly note: string;
 }
 
-/** The boundary gate said no. COMMITTED, so it re-folds without re-checking (D5). */
+/** The boundary gate said no. COMMITTED, so it re-folds without re-checking (G6). */
 export interface Refused extends ToolResultBase {
   readonly outcome: "refused";
   readonly reason: string;

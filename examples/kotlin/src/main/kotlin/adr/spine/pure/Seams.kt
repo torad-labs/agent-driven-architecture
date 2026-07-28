@@ -12,7 +12,7 @@
 package adr.spine.pure
 
 /**
- * A block's window onto its OWN slice of the app's State (L1). The block never learns
+ * A block's window onto its OWN slice of the app's State (G11). The block never learns
  * what else State holds; the root hands it this and nothing more.
  */
 fun interface Lens<S, T> {

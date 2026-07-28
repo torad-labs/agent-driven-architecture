@@ -2,7 +2,7 @@
 // No siblings, no root, no live adapters: feed a verb, fold the arm, assert the
 // slice and the effects. This is the test layer the shipped ports never had.
 //
-// F9 OLD (measured): setPriority on unknown ticket 9999 → Effect.Log performed,
+// the OLD shape, MEASURED (12.4): setPriority on unknown ticket 9999 → Effect.Log performed,
 // SetPriority committed, folded state UNCHANGED. A clean-looking audit record for a
 // mutation that never happened.
 
@@ -53,7 +53,7 @@ class TriageBlockTest {
     }
 
     @Test
-    fun `F9 - an unknown ticket mutates nothing, fires nothing, and leaves ONE per-item notice`() {
+    fun `PER-ITEM - an unknown ticket mutates nothing, fires nothing, and leaves ONE notice`() {
         val out = block.arm(
             slice,
             TriageResult.SetPriority(SET_PRIORITY, TicketId("9999"), Priority.High),

@@ -1,5 +1,5 @@
 // ── test/spine/boundary — commit before perform, and `now` on the record ──
-// F8's measured failure: RecordingBus after a step folded at now=9 exposed keys
+// the review's measured (G9) failure: RecordingBus after a step folded at now=9 exposed keys
 // ['commands','results'] and contained no 'now'; a live boundary that folded at
 // at:1001 re-folded at at:0.
 
@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
 class BoundaryTest {
 
     @Test
-    fun `the committed record carries now, so a live boundary can be re-folded (F8)`() {
+    fun `the committed record carries now, so a live boundary can be re-folded (G9)`() {
         val app = Wiring().wireApp(Env(clock = MovingClock(start = 1000, step = 7)))
         Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")
 
@@ -35,7 +35,7 @@ class BoundaryTest {
     }
 
     @Test
-    fun `F8 - a live turn under a MOVING clock re-folds to IDENTICAL timestamps`() {
+    fun `G9 - a live turn under a MOVING clock re-folds to IDENTICAL timestamps`() {
         // The measured failure, in one line: a live boundary that folded at at:1001
         // re-folded at at:0. `append(signedCommands, capturedResults)` had no clock
         // read in it, and a RecordingBus after a step folded at now=9 exposed keys
@@ -80,7 +80,7 @@ class BoundaryTest {
     }
 
     @Test
-    fun `the effect key is derived from the COMMITTED step index (F7)`() {
+    fun `the effect key is derived from the COMMITTED step index (G9)`() {
         val app = Wiring().wireApp(Env())
         Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")
         Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "Urgent")

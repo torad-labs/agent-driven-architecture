@@ -4,7 +4,7 @@
 // boundary onto `onStepFinish` — that callback IS the boundary seam. There is
 // no domain logic here, no branching, and no state (check C14).
 //
-// IT FORWARDS ACTIONS, NOT RESULTS (F1/§3.1). The SDK's serialized tool output
+// IT FORWARDS ACTIONS, NOT RESULTS (G1/§3.1). The SDK's serialized tool output
 // never reaches the fold; what reaches the fold is what `resolveAction`
 // produced from the model's RAW input. That makes `resolveAction` the single
 // production site of every ToolResult in the system, so a recorded result can
@@ -26,7 +26,7 @@ import type { Ctx, Dispatchers, Verb } from "../pure/verb";
 type FlexibleInputSchema = Parameters<typeof tool>[0]["inputSchema"];
 
 /** The verb table → the SDK's tool set. One row per registered verb; a
- *  presentation verb and a domain verb produce identical rows (A1). */
+ *  presentation verb and a domain verb produce identical rows (6.8). */
 export function buildTools<S>(
   registry: Registry<S>,
   boundary: Boundary<S>,

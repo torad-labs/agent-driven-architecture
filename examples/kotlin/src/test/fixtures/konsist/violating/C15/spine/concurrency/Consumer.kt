@@ -1,4 +1,4 @@
-// BLOCK-TEST C15 (A4) — the spine tier reaches DOWN into feature code.
+// BLOCK-TEST C15 (G14) — the spine tier reaches DOWN into feature code.
 // Three separate ways to break the vendorability claim, all in one file:
 //
 //   1. a block's public symbol           → the tier can no longer be lifted out whole

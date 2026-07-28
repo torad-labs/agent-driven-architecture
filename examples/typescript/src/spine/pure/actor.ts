@@ -1,4 +1,4 @@
-// ── spine/pure/actor — the stamp (G1, amended by F3) ────────────────────────
+// ── spine/pure/actor — the stamp (G1, amended by G6) ────────────────────────
 // TWO orthogonal questions, two types:
 //
 //   Actor      answers WHO ACTED.              Closed; grows only at architecture

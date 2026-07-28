@@ -1,4 +1,4 @@
-// ── test/spine/recovery — F7: the idempotency key, actually constructed ───
+// ── test/spine/recovery — G9: the idempotency key, actually constructed ───
 // 14.6 rested the whole recovery-path safety claim on "the effect's id is its
 // idempotency key", and no port ever built one. MEASURED: the same confirm applied
 // twice → PageOncall fired TWICE, both at:9.
@@ -29,7 +29,7 @@ import kotlin.test.assertIs
 class RecoveryTest {
 
     @Test
-    fun `F7 - RECOVERY re-driven twice fires each irreversible effect exactly once`() {
+    fun `G9 - RECOVERY re-driven twice fires each irreversible effect exactly once`() {
         val world = World()
         val authority = RunAuthority()
         val app = Wiring().wireApp(Env(world = world, authority = authority))

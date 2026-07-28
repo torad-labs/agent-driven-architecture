@@ -7,7 +7,7 @@
 //
 // The BLOCK half is the red-green proof, executed rather than remembered: delete a
 // rule's body and its own test fails immediately, because a check that cannot fail
-// is what F12 measured shipping. The ALLOW half is 15.2's discipline — a rule
+// is what the review measured (15.2) shipping. The ALLOW half is 15.2's discipline — a rule
 // without one drifts into a nuisance authors turn off, and then the gate is
 // decorative again.
 //
@@ -79,7 +79,7 @@ class GateTest {
      * point is the denial, not the count.
      */
     @Test
-    fun `F12 - all fifteen checks ship, and each one is enforced somewhere`() {
+    fun `THE ROSTER - all fifteen checks ship, and each one is enforced somewhere`() {
         val roster = mapOf(
             "C1" to "konsist", "C2" to "konsist", "C3" to "detekt",
             "C4" to "konsist+detekt", "C5" to "konsist", "C6" to "konsist+detekt",
@@ -235,7 +235,7 @@ class GateTest {
     }
 
     /**
-     * F2/D4, the COPY half of C4(d). The detekt half denies `Signature.<init>` as a
+     * G1, the COPY half of C4(d). The detekt half denies `Signature.<init>` as a
      * resolved call — but a `data class` ships a synthesized `copy()`, and
      * `sig.copy(by = Actor.Human)` is a SECOND production site with a different
      * name, invisible to any constructor rule. Signature is therefore a plain
@@ -252,12 +252,12 @@ class GateTest {
         assertTrue(
             !signature.hasDataModifier,
             "Signature must not be a data class: `copy()` would be a second, " +
-                "ungated production site for the stamp (F2)",
+                "ungated production site for the stamp (G1)",
         )
     }
 
     /**
-     * F10/§11.2: the edit list for a new state variant is K = 3, and every one of
+     * G12/§11.2: the edit list for a new state variant is K = 3, and every one of
      * the three is INSIDE the owning block.
      *
      * The compiler proves the "breaks the build at three sites" half — see
@@ -268,7 +268,7 @@ class GateTest {
      * block's own consumers and there is nothing outside it to go and find.
      */
     @Test
-    fun `F10 - a new TicketStatus variant has ZERO consumers outside its own block`() {
+    fun `G12 - a new TicketStatus variant has ZERO consumers outside its own block`() {
         val outside = live
             .filter { it.block != "escalation" && GateTrees().mentions(it.codeText, "TicketStatus") }
             .map { it.path }
@@ -298,16 +298,16 @@ class GateTest {
     }
 
     /**
-     * L5/A1: a new verb touches FOUR appends, three files, one folder — and the
+     * 16.1: a new verb touches FOUR appends, three files, one folder — and the
      * same four whether it is a domain verb or a presentation verb.
      *
-     * 6.8's carve-out ("a UI tool folds, does not sign") is what A1 deletes, and
+     * 6.8's carve-out ("a UI tool folds, does not sign") is what 6.8 deletes, and
      * this is the assertion that keeps it deleted: the presentation block has the
      * same file set and declares its verbs with the same constructors as a domain
      * block. There is no cheaper UI path, because there is no UI path.
      */
     @Test
-    fun `L5 - a new verb touches FOUR appends, three files, one folder - uniformly (A1)`() {
+    fun `BLAST RADIUS - a new verb touches FOUR appends, three files, one folder`() {
         val perBlock = live.mapNotNull { f -> f.block?.let { it to f } }.groupBy({ it.first }, { it.second })
         listOf("triage", "escalation", "console", "artifact", "analysis", "inbox").forEach { block ->
             val names = perBlock.getValue(block).map { it.fileName }.toSet()

@@ -1,4 +1,4 @@
-// ── spine/pure/action — the OPEN boundary input (F1) ───────────────────────
+// ── spine/pure/action — the OPEN boundary input (G1) ───────────────────────
 // An Action is the one thing that crosses INTO the system: a (tool name, raw
 // input) pair. A person tapping a control and a model calling a tool produce the
 // SAME Action; the boundary's closed name→ToolResult map (spine/boundary/action)

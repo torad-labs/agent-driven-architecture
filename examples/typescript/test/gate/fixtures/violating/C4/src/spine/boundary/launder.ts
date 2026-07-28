@@ -1,4 +1,4 @@
-// VIOLATION: F2/D4, fourth half — THE REBINDING TWO-HOP, authored INSIDE the
+// VIOLATION: G1, fourth half — THE REBINDING TWO-HOP, authored INSIDE the
 // one folder C4_MINT exempts. The exemption is a folder, so this file may bind
 // the constructor; renaming it on the way out then produces a binding that
 // `importNames: ["Signature"]` cannot see anywhere downstream, and

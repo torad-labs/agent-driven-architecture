@@ -1,10 +1,10 @@
-// ── F7 / F8 — recovery is idempotent, and timestamps round-trip ────────────
+// ── G9 — recovery is idempotent, and timestamps round-trip ─────────────────
 //
-// F7, MEASURED: the same confirm applied twice → PageOncall fired TWICE, both
+// G9, MEASURED: the same confirm applied twice → PageOncall fired TWICE, both
 // at:9. The effect idempotency key 14.6 rests its whole recovery-path safety
 // claim on was read in three places and constructed in none.
 //
-// F8, MEASURED: a RecordingBus after a step folded at now=9 had keys
+// G9, MEASURED: a RecordingBus after a step folded at now=9 had keys
 // ['commands','results'] and contained no 'now'. Live at:1001 → re-folded at:0.
 
 import { describe, expect, it } from "vitest";
@@ -28,7 +28,7 @@ function driveToAPage(h: ReturnType<typeof harness>): void {
   });
 }
 
-describe("F8 — `now` rides the committed record", () => {
+describe("G9 — `now` rides the committed record", () => {
   it("every timestamp round-trips through the bus under a MOVING clock", () => {
     const h = harness({ start: 1000, step: 7 });
     h.app.boundary.onStepFinish({
@@ -49,7 +49,7 @@ describe("F8 — `now` rides the committed record", () => {
   });
 });
 
-describe("F7 — RECOVERY re-drives a timeline exactly once", () => {
+describe("G9 — RECOVERY re-drives a timeline exactly once", () => {
   it("a deduping sink keyed on the committed index pages on-call ONCE across two crashes", () => {
     const h = harness({ start: 1000, step: 7 });
     driveToAPage(h);

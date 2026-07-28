@@ -13,7 +13,7 @@
 //    authorization seam again (G9).
 //
 //  * NOTHING DOWNSTREAM OF STEP 4 CAN LEARN WHO ACTED EXCEPT THROUGH `sig`. The
-//    results were produced in step 3, before the signature existed. F2's
+//    results were produced in step 3, before the signature existed. G1's
 //    two-unreconciled-actor-values problem cannot recur, because there is only one
 //    value and it is created after the tool has returned.
 
@@ -43,7 +43,7 @@ import adr.spine.ports.Sink
 /**
  * Generic in the app's State type: that is the structural price of "the spine never
  * names a block" (§15 risk 6). The alternative — the spine importing blocks — breaks
- * L1 outright.
+ * G11 outright.
  */
 class Boundary<S>(
     private val clock: Clock,
@@ -78,23 +78,23 @@ class Boundary<S>(
         // 1 — the ONLY clock read in the system (G9).
         val now = clock.now()
 
-        // 2 — the THIRD pure projection (F4). The tools see exactly what the reasoner saw.
+        // 2 — the THIRD pure projection (G15). The tools see exactly what the reasoner saw.
         val ctx = Ctx(state, projectContext(state, step.staged))
 
-        // 3 — the ONE closed name→ToolResult map (F1), before anything is stamped.
+        // 3 — the ONE closed name→ToolResult map (G1), before anything is stamped.
         val results = step.actions.map { actions.resolve(it, ctx) }
 
-        // 4 — stamp WHO acted and resolve UNDER WHOSE PERMISSION, together, once (G1, F3).
+        // 4 — stamp WHO acted and resolve UNDER WHOSE PERMISSION, together, once (G1, G6).
         val sig = Signature(by = step.by, authority = authority.authorityOf(step.by, session))
 
-        // 5 — the gate, PRE-FOLD, keyed on the authority (F2/F3/F13).
+        // 5 — the gate, PRE-FOLD, keyed on the authority (G1/G6).
         val gated = results.map { irreversibility.check(it, sig, state) }
 
         // 6 — the pure decision. The only decider in the system.
         val (next, effects) = fold(state, gated, now, sig)
 
-        // 7 — COMMIT the step as a unit (14.6/F8). `results` is POST-GATE: exactly what was
-        //     folded. `actions` is what was ASKED. A1: EVERY verb signs, presentation included.
+        // 7 — COMMIT the step as a unit (14.6). `results` is POST-GATE: exactly what was
+        //     folded. `actions` is what was ASKED. 6.8: EVERY verb signs, presentation included.
         val index = bus.append(
             StepRecord(
                 now = now,
@@ -110,7 +110,7 @@ class Boundary<S>(
         // 8 — adopt the derived cache.
         state = next
 
-        // 9 — perform, with the key derived from the COMMITTED index (F7). This line
+        // 9 — perform, with the key derived from the COMMITTED index (G9). This line
         //     literally cannot run before step 7, because `index` does not exist until then.
         effects.forEachIndexed { i, effect ->
             sink.perform(KeyedEffect(EffectKey(index, i), effect), PerformMode.LIVE)

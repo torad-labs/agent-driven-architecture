@@ -1,4 +1,4 @@
-// ── spine/pure/step-record — THE unit of commit and THE unit of replay (F8) ─
+// ── spine/pure/step-record — THE unit of commit and THE unit of replay (G9) ─
 // The shipped reference committed a PAIR — append(signedCommands, results) —
 // with no clock on it. Measured consequence: a live boundary folded at
 // now = 1001 and its re-fold produced at = 0. Every timestamp was lost, and in
@@ -8,11 +8,11 @@
 //   now       without it a re-fold cannot reproduce what a live boundary wrote
 //   sig       the stamp the fold was given
 //   staged    the ordered off-bus input fixture this step consumed (5.4)
-//   actions   what was ASKED — the audit half F1 named
+//   actions   what was ASKED — the audit half G1 named
 //   results   POST-GATE — exactly what was FOLDED (so a refusal re-folds
 //             without calling the authorization seam again: G9)
 //   commands  the signed record, with ids that cannot be re-derived
-//   context   promptVersion + the rendered digest the model saw (F4)
+//   context   promptVersion + the rendered digest the model saw (G15)
 //
 // SCHEMA ENVELOPE (14.7) IS OUT OF SCOPE for this port: there is no
 // `schemaVersion` and no upcaster. That is deliberate, not an omission.

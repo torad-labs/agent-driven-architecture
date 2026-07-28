@@ -1,4 +1,4 @@
-// ── F1 — the name→ToolResult map, and the two paths that share it ──────────
+// ── G1 — the name→ToolResult map, and the two paths that share it ──────────
 // The shipped reference specified no conversion from what a surface emits to
 // what the fold consumes; `ToolResult` was in neither the glossary nor the
 // nomenclature table. These tests pin the conversion that now exists.
@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { HOST, harness } from "../harness";
 import { must } from "../support/must";
 
-describe("resolveAction — the one closed name→ToolResult map (F1)", () => {
+describe("resolveAction — the one closed name→ToolResult map (G1)", () => {
   it("an unregistered name folds a committed Unhandled, it is not silently dropped", () => {
     const { app, sink } = harness();
     app.boundary.onStepFinish({

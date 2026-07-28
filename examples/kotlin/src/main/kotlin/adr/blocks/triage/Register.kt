@@ -1,4 +1,4 @@
-// ── blocks/triage/register — THE ONE PUBLIC SYMBOL (L1) ────────────────
+// ── blocks/triage/register — THE ONE PUBLIC SYMBOL (G11) ───────────────
 // Everything the composition root needs from this block, bundled. Plug the block in
 // by constructing it at app/wire; pull it out by deleting this folder and that line.
 // Nothing outside the block reaches a triage ROLE except through this type.
@@ -16,7 +16,7 @@
 // and `register` hands it there.
 //
 // The block is generic in the app's State: it is handed a LENS onto its own slice,
-// so it never has to know what else is in State (L1).
+// so it never has to know what else is in State (G11).
 
 package adr.blocks.triage
 

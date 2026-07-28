@@ -1,0 +1,59 @@
+# ALLOW-TEST for the registry check: the idiomatic shape, which must pass
+# untouched — including the two shapes a naive rule would wrongly deny, a
+# value check carrying its pair inside the checker and a law that legitimately
+# names no check at all. Every field spelled the way laws.toml spells it.
+
+vocabulary = ["denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+
+[[laws]]
+id = "G1"
+name = "an-example-law"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One denying check holds the violating shape, on both ports."
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G2"
+name = "a-value-law"
+layers = ["compiler-proof", "behavioral"]
+headline = "Behavioral + compiler proof."
+note = "A value check, so its pair is two inputs to one checker."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+violating = ""
+compliant = ""
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+violating = ""
+compliant = ""
+
+[[laws]]
+id = "G3"
+name = "an-un-denied-law"
+layers = ["discipline"]
+headline = "Discipline."
+note = "No machine holds it, and it names no check."

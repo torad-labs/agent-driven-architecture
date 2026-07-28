@@ -9,7 +9,7 @@
 //                      Authority, and there is no field on it that could carry
 //                      one, so recall confers no authority BY CONSTRUCTION.
 //
-// L3, expressed natively: a shared base interface declares `source` ONCE, the
+// G12, expressed natively: a shared base interface declares `source` ONCE, the
 // union is closed here, and every consumer matches it with a `never` guard.
 //
 // WHY THE RECALL OUTCOME IS A SEALED SET AND NOT A NULLABLE STRING. "The deep

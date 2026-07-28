@@ -1,4 +1,4 @@
-// ── blocks/console/contract — A PRESENTATION BLOCK'S TRANSPORT (A1) ────────
+// ── blocks/console/contract — A PRESENTATION BLOCK'S TRANSPORT (6.8) ───────
 // Read this beside `blocks/triage/contract.ts`. They are the same file with
 // different nouns.
 //

@@ -1,4 +1,4 @@
-// VIOLATION: F2/D4, fourth half — RE-EXPORT LAUNDERING. Both forms below put
+// VIOLATION: G1, fourth half — RE-EXPORT LAUNDERING. Both forms below put
 // the constructor back within reach of a file that then imports it under a name
 // the value-import denial cannot key on:
 //

@@ -1,5 +1,5 @@
 // ── blocks/escalation/slice — a sealed status with a parent-declared field ──
-// TicketStatus is the L3 showcase inside a block: the parent declares `ticket`, so
+// TicketStatus is the G12 showcase inside a block: the parent declares `ticket`, so
 // every state a ticket can be in carries its own identity by construction, and the
 // two states that record a principal record WHICH principal — which is what the
 // boundary gate compares against (14.3: "a different actor than the one that issued

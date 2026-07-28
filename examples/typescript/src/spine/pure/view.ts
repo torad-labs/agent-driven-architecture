@@ -15,7 +15,7 @@ export function spineView(slice: SpineSlice): ViewModel {
   return { banner: bannerFor(slice), notices: slice.notices.map(renderNotice) };
 }
 
-// A per-item rejection must NEVER reach this banner (F9). Only the boundary can
+// A per-item rejection must NEVER reach this banner (12.4). Only the boundary can
 // put the session into Degraded or Error, so only a session-level cause shows.
 function bannerFor(slice: SpineSlice): string {
   const run = slice.run;

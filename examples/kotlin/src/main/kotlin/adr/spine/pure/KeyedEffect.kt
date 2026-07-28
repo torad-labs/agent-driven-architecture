@@ -1,9 +1,9 @@
-// ── spine/pure/keyed-effect — the transport that crosses the perform seam (F7) ─
+// ── spine/pure/keyed-effect — the transport that crosses the perform seam (G9) ─
 // 14.6 rests the whole recovery-path safety claim on "the effect's id is its
 // idempotency key", and no port ever constructed one: the same confirm applied
 // twice paged on-call TWICE.
 //
-// The key is NOT a field on Effect. Under L3 a shared property belongs on the
+// The key is NOT a field on Effect. Under G12 a shared property belongs on the
 // sealed parent — but the fold returns List<Effect>, so a key on Effect is a field
 // the fold CAN set, and eventually will. That is exactly what G9 forbids.
 // Splitting the parent resolves it cleanly:

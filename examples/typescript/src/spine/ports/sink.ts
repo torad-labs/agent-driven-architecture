@@ -1,4 +1,4 @@
-// ── spine/ports/sink — the perform seam (F5, F7) ────────────────────────────
+// ── spine/ports/sink — the perform seam (G9) ────────────────────────────────
 // INTERFACES ONLY (C11).
 //
 // `perform` accepts a KeyedEffect and NOTHING ELSE, so an effect can never

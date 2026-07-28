@@ -1,4 +1,4 @@
-// ── spine/pure/step-record — THE unit of commit and THE unit of replay (F8) ─
+// ── spine/pure/step-record — THE unit of commit and THE unit of replay (G9) ─
 // The shipped reference committed `append(signedCommands, capturedResults)` — no
 // clock. A live boundary that folded at now=1001 re-folded at now=0, because the
 // only thing that could have carried the timestamp was never written down.
@@ -13,7 +13,7 @@
 //   actions   what was ASKED — differs from `results` whenever the gate refused
 //   results   POST-GATE — exactly what was FOLDED
 //   commands  the signed record, with the minted ids that cannot be re-derived
-//   context   promptVersion + the rendered digest the model saw (F4/14.7)
+//   context   promptVersion + the rendered digest the model saw (G15/14.7)
 
 package adr.spine.pure
 

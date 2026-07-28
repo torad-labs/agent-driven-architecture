@@ -1,5 +1,5 @@
-// BLOCK-TEST C4 (F2/D4) — a ToolResult variant carries an Actor.
-// This is F2's measured bug, exactly: the shipped port let a TOOL copy an Actor
+// BLOCK-TEST C4 (G1) — a ToolResult variant carries an Actor.
+// This is the review's measured (G1) bug, exactly: the shipped port let a TOOL copy an Actor
 // into its own payload, the gate branched on THAT, and the log recorded a
 // different Actor the boundary stamped after the fold had already run. Two
 // unreconciled values, and the stamp was causally incapable of gating.

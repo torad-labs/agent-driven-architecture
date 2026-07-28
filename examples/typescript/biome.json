@@ -2,7 +2,12 @@
   "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": false },
   "files": {
-    "includes": ["src/**/*.ts", "test/**/*.ts", "!test/gate/fixtures/**"]
+    "includes": [
+      "src/**/*.ts",
+      "test/**/*.ts",
+      "!test/gate/fixtures/**",
+      "!test/laws/fixtures/citations/**"
+    ]
   },
   "formatter": {
     "enabled": true,

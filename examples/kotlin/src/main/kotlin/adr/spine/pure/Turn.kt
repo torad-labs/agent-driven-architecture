@@ -35,7 +35,7 @@ sealed class TurnOutcome {
  * of the timeline rather than of a log line someone might grep for.
  */
 sealed class ConsumerEvent(
-    /** Which source the event is about. Declared once (L3). */
+    /** Which source the event is about. Declared once (G12). */
     open val source: SourceName,
 ) {
 

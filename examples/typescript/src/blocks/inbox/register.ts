@@ -1,4 +1,4 @@
-// ── blocks/inbox/register — THE ONE PUBLIC SYMBOL (L1) ─────────────────
+// ── blocks/inbox/register — THE ONE PUBLIC SYMBOL (G11) ────────────────
 // Six files, the standard block anatomy, no port and no adapter: this block
 // holds no client handle because it records what already happened.
 

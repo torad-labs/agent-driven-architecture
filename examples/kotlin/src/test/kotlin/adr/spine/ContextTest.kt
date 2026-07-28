@@ -1,4 +1,4 @@
-// ── test/spine/context — F4/G15: the third projection, and its bound ──────
+// ── test/spine/context — G15: the third projection, and its bound ─────────
 // The reasoner's input used to be the one seam with no type, no projection, no
 // bound, no capture rule and no test layer. This file is the test layer.
 

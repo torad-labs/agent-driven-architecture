@@ -1,6 +1,6 @@
 // ── BLOCK-TEST for gate check C3 (G9) ─────────────────────────────────────
 // A pure-ring file that reads the clock, rolls dice and mints an id out of thin
-// air. This is the shape F12 measured shipping green: Date.now() inside a tool
+// air. This is the shape the review measured (15.2) shipping green: Date.now() inside a tool
 // passed a clean build in BOTH reference ports.
 //
 // It sits under spine/pure/, NOT under spine/boundary/, which is the whole point:

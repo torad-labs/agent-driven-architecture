@@ -7,7 +7,7 @@
 // blocks/console/project, where ephemeral state joins the pre-decided ViewModel at
 // the very last moment. `fold`, `slice`, `contract` and `register` cannot see it.
 //
-// A1's volume objection, answered: the axis is DECISION vs EPHEMERAL, not UI vs
+// 6.8's volume objection, answered: the axis is DECISION vs EPHEMERAL, not UI vs
 // domain. A deliberate repositioning IS the "discrete, auditable, low-frequency
 // action" 5.4 puts on the bus; a scroll offset is not.
 

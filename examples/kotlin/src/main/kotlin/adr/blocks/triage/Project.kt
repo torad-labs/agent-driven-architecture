@@ -1,6 +1,6 @@
 // ── blocks/triage/project — TWO pure projections of the SAME slice ─────────
 // slice → view      what a human reads    (6.9, the Presenter)
-// slice → lines     what the reasoner reads (F4/G15, the third projection)
+// slice → lines     what the reasoner reads (G15, the third projection)
 //
 // They live on one CONSTRUCTED type because they are the same kind of thing: total,
 // pure functions of committed state, with no clock, no I/O and no accumulator. The

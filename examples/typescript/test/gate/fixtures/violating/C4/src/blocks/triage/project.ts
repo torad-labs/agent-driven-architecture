@@ -1,4 +1,4 @@
-// VIOLATION: F2/D4, fourth half — the NAMESPACE route around the value-import
+// VIOLATION: G1, fourth half — the NAMESPACE route around the value-import
 // denial. `import * as` binds no named specifier, and `actor.Signature` is the
 // same constructor. C4_MINT covers it because `importNames` treats a namespace
 // binding as a binding of every name in the module — which is exactly what it

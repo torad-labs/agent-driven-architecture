@@ -63,7 +63,7 @@ class Demo(private val out: Narrator) {
         out.say("[view ] ${app.controller.view.triage.rows.first()}")
 
         // 2) A PRESENTATION verb, from the human surface. It folds AND signs, exactly like
-        //    a domain verb — that is A1: one tool mechanic, not two.
+        //    a domain verb — that is 6.8: one tool mechanic, not two.
         app.controller.onAction(Action(SET_PANEL, RawInput("panel" to "audit", "visible" to "true")))
         out.say("[a1   ] presentation command committed: ${app.bus.records().last().commands.last()}")
 
@@ -78,14 +78,14 @@ class Demo(private val out: Narrator) {
         out.say("[gate ] pages so far: ${world.pages.size}")
 
         // 5) An UNATTENDED confirmer: a policy tier, acting through the agent's own
-        //    stream. The Actor is stamped truthfully; only the AUTHORITY differs (F3).
+        //    stream. The Actor is stamped truthfully; only the AUTHORITY differs (G6).
         authority.acting = Authority("policy-tier-v3")
         app.controller.onAction(Action(CONFIRM_ESCALATION, RawInput("ticket" to "4118")))
         authority.acting = null
         out.say("[gate ] policy-tier confirm → ${app.bus.records().last().results.last()}")
         out.say("[gate ] pages so far: ${world.pages.size}")
 
-        // 6) The work product: folded lines, then ONE gated delivery at seal time (F6).
+        // 6) The work product: folded lines, then ONE gated delivery at seal time (G16).
         app.controller.onAction(Action(RECORD_FINDING, RawInput("text" to "refund was never issued")))
         app.controller.onAction(Action(RECORD_FINDING, RawInput("text" to "escalated to on-call")))
         app.controller.onAction(Action(REQUEST_SEAL, RawInput()))

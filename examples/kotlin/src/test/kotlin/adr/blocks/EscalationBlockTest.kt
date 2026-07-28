@@ -1,5 +1,5 @@
 // ── test/blocks/escalation — the block IN ISOLATION (G13) ─────────────────
-// F9 OLD (measured):
+// the OLD shape, MEASURED (12.4):
 //   confirm with NO prior Request (ticket Open) → PageOncall fired, status Escalated
 //   confirm on a ticket absent from State       → PageOncall("nope") fired AND run → Degraded
 
@@ -54,7 +54,7 @@ class EscalationBlockTest {
     }
 
     @Test
-    fun `F9 - a confirm with no pending request mutates nothing and fires nothing`() {
+    fun `PER-ITEM - a confirm with no pending request mutates nothing and fires nothing`() {
         val out = block.arm(slice, EscalationResult.ConfirmEscalation(CONFIRM_ESCALATION, ticket), now, confirmer)
 
         assertEquals(slice, out.slice)
@@ -63,7 +63,7 @@ class EscalationBlockTest {
     }
 
     @Test
-    fun `F9 - a confirm on an absent ticket is a PER-ITEM rejection, never a session status`() {
+    fun `PER-ITEM - a confirm on an absent ticket is a rejection, never a session status`() {
         val out = block.arm(
             slice,
             EscalationResult.ConfirmEscalation(CONFIRM_ESCALATION, TicketId("nope")),

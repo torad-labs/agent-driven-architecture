@@ -1,7 +1,7 @@
 // ── app/assemble — THE THREE TOTAL DISPATCHERS (G12) ────────────────────────
 //   fold            results → (State, Effect[])      the only decider
 //   project         State   → ViewModel              the Presenter (6.9)
-//   projectContext  State   → Context                the reasoner's input (F4)
+//   projectContext  State   → Context                the reasoner's input (G15)
 //
 // Three, not one: they consume different things (results / slices / slices) and
 // 6.9 forbids fusing the fold with the projections.
@@ -14,7 +14,7 @@
 // its branch here and the build fails on `const _never: never = r`.
 //
 // Note what is NOT here: a per-VERB branch. Adding a verb touches four sites,
-// all four inside its own block folder, and zero at the root (L5, §11.1).
+// all four inside its own block folder, and zero at the root (16.1, §11.1).
 
 import { analysis } from "../blocks/analysis/register";
 import { artifact } from "../blocks/artifact/register";
@@ -106,7 +106,7 @@ function foldOk(state: State, r: OkResult, now: Timestamp, sig: Signature): Fold
   }
   // Every "ok" result belongs to exactly one block. Add a block to the union in
   // app/contract without adding its branch above, and this line fails to
-  // compile — which is the edit list L5 promises, produced by the compiler.
+  // compile — which is the edit list 16.1 promises, produced by the compiler.
   const _never: never = r;
   void _never;
 
@@ -129,7 +129,7 @@ function foldOk(state: State, r: OkResult, now: Timestamp, sig: Signature): Fold
 
 /** A block's arm returns its own slice plus per-item notices; the notices land
  *  in the SPINE's slice, so a block never has to know that notices exist as a
- *  cross-cutting concern — and never has a way to touch RunStatus (F9). */
+ *  cross-cutting concern — and never has a way to touch RunStatus (12.4). */
 function merge<S>(out: ArmOut<S>, put: (slice: S) => State): FoldOut<State> {
   const next = put(out.slice);
   return {

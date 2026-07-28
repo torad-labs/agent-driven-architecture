@@ -1,9 +1,9 @@
-// ── blocks/triage/contract — the block's TRANSPORT (L3) ────────────────────
+// ── blocks/triage/contract — the block's TRANSPORT (G12) ───────────────────
 // Every case this block contributes to the three spine-rooted sealed sets. The
 // shared fields are declared ONCE, on the spine's base interfaces; a variant
 // here declares only what is its own.
 //
-// D3 in one line: `tool` is the discriminant of the ToolResult, the discriminant
+// 6.8 in one line: `tool` is the discriminant of the ToolResult, the discriminant
 // of the Command, and the registry key. One name per verb.
 //
 // This file may not name Actor, Authority or Signature (check C4). It does not
@@ -50,7 +50,7 @@ export interface LogDecision extends EffectBase {
 export type TriageEffect = LogDecision;
 
 /** Which results this block's arm folds. The root dispatches on this, so a new
- *  VERB costs nothing at the root — only a new BLOCK does (L5). */
+ *  VERB costs nothing at the root — only a new BLOCK does (16.1). */
 export function isTriageResult(r: ToolResultBase): r is TriageResult {
   return r.outcome === "ok" && r.tool === "setPriority";
 }

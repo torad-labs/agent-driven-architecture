@@ -1,13 +1,13 @@
-// ── spine/pure/command — the sealed ROOT of the signed record (L3, A1) ──────
+// ── spine/pure/command — the sealed ROOT of the signed record (G12, 6.8) ────
 // The base declares the three properties every Command carries, ONCE:
 //
-//   tool  the verb — the SAME name as its ToolResult (D3)
+//   tool  the verb — the SAME name as its ToolResult (6.8)
 //   sig   by: Actor + authority: Authority — stamped ONLY at the boundary (G1)
 //   id    minted ONLY at the boundary, from the committed sequence (G9)
 //
 // ONE FLAT HIERARCHY. There is no `Command.Surface.*` / `Command.Domain.*`
 // split, because a split would re-create a type-level place to hang a second
-// tool mechanic — which is exactly the 6.8 carve-out A1 deletes. A presentation
+// tool mechanic — which is exactly the 6.8 carve-out 6.8 deletes. A presentation
 // verb (`focusTicket`, `setPanel`) is a peer of `setPriority` BY CONSTRUCTION:
 // there is no type to branch on, so there cannot be two mechanics.
 //

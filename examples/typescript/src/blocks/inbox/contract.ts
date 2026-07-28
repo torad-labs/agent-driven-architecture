@@ -14,7 +14,7 @@
 //
 // `DropReason` is the block's OWN closed set. The spine's `ConsumerEvent` and
 // this are two separate sealed sets joined at the root by `app/wire`'s report
-// mapping — L1-correct: the spine does not name the block, and the block does
+// mapping — G11-correct: the spine does not name the block, and the block does
 // not name the consumer.
 
 import type { CommandBase } from "../../spine/pure/command";

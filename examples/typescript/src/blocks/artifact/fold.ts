@@ -1,11 +1,11 @@
-// ── blocks/artifact/fold — one line per arm (F6, G16) ──────────────────────
+// ── blocks/artifact/fold — one line per arm (G16) ──────────────────────────
 // 13.1 step 6 used to "perform the delivery effect that writes one line to the
 // work product". It folds one line now. Delivery moved to seal time and became
 // a single gated irreversible effect.
 //
 // `ArtifactLine.by` is `sig.by` — the boundary's stamp, arriving with the fold.
 // It is NOT something a tool put in its payload, which is exactly the
-// distinction F2 exists to enforce.
+// distinction G1 exists to enforce.
 
 import type { Signature } from "../../spine/pure/actor";
 import type { Timestamp } from "../../spine/pure/ids";

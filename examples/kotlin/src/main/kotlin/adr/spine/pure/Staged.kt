@@ -1,6 +1,6 @@
 // ── spine/pure/staged — every OFF-BUS input, as one closed set (5.4, 11.2) ─
 // A step consumes things that did not come off the bus. There are exactly two
-// kinds, and L3 says a closed set is sealed with its shared property declared ONCE
+// kinds, and G12 says a closed set is sealed with its shared property declared ONCE
 // on the parent:
 //
 //     Perceived   10.2 — untrusted content the world offered (a ticket, a webhook)
@@ -66,7 +66,7 @@ sealed class StagedInput(
  * from the one clock read the boundary already makes (G9), so it replays exactly.
  */
 sealed class Recall(
-    /** Every outcome has text — `Empty`'s is empty. Declared once, HELD once (L3). */
+    /** Every outcome has text — `Empty`'s is empty. Declared once, HELD once (G12). */
     open val text: String,
     /** The entry's own clock reading, or null when there is no entry. Declared once. */
     open val publishedAt: Timestamp?,

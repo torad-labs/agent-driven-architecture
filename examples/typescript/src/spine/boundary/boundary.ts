@@ -10,7 +10,7 @@
 //    is already the gate's verdict. A re-fold reproduces it without calling the
 //    authorization seam again (G9).
 //  * NOTHING DOWNSTREAM OF STEP 4 CAN LEARN WHO ACTED EXCEPT THROUGH `sig`. The
-//    results were produced in step 3, before the signature existed. F2's
+//    results were produced in step 3, before the signature existed. G1's
 //    two-unreconciled-actor-values problem cannot recur, because there is only
 //    one value and it is created after the tool has returned.
 
@@ -59,19 +59,19 @@ export class Boundary<S> {
     // 1  the ONLY clock read in the system (G9)
     const now = this.deps.clock.now();
 
-    // 2  the THIRD pure projection (F4/G15) — the same Context the reasoner saw
+    // 2  the THIRD pure projection (G15) — the same Context the reasoner saw
     const ctx: Ctx<S> = {
       state: this.current,
       context: this.deps.projectContext(this.current, step.staged),
     };
 
-    // 3  the ONE closed name→ToolResult map (F1)
+    // 3  the ONE closed name→ToolResult map (G1)
     const results = step.actions.map((action) => resolveAction(this.deps.registry, action, ctx));
 
-    // 4  stamp AND resolve authority (G1 + F3) — one value, created here, ever
+    // 4  stamp AND resolve authority (G1 + G6) — one value, created here, ever
     const sig = new Signature(step.by, this.deps.authz.authorityOf(step.by, this.deps.session));
 
-    // 5  PRE-FOLD gate (F2/F3/F13)
+    // 5  PRE-FOLD gate (G1/G6)
     const gated = results.map((r) =>
       gate(r, sig, this.current, this.deps.registry, this.deps.authz),
     );
@@ -79,8 +79,8 @@ export class Boundary<S> {
     // 6  the pure decision — the only decider in the system
     const folded = this.deps.fold(this.current, gated, now, sig);
 
-    // 7  COMMIT (14.6) — the step is the unit, and `now` rides it (F8).
-    //    A1: EVERY verb signs, presentation and domain alike.
+    // 7  COMMIT (14.6) — the step is the unit, and `now` rides it (G9).
+    //    6.8: EVERY verb signs, presentation and domain alike.
     const record: StepRecord = {
       now,
       sig,
@@ -95,7 +95,7 @@ export class Boundary<S> {
     // 8  adopt the derived cache
     this.current = folded.state;
 
-    // 9  key from the COMMITTED index (F7) — unavailable until step 7 returned
+    // 9  key from the COMMITTED index (G9) — unavailable until step 7 returned
     folded.effects.forEach((effect, i) => {
       this.deps.sink.perform(keyedEffect(index, i, effect), "LIVE");
     });

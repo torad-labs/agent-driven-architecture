@@ -1,4 +1,4 @@
-// ── F5 — a LIVE run against its REPLAY, not a fold against itself ──────────
+// ── G9 — a LIVE run against its REPLAY, not a fold against itself ──────────
 //
 // MEASURED against the shipped reference: seam 07 §D's own named violation (a
 // tool reading a mutable global and performing a side effect) was injected, the
@@ -31,7 +31,7 @@ function driveFullSession(h: ReturnType<typeof harness>): void {
   step("Human", { tool: "confirmSeal", input: {} });
 }
 
-describe("replay — a live run against its re-fold (F5)", () => {
+describe("replay — a live run against its re-fold (G9)", () => {
   it("re-folds ONLY the committed bytes to the same state and the same effect sequence", () => {
     const h = harness({ start: 1000, step: 7 });
     driveFullSession(h);

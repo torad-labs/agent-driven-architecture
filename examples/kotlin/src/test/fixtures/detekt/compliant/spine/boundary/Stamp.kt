@@ -1,4 +1,4 @@
-// ── ALLOW-TEST for gate checks C4(d), C6 and C7 (F2 / F9 / F1) ────────────
+// ── ALLOW-TEST for gate checks C4(d), C6 and C7 (G1 / 12.4 / G1) ──────────
 // The SAME four constructions, in the one seam entitled to make them. This is the
 // half that keeps the rules honest: C4(d) does not ban the Signature type, it bans
 // minting one anywhere but here; C6 does not ban RunStatus, it bans a BLOCK

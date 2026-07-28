@@ -1,10 +1,10 @@
-// ── spine/pure/effect — the sealed ROOT of what the fold RETURNS (L3, F7) ───
-// The base declares `at`. That is the L3 demonstration in miniature: the
+// ── spine/pure/effect — the sealed ROOT of what the fold RETURNS (G12, G9) ──
+// The base declares `at`. That is the G12 demonstration in miniature: the
 // shipped reference had a `Diag` with no timestamp; now every effect in the
 // system carries one BY CONSTRUCTION, because the shared field is declared on
 // the parent exactly once.
 //
-// NO ID FIELD, EVER (F7 / G9). The fold's return type is `Effect[]`, so any
+// NO ID FIELD, EVER (G9).      The fold's return type is `Effect[]`, so any
 // `key` declared here would be a field the fold *can* set — and eventually
 // would. The idempotency key lives on `KeyedEffect` instead, which only the
 // boundary and the replay harness may construct, and which is the only thing

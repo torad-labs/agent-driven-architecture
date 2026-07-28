@@ -1,7 +1,7 @@
 // ── spine/pure/command — the sealed ROOT of the signed record ──────────────
 // The parent declares tool, sig and id ONCE, IN ITS CONSTRUCTOR, as `open val`.
 // Every variant that will ever exist carries authorship, permission and identity by
-// CONSTRUCTION (L3) — not by remembering to implement three interface members.
+// CONSTRUCTION (G12) — not by remembering to implement three interface members.
 //
 // A sealed CLASS, not a sealed interface, and the difference is the whole transport
 // mechanism. An interface can only declare that a property exists; the parent holds
@@ -12,12 +12,12 @@
 //
 // ONE FLAT HIERARCHY — there is no Command.Surface / Command.Domain split. A
 // presentation verb and a domain verb are peers BY CONSTRUCTION: there is no type
-// to branch on, so there cannot be two tool mechanics (A1). 6.8's "a UI tool folds,
+// to branch on, so there cannot be two tool mechanics (6.8). 6.8's "a UI tool folds,
 // does not sign" carve-out is deleted from the tree, the types, the maps and the
 // numbers.
 //
 // Note the variants declare `sig`, not `by: Actor` — the stamp travels as one
-// value, so authorship and permission can never drift apart (F2). `by()` and
+// value, so authorship and permission can never drift apart (G1). `by()` and
 // `authority()` are read paths over it, and they are FUNCTIONS rather than derived
 // properties: a `val` in a sealed body is shared state that no variant can override,
 // which is the shape this file exists to avoid.
@@ -31,7 +31,7 @@ import adr.spine.pure.Signature
 import adr.spine.pure.ToolName
 
 sealed class Command(
-    /** The verb — the SAME name as its ToolResult (D3). */
+    /** The verb — the SAME name as its ToolResult (6.8). */
     open val tool: ToolName,
     /** by: Actor + authority: Authority — stamped ONLY at the boundary (G1). */
     open val sig: Signature,

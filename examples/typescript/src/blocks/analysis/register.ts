@@ -1,4 +1,4 @@
-// ── blocks/analysis/register — THE ONE PUBLIC SYMBOL (L1) ──────────────
+// ── blocks/analysis/register — THE ONE PUBLIC SYMBOL (G11) ─────────────
 // A SECOND TIER IS OPTIONAL (11), and this file is where that stays true: the
 // block plugs in exactly like the four that came before it, and an app that
 // never tiers simply never registers it.

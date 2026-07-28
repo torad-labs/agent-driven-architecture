@@ -1,4 +1,4 @@
-// ── F6 / G16 — the artifact is a folded slice, compared BY VALUE ───────────
+// ── G16 — the artifact is a folded slice, compared BY VALUE ────────────────
 // The regression the old shape could not catch: a reducer change that corrupts
 // artifact content while leaving State byte-identical. It cannot exist here,
 // because the content IS State — so the golden STATE assertion is the content
@@ -17,7 +17,7 @@ function record(h: ReturnType<typeof harness>, ...texts: string[]): void {
   });
 }
 
-describe("blocks/artifact — a folded slice, delivered once at seal (F6)", () => {
+describe("blocks/artifact — a folded slice, delivered once at seal (G16)", () => {
   it("lines fold; the seal delivers EXACTLY ONE irreversible effect", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "first", "second");
@@ -74,7 +74,7 @@ describe("blocks/artifact — a folded slice, delivered once at seal (F6)", () =
       tool: "confirmSeal",
     });
 
-    // a different principal on the same stream may seal it (F3)
+    // a different principal on the same stream may seal it (G6)
     h.actAs("Agent", POLICY_TIER);
     h.app.boundary.onStepFinish({
       by: "Agent",

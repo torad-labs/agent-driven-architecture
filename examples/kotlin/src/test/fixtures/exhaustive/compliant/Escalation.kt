@@ -1,10 +1,10 @@
-// ── F10 fixture (ALLOW-TEST: four variants, three consumers that match them all) ──────────────────────────────────────────
+// ── G12 fixture (ALLOW-TEST: four variants, three consumers that match them all) ──────────────────────────────────────────
 // A faithful copy of blocks/escalation's THREE consumers of TicketStatus,
 // against the REAL spine vocabulary, so what this proves is what the live tree
 // does — not a toy that resembles it.
 //
 // §11.2 promises: adding a state variant costs 1 append + 3 compiler-named arms,
-// ALL INSIDE ONE BLOCK FOLDER. F10 measured that promise failing — 15.4's G12
+// ALL INSIDE ONE BLOCK FOLDER. The review measured (G12) that promise failing — 15.4's G12
 // self-check ("introduce a variant; the build must break") had never been run, and
 // projection.ts computed `canEscalate` with `t.status.kind === "Open"`, which is
 // not a closed match at all: it compiles happily after a variant is added and

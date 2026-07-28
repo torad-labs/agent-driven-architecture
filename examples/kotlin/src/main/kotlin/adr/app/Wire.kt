@@ -75,7 +75,7 @@ import ai.torad.aisdk.LanguageModel
  * The one branch per effect kind. Exhaustive over Effect with NO else arm, so a new
  * effect kind fails to compile until it is bound to something real (§11.1).
  *
- * REPLAY touches nothing — that is the mode's entire contract (§3.6), and it is the
+ * REPLAY touches nothing — that is the mode's entire contract (14.6), and it is the
  * reason a replayed trace can be driven through the SAME sink as a live one.
  */
 class AppSink(
@@ -117,7 +117,7 @@ class AppSink(
  * The product-owned authority seam (14.3, 17.1). `acting` is how a NON-HUMAN
  * confirmer reaches the gate: a policy tier, a second-agent reviewer or a deferred
  * approval queue sets it, the Command still stamps its Actor TRUTHFULLY, and only
- * the Authority differs — which is precisely what F3 asks the book to state plainly.
+ * the Authority differs — which is precisely what G6 asks the book to state plainly.
  */
 class RunAuthority(
     private val agent: Authority = Authority("agent-run-7f"),
@@ -247,8 +247,8 @@ class App(
 }
 
 /**
- * G7/L1: the six registrations. Each block is CONSTRUCTED here and handed a LENS onto
- * its own slice, so it never has to know what else is in State (L1).
+ * G7/G11: the six registrations. Each block is CONSTRUCTED here and handed a LENS onto
+ * its own slice, so it never has to know what else is in State (G11).
  *
  * This is the composition root doing what a composition root is for. A block used to be
  * a loose `object` that existed whether or not anyone wired it; now the root builds each
@@ -358,7 +358,7 @@ class Wiring {
     // ── the barge-in rung, wired (12) ──────────────────────────────────────────
     // The consumer reports SPINE-shaped events; the inbox block owns an app-shaped
     // closed set of its own; and THIS FILE is the one place allowed to know both. That
-    // is L1 in one function: the spine does not name the block, the block does not name
+    // is G11 in one function: the spine does not name the block, the block does not name
     // the consumer, and the two closed sets are joined at the root.
     //
     // The mapping produces ACTIONS, so a barge-in decision travels the ONE existing path

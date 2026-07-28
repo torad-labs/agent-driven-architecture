@@ -17,7 +17,7 @@ package adr.spine.pure
 
 /** One thing the consumer can be told. Closed: there is no fourth kind of barge-in. */
 sealed class Message(
-    /** Where this came from. Declared once, carried by every variant (L3). */
+    /** Where this came from. Declared once, carried by every variant (G12). */
     open val source: SourceName,
 ) {
 
@@ -65,7 +65,7 @@ sealed class Message(
  *     for reversibility.
  */
 sealed class InputPolicy(
-    /** The source this policy governs. Declared once (L3). */
+    /** The source this policy governs. Declared once (G12). */
     open val source: SourceName,
 ) {
 

@@ -1,5 +1,5 @@
 // ── spine/ports/authorization — the product-owned seam (14.3, 17.1) ────────
-// This is where F3's unattended confirmer becomes representable and where F13's
+// This is where G6's unattended confirmer becomes representable and where its per-tenant budget's
 // per-tenant budget belongs. Both are enforced at the BOUNDARY, before the fold,
 // and their verdict rides the committed record as an ordered G9 fixture — so a
 // re-fold reproduces the decision without calling either of these again.

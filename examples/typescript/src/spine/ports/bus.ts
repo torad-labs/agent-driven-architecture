@@ -1,4 +1,4 @@
-// ── spine/ports/bus — the append-only timeline (F8, D6) ────────────────────
+// ── spine/ports/bus — the append-only timeline (G9, 14.1) ──────────────────
 // INTERFACES ONLY (C11).
 //
 // `append` returns the committed offset. That return value is the ORIGIN of

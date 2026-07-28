@@ -1,4 +1,4 @@
-// ── D2(b) / C4 — THE STAMP CANNOT BE SPELLED, ONLY MINTED ──────────────────
+// ── G1 / C4 — THE STAMP CANNOT BE SPELLED, ONLY MINTED ─────────────────────
 //
 // `Signature` used to be a plain interface, and a plain interface is
 // STRUCTURAL: every fold arm in the tree legitimately RECEIVES one, and a type
@@ -8,7 +8,7 @@
 //     const forgedLiteral: Signature = { by: "Human", authority: sig.authority };
 //     const forgedSpread: Signature = { ...sig, by: "Human" };
 //
-// into `src/blocks/artifact/fold.ts` left `tsc --noEmit` at exit 0. F2's whole
+// into `src/blocks/artifact/fold.ts` left `tsc --noEmit` at exit 0. G1's whole
 // claim — an Actor is UNREPRESENTABLE where a tool could forge one — was a
 // property of who happened to write the arms.
 //
@@ -62,7 +62,7 @@ function typecheck(project: string): { code: number; output: string } {
   }
 }
 
-describe("D2(b) — a Signature has ONE production site, and the compiler says so", () => {
+describe("G1 — a Signature has ONE production site, and the compiler says so", () => {
   const result = typecheck(PROBE);
   const errors = result.output.split("\n").filter((l) => /error TS/.test(l));
 

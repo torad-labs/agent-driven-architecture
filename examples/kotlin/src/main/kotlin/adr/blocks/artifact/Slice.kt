@@ -1,4 +1,4 @@
-// ── blocks/artifact/slice — the work product as a FOLDED SLICE (F6/G16) ────
+// ── blocks/artifact/slice — the work product as a FOLDED SLICE (G16) ───────
 // Because the content IS State, it re-folds, it diffs by value, and it is
 // crash-recoverable for free. The regression the old shape could not catch — a
 // reducer change that truncates a line while leaving everything else identical — now

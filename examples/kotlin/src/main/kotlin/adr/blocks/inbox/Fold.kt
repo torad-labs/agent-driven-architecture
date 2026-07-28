@@ -3,7 +3,7 @@
 // rules every arm follows (§7). Neither verb emits an effect: a dropped input is a
 // fact to record, not an action to take — and RunStatus is untouchable from a block
 // anyway (gate check C6), which is what keeps one shed input from degrading the
-// whole session banner (F9).
+// whole session banner (12.4).
 
 package adr.blocks.inbox
 

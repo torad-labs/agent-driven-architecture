@@ -1,4 +1,4 @@
-// ── test/spine/replay — F5: a LIVE run against its REPLAY ─────────────────
+// ── test/spine/replay — G9: a LIVE run against its REPLAY ─────────────────
 // The shipped harness asserted f(x) == f(x): it folded one in-memory array twice
 // through a pure function. Measured: seam 07's own named violation (a tool reading a
 // mutable global and performing a side effect) PASSED it, because foldAll never
@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
 class ReplayTest {
 
     @Test
-    fun `F5 - the live run and its re-fold agree on state and on every effect`() {
+    fun `G9 - the live run and its re-fold agree on state and on every effect`() {
         val world = World()
         val authority = RunAuthority()
         val app = Wiring().wireApp(
@@ -51,7 +51,7 @@ class ReplayTest {
         assertTrue(liveEffects.isNotEmpty())
 
         // And the digest check: a change to projectContext that silently alters what the
-        // model saw fails the golden trace, WITHOUT re-running the model (F4/§5.3). The
+        // model saw fails the golden trace, WITHOUT re-running the model (G15/§5.3). The
         // three app-constant values are what the harness is BUILT with; the timeline and
         // the live run it is measured against are what it is CALLED with.
         ReplayFaithfulness(

@@ -1,0 +1,442 @@
+# laws.toml — THE LAW REGISTRY. One source of truth for the sixteen
+# portable invariants: their public id, their invariant name, the layer that
+# actually holds each one, and the checks (with their fixture pairs) that do
+# the holding. The book's §15.3 tables are ASSERTED against this file by
+# examples/typescript/test/laws/laws.test.ts, which also proves that no law
+# ships without an enforcement layer and no denying check ships without a
+# fixture pair that resolves on disk.
+#
+# `layers` is a CLOSED vocabulary: denying-check | compiler-proof | behavioral
+# | discipline | structural-untested. `headline` and `note` are the book cell,
+# verbatim — the meta-check reconstructs the cell from them byte for byte.
+#
+# `pair = "in-checker"` is §15.2's listed shape difference: a check about
+# VALUES carries its block/allow pair as two inputs to the same checker, not
+# as two trees on disk. Only a home the lint does not own may declare it, and
+# "lint-owned" is DERIVED from the eslint config source and the konsist rule
+# list — never from a token in this file, which a forger would simply edit.
+#
+# SCOPE, DECLARED: this registry holds G-LAWS and nothing else. The reference
+# lint that enforces the public citation namespace (test/laws/citations.ts) is
+# a citation check, not a G-law — the ratified decisions record refuses a
+# seventeenth law, §16.4's bar being unmet — so it is deliberately absent from
+# the rows below rather than silently missing. This file is itself scanned by
+# that lint: the registry obeys the namespace it defines.
+
+vocabulary = ["denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+
+[[laws]]
+id = "G1"
+name = "actor-stamped-at-boundary"
+layers = ["denying-check", "behavioral"]
+headline = "Denying checks + behavior."
+note = "One denying check holds the declaration rule (no Actor/Authority/Signature upstream); a second holds one production site for signed transport; the Kotlin stamp additionally ships without a <code>copy()</code> constructor, and the TypeScript one is a nominal class whose constructor only the boundary folder may name. Neither type shape closes the forge on its own — a generic helper launders any brand — so the TypeScript stamp is also frozen when minted, and a Command carrying a stamp other than the one its own step minted is refused at the boundary by identity. That the boundary <em>stamps correctly</em> is behavioral (the boundary tests)."
+
+[[laws.checks]]
+port = "typescript"
+id = "C4"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C4"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C4"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C4"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C4"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C4"
+
+[[laws.checks]]
+port = "typescript"
+id = "C7"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C7"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C7"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C7"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C7"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C7"
+
+[[laws]]
+id = "G2"
+name = "tool-reads-context-only"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The pure ring imports no I/O, awaits nothing, reads no ambient environment."
+
+[[laws.checks]]
+port = "typescript"
+id = "C8"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C8"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C8"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C8"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C8"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C8"
+
+[[laws]]
+id = "G3"
+name = "loop-is-declaration"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The loop fails the build at its first decision point."
+
+[[laws.checks]]
+port = "typescript"
+id = "C14"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C14"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C14"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C14"
+home = "detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/detekt/violating/spine/agent/Loop.kt"
+compliant = "examples/kotlin/src/test/fixtures/detekt/compliant/spine/agent/Loop.kt"
+
+[[laws]]
+id = "G4"
+name = "domain-imports-nothing-foreign"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "§1.3's import table as an allow-list."
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C1"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C1"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C1"
+
+[[laws]]
+id = "G5"
+name = "surface-decides-nothing"
+layers = ["discipline"]
+headline = "Discipline."
+note = "No check denies a deciding surface today. The reference surfaces are projections by construction, but nothing would catch a regression — this is the sharpest open edge in the map."
+
+[[laws]]
+id = "G6"
+name = "irreversible-action-gated"
+layers = ["denying-check", "behavioral"]
+headline = "Behavioral + one denying edge."
+note = "The gate's authority-vs-requester comparison and its committed verdict are exercised by tests; a denying check forbids minting the gate's <code>Refused</code> verdict anywhere else. Nothing statically proves every irreversible verb <em>routes through</em> the gate — that is the boundary's code path, structural but untested-by-denial."
+
+[[laws.checks]]
+port = "typescript"
+id = "C7"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C7"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C7"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C7"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C7"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C7"
+
+[[laws]]
+id = "G7"
+name = "no-service-locators"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "No module-level mutable state; dependencies pass through the one root."
+
+[[laws.checks]]
+port = "typescript"
+id = "C10"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C10"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C10"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C10"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C10"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C10"
+
+[[laws]]
+id = "G8"
+name = "single-state-single-sink"
+layers = ["structural-untested"]
+headline = "Structural by type, un-denied."
+note = "The Controller exposes one value and one sink because its type declares nothing else; no rule would catch a second public member growing beside it."
+
+[[laws]]
+id = "G9"
+name = "identity-and-clock-injected-at-boundary"
+layers = ["denying-check", "behavioral"]
+headline = "Denying checks + behavior."
+note = "Two checks deny — ambient clock, random and id including resolved calls, and effect keys nameable only by the boundary and replay; the capture-external-reads half is behavioral (relay and replay golden traces)."
+
+[[laws.checks]]
+port = "typescript"
+id = "C3"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C3"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C3"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C3"
+home = "detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/detekt/violating/spine/pure/AmbientCapability.kt"
+compliant = "examples/kotlin/src/test/fixtures/detekt/compliant/spine/boundary/AmbientCapability.kt"
+
+[[laws.checks]]
+port = "typescript"
+id = "C5"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C5"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C5"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C5"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C5"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C5"
+
+[[laws]]
+id = "G10"
+name = "dependencies-point-inward"
+layers = ["denying-check"]
+headline = "Denying checks."
+note = "One per folder, one at tier granularity."
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C1"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C1"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C1"
+
+[[laws.checks]]
+port = "typescript"
+id = "C15"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C15"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C15"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C15"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C15"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C15"
+
+[[laws]]
+id = "G11"
+name = "component-isolation"
+layers = ["denying-check"]
+headline = "Denying checks."
+note = "No cross-block symbol import, and view-state visible only to its own projection. The Kotlin cross-block check classifies a shared-package symbol by <em>name prefix</em> — convention-strength, stated in ADR-001 as evidence for module-level isolation."
+
+[[laws.checks]]
+port = "typescript"
+id = "C2"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C2"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C2"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C2"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C2"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C2"
+
+[[laws.checks]]
+port = "typescript"
+id = "C6"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C6"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C6"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C6"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C6"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C6"
+
+[[laws.checks]]
+port = "typescript"
+id = "C12"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C12"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C12"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C12"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C12"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C12"
+
+[[laws]]
+id = "G12"
+name = "exhaustive-discriminated-modeling"
+layers = ["denying-check", "compiler-proof"]
+headline = "Denying check + compiler proof."
+note = "No <code>else</code> over a sealed subject, type-aware, plus the checked-in exhaustiveness fixture trees the real compiler must break on at exactly three sites."
+
+[[laws.checks]]
+port = "typescript"
+id = "C9"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C9"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C9"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C9"
+home = "detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/detekt/violating/blocks/triage/CatchAllMatch.kt"
+compliant = "examples/kotlin/src/test/fixtures/detekt/compliant/blocks/triage/ClosedMatch.kt"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+violating = ""
+compliant = ""
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+violating = ""
+compliant = ""
+
+[[laws]]
+id = "G13"
+name = "contract-first-stable-interface"
+layers = ["denying-check"]
+headline = "Denying check for the snapshot half."
+note = "A port file with a body fails. The contract-<em>first</em> ordering half is temporal and stays discipline, as G13's own text states."
+
+[[laws.checks]]
+port = "typescript"
+id = "C11"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C11"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C11"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C11"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C11"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C11"
+
+[[laws]]
+id = "G14"
+name = "spine-swapped-only-by-contract"
+layers = ["denying-check", "discipline"]
+headline = "Discipline, with one denied precondition."
+note = "The tier check keeps the spine liftable; whether a change swaps-by-contract or forks is a review judgment no snapshot rule reads."
+
+[[laws.checks]]
+port = "typescript"
+id = "C15"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C15"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C15"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C15"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C15"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C15"
+
+[[laws]]
+id = "G15"
+name = "context-is-a-pure-projection"
+layers = ["behavioral"]
+headline = "Behavioral."
+note = "The committed digest is re-derived and compared on replay (the golden trace); the purity check keeps the projections pure. No rule denies a mutable accumulator shape statically."
+
+[[laws.checks]]
+port = "typescript"
+id = "C8"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C8"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C8"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C8"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C8"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C8"
+
+[[laws]]
+id = "G16"
+name = "artifact-is-a-folded-slice"
+layers = ["behavioral"]
+headline = "Behavioral."
+note = "The artifact re-derives in the recovery tests and diffs by value in the block tests. No rule denies an effect-assembled artifact statically."

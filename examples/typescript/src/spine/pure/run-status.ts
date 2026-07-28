@@ -1,8 +1,8 @@
-// ── spine/pure/run-status — SESSION-GLOBAL, boundary-only (F9) ──────────────
+// ── spine/pure/run-status — SESSION-GLOBAL, boundary-only (12.4) ────────────
 // A closed set describing the SESSION, not an item. `Degraded` and `Error` may
 // be constructed only inside `spine/boundary/**` — a budget exceeded, an append
 // that failed, a turn that threw. Gate check C6 denies both constructors under
-// `blocks/**`, so the F9 bug (a per-item rejection hijacking the session
+// `blocks/**`, so the 12.4 bug (a per-item rejection hijacking the session
 // banner) cannot be written again.
 
 export type RunStatusKind = "Idle" | "Working" | "Degraded" | "Error";

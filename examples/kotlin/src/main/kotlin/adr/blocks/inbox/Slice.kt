@@ -17,7 +17,7 @@ import adr.spine.pure.SourceName
  * spine's `ConsumerEvent`.
  *
  * The two sets are joined at the root by app/wire's `report` mapping, which is
- * L1-correct: the spine does not name the block, the block does not name the
+ * G11-correct: the spine does not name the block, the block does not name the
  * consumer, and the composition root is the one place allowed to know both.
  */
 enum class DropReason {

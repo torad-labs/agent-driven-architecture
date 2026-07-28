@@ -1,4 +1,4 @@
-// BLOCK-TEST C12 (4.6/A1) — ephemeral view-state reaches the FOLD.
+// BLOCK-TEST C12 (4.6) — ephemeral view-state reaches the FOLD.
 // The moment a scroll offset can be folded it is on the timeline, in the audit
 // record and in the replay comparison — and every re-fold now has to reproduce a
 // number that means nothing outside one browser tab. 4.6's test is the one that
