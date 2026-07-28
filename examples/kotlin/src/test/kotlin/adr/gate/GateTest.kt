@@ -108,12 +108,14 @@ class GateTest {
     }
 
     /**
-     * §1.3's arithmetic, PINNED — the same move as the fifteen-check roster above.
-     * The book counts the spine tier's files, and a counted claim nothing measures
-     * is how "35 files" ships while the tree holds 37. A spine file added or
-     * removed is a diff HERE too, so the prose's number can never drift from the
-     * tree again. (The TS port pins its own roster of 36 — one extra ports file
-     * there, three pure files here; same components, spelled per language.)
+     * This port's own arithmetic, PINNED — the same move as the fifteen-check
+     * roster above. A counted claim that nothing measures is how "35 files" ships
+     * while the tree holds 37, so the count lives HERE, where a spine file added
+     * or removed is a diff. This port's README quotes the number; the README text
+     * is not itself measured, so a README that disagrees with this pin is a
+     * review catch, not a build catch. (The TS port pins its own roster of 36 —
+     * one extra ports file there, three pure files here; same components, spelled
+     * per language.)
      */
     @Test
     fun `the spine roster is pinned - exactly these 37 files`() {
