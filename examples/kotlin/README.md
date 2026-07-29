@@ -44,7 +44,11 @@ src/main/kotlin/adr/
     └── Demo.kt                a runnable offline script
 ```
 
-Read the folder names before you read a file: **leaves and trunk point inward; only the root spans.**
+Read the folder names before you read a file. The rule they encode is the book's, in its canonical
+wording: **an import may point inward toward the core, or it is the composition root; it may never
+point outward from the core, sideways between adapters, or from a passive node — a surface or a
+tool — into anything but domain types.** On this tree that reads: leaves and trunk point inward,
+only the root spans.
 `spine/pure/` versus `spine/boundary/` *is* the purity boundary, named as a folder. Inside a block the
 same line is drawn again by file name — `contract · slice · tools · fold · project` are pure,
 `adapter` is the rim, and `view-state` is the ephemeral-only exception 4.6 carves out.

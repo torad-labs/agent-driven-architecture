@@ -11,7 +11,9 @@
 //   (b) a law held by a denying check names one, every on-disk fixture pointer
 //       RESOLVES to a non-empty path, and no LINT-OWNED check claims the
 //       value-check pair shape;
-//   (c) the registry regenerates the book's two §15.3 tables byte for byte;
+//   (c) the registry regenerates the book's §15.3 table byte for byte, off a
+//       SINGLE four-cell row per law — the shape §15's inversion put there,
+//       with (c') holding that shape against a re-separated layer table;
 //   (d) every check on each port's OWN roster traces to a law, per (law, port,
 //       id) — four ids hold two laws each, so a set keyed on the id alone would
 //       let either occurrence be deleted;
@@ -32,7 +34,10 @@ import {
   attributionProblems,
   bindingProblems,
   bookProblems,
+  FOUR_CELL_ROW,
+  FOURTH_HEADER,
   fixtureProblems,
+  LAYER_ANYWHERE_IN_A_ROW,
   type LintOwned,
   PORTS,
   parseLaws,
@@ -101,6 +106,41 @@ const kotlinRoster = new Map(
 
 const shipped = parseLaws(read("laws.toml"));
 
+/** Where the deleted map used to sit. Pinned as a constant, and asserted
+ *  present by the builder, so a §15.4 rename fails LOUDLY instead of silently
+ *  producing an unchanged book and a fixture that proves nothing. */
+const ANCHOR_15_4 = '  <h3><span class="t">15.4</span>';
+
+/** The violating half of (c')'s fixture pair, built from the SHIPPED book so it
+ *  can never go vacuous against a live-tree idiom change (the C7 lesson): the
+ *  sixteen enforcement cells are lifted back out into a second table of their
+ *  own, exactly as they sat before §15's inversion. `key = "id"` reproduces the
+ *  deleted honest map verbatim; `key = "name"` keys the same table by invariant
+ *  name with every G-token and § scrubbed, which is the counterexample a G-id
+ *  census alone cannot see. G5's headline is contradicted on the way through,
+ *  so the fixture is a book that states one law's layer two different ways. */
+function secondLayerTable(book: string, key: "id" | "name" | "plain"): string {
+  expect(book.split(ANCHOR_15_4).length - 1).toBe(1);
+  const table = [...book.matchAll(FOUR_CELL_ROW)].map((m) => {
+    const cell = String(m[3]).replace(
+      "<strong>Discipline.</strong>",
+      "<strong>Impossible to express.</strong>",
+    );
+    if (key === "plain") {
+      // attribute-less first cell, filler second cell, layer THIRD — the exact
+      // shape that walked past the attribute-keyed second-cell census.
+      return `<tr><td>${m[2]}</td><td>—</td><td>${cell.replace(/G\d+|§/g, "the law")}</td></tr>`;
+    }
+    return key === "id"
+      ? `<tr><td class="r">${m[1]}</td><td>${cell}</td></tr>`
+      : `<tr><td class="r">${m[2]}</td><td>${cell.replace(/G\d+|§/g, "the law")}</td></tr>`;
+  });
+  return book.replace(
+    ANCHOR_15_4,
+    `  <div class="tbl"><table><tbody>\n${table.join("\n")}\n</tbody></table></div>\n${ANCHOR_15_4}`,
+  );
+}
+
 describe("laws.toml — the law registry parses, and says what the book says", () => {
   it("parses under the registry's own grammar, with nothing skipped", () => {
     expect(shipped.problems).toEqual([]);
@@ -136,8 +176,37 @@ describe("laws.toml — the law registry parses, and says what the book says", (
     expect(fixtureProblems(shipped.registry, onDisk, lintOwned)).toEqual([]);
   });
 
-  it("(c) the book's two §15.3 tables regenerate from laws.toml, byte for byte", () => {
+  it("(c) the book's §15.3 table regenerates from laws.toml, byte for byte", () => {
     expect(bookProblems(shipped.registry, read("wiki/index.html"))).toEqual([]);
+  });
+
+  it("(c') THE LAYER RIDES THE LAW'S OWN ROW — a second layer table is red", () => {
+    const book = read("wiki/index.html");
+    // POSITIVE, on the LIVE book. Asserted as counts, not as the absence of a
+    // message: an assertion of the form "reports 0 four-cell rows" is satisfied
+    // by the empty string, by a pre-inversion book, and by any input at all.
+    expect([...book.matchAll(FOUR_CELL_ROW)].length).toBe(16);
+    expect([...book.matchAll(/<td class="r">G\d+<\/td>/g)].length).toBe(16);
+    // EQUALITY, not zero: exactly the sixteen law rows may state a layer.
+    // A zero-count over a narrower spelling was defeated twice in review.
+    expect([...book.matchAll(LAYER_ANYWHERE_IN_A_ROW)].length).toBe(16);
+    expect(book.split(FOURTH_HEADER).length - 1).toBe(1);
+
+    // NEGATIVE, the shape the inversion removed, in THREE keyings. The G-id
+    // keying is the literal pre-inversion map; the NAME keying carries no G-id
+    // and no §, so neither a G-id census nor the citation pin can be the thing
+    // that fires; the PLAIN keying strips the class attribute and inserts a
+    // filler cell — the two spellings that defeated the narrower census.
+    for (const key of ["id", "name", "plain"] as const) {
+      const problems = bookProblems(shipped.registry, secondLayerTable(book, key));
+      expect(problems, `a ${key}-keyed second layer table must be reported`).not.toEqual([]);
+      expect(problems.join("\n")).toContain("an enforcement layer in a row of its own");
+    }
+
+    // And the header the whole fourth column hangs on is not deletable quietly.
+    expect(bookProblems(shipped.registry, book.replace(FOURTH_HEADER, "")).join("\n")).toContain(
+      "fourth column header",
+    );
   });
 
   it("(d) every check on each port's live roster traces to a law, per port", () => {

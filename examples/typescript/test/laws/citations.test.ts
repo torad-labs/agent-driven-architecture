@@ -100,12 +100,21 @@ const live = citationProblems(liveCorpus, sections, lawIds);
  *  cannot fund deletions in another. */
 const RESOLVABLE_PIN: Record<string, number> = {
   // the Kotlin port carries the heavier banner-comment idiom, so it cites most
-  "examples/kotlin": 529,
+  // +1 (529 -> 530): C1's banner in `gate/Rules.kt` grew from one line to five
+  // to carry the canonical dependency-rule sentence verbatim (D7). It cited
+  // its two section-and-law citations on one line before and on two lines
+  // now — one credit became two, with no citation added or removed.
+  "examples/kotlin": 530,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   "examples/typescript": 408,
-  // nearly all of it the book's own G-table and cross-references
-  wiki: 137,
+  // nearly all of it the book's own G-table and cross-references. 137 before
+  // §15's inversion merged the separate layer table INTO the invariant table:
+  // its sixteen rows were sixteen separately-credited lines and are now the
+  // fourth cell of the sixteen rows already counted, so the same sixteen
+  // citations sit on half as many lines. No citation was deleted — the G-ids
+  // present before and absent after are the empty set.
+  wiki: 121,
 };
 const FILE_PIN: Record<string, number> = {
   "examples/kotlin": 156,
