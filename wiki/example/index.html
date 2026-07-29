@@ -79,12 +79,12 @@
       <figure>
         <div class="diagram"><pre class="mermaid">
 flowchart TB
-  subgraph OUTER["OUTER RING — impure, swappable: boundary adapter · command bus · ports' adapters · composition root"]
+  subgraph OUTER["OUTER RING — impure, swappable: boundary adapter · command bus · ports' adapters · surface · composition root"]
     direction TB
-    subgraph MIDDLE["MIDDLE RING — pure translators: tools · view projection · port interfaces"]
+    subgraph MIDDLE["MIDDLE RING — pure translation: tools · projections · port interfaces"]
       direction TB
       subgraph INNER["INNER RING — pure policy"]
-        CORE["State (entities)<br/>fold (use cases)"]
+        CORE["State (entities)<br/>fold (use cases)<br/>policy"]
       end
     end
   end
@@ -94,10 +94,10 @@ flowchart TB
   style OUTER fill:#0c0e13,stroke:#7c8aa0,color:#a2a8b4
   style CORE fill:#1a1012,stroke:#f23a48,color:#ffd7da
         </pre></div>
-        <figcaption><b>Figure 1.</b> Three rings. The inner ring is pure policy; the middle ring is pure translation; only the outer ring is impure — and within it, only one object actually performs effects.</figcaption>
+        <figcaption><b>Figure 1.</b> Three rings — the coarse cut, by purity, and the cut the law below keys on. The inner ring is pure policy: <code class="i">State</code>, the <code class="i">fold</code>, the policy it consults. The middle ring is pure translation: the tools, the view and context projections, the port <em>interfaces</em>. Only the outer ring is impure — the boundary adapter, the command bus, the inference, sensing and persistence adapters, the surface's view and controller, and the composition root — and within it, only one object actually performs effects.</figcaption>
       </figure>
 
-      <p><strong>The law, in one sentence.</strong> Purity points inward, and only the <a class="x" href="02-the-boundary.html">boundary adapter</a> is impure. Concretely: the <code class="i">State</code> and the <code class="i">fold</code> import nothing foreign; tools, the <code class="i">projection</code>, and the port <em>interfaces</em> are pure and depend only on the core; and every impure act — minting identity, reading the clock, stamping the signature, resolving an authority, gating an irreversible action, committing to the bus, keying and performing an effect — is confined to a single seam. Clean Architecture scatters impurity across its entire outer ring (controllers, presenters, gateways, the database, the web). This architecture collapses all of it into one named place. That is the sharper, more teachable invariant, and it is the spine of everything that follows.</p>
+      <p><strong>The law, in one sentence.</strong> An import may point inward toward the core, or it is the composition root; it may never point outward from the core, sideways between adapters, or from a passive node — a surface or a tool — into anything but domain types. That is the canonical wording, used unchanged wherever this rule is declared. Its consequence here is the sharper claim this example is built to show: purity points inward, and only the <a class="x" href="02-the-boundary.html">boundary adapter</a> is impure. Concretely: the <code class="i">State</code> and the <code class="i">fold</code> import nothing foreign; tools, the <code class="i">projection</code>, and the port <em>interfaces</em> are pure and depend only on the core; and every impure act — minting identity, reading the clock, stamping the signature, resolving an authority, gating an irreversible action, committing to the bus, keying and performing an effect — is confined to a single seam. Clean Architecture scatters impurity across its entire outer ring (controllers, presenters, gateways, the database, the web). This architecture collapses all of it into one named place. That is the sharper, more teachable invariant, and it is the spine of everything that follows.</p>
 
       <div class="note steel">
         <span class="lab">Dependency direction vs. flow of control</span>
@@ -200,9 +200,9 @@ type  State = { tickets: Map&lt;TicketId, Ticket&gt;,   // triage + escalation
                 notices: [Notice] }               // spine — one entry per rejection or refusal
 
 // ───────── The stamp, and the signed action that crosses the bus (seam 02) ─────────
-Signature(by: Actor, authority: Authority)                   // minted at the boundary, and nowhere else — and
-                                                             // deliberately NO data/copy constructor: a copied stamp
-                                                             // is a forged stamp (book 5.3; the gate denies the mint)
+value Signature(by: Actor, authority: Authority)             // minted at the boundary, and nowhere else — one
+                                                             // production site in the app: a stamp a tool or a fold
+                                                             // conjures for itself is a forged stamp (book 5.3)
 sealed Command(tool: ToolName, sig: Signature, id: CmdId) {  // the parent declares all three
   SetPriority(ticket: TicketId, level: Priority)
   RequestEscalation(ticket: TicketId)                 // a request — reversible

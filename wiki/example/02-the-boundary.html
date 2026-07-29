@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Seam 02 · The boundary adapter — the one impure ring</title>
+<title>Seam 02 · The boundary adapter — the one impure object</title>
 <meta name="description" content="The boundary adapter: the single place the pure core touches the world, and the only object in the system allowed to be impure. It reads the clock, projects the context, resolves an open Action to a sealed ToolResult, stamps the Signature, gates irreversible actions on Authority, mints identity, commits the step, and keys and performs effects — and nothing else does any of it." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,7 +46,7 @@
     </div>
 
     <header class="hero" style="padding-top:34px">
-      <span class="kicker">Seam 02 · The one impure ring</span>
+      <span class="kicker">Seam 02 · The one impure object</span>
       <h1>The <span class="em">boundary</span> adapter.</h1>
       <p class="stand">The single place the pure core touches the world — and the <b>only object in the system allowed to be impure</b>. It reads the clock, projects the context, resolves an open <code class="i">Action</code> into a sealed <code class="i">ToolResult</code>, stamps the <code class="i">Signature</code>, gates the irreversible, mints identity, commits the step, and keys and performs the effects. Nothing else does any of those things.</p>
     </header>
@@ -120,9 +120,9 @@ flowchart LR
       <div class="code"><div class="bar"><span class="path">the stamp and the signed action — what crosses to the bus</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">enum Actor    { Human, Agent, Spine }           // WHO acted — grows only at architecture revision
 value Authority(id: Text)                       // UNDER WHOSE permission — an opaque principal, not a variant set
-Signature(by: Actor, authority: Authority)                   // minted at the boundary, and nowhere else — and
-                                                             // deliberately NO data/copy constructor: a copied stamp
-                                                             // is a forged stamp (book 5.3; the gate denies the mint)
+value Signature(by: Actor, authority: Authority)             // minted at the boundary, and nowhere else — one
+                                                             // production site in the app: a stamp a tool or a fold
+                                                             // conjures for itself is a forged stamp (book 5.3)
 sealed Command(tool: ToolName, sig: Signature, id: CmdId) {  // the parent declares all three
   SetPriority(ticket: TicketId, level: Priority)
   RequestEscalation(ticket: TicketId)                 // a request — reversible

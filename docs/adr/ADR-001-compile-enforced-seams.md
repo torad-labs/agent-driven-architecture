@@ -795,6 +795,6 @@ book §15. Those were the open decision of this ADR when it was written. *(Since
 closes only the witness token's **requirement** — an irreversible effect must be unconstructible without
 a gate-minted, payload-bound token — and does not choose between §6.6's two candidate mechanisms. That
 choice stays open, and is still an open decision of this ADR, now alongside §4's block-surface
-visibility mechanism — accept the measured public surface, or shrink it by friend association.)* The book meanwhile gained an explicit per-law enforcement map (§15.3 of the book), which is
-§5.1's "each invariant carries its enforcement layer" recommendation executed at the prose layer — the
-honest interim state whichever way the decision goes.
+visibility mechanism — accept the measured public surface, or shrink it by friend association.)* The book meanwhile carries an explicit enforcement layer in each law's own row (§15.3's fourth
+column), which is §5.1's "each invariant carries its enforcement layer" recommendation executed at the
+prose layer — the honest interim state whichever way the decision goes.

@@ -30,7 +30,11 @@ private val SPINE_OWNED_TRANSPORT = setOf("ToolResult", "Command", "Effect")
 
 val CHECKS: List<Check> = listOf(
 
-    // C1 — G4/G10: dependencies point inward. §1.3's table as a rule.
+    // C1 — G4/G10. THE RULE, in the book's canonical wording, verbatim: an
+    // import may point inward toward the core, or it is the composition root;
+    // it may never point outward from the core, sideways between adapters, or
+    // from a passive node — a surface or a tool — into anything but domain
+    // types. §1.3's table is that sentence as an allow-list of prefixes.
     Check("C1", "dependencies point inward") { files ->
         files.flatMap { file ->
             val allowed = GateFacts().allowedAdrPrefixes(file)

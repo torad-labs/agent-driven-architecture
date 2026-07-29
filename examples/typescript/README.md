@@ -40,8 +40,11 @@ src/
     └── demo                a runnable, offline end-to-end script
 ```
 
-Dependency direction is readable before you open a file: leaves and trunk point inward, only the
-root spans. Inside a block the same boundary is drawn again by file name — `contract · slice · tools ·
+Dependency direction is readable before you open a file. The rule is the book's, in its canonical
+wording: **an import may point inward toward the core, or it is the composition root; it may never
+point outward from the core, sideways between adapters, or from a passive node — a surface or a
+tool — into anything but domain types.** On this tree that reads: leaves and trunk point inward,
+only the root spans. Inside a block the same boundary is drawn again by file name — `contract · slice · tools ·
 fold · project` are pure, `adapter` is the rim, and `view-state` is the ephemeral-only exception.
 
 Every import rule above is machine-enforced (`npm run lint`, check C1).

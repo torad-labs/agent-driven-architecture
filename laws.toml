@@ -1,10 +1,14 @@
 # laws.toml — THE LAW REGISTRY. One source of truth for the sixteen
 # portable invariants: their public id, their invariant name, the layer that
 # actually holds each one, and the checks (with their fixture pairs) that do
-# the holding. The book's §15.3 tables are ASSERTED against this file by
+# the holding. The book's §15.3 table is ASSERTED against this file by
 # examples/typescript/test/laws/laws.test.ts, which also proves that no law
 # ships without an enforcement layer and no denying check ships without a
 # fixture pair that resolves on disk.
+#
+# Since §15's inversion each law's LAYER rides the law's own row — the fourth
+# cell of that one table — so id, name, guarantee and layer are read together
+# and cannot drift into two tables that disagree, in either keying.
 #
 # `layers` is a CLOSED vocabulary: denying-check | compiler-proof | behavioral
 # | discipline | structural-untested. `headline` and `note` are the book cell,
@@ -69,7 +73,7 @@ id = "G2"
 name = "tool-reads-context-only"
 layers = ["denying-check"]
 headline = "Denying check."
-note = "The pure ring imports no I/O, awaits nothing, reads no ambient environment."
+note = "The inner and middle rings import no I/O, await nothing, read no ambient environment. Neither language has an effect type, so purity is not a shape a signature can carry."
 
 [[laws.checks]]
 port = "typescript"
@@ -92,7 +96,7 @@ id = "G3"
 name = "loop-is-declaration"
 layers = ["denying-check"]
 headline = "Denying check."
-note = "The loop fails the build at its first decision point."
+note = "The loop fails the build at its first decision point. No type says a function body branches, so the absence of control flow is not declarable."
 
 [[laws.checks]]
 port = "typescript"
@@ -115,7 +119,7 @@ id = "G4"
 name = "domain-imports-nothing-foreign"
 layers = ["denying-check"]
 headline = "Denying check."
-note = "§1.3's import table as an allow-list."
+note = "§1.3's import table as an allow-list. Both ports are still a single build module, so the module graph that would refuse a foreign import at configuration time does not exist yet; until P4 lands it, the allow-list is the highest rung that can hold this."
 
 [[laws.checks]]
 port = "typescript"
@@ -168,7 +172,7 @@ id = "G7"
 name = "no-service-locators"
 layers = ["denying-check"]
 headline = "Denying check."
-note = "No module-level mutable state; dependencies pass through the one root."
+note = "No module-level mutable state; dependencies pass through the one root. A single build module cannot hide the ambient reach a locator needs, so nothing structural forbids reintroducing one."
 
 [[laws.checks]]
 port = "typescript"
@@ -198,7 +202,7 @@ id = "G9"
 name = "identity-and-clock-injected-at-boundary"
 layers = ["denying-check", "behavioral"]
 headline = "Denying checks + behavior."
-note = "Two checks deny — ambient clock, random and id including resolved calls, and effect keys nameable only by the boundary and replay; the capture-external-reads half is behavioral (relay and replay golden traces)."
+note = "Two checks deny — ambient clock, random and id including resolved calls, and effect keys nameable only by the boundary and replay; the capture-external-reads half is behavioral (relay and replay golden traces). Ambient reads are library calls in scope everywhere, so no visibility rule removes them."
 
 [[laws.checks]]
 port = "typescript"
@@ -237,7 +241,7 @@ id = "G10"
 name = "dependencies-point-inward"
 layers = ["denying-check"]
 headline = "Denying checks."
-note = "One per folder, one at tier granularity."
+note = "One per folder, one at tier granularity. Both ports are still a single build module, so the module graph that would deny these edges at configuration time is the end state, not the present tense; until P4 lands it, per-folder denying checks are the highest rung that can hold the dependency laws."
 
 [[laws.checks]]
 port = "typescript"

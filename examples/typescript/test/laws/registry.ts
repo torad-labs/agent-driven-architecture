@@ -2,7 +2,7 @@
 //
 // `laws.toml` is the one source of truth for the sixteen portable invariants:
 // id, invariant name, the layer that actually holds each law, and the checks
-// (with their fixture pairs) that do the holding. The book's §15.3 tables are
+// (with their fixture pairs) that do the holding. The book's §15.3 table is
 // then ASSERTED against it rather than hand-maintained beside it.
 //
 // Three deliberate choices, all stated so a reader can attack them:
@@ -360,36 +360,86 @@ export function fixtureProblems(
   return problems;
 }
 
-/** (c) the registry IS the book's §15.3 tables — ids, order, names, and the
- *  enforcement cell reconstructed from `headline` + `note`, byte for byte. */
+/** The book's §15.3 row, whole: id, invariant name, guarantee, enforcement
+ *  layer. Exported so a test can census the live book with the SAME regex the
+ *  reader below matches on, rather than a second spelling of it. */
+export const FOUR_CELL_ROW =
+  /<tr><td class="r">(G\d+)<\/td><td>([a-z-]+)<\/td><td>.*?<\/td><td>(<strong>.*?)<\/td><\/tr>/g;
+
+/** Any row carrying an enforcement-layer cell — at ANY position, with ANY
+ *  first-cell attributes. Adversarial review defeated the second-cell,
+ *  `class="r"`-keyed spelling twice: once by deleting the attribute (the
+ *  book's majority spelling is a plain `<td>`), once by inserting a filler
+ *  cell so the layer sat third. A layer cell is recognized by its FORM — a
+ *  `<strong>` opening with one of the vocabulary's headline words — so the
+ *  census counts rows that state a layer ANYWHERE, and the caller asserts the
+ *  count EQUALS the sixteen legitimate law rows rather than zero. */
+export const LAYER_ANYWHERE_IN_A_ROW =
+  /<tr>(?:(?!<\/tr>)[\s\S])*?<td[^>]*><strong>(?:Denying|Behavioral|Discipline|Impossible|Structural|Compiler)[\s\S]*?<\/tr>/g;
+
+/** The fourth column's header. Deleting it leaves a three-header table over
+ *  four-cell rows, which no row-level read can see. */
+export const FOURTH_HEADER = "<th>Held today by</th>";
+
+/** (c) the registry IS the book's §15.3 table — ids, order, names, and the
+ *  enforcement cell reconstructed from `headline` + `note`, byte for byte.
+ *
+ *  ONE ROW, FOUR CELLS, MATCHED TOGETHER. §15's inversion put the enforcement
+ *  layer INTO each law's own row, replacing the separate map that stated the
+ *  same subject twice. Reading id, name, guarantee and layer out of a single
+ *  `<tr>` is what makes that structural — but a four-cell read ALONE is happy
+ *  with a book that also carries a second layer table beside it, which is the
+ *  precise thing the inversion removed. Both keyings of that duplicate were
+ *  built and measured, so three censuses ride along:
+ *
+ *    · every `class="r"` G-id cell in the whole book is one of the sixteen.
+ *      Catches the G-id-keyed duplicate, whose census is 32.
+ *    · NO row anywhere states a layer in its SECOND cell. This is the
+ *      load-bearing one: it catches BOTH duplicates, including the
+ *      name-keyed one, which leaves the G-id census sitting at sixteen and is
+ *      therefore invisible to the census above.
+ *    · the fourth column keeps its header, otherwise deletable in silence.
+ *
+ *  RESIDUAL, STATED RATHER THAN PAPERED OVER: the `.*?` in the row read
+ *  assumes no guarantee cell ever contains the literal `</td><td><strong>`.
+ *  (The three-cell and attribute-stripped restatements are closed: the layer
+ *  census is form-keyed, position-agnostic, and pinned to an equality.) */
 export function bookProblems(registry: Registry, book: string): string[] {
   const problems: string[] = [];
-  const names = [...book.matchAll(/<tr><td class="r">(G\d+)<\/td><td>([a-z-]+)<\/td><td>/g)];
-  const cells = [...book.matchAll(/<tr><td class="r">(G\d+)<\/td><td>(<strong>.*?)<\/td><\/tr>/g)];
-  if (names.length !== registry.laws.length) {
+  const rows = [...book.matchAll(FOUR_CELL_ROW)];
+  if (rows.length !== registry.laws.length) {
     problems.push(
-      `the book's invariant table has ${names.length} rows, laws.toml has ${registry.laws.length}`,
+      `the book's invariant table has ${rows.length} four-cell rows, laws.toml has ${registry.laws.length}`,
     );
   }
-  if (cells.length !== registry.laws.length) {
+  const ids = [...book.matchAll(/<td class="r">G\d+<\/td>/g)].length;
+  if (ids !== registry.laws.length) {
     problems.push(
-      `the book's enforcement map has ${cells.length} rows, laws.toml has ${registry.laws.length}`,
+      `the book states a law id in ${ids} cells, laws.toml has ${registry.laws.length}`,
+    );
+  }
+  const layerRows = [...book.matchAll(LAYER_ANYWHERE_IN_A_ROW)].length;
+  if (layerRows !== registry.laws.length) {
+    problems.push(
+      `${layerRows} rows state an enforcement layer, laws.toml has ${registry.laws.length} — a surplus row states an enforcement layer in a row of its own, and the layer rides the law's own row only`,
+    );
+  }
+  const headers = book.split(FOURTH_HEADER).length - 1;
+  if (headers !== 1) {
+    problems.push(
+      `the invariant table's fourth column header ${FOURTH_HEADER} appears ${headers} times, not once`,
     );
   }
   registry.laws.forEach((law, index) => {
-    const nameRow = names[index];
-    if (nameRow === undefined || nameRow[1] !== law.id || nameRow[2] !== law.name) {
+    const row = rows[index];
+    if (row === undefined || row[1] !== law.id || row[2] !== law.name) {
       problems.push(
-        `invariant table row ${index + 1} is ${nameRow?.[1]}/${nameRow?.[2]}, laws.toml says ${law.id}/${law.name}`,
+        `invariant table row ${index + 1} is ${row?.[1]}/${row?.[2]}, laws.toml says ${law.id}/${law.name}`,
       );
+      return;
     }
-    const cellRow = cells[index];
     const expected = `<strong>${law.headline}</strong> ${law.note}`;
-    if (cellRow === undefined || cellRow[1] !== law.id) {
-      problems.push(
-        `enforcement map row ${index + 1} is ${cellRow?.[1]}, laws.toml says ${law.id}`,
-      );
-    } else if (cellRow[2] !== expected) {
+    if (row[3] !== expected) {
       problems.push(`${law.id}: the enforcement cell does not regenerate from laws.toml`);
     }
   });

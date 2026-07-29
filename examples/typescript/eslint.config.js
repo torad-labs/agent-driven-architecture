@@ -66,7 +66,11 @@ const SCHEMA_DSL = "valibot"; //                            the input schema, mo
 //   arktype is this one line plus the block imports — the spine does not move.
 const EXTERNAL = "[^.].*"; //                               any client library
 
-/** C1 — §1.3 as an ALLOW-LIST, so anything not listed is forbidden. */
+/** C1 — THE RULE, in the book's canonical wording, verbatim: an import may
+ *  point inward toward the core, or it is the composition root; it may never
+ *  point outward from the core, sideways between adapters, or from a passive
+ *  node — a surface or a tool — into anything but domain types.
+ *  §1.3 is that sentence as an ALLOW-LIST, so anything not listed is forbidden. */
 const only = (where, ...allowed) => ({
   regex: `^(?!(?:${allowed.join("|")})$)`,
   message: `[C1] ${where}`,
