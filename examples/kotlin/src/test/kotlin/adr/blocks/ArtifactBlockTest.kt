@@ -11,7 +11,7 @@ import adr.app.RunAuthority
 import adr.app.Wiring
 import adr.app.World
 import adr.blocks.artifact.ArtifactBlock
-import adr.blocks.artifact.ArtifactLine
+import adr.contract.ArtifactResult.ArtifactLine
 import adr.blocks.artifact.ArtifactSlice
 import adr.blocks.artifact.CONFIRM_SEAL
 import adr.blocks.artifact.RECORD_FINDING

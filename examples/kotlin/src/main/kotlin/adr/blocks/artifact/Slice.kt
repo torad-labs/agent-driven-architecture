@@ -6,12 +6,14 @@
 
 package adr.blocks.artifact
 
-import adr.spine.pure.Actor
+import adr.contract.ArtifactResult.ArtifactLine
 import adr.spine.pure.Authority
 import adr.spine.pure.Timestamp
 
-/** `by` is the stamped Actor, copied in by the ARM from `sig` — never by the tool. */
-data class ArtifactLine(val at: Timestamp, val by: Actor, val text: String)
+// `ArtifactLine` is declared on this block's own sealed transport root, in
+// blocks/artifact/Contract.kt: `ArtifactEffect.DeliverArtifact` carries a list of them,
+// and Kotlin's sealed rule authors that file inside `:spine` (ADR-001 §3). C2 admits
+// the import by name prefix — `ArtifactResult.ArtifactLine` starts with `Artifact`.
 
 sealed class SealStatus {
     data object Draft : SealStatus()

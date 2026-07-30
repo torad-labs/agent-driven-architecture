@@ -17,6 +17,7 @@ package adr.blocks.inbox
 
 import adr.contract.InboxCommand
 import adr.contract.InboxResult
+import adr.contract.InboxResult.DropReason
 import adr.spine.pure.Lens
 import adr.spine.pure.RawInput
 import adr.spine.pure.SourceName

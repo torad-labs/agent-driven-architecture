@@ -78,18 +78,36 @@ class GateTrees {
      * `blocks/triage/Fold.kt`. The rules therefore cannot tell the two apart, which is
      * the property that makes a fixture pair meaningful.
      */
-    fun treeOf(root: String): List<GateFile> {
-        val marker = "/" + root.trim('/') + "/"
-        return Konsist.scopeFromDirectory(root)
+    fun treeOf(root: String, marker: String = "/" + root.trim('/') + "/"): List<GateFile> =
+        Konsist.scopeFromDirectory(root)
             .files
             .map { GateFile(it.path.substringAfter(marker), it) }
             .sortedBy { it.path }
-    }
 
-    /** The live tree the gate defends. */
-    fun liveTree(): List<GateFile> = treeOf("src/main/kotlin/adr")
+    /**
+     * THE LIVE TREE, now spread over N Gradle module roots (ADR-001 §3's DAG).
+     *
+     * The marker is passed EXPLICITLY here, and that is the whole migration. A live
+     * root is `<moduleDir>/src/main/kotlin/adr`, so normalising on the fixed
+     * [LIVE_MARKER] makes `spine/src/main/kotlin/adr/spine/pure/Actor.kt` and
+     * `spine/src/main/kotlin/adr/blocks/triage/Contract.kt` come back as
+     * `spine/pure/Actor.kt` and `blocks/triage/Contract.kt` — BYTE-IDENTICAL to what
+     * the single-module tree emitted. Every rule selector, every path pin and every
+     * roster in Rules.kt and GateTest.kt therefore keeps binding, unedited.
+     *
+     * WHAT MUST NOT BE DONE, proven: fixing that marker GLOBALLY — for [fixtureTree]
+     * too — breaks eight of this file's own tests. [fixtureTree] keeps the DERIVED
+     * marker, because a fixture root is `src/test/fixtures/konsist/<polarity>/<check>`
+     * and contains no `/src/main/kotlin/adr/` segment at all; Kotlin's
+     * `substringAfter` returns the WHOLE receiver when the delimiter is absent, so
+     * fixture paths would stop normalising, [GateFile.block] would go null for every
+     * one of them, and C2/C8's block-tests would report "the violating fixture was
+     * ACCEPTED" — a vacuous ACCEPT, the worst reading a gate can produce.
+     */
+    fun liveTree(): List<GateFile> =
+        MODULE_ROOTS.flatMap { treeOf(it, LIVE_MARKER) }.sortedBy { it.path }
 
-    /** A fixture tree: `violating` or `compliant`, for one check. */
+    /** A fixture tree: `violating` or `compliant`, for one check. Marker DERIVED — see above. */
     fun fixtureTree(polarity: String, check: String): List<GateFile> =
         treeOf("src/test/fixtures/konsist/$polarity/$check")
 
@@ -100,4 +118,28 @@ class GateTrees {
     /** Does [code] contain [token] as a whole word (not as part of a longer identifier)? */
     fun mentions(code: String, token: String): Boolean =
         Regex("""(^|[^A-Za-z0-9_])${Regex.escape(token)}($|[^A-Za-z0-9_])""").containsMatchIn(code)
+
+
+        /**
+         * The path segment every module puts its `adr/` subtree under. Fixed, not
+         * derived, because there are now N live roots and they must all normalise onto
+         * ONE relative namespace.
+         */
+        val LIVE_MARKER: String = "/src/main/kotlin/adr/"
+
+        /**
+         * EVERY source-bearing module root of ADR-001 §3's DAG. `:spine` is extracted;
+         * the six block pairs (stages 2-3) and `:app` (stage 4) still compile in the
+         * root project, which is why its own `src/main/kotlin/adr` is listed too and
+         * why its entry leaves as those stages land.
+         *
+         * A module whose sources exist and whose root is NOT here would be invisible to
+         * all eleven konsist checks while every test stayed green — the vacuous-tree
+         * failure. `GateTest`'s MODULE ROOTS test derives the roots from the disk and
+         * fails on exactly that.
+         */
+        val MODULE_ROOTS: List<String> = listOf(
+            "spine/src/main/kotlin/adr",
+            "src/main/kotlin/adr",
+        )
 }

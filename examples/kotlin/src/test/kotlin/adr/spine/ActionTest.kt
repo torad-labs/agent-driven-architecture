@@ -67,7 +67,7 @@ class ActionTest {
             TriageResult.SetPriority(
                 SET_PRIORITY,
                 adr.spine.pure.TicketId("4118"),
-                adr.blocks.triage.Priority.High,
+                adr.contract.TriageResult.Priority.High,
                 reason = null,
             ),
             a.results.single(),

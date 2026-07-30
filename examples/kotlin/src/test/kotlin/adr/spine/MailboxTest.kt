@@ -27,8 +27,8 @@ import adr.app.Wiring
 import adr.blocks.artifact.CONFIRM_SEAL
 import adr.blocks.artifact.RECORD_FINDING
 import adr.blocks.artifact.SealStatus
-import adr.blocks.inbox.DropReason
-import adr.blocks.triage.Priority
+import adr.contract.InboxResult.DropReason
+import adr.contract.TriageResult.Priority
 import adr.blocks.triage.SET_PRIORITY
 import adr.contract.ArtifactCommand
 import adr.contract.InboxCommand

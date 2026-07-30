@@ -4,9 +4,13 @@
 
 package adr.blocks.triage
 
+import adr.contract.TriageResult.Priority
 import adr.spine.pure.TicketId
 
-enum class Priority { Low, Normal, High, Urgent }
+// `Priority` is declared on this block's own sealed transport root, in
+// blocks/triage/Contract.kt, because Kotlin's sealed rule authors that file inside
+// `:spine` and the transport NAMES this type (ADR-001 §3). The import is what C2's
+// name-prefix rule admits: `TriageResult.Priority` starts with `Triage`.
 
 data class Ticket(val id: TicketId, val body: String)
 

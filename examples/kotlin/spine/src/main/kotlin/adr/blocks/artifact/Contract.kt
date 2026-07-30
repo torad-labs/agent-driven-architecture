@@ -9,7 +9,7 @@
 
 package adr.contract
 
-import adr.blocks.artifact.ArtifactLine
+import adr.spine.pure.Actor
 import adr.spine.pure.CommandId
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
@@ -20,6 +20,29 @@ import adr.spine.pure.ToolName
  * so every variant carries it by construction rather than by re-implementing it.
  */
 sealed class ArtifactResult(override val tool: ToolName) : ToolResult(tool) {
+
+    /**
+     * FORCED INTO THE TRANSPORT ROOT by Kotlin's sealed rule, not by preference.
+     *
+     * Every variant of a sealed hierarchy must live in one package AND one MODULE, so
+     * this block's transport is authored inside `:spine` (ADR-001 §3) — the compiler
+     * says "Extending sealed classes or interfaces from a different module is
+     * prohibited". A payload type the transport NAMES therefore cannot stay behind in
+     * the block module: `:spine` may not depend on a block at all.
+     *
+     * It is nested on the block's own sealed root rather than promoted to
+     * `adr.spine.pure`, because the kernel is a VENDORABLE tier (gate check C15) and
+     * an artifact line is block domain vocabulary — putting it there would be a
+     * worse violation of "the spine tier names nothing in your feature code" than
+     * anything the DAG fixes. Nested, C2 admits it by the existing name-prefix rule
+     * (`ArtifactResult.ArtifactLine` starts with `Artifact`), C15 never sees it, `adr.spine.pure`
+     * gains nothing, and no new file and no new package enter the kernel.
+     *
+     * `by` is the stamped Actor, copied in by the ARM from `sig` — never by the tool.
+     * Consumers import the nested name, so blocks/artifact still reads `ArtifactLine`.
+     */
+    data class ArtifactLine(val at: Timestamp, val by: Actor, val text: String)
+
     data class RecordFinding(
         override val tool: ToolName,
         val text: String,
@@ -63,6 +86,6 @@ sealed class ArtifactEffect(override val at: Timestamp) : Effect(at) {
     /** IRREVERSIBLE, and it fires exactly ONCE, at seal time — never once per line. */
     data class DeliverArtifact(
         override val at: Timestamp,
-        val lines: List<ArtifactLine>,
+        val lines: List<ArtifactResult.ArtifactLine>,
     ) : ArtifactEffect(at)
 }

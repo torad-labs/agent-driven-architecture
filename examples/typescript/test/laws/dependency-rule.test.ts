@@ -285,7 +285,7 @@ const poolHits = (text: string): number => [...normalize(text).matchAll(DIVERGEN
 
 const POOL: Record<string, number> = {
   "examples/kotlin/README.md": 3,
-  "examples/kotlin/src/main/kotlin/adr/spine/ports/ModelProvider.kt": 1,
+  "examples/kotlin/spine/src/main/kotlin/adr/spine/ports/ModelProvider.kt": 1,
   "examples/kotlin/src/test/fixtures/konsist/compliant/C1/blocks/triage/Fold.kt": 1,
   "examples/kotlin/src/test/kotlin/adr/gate/GateTest.kt": 1,
   "examples/kotlin/src/test/kotlin/adr/gate/Rules.kt": 2,
