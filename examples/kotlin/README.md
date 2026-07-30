@@ -29,7 +29,7 @@ src/main/kotlin/adr/
 │   ├── agent/                 the ONLY file in spine/ that imports the agent-loop runtime
 │   ├── surface/               ONE ViewModel stream + ONE onAction(Action) sink
 │   ├── concurrency/           the BARGE-IN loop (12) and the relay's read side: consumer · in-memory
-│   └── replay/                Replay: refold · collectPerform — ReplayFaithfulness: assertFaithful
+│   └── replay/                Replay: refold · stateAtStep · collectPerform — ReplayFaithfulness: assertFaithful
 ├── blocks/                    THE LEAVES — one folder per feature; `register` is the public symbol
 │   ├── triage/                domain block          contract·slice·tools·fold·project·register
 │   ├── escalation/            domain block + gated verb          … + port·adapter
@@ -330,7 +330,7 @@ here rather than left to imply a parity that does not exist:
 | **Schema evolution (14.7)** | `StepRecord` carries no `schemaVersion` and no upcaster ships. A decision, not an oversight: the envelope is prose in the book and nothing here exercises it. |
 | **Cross-session global ordering** | 5.2 puts causal consistency across independent streams out of scope. The two-tier test proves *separate* buses; it proves nothing about ordering between them. |
 | **A distributed or sharded bus, bespoke persistence/retention, multi-tenant isolation** | 8.5 names these as swaps. The contracts exist; no adapter does. |
-| **Snapshots, compaction, retention (14.1/16.2)** | product policy. |
+| **Where a snapshot is stored, compaction, retention (14.1/16.2)** | product policy. The snapshot *mechanism* left this row: `spine/replay` ships the memoized fold prefix, tagged with the reducer version, the timeline offset it covers, and the mark of the record it stops at. `ReplayTest` proves a snapshot-seeded resume equals what the live run produced, and that a snapshot resumed under a reducer version the caller is not folding with — or over a tail whose boundary the log does not confirm — is refused rather than folded. Two logs whose boundary records are byte-identical stay indistinguishable to that seam; the file says so. What a product still owns is where a snapshot *lives*, and how far below one it may compact. |
 | **The per-tenant budget (G6)** | `spine/ports/authorization` is its named home and its verdict already rides the committed record; no port ships a tenant budget, because no port has tenants. |
 | **CI** | `.github/workflows/ci.yml` runs `./gradlew check` (and the TS suite) on every push and pull request — the same entry point a developer runs locally, no CI-only rule set. |
 | **Dispatcher confinement of `submit`** | the consumer creates the turn's scope, so the reference cannot violate it — but an adopter who runs a turn on another dispatcher could interleave two folds despite the design. Enforced structurally, **not gate-checkable**. |

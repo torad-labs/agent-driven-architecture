@@ -147,7 +147,7 @@ block Escalation {
 │   ├── concurrency/           THE BARGE-IN CONSUMER: consumer · in-memory
 │   ├── agent/loop             the ONLY file that imports the agent-loop SDK
 │   ├── surface/controller     ONE ViewModel stream + ONE onAction(Action)
-│   └── replay/replay          refold · collectPerform · contextDivergence
+│   └── replay/replay          refold · stateAtStep · collectPerform · contextDivergence
 ├── blocks/                    THE LEAVES — one folder per feature
 │   ├── triage/                contract · slice · tools · fold · project · register
 │   │                          (the setPriority slice this example calls "priority")
