@@ -40,6 +40,7 @@ export function triageArm(
         ticket: r.ticket,
         level: r.level,
         supersedes: priorityOf(slice, r.ticket),
+        reason: r.reason,
       };
       return armOut(withPriority(slice, r.ticket, r.level), [effect], []);
     }

@@ -226,7 +226,6 @@ here rather than left to imply a parity that does not exist:
 
 | | why |
 |---|---|
-| **Schema evolution (14.7)** | `StepRecord` carries no `schemaVersion` and no upcaster ships. A decision, not an oversight. |
 | **Cross-session global ordering** | 5.2 puts causal consistency across independent streams out of scope. The two-tier test proves *separate* buses; it proves nothing about ordering between them. |
 | **A distributed or sharded bus, bespoke persistence/retention, multi-tenant isolation** | 8.5 names these as swaps. The contracts exist; no adapter does. |
 | **Where a snapshot is stored, compaction, retention (14.1/16.2)** | product policy. The snapshot *mechanism* left this row: `spine/replay` ships the memoized fold prefix, tagged with the reducer version, the timeline offset it covers, and the mark of the record it stops at. `test/spine/replay.test.ts` proves a snapshot-seeded resume equals what the live boundary and live sink produced, and that a snapshot resumed under a reducer version the caller is not folding with — or over a tail whose boundary the log does not confirm — is refused rather than folded. Two logs whose boundary records are byte-identical stay indistinguishable to that seam; the file says so. What a product still owns is where a snapshot *lives*, and how far below one it may compact. |
@@ -239,9 +238,16 @@ here rather than left to imply a parity that does not exist:
 
 ## Deliberate scope decisions
 
-* **Schema evolution (14.7) is out of scope.** `StepRecord` carries no `schemaVersion` and no
-  upcaster ships. That is a decision, not an omission; a reader arriving from 14.7 will notice the
-  gap.
+* **Schema evolution (14.7) ships, one rung of it.** `StepRecord` carries a required
+  `schemaVersion` (current 2, genesis 1 — nothing was ever persisted, so there is no v0), and one
+  worked v1 -> v2 upcaster lifts the block payload that gained an optional field. The refusal is the
+  compiler's, in both halves: a `StepRecordV1` is not a `StepRecord`, and a v1 payload is not a
+  `ToolResult` — its `outcome` is `"ok-v1"`, a value `ResultOutcome` does not have, which is how a
+  structural language refuses what Kotlin refuses nominally. So an un-upcast log cannot reach
+  `refold` at all. What is *not* here is a chain of upcasters, a versioned wire encoding (14.1 leaves
+  that product-owned), a golden trace pinned per reducer version, or any dispatch on the version at
+  load time: the envelope is read by the COMPILER and never at run time, because this reference
+  deliberately ships no loader to read it in.
 * **A per-tenant budget (G6) is specified, not implemented.** `spine/ports/authorization` is its
   named home and its verdict already rides the committed record; no port ships a tenant budget,
   because no port has tenants.

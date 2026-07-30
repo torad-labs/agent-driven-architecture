@@ -80,7 +80,8 @@
   gated   = results.map(r -&gt; gate(r, sig, state, registry, authz))   // (5) PRE-FOLD, so the verdict commits
   (s, fx) = fold(state, gated, now, sig)                   // (6) pure call — decide
   index   = append(bus, StepRecord {                       // (7) COMMIT the step, not the pair
-              now, sig, staged: step.staged, actions: step.actions, results: gated,
+              schemaVersion, now, sig,                     //     the envelope rides the record (14.7)
+              staged: step.staged, actions: step.actions, results: gated,
               commands: gated.map(r -&gt; sign(registry, r, sig, nextId())),   // EVERY verb signs
               context:  ContextFixture(promptVersion, render(ctx.context)) })
   state   = s                                              // (8) adopt the new truth
@@ -189,7 +190,8 @@ sealed Command(tool: ToolName, sig: Signature, id: CmdId) {  // the parent decla
   boundary.onStepFinish(FinishedStep(by = Agent, staged = [],
     actions = [ Action("setPriority", { ticket: 4118, level: "High" }) ]))
   assert sink.log == [
-    Append(StepRecord(now = t0, sig = Signature(Agent, "agent-run-7f"),
+    Append(StepRecord(schemaVersion = 2,                            // the envelope (14.7)
+                      now = t0, sig = Signature(Agent, "agent-run-7f"),
                       actions  = [ Action("setPriority", …) ],       // what was ASKED
                       results  = [ SetPriority(4118, High) ],        // what was FOLDED
                       commands = [ Command.SetPriority(sig, id = c1, 4118, High) ])),

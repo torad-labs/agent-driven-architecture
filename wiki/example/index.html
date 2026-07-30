@@ -170,7 +170,7 @@ sequenceDiagram
         <li><strong>The <a class="x" href="03-tools-and-context.html">verb</a> crossing.</strong> The agent emits an <code class="i">Action("setPriority", {ticket:4118, level:High})</code> — an open name with a raw input. <code class="i">resolveAction</code> looks the name up in the registry, decodes the input, and calls the verb's <code class="i">run(input, ctx)</code>, which returns the payload <code class="i">SetPriority(4118, High)</code> and mutates nothing. An unknown name resolves to <code class="i">Unhandled</code> here rather than falling through. <span class="tag good">pure</span></li>
         <li><strong>The stamp &amp; the gate (<a class="x" href="02-the-boundary.html">boundary adapter</a>).</strong> The boundary mints <code class="i">Signature(by = Agent, authority = agent-run-7f)</code> and runs every result past the irreversibility gate. <code class="i">setPriority</code> is reversible, so it passes untouched; a <code class="i">confirmEscalation</code> whose authority equals the requesting one would become <code class="i">Refused</code> right here, <em>before</em> the fold. The signature is minted here and nowhere else.</li>
         <li><strong>The <a class="x" href="01-state-and-fold.html">fold</a>.</strong> <code class="i">fold(state, [SetPriority(4118,High)], now, sig)</code> checks that 4118 exists, then returns <code class="i">(state', [Effect.LogDecision(...)])</code> — a new immutable state and an effect <em>descriptor</em>. It performs nothing. <span class="tag good">pure</span></li>
-        <li><strong>The <a class="x" href="02-the-boundary.html">commit</a>.</strong> <code class="i">append(bus, StepRecord{now, sig, staged, actions, results, commands, context})</code> writes the whole step to the append-only log and returns its <code class="i">index</code>. Nothing happens off the record — and <code class="i">now</code> rides the record, or a re-fold could not reproduce it.</li>
+        <li><strong>The <a class="x" href="02-the-boundary.html">commit</a>.</strong> <code class="i">append(bus, StepRecord{schemaVersion, now, sig, staged, actions, results, commands, context})</code> writes the whole step to the append-only log and returns its <code class="i">index</code>. Nothing happens off the record — and <code class="i">now</code> rides the record, or a re-fold could not reproduce it.</li>
         <li><strong>The <a class="x" href="01-state-and-fold.html">effect</a>, performed (<a class="x" href="02-the-boundary.html">boundary adapter</a>).</strong> <code class="i">perform(KeyedEffect(EffectKey(index, 0), Effect.LogDecision(...)), LIVE)</code>. The one impure act in the whole trace — and its key could not exist until step 6 returned the index.</li>
         <li><strong>The <a class="x" href="04-projection-and-surface.html">projection</a> &amp; surface.</strong> <code class="i">project(state')</code> recomputes the view: ticket 4118's row now reads <code class="i">badge:"HIGH"</code>, <code class="i">canEscalate:true</code>. The surface renders it. It decides nothing — it applies flags already decided. <span class="tag good">pure</span></li>
       </ol>
@@ -305,7 +305,8 @@ sealed Effect(at: Timestamp) { LogDecision(...) | PageOncall(...) | Diag(note) }
 // ───────── What the boundary is handed, and what it commits (seam 02) ─────────
 data Action       = { tool: ToolName, input: RawInput }   // an OPEN name — the one open input in the system
 data FinishedStep = { by: Actor, staged: [StagedInput], actions: [Action] }
-data StepRecord   = { now: Timestamp, sig: Signature, staged: [StagedInput],
+data StepRecord   = { schemaVersion: SchemaVersion,   // 14.7 — which shape the rest is in
+                      now: Timestamp, sig: Signature, staged: [StagedInput],
                       actions:  [Action],        // what was ASKED
                       results:  [ToolResult],    // what was FOLDED — post-gate; the two differ when refused
                       commands: [Command], context: ContextFixture }
@@ -338,7 +339,8 @@ boundary.onStepFinish(step: FinishedStep):
   gated   = results.map(r -&gt; gate(r, sig, state, registry, authz))   // (5) PRE-FOLD, so the verdict commits
   (s, fx) = fold(state, gated, now, sig)                   // (6) pure call — decide
   index   = append(bus, StepRecord {                       // (7) COMMIT the step, not the pair
-              now, sig, staged: step.staged, actions: step.actions, results: gated,
+              schemaVersion, now, sig,                     //     the envelope rides the record (14.7)
+              staged: step.staged, actions: step.actions, results: gated,
               commands: gated.map(r -&gt; sign(registry, r, sig, nextId())),   // EVERY verb signs
               context:  ContextFixture(promptVersion, render(ctx.context)) })
   state   = s                                              // (8) adopt the new truth

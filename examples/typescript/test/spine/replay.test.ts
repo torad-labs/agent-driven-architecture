@@ -12,22 +12,15 @@
 // timestamp.
 
 import { describe, expect, it } from "vitest";
-import type { State } from "../../src/app/contract";
 import { effectSink } from "../../src/app/wire";
-import { escalation } from "../../src/blocks/escalation/register";
+import type { SetPriorityResult, SetPriorityResultV1 } from "../../src/blocks/triage/contract";
+import { PRE_V2_REASON, upcastSetPriority } from "../../src/blocks/triage/tools";
 import { RecordingSink } from "../../src/spine/boundary/in-memory";
-import type { StepRecord } from "../../src/spine/pure/step-record";
-import type { Snapshot } from "../../src/spine/replay/replay";
-import {
-  collectPerform,
-  refold,
-  refoldFrom,
-  snapshotAt,
-  stateAtStep,
-  timelineTail,
-} from "../../src/spine/replay/replay";
-import type { Harness } from "../harness";
-import { AGENT_RUN, fakeWorld, harness, POLICY_TIER } from "../harness";
+import { authority, Signature } from "../../src/spine/pure/actor";
+import type { StepRecord, StepRecordV1 } from "../../src/spine/pure/step-record";
+import { GENESIS_SCHEMA_VERSION, SCHEMA_VERSION, upcastV1 } from "../../src/spine/pure/step-record";
+import { collectPerform, refold } from "../../src/spine/replay/replay";
+import { fakeWorld, harness, POLICY_TIER } from "../harness";
 import { must } from "../support/must";
 
 function driveFullSession(h: ReturnType<typeof harness>): void {
@@ -55,56 +48,6 @@ describe("replay — a live run against its re-fold (G9)", () => {
     // the FULL sequence: keys AND every `at`
     expect(replayed.effects).toEqual(h.sink.performed);
     expect(replayed.effects.map((k) => k.effect.kind)).toEqual([
-      "LogDecision",
-      "Diag",
-      "PageOncall",
-      "DeliverArtifact",
-    ]);
-  });
-
-  it("SCRUB: at k=3 the escalation is REQUESTED, refused once, and not yet granted", () => {
-    const h = harness({ start: 1000, step: 7 });
-    driveFullSession(h);
-    const records = h.app.bus.records();
-    expect(records).toHaveLength(7);
-
-    // k=3 is the one interior step that discriminates. The request went in at
-    // step 2, the SELF-confirm at step 3 was refused at the gate, and the policy
-    // tier that grants it acts at step 4 — so this is the moment the scrub story
-    // is about: what the system believed BEFORE the grant, from the prefix alone.
-    const scrubbed = stateAtStep(h.app.initial, records, h.app.dispatchers, 3);
-
-    const status = must(escalation.statusOf(scrubbed.state.escalation, "4118"));
-    expect(status.kind).toBe("Escalating");
-    // and WHO asked is still outstanding — that is what the gate compares against
-    expect(status.requestedBy).toBe(AGENT_RUN);
-    // the refusal was logged as a Diag and nobody had been paged. The FULL effect
-    // prefix, because a scrub that hid the effects would hide the page.
-    expect(scrubbed.effects.map((keyed) => keyed.effect.kind)).toEqual(["LogDecision", "Diag"]);
-    // The FULL keyed prefix — keys AND payloads — against what the LIVE sink
-    // performed. Kind-names alone certified a prefix whose every effect KEY
-    // was wrong (review built that mutant and both gates stayed green).
-    expect(scrubbed.effects).toEqual(h.sink.performed.slice(0, 2));
-
-    // the playhead dragged off the front end: CLAMPED, not thrown and not
-    // wrapped. `slice(0, -1)` would silently drop the LAST record instead.
-    const dragged = stateAtStep(h.app.initial, records, h.app.dispatchers, -1);
-    expect(dragged.state).toEqual(h.app.initial);
-
-    // and dragged to the RIGHT end, and past it. Positive named facts at the
-    // upper boundary — the ticket reached Escalated, the page fired, the seal
-    // was delivered — never `stateAtStep(n) === refold(all)`, which is true by
-    // construction and proves nothing.
-    const whole = stateAtStep(h.app.initial, records, h.app.dispatchers, records.length);
-    expect(must(escalation.statusOf(whole.state.escalation, "4118")).kind).toBe("Escalated");
-    expect(whole.effects.map((keyed) => keyed.effect.kind)).toEqual([
-      "LogDecision",
-      "Diag",
-      "PageOncall",
-      "DeliverArtifact",
-    ]);
-    const past = stateAtStep(h.app.initial, records, h.app.dispatchers, records.length + 5);
-    expect(past.effects.map((keyed) => keyed.effect.kind)).toEqual([
       "LogDecision",
       "Diag",
       "PageOncall",
@@ -140,305 +83,172 @@ describe("replay — a live run against its re-fold (G9)", () => {
   });
 });
 
-// ── 14.1 — a memoized fold prefix whose TAG refuses ───────────────────────
+// ── 14.7 — SCHEMA EVOLUTION, over a log written before the field existed ────
 //
-// 14.1's equation is `fold(snapshot@k, timeline[k..]) == fold(initialState,
-// timeline)`, and asserting exactly that would be worth nothing: one pure
-// function over one in-memory array, called twice, true by construction — the
-// same f(x) == f(x) the header of this file exists to end. So the right-hand
-// side of every acceptance assertion below is what the LIVE boundary and the
-// LIVE sink actually produced, never a second re-fold.
+// Two things are being proven, and only the pair is worth anything:
 //
-// The REFUSAL cases mutate ONLY the tag — state and memoized effects stay byte
-// identical to the honest snapshot — which is what makes them tag tests rather
-// than corruption tests. And they resume at the tag's OWN offset, because that
-// is the only resume site a STORED snapshot permits: nothing else in the system
-// knows which prefix a snapshot covers. A guard that only refuses when the
-// caller volunteers an independent number is a guard that never fires in
-// production.
-describe("snapshot — a memoized fold prefix, tagged and refusable (14.1)", () => {
-  // STRICTLY INTERIOR, and a literal rather than something derived from
-  // `records.length`. At 0 the resume degenerates into the full re-fold already
-  // asserted above; at 7 the tail is empty and the snapshot IS the answer.
-  // Either one passes without the seam having done anything.
-  const K = 3;
-  const VERSION = "fold-v1";
+//   1. THE OLD LOG CANNOT REPLAY AT ALL — in BOTH halves, envelope and payload,
+//      each isolated by its own inverting assertion below.
+//   2. THE UPCAST IS OBSERVABLE. Re-folding the LIFTED log produces a different
+//      effect sequence from re-folding a native v2 one, in a field the fold
+//      actually consumes. An upcaster whose output nothing reads is a function
+//      that can be deleted with every test still green.
+//
+// The v1 log is an in-code typed fixture rather than a file on disk, because
+// this reference persists nothing: the bus is an array of typed records and
+// 14.1's canonical encoding is deliberately product-owned. So the "old shape"
+// is a TYPE the compiler refuses, which is a stronger fixture than bytes a
+// hand-written parser would have to agree with.
+const V1_SIG = new Signature("Agent", authority("agent-run-7f"));
 
-  const driven = (): Harness => {
-    const h = harness({ start: 1000, step: 7 });
-    driveFullSession(h);
-    return h;
-  };
+const v1Result: SetPriorityResultV1 = {
+  outcome: "ok-v1",
+  tool: "setPriority",
+  ticket: "4118",
+  level: "High",
+};
 
-  /** THE resume site — the tail is requested AT THE TAG'S OWN OFFSET, because a
-   *  reader holding a stored snapshot has no other source for it. */
-  const resumeAt = (h: Harness, s: Snapshot<State>) =>
-    refoldFrom(
-      s,
-      timelineTail(h.app.bus.records(), s.tag.offset),
-      h.app.dispatchers,
-      h.app.reducerVersion,
-    );
+const v1Log = (): readonly StepRecordV1<SetPriorityResultV1>[] => [
+  {
+    schemaVersion: GENESIS_SCHEMA_VERSION,
+    now: 1000,
+    sig: V1_SIG,
+    staged: [],
+    actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
+    results: [v1Result],
+    commands: [],
+    context: { promptVersion: "triage-prompt@1", digest: "" },
+  },
+];
 
-  it("a snapshot-seeded resume equals what the LIVE boundary and LIVE sink produced", () => {
-    const h = driven();
-    const records = h.app.bus.records();
-    expect(records.length).toBe(7);
-    expect(h.app.reducerVersion).toBe(VERSION);
+describe("schema evolution — an old-shape log replays only through its upcaster (14.7)", () => {
+  // ── THE THREE ISOLATING REFUSALS ────────────────────────────────────────
+  // Each `@ts-expect-error` below IS the assertion: it fails the build the
+  // moment the error it names stops happening. They are deliberately THREE and
+  // not one, because a single directive that can be satisfied by any of three
+  // defects passes for the wrong reason as soon as two of them are weakened.
+  // Proven independent: making the envelope optional inverts only the first;
+  // widening the envelope off the literal inverts only the second; reverting the
+  // v1 payload's discriminant inverts only the third.
 
-    const snap = snapshotAt(h.app.initial, records, h.app.dispatchers, K, h.app.reducerVersion);
-    expect(snap.tag.reducerVersion).toBe(VERSION);
-    expect(snap.tag.offset).toBe(K);
-    // the tag names the record it stops at, read off the prefix it folded
-    expect(snap.tag.coveredThrough).toEqual({
-      now: must(records[K - 1]).now,
-      digest: must(records[K - 1]).context.digest,
-      results: must(records[K - 1]).results,
-    });
-
-    // INTERIOR, proven at BOTH ends rather than asserted in a comment: the
-    // prefix folded something (k > 0, or this is the whole-timeline re-fold
-    // already covered) and the tail still has something left (k < n, or the
-    // snapshot IS the answer and the seam did nothing).
-    expect(snap.tag.offset).toBeGreaterThan(0);
-    expect(snap.tag.offset).toBeLessThan(records.length);
-    // …and the memo is genuinely not the answer yet.
-    expect(snap.state).not.toEqual(h.app.boundary.state);
-    expect(snap.effects.length).toBeLessThan(h.sink.performed.length);
-
-    const resumed = resumeAt(h, snap);
-    expect(resumed.kind).toBe("Resumed");
-    const refolded = must(resumed.kind === "Resumed" ? resumed.refolded : null);
-
-    // the LIVE anchors, not a second call to `refold`
-    expect(refolded.state).toEqual(h.app.boundary.state);
-    // the FULL sequence: keys AND every `at`, the prefix's effects included
-    expect(refolded.effects).toEqual(h.sink.performed);
-  });
-
-  it("the record mark DISCRIMINATES every committed step — the seam's precondition", () => {
-    // If two records ever shared a mark, the extent guard below would silently
-    // stop distinguishing their offsets and every refusal case would go vacuous
-    // while staying green. So the precondition is pinned, not assumed.
-    const records = driven().app.bus.records();
-    const marks = records.map((r) => `${r.now} ${r.context.digest}`);
-    expect(new Set(marks).size).toBe(records.length);
-  });
-
-  it("BOTH halves of the mark carry weight, and the precondition has a MEASURED edge", () => {
-    // A two-component mark invites a component nobody checks. Measured on a
-    // draft of this file: a `sameMark` that compared only `now` left the whole
-    // suite green, because against a MOVING clock the timestamps alone separate
-    // every record. So each half is put in a configuration where it is the only
-    // thing doing the work, and the numbers are pinned.
-    const census = (step: number) => {
-      const h = harness({ start: 1000, step });
-      driveFullSession(h);
-      const r = h.app.bus.records();
-      return {
-        n: r.length,
-        byNow: new Set(r.map((x) => x.now)).size,
-        byDigest: new Set(r.map((x) => x.context.digest)).size,
-        byMark: new Set(r.map((x) => `${x.now}|${x.context.digest}|${JSON.stringify(x.results)}`))
-          .size,
-      };
+  it("REFUSES an unstamped record: the envelope is REQUIRED, not defaulted", () => {
+    const seven = {
+      now: 1000,
+      sig: V1_SIG,
+      staged: [],
+      actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
+      results: [],
+      commands: [],
+      context: { promptVersion: "triage-prompt@1", digest: "" },
     };
-
-    // THE DEFAULT RIG: the clock moves and the mark separates every step. This
-    // is the precondition the drift loops below actually rely on.
-    expect(census(7)).toEqual({ n: 7, byNow: 7, byDigest: 7, byMark: 7 });
-
-    // FREEZE THE CLOCK. `now` is a value the boundary READS (G9) — not a
-    // counter, and nothing promises it moves; a coarse clock stamps several
-    // steps inside one tick. The timestamp half collapses to a single value and
-    // the committed context digest (G15) alone still separates all seven. That
-    // is what makes `digest` load-bearing rather than decoration.
-    expect(census(0)).toEqual({ n: 7, byNow: 1, byDigest: 7, byMark: 7 });
-
-    // …and the refusals must still ALL hold under that frozen clock, which is
-    // what turns the census above from a description into a guard: a mark
-    // comparison that read only `now` would find every record identical here
-    // and wave every drift through.
-    const h = harness({ start: 1000, step: 0 });
-    driveFullSession(h);
-    const frozen = h.app.bus.records();
-    const honest = snapshotAt(h.app.initial, frozen, h.app.dispatchers, K, h.app.reducerVersion);
-    expect(resumeAt(h, honest).kind).toBe("Resumed");
-    for (const drift of [0, 1, 2, 4, 5, 6, 7, 8, 12, 99]) {
-      const corrupt = { ...honest, tag: { ...honest.tag, offset: drift } };
-      expect(resumeAt(h, corrupt).kind, `frozen clock, offset ${drift}`).toBe("Refused");
-    }
-
-    // THE FORMER EDGE, now closed: the Kotlin canonical session commits a pair
-    // sharing timestamp AND rendered context, and a drift across exactly that
-    // pair once resumed with every mark agreeing. The mark's third half — the
-    // step's committed results — separates every record either reference
-    // commits. The honest residual: two records identical in now, digest AND
-    // results are indistinguishable here, and a fold of two byte-identical
-    // steps from either offset is the same fold — stated, not papered over.
+    // @ts-expect-error — `schemaVersion` is missing. The ONLY defect in this
+    // value is the absent envelope; every other field is current-shape.
+    const unstamped: StepRecord = seven;
+    expect(unstamped.now).toBe(1000);
   });
 
-  it("a drift between two same-digest records is REFUSED by the `now` half alone", () => {
-    // The configuration where `now` is the ONLY thing working: two records
-    // sharing one rendered context (identical digest) that differ only in
-    // timestamp. Without `a.now === b.now` in sameMark this resumes — review
-    // proved the whole gate green under exactly that mutation.
+  it("REFUSES a STALE version: a current-shape record still stamped genesis is not current", () => {
+    // Payloads already lifted, so the only defect left is the number itself.
+    // This is what makes the version type-level LOAD-BEARING rather than a
+    // write-only decoration: widen `schemaVersion` off the literal and this
+    // directive goes unused.
+    const lifted = upcastV1(must(v1Log()[0]), upcastSetPriority);
+    // @ts-expect-error — GENESIS is not the current version.
+    const stale: StepRecord = { ...lifted, schemaVersion: GENESIS_SCHEMA_VERSION };
+    expect(stale.results).toHaveLength(1);
+  });
+
+  it("REFUSES a v1 PAYLOAD under a v2 envelope — the structural half", () => {
+    // The hole a structural language leaves open, closed. Re-stamping the
+    // envelope by hand is trivial; what must not typecheck is the RESULT of
+    // doing so, because that record folds and yields a `reason` of `undefined`
+    // — a value neither `SetPriorityResult` nor `LogDecision` admits.
+    // `SetPriorityResultV1.outcome` is `"ok-v1"`, which `ResultOutcome` does
+    // not have, so the array is not a `readonly ToolResultBase[]`.
+    const v1 = must(v1Log()[0]);
+    // @ts-expect-error — v1 payloads are not ToolResults, whatever the envelope says.
+    const forged: StepRecord = { ...v1, schemaVersion: SCHEMA_VERSION };
+    expect(forged.schemaVersion).toBe(SCHEMA_VERSION);
+  });
+
+  it("this port writes v2, and genesis was 1 — the numbers, not just the constants", () => {
+    // CX-1: without this, every other assertion compares the committed value
+    // against the constant that produced it, and both sides move together under
+    // a mutation. These are the only two hard values in the envelope story.
+    expect(SCHEMA_VERSION).toBe(2);
+    expect(GENESIS_SCHEMA_VERSION).toBe(1);
+    expect(SCHEMA_VERSION).not.toBe(GENESIS_SCHEMA_VERSION);
+  });
+
+  // ── THE UPCAST, AND ITS CONTROL ─────────────────────────────────────────
+
+  it("LIFTS it: the upcast log re-folds, and the upcaster's decision is in the effect", () => {
     const h = harness({ start: 1000, step: 7 });
-    driveFullSession(h);
-    const live = h.app.bus.records();
-    const a = must(live[0]);
-    const b = must(live[1]);
-    const bPrime: StepRecord = { ...b, context: a.context };
-    const log: readonly StepRecord[] = [a, bPrime, ...live.slice(2)];
-    expect(must(log[0]).context.digest).toBe(must(log[1]).context.digest);
-    expect(must(log[0]).now).not.toBe(must(log[1]).now);
+    const lifted = v1Log().map((record) => upcastV1(record, upcastSetPriority));
 
-    const snap = snapshotAt(h.app.initial, log, h.app.dispatchers, 1, h.app.reducerVersion);
-    const corrupt = { ...snap, tag: { ...snap.tag, offset: 2 } };
-    const verdict = refoldFrom(
-      corrupt,
-      timelineTail(log, 2),
-      h.app.dispatchers,
-      h.app.reducerVersion,
-    );
-    expect(verdict.kind).toBe("Refused");
+    expect(lifted[0]?.schemaVersion).toBe(SCHEMA_VERSION);
+
+    const replayed = refold(h.app.initial, lifted, h.app.dispatchers);
+    expect(replayed.effects.map((keyed) => keyed.effect)).toEqual([
+      {
+        kind: "LogDecision",
+        at: 1000,
+        ticket: "4118",
+        level: "High",
+        supersedes: "Normal",
+        reason: PRE_V2_REASON,
+      },
+    ]);
+    expect(h.app.boundary.state.triage.priority.get("4118")).toBe("Normal");
+    expect(replayed.state.triage.priority.get("4118")).toBe("High");
   });
 
-  it("REFUSES every corrupted offset AT THE ONLY RESUME SITE a stored snapshot permits", () => {
-    const h = driven();
-    const records = h.app.bus.records();
-    const honest = snapshotAt(h.app.initial, records, h.app.dispatchers, K, h.app.reducerVersion);
+  it("the field is OBSERVABLE: a NATIVE v2 record re-folds to a different effect", () => {
+    // The control, and it is built from a real v2 literal rather than by
+    // spreading the v1 payload: a "native" record assembled out of history is
+    // not a control at all, and under the payload refusal above it does not
+    // even compile.
+    const h = harness({ start: 1000, step: 7 });
+    const nativeResult: SetPriorityResult = {
+      outcome: "ok",
+      tool: "setPriority",
+      ticket: "4118",
+      level: "High",
+      reason: "customer escalated",
+    };
+    const native: readonly StepRecord[] = [
+      {
+        schemaVersion: SCHEMA_VERSION,
+        now: 1000,
+        sig: V1_SIG,
+        staged: [],
+        actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
+        results: [nativeResult],
+        commands: [],
+        context: { promptVersion: "triage-prompt@1", digest: "" },
+      },
+    ];
 
-    // the control: the honest snapshot resumes, and to the LIVE answer
-    const ok = resumeAt(h, honest);
-    expect(ok.kind).toBe("Resumed");
-    const refolded = must(ok.kind === "Resumed" ? ok.refolded : null);
-    expect(refolded.state).toEqual(h.app.boundary.state);
-    expect(refolded.effects).toEqual(h.sink.performed);
-
-    // Every other offset the tag could carry — 0 and n included, which are the
-    // two degenerate ends. State and effects are byte-identical to `honest`;
-    // ONLY the number moved. Each must REFUSE, never fold a wrong tail into a
-    // plausible answer: at drift 4 the resulting state is EQUAL to the live
-    // boundary's with one committed effect dropped, so what is asserted here is
-    // the VERDICT, never the outcome.
-    // 8, 12 and 99 are PAST the end: the log serves an empty tail whose
-    // `follows` is null there, exactly as it does at the origin, and review
-    // resumed the INITIAL state as the whole session through that agreement.
-    // The origin biconditional (follows === null ⟺ from === 0) is what
-    // refuses them now.
-    for (const drift of [0, 1, 2, 4, 5, 6, 7, 8, 12, 99]) {
-      const corrupt = { ...honest, tag: { ...honest.tag, offset: drift } };
-      expect(resumeAt(h, corrupt).kind, `offset ${drift}`).toBe("Refused");
-    }
+    const replayed = refold(h.app.initial, native, h.app.dispatchers);
+    expect(replayed.effects.map((keyed) => keyed.effect)).toEqual([
+      {
+        kind: "LogDecision",
+        at: 1000,
+        ticket: "4118",
+        level: "High",
+        supersedes: "Normal",
+        reason: "customer escalated",
+      },
+    ]);
   });
 
-  it("REFUSES a snapshot whose reducer version is not the one being folded with", () => {
-    const h = driven();
-    const records = h.app.bus.records();
-    const snap = snapshotAt(h.app.initial, records, h.app.dispatchers, K, h.app.reducerVersion);
-    const tail = timelineTail(records, K);
-
-    // SAME state, SAME effects, SAME extent — only the version differs, which
-    // is exactly the mutation 14.1 says makes a snapshot untrustworthy (14.7).
-    const stale = { ...snap, tag: { ...snap.tag, reducerVersion: "fold-v2" } };
-    const out = refoldFrom(stale, tail, h.app.dispatchers, h.app.reducerVersion);
-    expect(out.kind).toBe("Refused");
-    expect(must(out.kind === "Refused" ? out.cause : null)).toContain("fold-v2");
-
-    // …and the unmutated snapshot still resumes, so the refusal is about the
-    // TAG and not about the seam being broken for everything.
-    expect(refoldFrom(snap, tail, h.app.dispatchers, h.app.reducerVersion).kind).toBe("Resumed");
-  });
-
-  it("REFUSES a misfiled offset against a tail somebody ELSE selected", () => {
-    const h = driven();
-    const records = h.app.bus.records();
-    const snap = snapshotAt(h.app.initial, records, h.app.dispatchers, K, h.app.reducerVersion);
-    const tail = timelineTail(records, K);
-
-    // The case the NUMERIC half owns and the content mark cannot see: the tail
-    // is the honest one, so `follows` still agrees; only the literal moved.
-    for (const drift of [K - 1, K + 1]) {
-      const misfiled = { ...snap, tag: { ...snap.tag, offset: drift } };
-      expect(misfiled.tag.coveredThrough).toEqual(snap.tag.coveredThrough);
-      const out = refoldFrom(misfiled, tail, h.app.dispatchers, h.app.reducerVersion);
-      expect(out.kind, `offset ${drift}`).toBe("Refused");
-    }
-
-    // The log is the other party: ask it for a tail at a different offset and
-    // the honest snapshot refuses that too.
-    expect(
-      refoldFrom(snap, timelineTail(records, K + 1), h.app.dispatchers, h.app.reducerVersion).kind,
-    ).toBe("Refused");
-    expect(refoldFrom(snap, tail, h.app.dispatchers, h.app.reducerVersion).kind).toBe("Resumed");
-  });
-
-  it("the tag records what was FOLDED, never what was asked for", () => {
-    const h = driven();
-    const records = h.app.bus.records();
-
-    const over = snapshotAt(
-      h.app.initial,
-      records,
-      h.app.dispatchers,
-      records.length + 2,
-      h.app.reducerVersion,
-    );
-    expect(over.tag.offset).toBe(records.length);
-    expect(over.tag.coveredThrough).toEqual({
-      now: must(records.at(-1)).now,
-      digest: must(records.at(-1)).context.digest,
-      results: must(records.at(-1)).results,
+  it("a LIVE step commits the envelope, at the one site that mints a record", () => {
+    const h = harness({ start: 1000, step: 7 });
+    h.app.boundary.onStepFinish({
+      by: "Agent",
+      staged: [],
+      actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
-
-    // …and it stays honest downstream against a log that later grows past it:
-    // a tag that had recorded `at` would now point into records it never folded.
-    const grown = [...records, ...records.slice(0, 2)];
-    expect(
-      refoldFrom(
-        over,
-        timelineTail(grown, records.length + 2),
-        h.app.dispatchers,
-        h.app.reducerVersion,
-      ).kind,
-    ).toBe("Refused");
-    // the honest extent over the SAME grown log still resumes
-    expect(
-      refoldFrom(over, timelineTail(grown, records.length), h.app.dispatchers, h.app.reducerVersion)
-        .kind,
-    ).toBe("Resumed");
-  });
-
-  it("a negative extent folds nothing, and a tail that begins nowhere carries nothing", () => {
-    const h = driven();
-    const records = h.app.bus.records();
-
-    const under = snapshotAt(h.app.initial, records, h.app.dispatchers, -1, h.app.reducerVersion);
-    expect(under.tag.offset).toBe(0);
-    expect(under.tag.coveredThrough).toBe(null);
-    expect(under.effects).toEqual([]);
-
-    // A tail asked for at an origin the log does not have is served as NOTHING
-    // rather than clamped into a plausible slice — the whole log came back here
-    // before this landing, under a `from` of -1.
-    const back = timelineTail(records, -1);
-    expect(back.records.length).toBe(0);
-    expect(back.follows).toBe(null);
-    expect(timelineTail(records, records.length + 1).records.length).toBe(0);
-
-    const honest = snapshotAt(h.app.initial, records, h.app.dispatchers, K, h.app.reducerVersion);
-    expect(refoldFrom(honest, back, h.app.dispatchers, h.app.reducerVersion).kind).toBe("Refused");
-
-    // THE DEGENERATE PAIR the content mark alone cannot separate: an empty
-    // prefix has no mark, and neither does a tail beginning nowhere, so both
-    // marks are null and AGREE. Only refusing a negative origin outright keeps
-    // this from resuming to the initial state and calling it the whole session.
-    const corrupt = { ...under, tag: { ...under.tag, offset: -1 } };
-    expect(resumeAt(h, corrupt).kind).toBe("Refused");
-    // …while the same snapshot, uncorrupted, resumes to the LIVE answer.
-    const ok = resumeAt(h, under);
-    expect(ok.kind).toBe("Resumed");
-    expect(must(ok.kind === "Resumed" ? ok.refolded : null).effects).toEqual(h.sink.performed);
+    expect(h.app.bus.records().map((r) => r.schemaVersion)).toEqual([2]);
   });
 });

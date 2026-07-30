@@ -225,8 +225,15 @@ without editing the fast tier or an existing block — two buses, two clocks, ne
 to the other.
 
 **Still labelled *specified but unproven*, in both ports' READMEs, because §16.4 licenses stopping
-early but not implying parity:** schema evolution and record upcasting (§14.7) — `StepRecord` carries
-no `schemaVersion`; dispatcher confinement of a turn's `submit` channel, which is structural in the
+early but not implying parity:** the rungs of schema evolution (§14.7) that did NOT ship — `StepRecord`
+now carries a required `schemaVersion` and one worked v1 -> v2 upcaster, but no upcaster CHAIN, no
+versioned wire encoding (§14.1 leaves it product-owned) and no per-reducer-version golden trace. The
+one easiest to mistake for an omission, so it is recorded as a deliberate bound rather than a gap:
+**the envelope is enforced by the COMPILER and never read at run time, because the reference ships no
+loader** — there is no `JSON.parse`, `readFile` or `deserialize` anywhere in either port's `src`, so a
+runtime version check would exist only to be called by its own test. A version-dispatched load path,
+if an adopter wants one, is theirs to build where their encoding lives. Also: dispatcher confinement
+of a turn's `submit` channel, which is structural in the
 reference (the consumer mints the channel and calls the boundary itself) but is not gate-checkable,
 so an adopter running turns on another thread could still interleave two folds; and the honest cost
 of the cancel bound — it bounds the **consumer**, not the turn. A turn that ignores cancellation is

@@ -39,14 +39,22 @@ class TriageBlockTest {
     fun `a known ticket transitions and earns exactly one effect`() {
         val out = block.arm(
             slice,
-            TriageResult.SetPriority(SET_PRIORITY, TicketId("4118"), Priority.High),
+            TriageResult.SetPriority(SET_PRIORITY, TicketId("4118"), Priority.High, reason = null),
             now,
             sig,
         )
 
         assertEquals(Priority.High, out.slice.priority.getValue(TicketId("4118")))
         assertEquals(
-            listOf(TriageEffect.LogDecision(now, TicketId("4118"), Priority.High, supersedes = null)),
+            listOf(
+                TriageEffect.LogDecision(
+                    now,
+                    TicketId("4118"),
+                    Priority.High,
+                    supersedes = null,
+                    reason = null,
+                ),
+            ),
             out.effects,
         )
         assertTrue(out.notices.isEmpty())
@@ -56,7 +64,7 @@ class TriageBlockTest {
     fun `PER-ITEM - an unknown ticket mutates nothing, fires nothing, and leaves ONE notice`() {
         val out = block.arm(
             slice,
-            TriageResult.SetPriority(SET_PRIORITY, TicketId("9999"), Priority.High),
+            TriageResult.SetPriority(SET_PRIORITY, TicketId("9999"), Priority.High, reason = null),
             now,
             sig,
         )

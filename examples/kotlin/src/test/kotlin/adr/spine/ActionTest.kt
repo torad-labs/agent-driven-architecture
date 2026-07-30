@@ -63,7 +63,15 @@ class ActionTest {
 
         // 3.2 made true and tested: same ToolResult, same Effect, same state delta.
         assertEquals(a.results, h.results)
-        assertEquals(TriageResult.SetPriority(SET_PRIORITY, adr.spine.pure.TicketId("4118"), adr.blocks.triage.Priority.High), a.results.single())
+        assertEquals(
+            TriageResult.SetPriority(
+                SET_PRIORITY,
+                adr.spine.pure.TicketId("4118"),
+                adr.blocks.triage.Priority.High,
+                reason = null,
+            ),
+            a.results.single(),
+        )
         assertEquals(agentApp.performed.map { it.effect }, humanApp.performed.map { it.effect })
         assertEquals(agentApp.state.triage, humanApp.state.triage)
 

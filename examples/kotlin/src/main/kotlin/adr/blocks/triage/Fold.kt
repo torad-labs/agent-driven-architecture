@@ -55,6 +55,7 @@ class TriageArm {
                             ticket = result.ticket,
                             level = result.level,
                             supersedes = slice.priority[result.ticket],
+                            reason = result.reason,
                         ),
                     ),
                 )
