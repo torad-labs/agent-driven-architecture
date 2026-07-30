@@ -60,7 +60,15 @@ const SITE = /StepRecord.{0,40}?[{(]/g;
  *  written-out field list. Bare mentions measure 0-1; every real list in the
  *  book measures 5+. */
 const FIELD_FLOOR = 3;
-const FIELDS = [/\bsig\b/, /\bstaged\b/, /\bactions\b/, /\bresults\b/, /\bnow\b/, /\bcommands\b/, /\bcontext\b/];
+const FIELDS = [
+  /\bsig\b/,
+  /\bstaged\b/,
+  /\bactions\b/,
+  /\bresults\b/,
+  /\bnow\b/,
+  /\bcommands\b/,
+  /\bcontext\b/,
+];
 /** Balanced-scan cap: a span still open after this many characters is an
  *  UNCLASSIFIABLE site and fails closed. */
 const SPAN_CAP = 4000;
