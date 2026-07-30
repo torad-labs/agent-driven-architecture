@@ -20,29 +20,57 @@ build time. Nothing in the demo or the tests reaches the network at run time.
 
 ## The tree teaches the architecture
 
+The architecture is **fourteen Gradle modules** (declared in `settings.gradle.kts`), and the folder
+tree *is* the dependency graph: a forbidden edge does not fail review, it fails **configuration**.
+Every module puts its Kotlin under `<module>/src/main/kotlin/adr/`, so the package tree *below* that
+segment is exactly what a single-module port would have written — which is how eleven source-bearing
+module roots are read by the gate as ONE namespace.
+
 ```
-src/main/kotlin/adr/
-├── spine/                     THE TRUNK — block-agnostic, written once, never forked (37 files, roster pinned by a GateTest)
-│   ├── pure/                  ZERO I/O. The transport vocabulary and the shapes the app assembles.
-│   ├── ports/                 INTERFACES ONLY. A file here with a body is a gate failure (C11).
-│   ├── boundary/              THE ONE IMPURE SEAM: action · gate · boundary · in-memory
-│   ├── agent/                 the ONLY file in spine/ that imports the agent-loop runtime
-│   ├── surface/               ONE ViewModel stream + ONE onAction(Action) sink
-│   ├── concurrency/           the BARGE-IN loop (12) and the relay's read side: consumer · in-memory
-│   └── replay/                Replay: refold · stateAtStep · collectPerform — ReplayFaithfulness: assertFaithful
-├── blocks/                    THE LEAVES — one folder per feature; `register` is the public symbol
-│   ├── triage/                domain block          contract·slice·tools·fold·project·register
-│   ├── escalation/            domain block + gated verb          … + port·adapter
-│   ├── console/               PRESENTATION block — folds AND signs … + view-state
-│   ├── artifact/              the work product, as a folded slice … + port·adapter
-│   ├── analysis/              the TIERING rung (11): recall + publish … + port·adapter
-│   └── inbox/                 the BARGE-IN ledger (12): conflation and fault counters
-└── app/                       THE ROOT — the only place that may name every block
-    ├── Contract.kt            State (the product of slices) + the app's view
-    ├── Assemble.kt            the THREE total dispatchers: fold · project · projectContext
-    ├── Wire.kt                ports→adapters, the effect sink, the Boundary, the loop, the consumer
-    └── Demo.kt                a runnable offline script
+spine/src/main/kotlin/adr/               :spine — THE TRUNK, block-agnostic, written once, never forked
+│                                        (37 files, roster pinned by a GateTest; depends on NO other module)
+├── spine/pure/                          ZERO I/O. The transport vocabulary and the shapes the app assembles.
+├── spine/ports/                         INTERFACES ONLY. A file here with a body is a gate failure (C11).
+├── spine/boundary/                      THE ONE IMPURE SEAM: action · gate · boundary · in-memory
+├── spine/agent/                         the ONLY file in spine/ that imports the agent-loop runtime
+├── spine/surface/                       ONE ViewModel stream + ONE onAction(Action) sink
+├── spine/concurrency/                   the BARGE-IN loop (12) and the relay's read side: consumer · in-memory
+├── spine/replay/                        Replay: refold · stateAtStep · collectPerform — ReplayFaithfulness: assertFaithful
+└── blocks/<x>/Contract.kt               each block's TRANSPORT, and ONLY that — Kotlin's sealed rule, see below
+
+block/<x>/src/main/kotlin/adr/blocks/<x>/          :block:<x> — THE LEAVES, one module per feature, PURE:
+│                                                  `:spine` and nothing else may reach its classpath
+├── triage/                              domain block          slice·tools·fold·project·register
+├── escalation/                          domain block + gated verb          … + port
+├── console/                             PRESENTATION block — folds AND signs … + view-state
+├── artifact/                            the work product, as a folded slice … + port
+├── analysis/                            the TIERING rung (11): recall + publish … + port
+└── inbox/                               the BARGE-IN ledger (12): conflation and fault counters
+
+block/<x>/adapter/src/main/kotlin/adr/blocks/<x>/  :block:<x>:adapter — the block's LIVE I/O, in the block's
+                                                   OWN folder, so "delete the folder" still removes the block.
+                                                   analysis · artifact · escalation own an `Adapter.kt`; the
+                                                   other three modules are declared and deliberately empty.
+                                                   ONLY `:app` may depend on one.
+
+app/src/main/kotlin/adr/app/             :app — THE ROOT, the only module that may name every block AND every adapter
+├── Contract.kt                          State (the product of slices) + the app's view
+├── Assemble.kt                          the THREE total dispatchers: fold · project · projectContext
+├── Wire.kt                              ports→adapters, the effect sink, the Boundary, the loop, the consumer
+├── Main.kt · Narrator.kt                the entry point behind `./gradlew run`, and its transcript
+└── Demo.kt                              a runnable offline script
+
+src/test/                                THE GATE HARNESS and its fixture pairs, in the root project — which
+                                         compiles no production Kotlin at all and exists to read every module
+                                         at once. Two build tasks keep that true: `gateCompiledRootsAreGateRoots`
+                                         fails on a compiled source root no gate reads, `gateNoSourceOutsideAdr`
+                                         on a file that lands beside `adr/` instead of under it.
 ```
+
+**Two spellings, one namespace.** On disk a block is `block/<x>/`; everywhere the gate reports —
+and everywhere below in this README — it is `blocks/<x>/`, because every rule and every roster
+normalises on the `/src/main/kotlin/adr/` segment. That is deliberate: the module split cost the
+rules not one edit.
 
 Read the folder names before you read a file. The rule they encode is the book's, in its canonical
 wording: **an import may point inward toward the core, or it is the composition root; it may never
@@ -51,7 +79,10 @@ tool — into anything but domain types.** On this tree that reads: leaves and t
 only the root spans.
 `spine/pure/` versus `spine/boundary/` *is* the purity boundary, named as a folder. Inside a block the
 same line is drawn again by file name — `contract · slice · tools · fold · project` are pure,
-`adapter` is the rim, and `view-state` is the ephemeral-only exception 4.6 carves out.
+`adapter` is the rim, and `view-state` is the ephemeral-only exception 4.6 carves out. Under the
+module DAG that rim is no longer only a file name: `adapter` is its own Gradle module, and the ban
+on an I/O library reaching a pure block is enforced by the block's convention plugin at
+configuration time rather than by the reader's discipline.
 
 ---
 
@@ -97,7 +128,7 @@ throwaway `resolveTicket` verb with only sites 1 and 2 written, the compiler nam
 else:
 
 ```
-e: blocks/triage/Fold.kt:28:26 'when' expression must be exhaustive.
+e: block/triage/src/main/kotlin/adr/blocks/triage/Fold.kt:28:26 'when' expression must be exhaustive.
    Add the 'is ResolveTicket' branch or an 'else' branch.
 ```
 
@@ -125,7 +156,9 @@ Plus one sink branch in `app/Wire.kt` if the block emits effects, and one port b
 adapter — so 6, 7 or 8 depending on what the block actually needs. Kotlin needs **no union edits at
 all**: the sealed hierarchies close themselves, which is the whole TypeScript/Kotlin delta. Every one
 is an append, and the compiler names each one (a missing dispatch arm, a missing field or a missing
-sink branch fails to compile). Removing a block is the same list, subtracted, plus `rm -rf blocks/<X>/`.
+sink branch fails to compile). Removing a block is the same list, subtracted, plus `rm -rf block/<X>/`
+(which takes both modules of the pair with it), its two `include` lines in `settings.gradle.kts`, and
+its `Contract.kt` under `spine/src/main/kotlin/adr/blocks/<X>/`.
 
 G11's literal "one line" is unattainable *with* compile-time exhaustiveness. The design keeps every
 edit inside `app/`, makes every edit an append, and makes the compiler name each one. That is the
@@ -133,7 +166,7 @@ strongest available form of G11 under G12, and no builder should pretend otherwi
 
 ### Prove the edit list yourself (the 15.4 G12 self-check, for real)
 
-Add a fifth variant to `TicketStatus` in `blocks/escalation/Slice.kt`:
+Add a fifth variant to `TicketStatus` in `block/escalation/src/main/kotlin/adr/blocks/escalation/Slice.kt`:
 
 ```kotlin
 data class Archived(override val ticket: TicketId, val at: Timestamp) : TicketStatus

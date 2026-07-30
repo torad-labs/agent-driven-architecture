@@ -14,6 +14,19 @@ val ownBlock: String = requireNotNull(project.parent) {
     "adr.block.adapter is applied by :block:<x>:adapter, which always has a parent project"
 }.path
 
+// EVERY adapter leaf is a directory named `adapter`, and Gradle names a jar after the
+// PROJECT DIRECTORY — so all six of these modules produced `adapter.jar`, and `:app`,
+// which must depend on all six, could not assemble: `distTar` failed with
+// "Entry app/lib/adapter.jar is a duplicate". Renaming the modules is not available
+// (ADR-001 §5 fixes the pair's names and folder), and a duplicates strategy is a
+// FAKE GREEN — measured: it builds, ships ONE adapter jar holding zero classes, and the
+// installed distribution dies at `ClassNotFoundException: adr.blocks.escalation.LivePager`.
+// The artifact name is the thing that actually collides, so the artifact name is what
+// changes; the module path, the folder and the package are untouched.
+base {
+    archivesName.set("${requireNotNull(project.parent).name}-adapter")
+}
+
 dependencies {
     add("implementation", project(":spine"))
     add("implementation", project(ownBlock))

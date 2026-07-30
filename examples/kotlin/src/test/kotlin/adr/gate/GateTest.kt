@@ -165,6 +165,97 @@ class GateTest {
     }
 
     /**
+     * THE OTHER 49, PINNED AS PATHS — and with them the live tree is a PARTITION.
+     *
+     * The roster above pins `:spine`'s 37. Until ADR-001 §9's Stages 2-4 landed, the
+     * remaining 49 all sat in ONE directory the gate could not miss; they now sit in TEN
+     * module roots. WHAT THIS GUARANTEES, exactly: a file added to, removed from or
+     * renamed inside a LISTED root cannot be silent — it is an equality over full
+     * normalised paths, so the diff is forced here.
+     *
+     * WHAT IT CANNOT GUARANTEE, stated so nobody reads more into it: it is built from
+     * `live`, which is built from `GateTrees.MODULE_ROOTS`, so a file under a root
+     * nobody listed is not in `live` and cannot fall out of this list. That case is
+     * owned by build.gradle.kts's `gateCompiledRootsAreGateRoots` (a compiled root that
+     * is not a gate root) and `gateNoSourceOutsideAdr` (a file beside `adr/` inside a
+     * root that is listed). Three walls, three disjoint escapes.
+     *
+     * WHAT THIS ADDS over what was already pinned, so it is an extension and not a second
+     * detector at the same layer: the ANCHORS test pins each block's file NAMES grouped by
+     * `GateFile.block`, which covers 43 of these 49 but says nothing about the `app/` tier
+     * (6 files, previously pinned only as the single `app/Wire.kt` lookup) and nothing
+     * about how a path is SPELLED. The equality here is over full normalised paths, and
+     * the size assertion closes the partition: 37 + 49 = 86, so every file the gate reads
+     * is named by one of the two rosters and a disappearance cannot be silent.
+     */
+    @Test
+    fun `the blocks and app roster is pinned - exactly these 49 files`() {
+        val rest = live.map { it.path }.filterNot { it.startsWith("spine/") }.sorted()
+        assertEquals(
+            listOf(
+                "app/Assemble.kt",
+                "app/Contract.kt",
+                "app/Demo.kt",
+                "app/Main.kt",
+                "app/Narrator.kt",
+                "app/Wire.kt",
+                "blocks/analysis/Adapter.kt",
+                "blocks/analysis/Contract.kt",
+                "blocks/analysis/Fold.kt",
+                "blocks/analysis/Port.kt",
+                "blocks/analysis/Project.kt",
+                "blocks/analysis/Register.kt",
+                "blocks/analysis/Slice.kt",
+                "blocks/analysis/Tools.kt",
+                "blocks/artifact/Adapter.kt",
+                "blocks/artifact/Contract.kt",
+                "blocks/artifact/Fold.kt",
+                "blocks/artifact/Port.kt",
+                "blocks/artifact/Project.kt",
+                "blocks/artifact/Register.kt",
+                "blocks/artifact/Slice.kt",
+                "blocks/artifact/Tools.kt",
+                "blocks/console/Contract.kt",
+                "blocks/console/Fold.kt",
+                "blocks/console/Project.kt",
+                "blocks/console/Register.kt",
+                "blocks/console/Slice.kt",
+                "blocks/console/Tools.kt",
+                "blocks/console/ViewState.kt",
+                "blocks/escalation/Adapter.kt",
+                "blocks/escalation/Contract.kt",
+                "blocks/escalation/Fold.kt",
+                "blocks/escalation/Port.kt",
+                "blocks/escalation/Project.kt",
+                "blocks/escalation/Register.kt",
+                "blocks/escalation/Slice.kt",
+                "blocks/escalation/Tools.kt",
+                "blocks/inbox/Contract.kt",
+                "blocks/inbox/Fold.kt",
+                "blocks/inbox/Project.kt",
+                "blocks/inbox/Register.kt",
+                "blocks/inbox/Slice.kt",
+                "blocks/inbox/Tools.kt",
+                "blocks/triage/Contract.kt",
+                "blocks/triage/Fold.kt",
+                "blocks/triage/Project.kt",
+                "blocks/triage/Register.kt",
+                "blocks/triage/Slice.kt",
+                "blocks/triage/Tools.kt",
+            ),
+            rest,
+            "the blocks/ + app/ roster moved. A file that fell out landed under a root " +
+                "GateTrees.MODULE_ROOTS does not list, and no konsist check reads it",
+        )
+
+        assertEquals(
+            86,
+            live.size,
+            "the live tree is the two rosters and nothing else: 37 spine + 49 blocks/app",
+        )
+    }
+
+    /**
      * THE MODULE ROOTS ARE FAIL-CLOSED — the pin that makes ADR-001 §3's DAG safe to
      * migrate one stage at a time.
      *

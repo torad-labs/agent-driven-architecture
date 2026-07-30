@@ -152,18 +152,39 @@ class GateTrees {
         val TEST_MARKER: String = "/src/test/kotlin/adr/"
 
         /**
-         * EVERY source-bearing module root of ADR-001 §3's DAG. `:spine` is extracted;
-         * the six block pairs (stages 2-3) and `:app` (stage 4) still compile in the
-         * root project, which is why its own `src/main/kotlin/adr` is listed too and
-         * why its entry leaves as those stages land.
+         * EVERY source-bearing module root of ADR-001 §3's DAG. ADR-001 §9's Stages
+         * 2-4 have landed, so the root project's own `src/main/kotlin/adr` is GONE
+         * from this list and from the disk: `:spine` holds the kernel and the six
+         * blocks' `Contract.kt`, each `:block:<x>` holds its slice, the three blocks
+         * that own live IO hold it in `:block:<x>:adapter`, and `:app` holds the
+         * composition root.
          *
          * A module whose sources exist and whose root is NOT here would be invisible to
          * all eleven konsist checks while every test stayed green — the vacuous-tree
          * failure. `GateTest`'s MODULE ROOTS test derives the roots from the disk and
          * fails on exactly that.
+         *
+         * ELEVEN, not fourteen: `:block:console:adapter`, `:block:inbox:adapter` and
+         * `:block:triage:adapter` are declared modules that hold no sources, and a root
+         * listed here holding zero Kotlin fails `gateSourceRootsPresent`. Their absence
+         * is SAFE rather than a hole, and the two build-script tasks that make it so are
+         * named here so the decision is checkable instead of merely explained:
+         * `gateCompiledRootsAreGateRoots` fails the build the instant one of the three
+         * compiles a file, because its root is then compiled and unlisted, and
+         * `gateNoSourceOutsideAdr` covers the file that lands beside `adr/` inside a
+         * root that IS listed. This KDoc used to be the only thing standing there.
          */
         val MODULE_ROOTS: List<String> = listOf(
             "spine/src/main/kotlin/adr",
-            "src/main/kotlin/adr",
+            "block/analysis/src/main/kotlin/adr",
+            "block/analysis/adapter/src/main/kotlin/adr",
+            "block/artifact/src/main/kotlin/adr",
+            "block/artifact/adapter/src/main/kotlin/adr",
+            "block/console/src/main/kotlin/adr",
+            "block/escalation/src/main/kotlin/adr",
+            "block/escalation/adapter/src/main/kotlin/adr",
+            "block/inbox/src/main/kotlin/adr",
+            "block/triage/src/main/kotlin/adr",
+            "app/src/main/kotlin/adr",
         )
 }

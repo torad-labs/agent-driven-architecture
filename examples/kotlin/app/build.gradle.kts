@@ -6,11 +6,34 @@
 // pins the roster, so a fifteenth project or a module that quietly stops applying
 // `adr.kotlin.library` fails configuration.
 //
-// The root's own sources arrive in ADR-001 §9's Stage 4, once the six block pairs hold
-// theirs: `app/Wire.kt` names `adr.blocks.*`, which resolves out of `:block:<x>` and
-// not out of the project those files are still compiling in. Until then this module is
-// DECLARED and empty — the lattice before the unit, and the walls are proven against
-// it now rather than after the code arrives.
+// ADR-001 §9's Stage 4 HAS LANDED: `app/src/main/kotlin/adr/app/` holds the six files
+// (Assemble, Contract, Demo, Main, Narrator, Wire) that used to compile in the root
+// project. `app/Wire.kt` names `adr.blocks.*` — including the three live adapter
+// classes `LiveRelayWriter`, `LiveDelivery` and `LivePager` — and every one of those
+// now resolves across a real module edge that `adr.root` declared before the code
+// arrived, which is what "the walls are proven against it now" was for.
+//
+// THE ENTRY POINT LIVES HERE, not in the root project: `application { mainClass }` can
+// only name a class the module compiles, and `adr.app.MainKt` is compiled here.
+// `./gradlew run` still works unqualified — Gradle name-matches it onto `:app:run`.
 plugins {
     id("adr.root")
+    application
+}
+
+// §4's table permits `:app` an IO dependency of its own, and `adr.root` applies no
+// external-library ban (ADR-001:366's conjunction law names `adr.block` and
+// `adr.spine` as the only two owners). These three are the ones `app/*.kt` imports:
+// `ai.torad` in Demo.kt/Wire.kt, coroutines in Main.kt/Demo.kt, and
+// serialization-json through `adr.spine.pure.RawInput`'s JsonElement constructor.
+// They are `implementation` on `:spine`, so they are NOT on this module's compile
+// classpath by inheritance and have to be declared.
+dependencies {
+    implementation("ai.torad:torad-aisdk:0.3.0-alpha01")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+}
+
+application {
+    mainClass.set("adr.app.MainKt")
 }

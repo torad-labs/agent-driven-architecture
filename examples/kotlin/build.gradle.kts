@@ -15,28 +15,54 @@ import java.io.ByteArrayOutputStream
 //     (GateTrees.MODULE_ROOTS) and detekt is given the same list below, so the gate
 //     reads a fourteen-module tree without moving.
 //
-// (2) The source not yet migrated. ADR-001 §9 stages the move: `:spine` is extracted
-//     in this stage, the six block pairs in stages 2-3, `:app` in stage 4. Until a
-//     module's files arrive, they compile here against `project(":spine")`.
+// (2) NOTHING ELSE. ADR-001 §9's Stages 2-4 have landed: the six block pairs hold
+//     their own sources and `:app` holds the composition root, so this project's own
+//     main source set compiles ZERO files. That emptiness is not asserted in prose and
+//     it is not a leftover — `gateCompiledRootsAreGateRoots` below walks every Gradle
+//     project in this build, THIS one included, and fails if any compiled Kotlin
+//     source root holds a file the root list does not name. A `.kt` returning to
+//     `src/main/kotlin` is caught there, by measurement, and was red-proven so.
+//
+//     The harness staying here is FORCED, not convenient:
+//       * `adr.block` and `adr.spine` deny every external library outside the
+//         toolchain on any classpath-feeding configuration, `testCompileClasspath`
+//         included, so neither a block nor `:spine` can host `kotlin("test")`;
+//       * `adr.spine`'s allowed project-edge set is EMPTY, while `spine/LoopTest.kt`
+//         names five `adr.app.*` symbols and `adr/Support.kt` names three blocks plus
+//         `adr.app` — one cross-cutting harness, not four module-local ones;
+//       * `adr.root`'s inversion forbids `:` an adapter edge on ANY configuration.
+//     Test edges onto `:spine`, every `:block:<x>` and `:app` are legal and are
+//     declared below; the adapters reach the gate's classpath TRANSITIVELY through
+//     `:app`'s own runtime, which is a resolved graph and not a declared edge.
 
 plugins {
     kotlin("jvm") version "2.4.0"
-    kotlin("plugin.serialization") version "2.4.0"
-    application
     // The type-aware half of the gate (checks C3, C9, C14). See config/detekt/gate.yml.
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
 dependencies {
-    // THE KERNEL, now a module (ADR-001 §3). Everything still living in this project —
-    // the blocks, the root wiring, and the whole gate harness — compiles against it
-    // across a real module edge.
-    implementation(project(":spine"))
+    // THE ARCHITECTURE, as MODULES (ADR-001 §3), on the TEST classpath — because the
+    // gate harness is the only code left in this project. `:spine`, the six blocks and
+    // `:app` are the thirteen-minus-adapters set the root is allowed to name; each is
+    // declared because `implementation` separation means `:app`'s own edges do not put
+    // `adr.blocks.*` in front of a test's `import`.
+    testImplementation(project(":spine"))
+    listOf("triage", "escalation", "console", "artifact", "analysis", "inbox")
+        .forEach { testImplementation(project(":block:$it")) }
+    testImplementation(project(":app"))
+    // NO `:block:<x>:adapter` EDGE MAY BE ADDED HERE, on any configuration: `adr.root`'s
+    // inversion half two walks `rootProject.allprojects` — `:` included — and fails
+    // configuration with "only :app may depend on an adapter leaf". Proven by adding one.
 
-    // The agent-loop runtime: Marcos's aisdk-kotlin (the architecture sits on top of it).
-    implementation("ai.torad:torad-aisdk:0.3.0-alpha01")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
+    // The agent-loop runtime and coroutines, named by the gate's own test sources
+    // (`spine/LoopTest.kt` imports ai.torad providers; nine test files import
+    // kotlinx.coroutines). They are `implementation` on `:spine` and on `:app`, which
+    // deliberately keeps them off a downstream COMPILE classpath, so the test source
+    // set declares its own.
+    testImplementation("ai.torad:torad-aisdk:0.3.0-alpha01")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     testImplementation(kotlin("test"))
     // The registry-totality check (gate check C13) reflects over sealedSubclasses.
@@ -51,10 +77,6 @@ dependencies {
 
 kotlin {
     jvmToolchain(21)
-}
-
-application {
-    mainClass.set("adr.app.MainKt")
 }
 
 tasks.test {
@@ -88,7 +110,19 @@ tasks.test {
  * module (ADR-001 §3). Konsist reads the same roots with `/adr` appended; keep the
  * two in step — GateTest fails loudly if they drift.
  */
-val adrModuleSourceRoots = listOf("spine/src/main/kotlin", "src/main/kotlin")
+val adrModuleSourceRoots = listOf(
+    "spine/src/main/kotlin",
+    "block/analysis/src/main/kotlin",
+    "block/analysis/adapter/src/main/kotlin",
+    "block/artifact/src/main/kotlin",
+    "block/artifact/adapter/src/main/kotlin",
+    "block/console/src/main/kotlin",
+    "block/escalation/src/main/kotlin",
+    "block/escalation/adapter/src/main/kotlin",
+    "block/inbox/src/main/kotlin",
+    "block/triage/src/main/kotlin",
+    "app/src/main/kotlin",
+)
 
 /**
  * FAIL LOUDLY, never quietly. Each root must exist AND hold Kotlin, or the analysis
@@ -107,6 +141,116 @@ val gateSourceRootsPresent by tasks.registering {
             }
         }
         logger.lifecycle("gate source roots: ${roots.map { it.first }} — all present and non-empty.")
+    }
+}
+
+/**
+ * WALL A — EVERY COMPILED KOTLIN MAIN SOURCE ROOT MUST BE A ROOT THE GATE READS.
+ *
+ * [gateSourceRootsPresent] above owns one direction: every LISTED root exists and holds
+ * Kotlin. This is the converse, and without it the list is unfalsifiable from the other
+ * side — a `.kt` under a compiled root nobody listed is compiled, jarred and shipped
+ * while konsist, detekt and every roster below read straight past it. That is the same
+ * vacuity class this repository was already bitten by at check C7, moved from the rules
+ * to the TREE by ADR-001 §9's Stages 2-4: before them one directory held everything and
+ * could not be missed; after them there are fourteen projects to hide under.
+ *
+ * DERIVED FROM `sourceSets`, NEVER FROM A HARD-CODED `<projectDir>/src/main/kotlin`, and
+ * that is measured rather than stylistic: kotlin-jvm's MAIN KOTLIN source set also carries
+ * `src/main/java`, and a `.kt` placed there compiles — `:block:console:compileKotlin`
+ * emits class files for it. A hardcoded path is green on that file; this is red.
+ *
+ * `rootProject.allprojects` rather than the fourteen declared module directories, also
+ * measured: `:` is not one of the fourteen, it still has a `main` source set, and a file
+ * at `src/main/kotlin/` still compiles into `build/classes/kotlin/main`. The strictest
+ * escape is the one the module list cannot see.
+ *
+ * A directory COUNTS only when it exists AND holds at least one `.kt` at any depth, which
+ * is what keeps the three IO-less adapter modules legally source-free — and fail-closed
+ * the instant a file lands in one — with no relaxation of [gateSourceRootsPresent].
+ *
+ * Captured under `projectsEvaluated` because a source set exists only after the owning
+ * project has been configured; asserted in `doLast` over the captured value, so no task
+ * reaches across a project boundary at execution time.
+ */
+val gateCompiledRoots = mutableListOf<File>()
+
+gradle.projectsEvaluated {
+    rootProject.allprojects.forEach { owner ->
+        val main = owner.extensions
+            .findByType(SourceSetContainer::class.java)
+            ?.findByName("main")
+            ?: return@forEach
+        val srcDirs = (main.extensions.findByName("kotlin") as? SourceDirectorySet)?.srcDirs
+            ?: main.java.srcDirs
+        gateCompiledRoots += srcDirs
+    }
+}
+
+val gateCompiledRootsAreGateRoots by tasks.registering {
+    description = "Proves every compiled Kotlin main source root holding a file is a gate root."
+    outputs.upToDateWhen { false }
+    val listed = adrModuleSourceRoots.map { layout.projectDirectory.dir(it).asFile.canonicalFile }
+    val rootDir = layout.projectDirectory.asFile
+    val compiledRoots = gateCompiledRoots
+    doLast {
+        val compiled = compiledRoots
+            .filter { dir ->
+                dir.isDirectory &&
+                    dir.walkTopDown().any { it.isFile && it.extension == "kt" }
+            }
+            .map { it.canonicalFile }
+            .toSortedSet()
+        val unread = (compiled - listed.toSet()).map {
+            it.relativeTo(rootDir.canonicalFile).invariantSeparatorsPath
+        }
+        check(unread.isEmpty()) {
+            "COMPILED BUT UNREAD: ${unread.sorted().joinToString(", ")}. Kotlin under these roots " +
+                "is compiled and shipped, and no gate reads it — add each to " +
+                "`adrModuleSourceRoots` here and to `GateTrees.MODULE_ROOTS` (with `/adr`), " +
+                "or stop compiling it."
+        }
+        logger.lifecycle("gate compiled roots: ${compiled.size} compiled, all listed.")
+    }
+}
+
+/**
+ * WALL B — NO SOURCE ESCAPES THE `adr/` PACKAGE DIRECTORY.
+ *
+ * The two root lists are deliberately spelled one segment apart: `GateTrees.MODULE_ROOTS`
+ * entries end `/adr`, `adrModuleSourceRoots` entries stop at `src/main/kotlin`. So per
+ * listed module there is exactly one directory detekt reads and konsist does not — the
+ * root itself — and the module split multiplied that gap from one site to eleven.
+ * A file dropped beside `adr/` rather than under it is invisible to all eleven konsist
+ * checks and to every roster in GateTest, while wall A stays correctly silent because the
+ * root IS listed. Kotlin does not require directory to match package, so the escape needs
+ * no unusual spelling: `package adr.blocks.console` in `block/console/src/main/kotlin/`
+ * compiles.
+ *
+ * Comparison is on `invariantSeparatorsPath` so the rule holds on any separator.
+ */
+val gateNoSourceOutsideAdr by tasks.registering {
+    description = "Proves every Kotlin file under a gate root sits inside that root's adr/ package."
+    outputs.upToDateWhen { false }
+    val roots = adrModuleSourceRoots.map { it to layout.projectDirectory.dir(it).asFile }
+    doLast {
+        val stray = roots.flatMap { (name, dir) ->
+            if (!dir.isDirectory) {
+                emptyList()
+            } else {
+                dir.walkTopDown()
+                    .filter { it.isFile && it.extension == "kt" }
+                    .filterNot { it.invariantSeparatorsPath.startsWith(dir.invariantSeparatorsPath + "/adr/") }
+                    .map { "$name/${it.relativeTo(dir).invariantSeparatorsPath}" }
+                    .toList()
+            }
+        }
+        check(stray.isEmpty()) {
+            "SOURCE OUTSIDE adr/: ${stray.sorted().joinToString(", ")}. Konsist reads " +
+                "`<root>/adr` and normalises on it, so a file beside that directory is compiled " +
+                "and read by no structural check. Move it under the root's `adr/` tree."
+        }
+        logger.lifecycle("gate adr/ containment: ${roots.size} roots, no source outside adr/.")
     }
 }
 
@@ -142,18 +286,33 @@ val gateFixtures = layout.projectDirectory.dir("src/test/fixtures/detekt")
  */
 val gateAnalysisClasspath: FileCollection = files(
     configurations.named("detekt"),
-    // Under §3's DAG this is where `:spine`'s compiled output arrives — across a real
-    // module edge, as `project(":spine")`'s artifact. Everything the fixtures name
-    // from the kernel (`adr.spine.pure.Signature`, `adr.contract.ToolResult.Refused`,
-    // `adr.spine.pure.RunStatus.Degraded`) resolves through here and nowhere else, so
-    // dropping it makes gateDetektBlockTest and gateExhaustiveBlockTest go red rather
-    // than quietly pass — proven by removing it.
-    sourceSets.main.get().compileClasspath,
-    // The compiled tree itself, so the FIXTURES can name the real transport types.
-    // A fixture that constructs its own local `Signature` would prove nothing: the
-    // rules match resolved constructors, so the fixture has to reach the same one
-    // the architecture is protecting.
-    sourceSets.main.get().output,
+    // THE WHOLE DAG'S OUTPUT, from the one configuration that resolves it.
+    //
+    // This project no longer compiles a main source set, so the pre-migration spelling
+    // (`sourceSets.main.compileClasspath` + `.output`) would now hand detekt an EMPTY
+    // classpath: C3 would stop resolving `System.currentTimeMillis`, C9 would stop
+    // seeing a sealed subject, and the fixture compiles below would stop finding
+    // `adr.spine.pure.Signature` — all of which fail SILENTLY as a clean report. The
+    // block-tests below are what turn that into a red build, and they were run against
+    // an emptied classpath to prove it.
+    //
+    // `testRuntimeClasspath` is used rather than a hand-built list because it is the
+    // RESOLVED graph of §3's DAG as this project declares it — `:spine`, the six
+    // blocks and `:app`, plus TRANSITIVELY, through `:app`'s own `implementation`
+    // edges, the three adapter modules that C3/C9/C14 must be able to type-resolve.
+    // Reaching an adapter any other way would mean DECLARING an adapter edge on `:`,
+    // which `adr.root`'s inversion fails at configuration. A resolved graph is not a
+    // declared dependency, which is exactly why this is the legal route and the
+    // direct one is not.
+    //
+    // MEASURED WIDENING, recorded so it is not silently forgotten: this configuration
+    // also carries konsist, junit-jupiter, kotlin-test-junit5 and coroutines-test, none
+    // of which the old spelling carried. A fixture could therefore type-resolve a
+    // TEST-ONLY symbol and still compile. Measured today across all 52 files under
+    // `src/test/fixtures`: ZERO name any of them
+    // (`grep -rE 'import (com\.lemonappdev|org\.junit|kotlin\.test|kotlinx\.coroutines\.test)'`
+    // over that tree returns nothing). Re-run that grep before adding a fixture.
+    configurations.named("testRuntimeClasspath"),
 )
 
 /**
@@ -182,10 +341,13 @@ tasks.named<Detekt>("detektMain") {
     description = "C3/C9/C14 over the production tree. A finding is a failed build."
     classpath.setFrom(gateAnalysisClasspath)
     // MEASURED, not assumed: this task is created by the Kotlin plugin per SOURCE SET,
-    // so it reads THIS project's src/main/kotlin and ignores the `detekt { source }`
-    // block entirely. Under §3's DAG that is two thirds of the tree — an ambient
-    // `System.currentTimeMillis()` inside the :spine module passed detektMain green
-    // while the plain `detekt` task caught it. Both denying tasks read the module roots.
+    // so it defaults to THIS project's src/main/kotlin and ignores the
+    // `detekt { source }` block entirely. That default is now the EMPTY SET — Stages
+    // 2-4 moved every main source into a module — so without this line detektMain would
+    // report a clean tree having read zero files. It was two thirds of the tree before
+    // the stages landed (an ambient `System.currentTimeMillis()` inside the :spine
+    // module passed detektMain green while the plain `detekt` task caught it); it is
+    // now ALL of it. Both denying tasks read the module roots.
     setSource(files(adrModuleSourceRoots))
 }
 
@@ -336,10 +498,11 @@ fun registerExhaustiveCheck(
     sitesIn: String = "",
     expectSites: Int = 0,
 ) = tasks.register<JavaExec>(taskName) {
-    dependsOn(tasks.named("compileKotlin"))
-    // The classpath now spans module boundaries, and it is consumed from an
+    // The classpath spans ELEVEN module boundaries now, and it is consumed from an
     // argumentProvider — which carries no task dependency of its own. Without this the
-    // compiler would be handed a path to `:spine` output nothing had built yet.
+    // compiler would be handed paths to module output nothing had built yet. The old
+    // `dependsOn(compileKotlin)` beside it is gone with the root's main source set: it
+    // named a task that now compiles zero files, so it guaranteed nothing.
     dependsOn(gateAnalysisClasspath)
     val source = layout.projectDirectory.dir("src/test/fixtures/$fixtureRoot").dir(fixture)
     val outDir = layout.buildDirectory.dir("gate/$fixtureRoot/$fixture")
@@ -460,9 +623,64 @@ val gateEffectKindAllowTest = registerExhaustiveCheck(
     claim = "the same performer and stand-in root must compile cleanly at one kind.",
 )
 
+/**
+ * WALL C — THE GATE HARNESS IS THE ONLY TEST SOURCE TREE.
+ *
+ * `GateTrees.testTree()` reads ONE root, the root project's own `src/test/kotlin`, and
+ * every ledger census in GateTest is derived from it. A module that grows a test source
+ * set of its own is therefore compiled, shipped and read by no structural check — an
+ * out-of-folder ledger written there defeats an equality census while the whole gate
+ * stays BUILD SUCCESSFUL (adversarial review built exactly that, in `:app`).
+ *
+ * The root project is skipped because the root IS the harness: pure modules cannot hold
+ * a test framework at all (`adr.block`/`adr.spine` deny an external library on
+ * testCompileClasspath), which is what forces every test to live in one place and is
+ * what makes this wall's rule the honest statement of the structure rather than a
+ * restriction on it.
+ *
+ * Captured under `projectsEvaluated` and asserted in `doLast`, exactly like wall A.
+ */
+val gateModuleTestRoots = mutableListOf<Pair<String, File>>()
+
+gradle.projectsEvaluated {
+    rootProject.allprojects.forEach { owner ->
+        if (owner == rootProject) return@forEach
+        val test = owner.extensions
+            .findByType(SourceSetContainer::class.java)
+            ?.findByName("test")
+            ?: return@forEach
+        val srcDirs = (test.extensions.findByName("kotlin") as? SourceDirectorySet)?.srcDirs
+            ?: test.java.srcDirs
+        srcDirs.forEach { gateModuleTestRoots += owner.path to it }
+    }
+}
+
+val gateNoModuleTestSources by tasks.registering {
+    description = "Proves the gate harness is the ONLY test source tree — GateTrees.testTree() reads one root."
+    outputs.upToDateWhen { false }
+    val captured = gateModuleTestRoots
+    doLast {
+        val stray = captured
+            .filter { (_, dir) ->
+                dir.isDirectory && dir.walkTopDown().any { it.isFile && it.extension == "kt" }
+            }
+            .map { (path, dir) -> "$path -> ${dir.invariantSeparatorsPath}" }
+        check(stray.isEmpty()) {
+            "TEST SOURCE OUTSIDE THE HARNESS: ${stray.sorted().joinToString(", ")}. " +
+                "`GateTrees.testTree()` reads the root project's test tree and nothing else, so " +
+                "Kotlin under these roots is compiled and read by no structural check. Move it " +
+                "into the root harness, or teach the harness to read it."
+        }
+        logger.lifecycle("gate test roots: harness only, ${captured.size} module test root(s) all empty.")
+    }
+}
+
 tasks.check {
     dependsOn(
         gateSourceRootsPresent,
+        gateCompiledRootsAreGateRoots,
+        gateNoSourceOutsideAdr,
+        gateNoModuleTestSources,
         tasks.named("detektMain"),
         gateDetektBlockTest,
         gateDetektAllowTest,
