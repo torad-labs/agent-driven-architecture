@@ -78,7 +78,11 @@ export const CANONICAL =
  *  comments — so a canon pasted there would be invisible here. Recorded in
  *  the census note §7 rather than papered over. */
 const ROOTS = ["wiki", "examples"] as const;
-const SKIPPED = [".git", ".gradle", "build", "node_modules", ".work"] as const;
+/** `.tsbuild` is the TypeScript wall's declaration output: generated,
+ *  git-ignored, and named `.d.ts`, which `extname` reads as `.ts`. Same
+ *  reason `.work` is here — a generated tree cannot be allowed to move a
+ *  pinned census. */
+const SKIPPED = [".git", ".gradle", "build", "node_modules", ".work", ".tsbuild"] as const;
 /** This checker's own home. It necessarily spells the sentence it pins, so
  *  scanning itself would count the pin as one of the sites it pins. Same
  *  path-scoped exclusion, and same reason, as the citation lint's. */
@@ -311,6 +315,7 @@ const livePool = Object.fromEntries(
 describe("one dependency-rule wording", () => {
   it("scans a corpus that cannot quietly shrink", () => {
     expect([...ROOTS]).toEqual(["wiki", "examples"]);
+    expect([...SKIPPED]).toEqual([".git", ".gradle", "build", "node_modules", ".work", ".tsbuild"]);
     expect([...SKIPPED_PATHS]).toEqual(["examples/typescript/test/laws"]);
     expect([...EXTENSIONS]).toEqual([".ts", ".kt", ".kts", ".js", ".md", ".html"]);
     expect(corpus.length).toBeGreaterThanOrEqual(300);

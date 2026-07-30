@@ -9,7 +9,7 @@
 // to one store, because the root is the only cross-layer importer — which is how
 // the two tiers meet without the spine ever naming a block.
 
-import type { Timestamp } from "../../spine/pure/ids";
+import type { Timestamp } from "@adr/spine/pure/ids";
 
 export interface AnalysisRelay {
   publish(at: Timestamp, text: string): void;

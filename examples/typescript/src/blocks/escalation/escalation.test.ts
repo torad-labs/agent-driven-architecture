@@ -3,12 +3,13 @@
 // committed its verdict. What the arm does is validate the transition against
 // its own slice and emit the irreversible effect only on success.
 
+import { authority } from "@adr/spine/pure/actor";
 import { describe, expect, it } from "vitest";
-import { escalation } from "../../src/blocks/escalation/register";
-import { authority, Signature } from "../../src/spine/pure/actor";
+import { stamp } from "../../../test/support/stamp";
+import { escalation } from "./register";
 
-const agent = new Signature("Agent", authority("agent-run-7f"));
-const tier = new Signature("Agent", authority("policy-tier-v3"));
+const agent = stamp("Agent", authority("agent-run-7f"));
+const tier = stamp("Agent", authority("policy-tier-v3"));
 const slice = escalation.sliceOf(["4118"]);
 
 describe("blocks/escalation — the arm (§12.4)", () => {

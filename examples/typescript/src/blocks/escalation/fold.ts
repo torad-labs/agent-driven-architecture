@@ -9,11 +9,11 @@
 // does is validate the transition against ITS OWN slice, and emit the
 // irreversible effect only from the success branch.
 
-import type { Signature } from "../../spine/pure/actor";
-import type { Timestamp } from "../../spine/pure/ids";
-import { rejected } from "../../spine/pure/notice";
-import type { ArmOut } from "../../spine/pure/verb";
-import { armOut } from "../../spine/pure/verb";
+import type { Signature } from "@adr/spine/pure/actor";
+import type { Timestamp } from "@adr/spine/pure/ids";
+import { rejected } from "@adr/spine/pure/notice";
+import type { ArmOut } from "@adr/spine/pure/verb";
+import { armOut } from "@adr/spine/pure/verb";
 import type { EscalationResult, PageOncall } from "./contract";
 import type { EscalationSlice, TicketStatus } from "./slice";
 import { escalated, escalating, statusOf, withStatus } from "./slice";

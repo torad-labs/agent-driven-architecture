@@ -8,7 +8,7 @@
 // `npm run lint` and the tests below run the SAME rule objects over the same
 // path globs. There is no second implementation to drift.
 
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
@@ -199,6 +199,196 @@ describe("C13 — registry totality", () => {
     expect(registryGaps(declared, registry)).toEqual([
       '"setPriority" is registered but does not sign — 6.8\'s name→Command map has a hole',
     ]);
+  });
+});
+
+// ── THE THREE DENIALS THE WALL MADE NECESSARY, ASSERTED PER MESSAGE ────────
+// C2 and C15 each grew a pattern when the tree gained package specifiers, and
+// C1's `EXTERNAL` cell had to be narrowed so an adapter's licence to hold a
+// client library did not become a licence to hold the whole spine. All three
+// ride fixtures that ALREADY produce a message for their own tag, so the
+// tag-keyed pair above would stay green over a pattern that matched nothing —
+// the C7-derivation rot, one more time. These key on the specific message.
+describe("the package-specifier route is denied, per rule", () => {
+  const messages = async (kind: string, id: string): Promise<readonly string[]> => {
+    const results = await eslint.lintFiles([join(FIXTURES, kind, id, "src")]);
+    return results.flatMap((r) => r.messages.map((m) => `${basename(r.filePath)}  ${m.message}`));
+  };
+  const SIBLING_PKG = "may not import a sibling block by package name either";
+  const SPINE_NAMES_BLOCK = "a package specifier is still naming one";
+  const ADAPTER_TIER = "an adapter may import its own port";
+
+  it("C2 DENIES a sibling reached by its package name — the one route tsc resolves", async () => {
+    // The SPECIFIER is asserted, not just the tag: this rule is the only thing
+    // standing between a block and `@adr/block-escalation/register`, and eslint
+    // names the pattern's subject in the message it prefixes ours with.
+    const hits = (await messages("violating", "C2")).filter((m) => m.includes(SIBLING_PKG));
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toContain("fold.ts");
+    expect(hits[0]).toContain("'@adr/block-escalation/register'");
+  });
+
+  it("C15 DENIES a block named by package name from inside the spine tier", async () => {
+    const hits = (await messages("violating", "C15")).filter((m) => m.includes(SPINE_NAMES_BLOCK));
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toContain("thing.ts");
+    expect(hits[0]).toContain("'@adr/block-triage/register'");
+  });
+
+  it("C1 DENIES an adapter naming a spine tier that is not `pure`", async () => {
+    // The regression the wall would otherwise have introduced: `EXTERNAL` is
+    // "any client library", and `@adr/spine/...` is a bare specifier like any
+    // other. The fixture is an adapter importing `spine/boundary`.
+    const hits = (await messages("violating", "C1")).filter((m) => m.includes(ADAPTER_TIER));
+    expect(hits).toHaveLength(1);
+    expect(hits[0]).toContain("adapter.ts");
+  });
+
+  it("and NONE of the three fires on compliant code — fixtures OR the live adapters", async () => {
+    for (const id of ["C1", "C2", "C15"]) {
+      const said = await messages("compliant", id);
+      for (const needle of [SIBLING_PKG, SPINE_NAMES_BLOCK, ADAPTER_TIER]) {
+        expect(
+          said.filter((m) => m.includes(needle)),
+          `${id}  ${needle}`,
+        ).toEqual([]);
+      }
+    }
+    // The narrowed cell's ALLOW half is the LIVE tree rather than a synthetic
+    // fixture, and it is the stronger witness: the three shipped adapters import
+    // `@adr/spine/pure/*` plus their client libraries, so a lookahead that
+    // over-denied would fire here on real code.
+    const adapters = await eslint.lintFiles([join(ROOT, "src", "blocks", "*", "adapter.ts")]);
+    expect(adapters.map((r) => basename(dirname(r.filePath))).sort()).toEqual([
+      "analysis",
+      "artifact",
+      "escalation",
+    ]);
+    expect(
+      adapters
+        .flatMap((r) => r.messages.map((m) => m.message))
+        .filter((m) => m.includes(ADAPTER_TIER)),
+    ).toEqual([]);
+  });
+});
+
+// ── THE WORKSPACE WALL, AND WHETHER IT COVERS EVERYTHING ───────────────────
+// The wall's claim is that a cross-block reach is a RESOLUTION error before it
+// is a lint message. That claim is exactly as total as the set of projects the
+// wall actually builds — and that set is written down TWICE, as `workspaces` in
+// package.json and as `references` in tsconfig.wall.json. Two hand-kept lists
+// drift: a seventh block added with a package.json and no tsconfig, or with a
+// tsconfig nothing references, is a package with no wall, and every other check
+// in this file stays green over it.
+//
+// So the roster is DERIVED from the workspaces globs against the tree, and both
+// hand-written sides are required to agree with it. §15.2's bar, turned on the
+// wall itself: the enforcement mechanism gets a denying check like everything
+// else it enforces.
+describe("the workspace wall covers every package", () => {
+  interface Manifest {
+    readonly private?: boolean;
+    readonly publishConfig?: unknown;
+    readonly workspaces?: readonly string[];
+    readonly scripts?: Record<string, string>;
+    readonly exports?: Record<string, string>;
+    readonly "//sunset"?: string;
+  }
+  const manifest = (dir: string): Manifest =>
+    JSON.parse(readFileSync(join(ROOT, dir, "package.json"), "utf8")) as Manifest;
+  const root = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as Manifest;
+  const wall = JSON.parse(readFileSync(join(ROOT, "tsconfig.wall.json"), "utf8")) as {
+    readonly references: readonly { readonly path: string }[];
+  };
+
+  /** the workspaces globs EXPANDED against the tree — never a second hand-list */
+  const declared = must(root.workspaces)
+    .flatMap((glob) =>
+      glob.endsWith("/*")
+        ? readdirSync(join(ROOT, glob.slice(0, -2)), { withFileTypes: true })
+            .filter((e) => e.isDirectory())
+            .map((e) => `${glob.slice(0, -2)}/${e.name}`)
+        : [glob],
+    )
+    .sort();
+  const blocks = declared.filter((d) => d.startsWith("src/blocks/"));
+
+  it("is the eight packages the tree holds — the spine, six blocks, the root", () => {
+    expect(declared).toEqual([
+      "src/app",
+      "src/blocks/analysis",
+      "src/blocks/artifact",
+      "src/blocks/console",
+      "src/blocks/escalation",
+      "src/blocks/inbox",
+      "src/blocks/triage",
+      "src/spine",
+    ]);
+  });
+
+  it("BUILDS every one of them — a package no reference names has no wall", () => {
+    expect(wall.references.map((r) => r.path).sort()).toEqual(declared);
+  });
+
+  it("walls each one the same way: composite, rooted at its own folder", () => {
+    // `composite` is what defaults rootDir to the package folder, and rootDir is
+    // what turns a reach into a sibling into a resolution error. A package whose
+    // tsconfig lost either one would still build clean inside the solution.
+    for (const dir of declared) {
+      const cfg = JSON.parse(readFileSync(join(ROOT, dir, "tsconfig.json"), "utf8")) as {
+        readonly compilerOptions?: { readonly composite?: boolean; readonly rootDir?: string };
+      };
+      expect(cfg.compilerOptions?.composite, dir).toBe(true);
+      expect(cfg.compilerOptions?.rootDir, dir).toBe(".");
+    }
+  });
+
+  it("publishes NONE of them — the spine is a vendored template, not a package", () => {
+    // The wall and the template-forever decision have to coexist: the packages
+    // exist for the wall and no registry ever sees one. `private` is the switch
+    // npm honours; `publishConfig` is the field that would quietly undo it.
+    for (const dir of declared) {
+      expect(manifest(dir).private, dir).toBe(true);
+      expect(manifest(dir).publishConfig, dir).toBeUndefined();
+    }
+    expect(root.private).toBe(true);
+    expect(root.publishConfig).toBeUndefined();
+  });
+
+  it("publishes only the registration, and names the sunset release beside it", () => {
+    // The ratified decision, taken literally: "`exports` limited to the
+    // registration" — one published subpath per block and no second. An unlisted
+    // subpath is TS2307, so the KEY SET is the public surface — a `.` entry would
+    // re-open the bare-root route and an `./adapter` entry would widen the one
+    // route the wall cannot close from one bare specifier to two. Both are
+    // excluded by asserting the whole set rather than a membership.
+    for (const dir of blocks) {
+      expect(Object.keys(must(manifest(dir).exports)).sort(), dir).toEqual(["./register"]);
+    }
+    // The `//sunset` note is one sentence copied into six manifests, and six
+    // copies of a claim with no checked source is six chances to drift. The
+    // decision asks for a dated marker naming the release that deletes the
+    // hand-rolled checks; this is what keeps the six copies of it agreeing.
+    const notes = blocks.map((dir) => must(manifest(dir)["//sunset"]));
+    expect(new Set(notes).size, notes.join("\n")).toBe(1);
+    for (const note of notes) {
+      expect(note).toContain("v0.3.0");
+      expect(note).toContain("C1, C2 and C15");
+    }
+  });
+
+  it("runs the wall from the NORMAL build — a check invoked separately is not a gate", () => {
+    // A SUBSTANCE pin, not a string pin: the wall is invoked through a script so
+    // a red run cannot leave droppings behind (see scripts/wall.mjs), and what
+    // has to stay true is that the script still builds the solution file with
+    // --force, and that the normal build still reaches it.
+    expect(must(root.scripts)["typecheck:wall"]).toBe("node scripts/wall.mjs");
+    const wallScript = readFileSync(join(ROOT, "scripts", "wall.mjs"), "utf8");
+    for (const token of ["tsc", "--force", "tsconfig.wall.json"]) {
+      expect(wallScript, token).toContain(token);
+    }
+    expect(must(root.scripts).typecheck).toContain("npm run typecheck:wall");
+    expect(must(root.scripts).test).toContain("npm run typecheck");
   });
 });
 

@@ -7,7 +7,7 @@
 // "what the user sees" and "what the model sees" are never accidentally
 // different derivations of the same fact.
 
-import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "../../spine/pure/context";
+import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "@adr/spine/pure/context";
 import type { Priority } from "./contract";
 import type { TriageSlice } from "./slice";
 

@@ -7,10 +7,10 @@
 //   publishAnalysis  appends the conclusion AND emits `PublishConclusion` — the
 //                    deep tier's own signed act, from its own success branch.
 
-import type { Signature } from "../../spine/pure/actor";
-import type { Timestamp } from "../../spine/pure/ids";
-import type { ArmOut } from "../../spine/pure/verb";
-import { armOut } from "../../spine/pure/verb";
+import type { Signature } from "@adr/spine/pure/actor";
+import type { Timestamp } from "@adr/spine/pure/ids";
+import type { ArmOut } from "@adr/spine/pure/verb";
+import { armOut } from "@adr/spine/pure/verb";
 import type { AnalysisResult, PublishConclusion } from "./contract";
 import type { AnalysisSlice } from "./slice";
 import { withNote, withPublished } from "./slice";

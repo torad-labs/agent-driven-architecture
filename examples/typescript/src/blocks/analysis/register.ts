@@ -9,7 +9,7 @@
 // boolean — so a third tier would be a compiler-named edit rather than a
 // convention.
 
-import type { BlockRegistration, Verb } from "../../spine/pure/verb";
+import type { BlockRegistration, Verb } from "@adr/spine/pure/verb";
 import { isAnalysisResult } from "./contract";
 import { analysisArm } from "./fold";
 import { analysisContextLines, analysisView } from "./project";

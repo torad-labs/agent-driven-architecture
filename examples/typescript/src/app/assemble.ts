@@ -16,23 +16,23 @@
 // Note what is NOT here: a per-VERB branch. Adding a verb touches four sites,
 // all four inside its own block folder, and zero at the root (16.1, §11.1).
 
-import { analysis } from "../blocks/analysis/register";
-import { artifact } from "../blocks/artifact/register";
-import { consoleBlock } from "../blocks/console/register";
-import { escalation } from "../blocks/escalation/register";
-import { inbox } from "../blocks/inbox/register";
-import { triage } from "../blocks/triage/register";
-import type { Signature } from "../spine/pure/actor";
-import type { Context } from "../spine/pure/context";
-import { bounded, MAX_CONTEXT_NOTICES } from "../spine/pure/context";
-import type { Timestamp } from "../spine/pure/ids";
-import type { Notice } from "../spine/pure/notice";
-import { renderNotice } from "../spine/pure/notice";
-import { spineArm, unclaimedArm, withNotices } from "../spine/pure/spine-slice";
-import type { StagedInput } from "../spine/pure/staged";
-import type { ToolResultBase } from "../spine/pure/tool-result";
-import type { ArmOut, FoldOut } from "../spine/pure/verb";
-import { spineView } from "../spine/pure/view";
+import { analysis } from "@adr/block-analysis/register";
+import { artifact } from "@adr/block-artifact/register";
+import { consoleBlock } from "@adr/block-console/register";
+import { escalation } from "@adr/block-escalation/register";
+import { inbox } from "@adr/block-inbox/register";
+import { triage } from "@adr/block-triage/register";
+import type { Signature } from "@adr/spine/pure/actor";
+import type { Context } from "@adr/spine/pure/context";
+import { bounded, MAX_CONTEXT_NOTICES } from "@adr/spine/pure/context";
+import type { Timestamp } from "@adr/spine/pure/ids";
+import type { Notice } from "@adr/spine/pure/notice";
+import { renderNotice } from "@adr/spine/pure/notice";
+import { spineArm, unclaimedArm, withNotices } from "@adr/spine/pure/spine-slice";
+import type { StagedInput } from "@adr/spine/pure/staged";
+import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import type { ArmOut, FoldOut } from "@adr/spine/pure/verb";
+import { spineView } from "@adr/spine/pure/view";
 
 import type { AppView, Effect, OkResult, State, ToolResult } from "./contract";
 

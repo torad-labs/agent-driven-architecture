@@ -651,17 +651,30 @@ block module. The rule that tried to police this is deleted rather than widened.
 ## 8. The TypeScript port — an honest asymmetry
 
 TypeScript has no configuration-time module wall. The closest equivalents are npm workspace packages with
-`exports` maps plus `tsconfig` project references, which make a cross-block import a **resolution error**
-rather than a lint error. That is a real wall and it should be built, but it is weaker than Gradle's, and
-the book must say so rather than implying parity.
+`exports` maps plus `tsconfig` project references, which make **most** cross-block imports a **resolution
+error** rather than a lint error. That is a real wall and it should be built, but it is weaker than
+Gradle's, and the book must say so rather than implying parity.
+
+**Measured, once the wall was built** (the TypeScript port's README carries the full probe table, one
+probe file per row with its `tsc -b` exit code). Of the cross-block routes out of a block package, the
+wall denies a relative reach into a project the reacher does not reference (TS6059 + TS6307), any
+unpublished subpath of a sibling — its `adapter` included (TS2307) — a sibling's bare root (TS2307,
+because a block package declares no `.` export) and the composition root's bare root (TS2307, no exports
+at all). It does **not** deny a sibling's *published* entry, `@adr/block-<x>/register`: npm links every
+workspace package into one `node_modules`, and neither an `exports` map nor a `tsconfig` reference can
+expose a package's public entry to one consumer while hiding it from another. That single route stays a
+lint denial (check C2). The asymmetry with Gradle is therefore narrower than "no wall" and wider than
+"the same wall", which is exactly the distinction this section exists to state.
 
 Minimum for the TypeScript port:
 
-- one workspace package per block, `exports` limited to `./register`
-  *(this line is the TypeScript port's pre-D9 phrasing and is left standing on purpose: **D11** has
-  settled what a TS block package exports — "`exports` limited to the registration" — landing in the
-  ratified P4, so §5's removal of `public fun register(spine: Spine)` on the Kotlin side does not
-  reach it.)*
+- one workspace package per block, `exports` limited to the registration
+  *(this line carried the TypeScript port's pre-D9 phrasing, `./register`, and now carries **D11**'s own
+  wording instead. The two agree: D11 landed in the ratified P4 as exactly one published subpath per
+  block. The composition root binds a block's live client by reaching `../blocks/<x>/adapter`
+  relatively — legal because `app` references every block — rather than through a second published
+  subpath, which would have widened the one route the wall cannot close from one bare specifier to two.
+  §5's removal of `public fun register(spine: Spine)` on the Kotlin side does not reach this bullet.)*
 - `tsconfig` project references so `:block` cannot see a sibling's source
 - `linterOptions.noInlineConfig = true`, closing the `/* eslint-disable */` bypass the review reproduced
   *(landed 2026-07-26, ahead of this ADR's decision — see §11)*

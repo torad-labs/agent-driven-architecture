@@ -3,7 +3,7 @@
 // writes to object storage or a ticketing system; here it writes lines to a
 // caller-supplied emitter, so the demo runs offline.
 
-import type { Emit } from "../../spine/pure/emit";
+import type { Emit } from "@adr/spine/pure/emit";
 import type { DeliveryPort } from "./port";
 
 export function liveDelivery(emit: Emit): DeliveryPort {

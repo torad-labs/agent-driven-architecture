@@ -3,7 +3,7 @@
 // made; losing them on a re-fold would change what the system believes about
 // the session, so by 4.6's own test they belong in State.
 
-import type { PanelId, TicketId } from "../../spine/pure/ids";
+import type { PanelId, TicketId } from "@adr/spine/pure/ids";
 
 export interface ConsoleSlice {
   readonly focused: TicketId | null;

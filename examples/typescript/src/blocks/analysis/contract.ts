@@ -23,10 +23,10 @@
 // principal it is Refused. Recall confers no authority; it buys the model
 // nothing. Both halves of that are tested.
 
-import type { CommandBase } from "../../spine/pure/command";
-import type { EffectBase } from "../../spine/pure/effect";
-import type { Recall } from "../../spine/pure/staged";
-import type { ToolResultBase } from "../../spine/pure/tool-result";
+import type { CommandBase } from "@adr/spine/pure/command";
+import type { EffectBase } from "@adr/spine/pure/effect";
+import type { Recall } from "@adr/spine/pure/staged";
+import type { ToolResultBase } from "@adr/spine/pure/tool-result";
 
 // ── ToolResult cases ────────────────────────────────────────────────────────
 /** Carries the whole sealed `Recall` — text AND variant. That is what makes a

@@ -2,7 +2,7 @@
 // The ONLY importer of `view-state` (check C12). Ephemeral state joins the
 // ViewModel here, at the very edge, and never travels the other way.
 
-import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "../../spine/pure/context";
+import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "@adr/spine/pure/context";
 import type { ConsoleSlice } from "./slice";
 import type { ConsoleViewState } from "./view-state";
 import { initialViewState } from "./view-state";

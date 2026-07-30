@@ -7,9 +7,9 @@
 // FRESH, and "nothing published yet" is never presented as stale. Three facts,
 // three lines, and neither the operator nor the model can confuse them.
 
-import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "../../spine/pure/context";
-import type { Recall } from "../../spine/pure/staged";
-import { ageOf } from "../../spine/pure/staged";
+import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "@adr/spine/pure/context";
+import type { Recall } from "@adr/spine/pure/staged";
+import { ageOf } from "@adr/spine/pure/staged";
 import type { AnalysisNote, AnalysisSlice } from "./slice";
 
 export interface AnalysisRow {

@@ -6,9 +6,9 @@
 // PARENT-declared property, so the gate compares principals without this file
 // knowing anything about authority at all.
 
+import type { Verb } from "@adr/spine/pure/verb";
+import { irreversible, reversible } from "@adr/spine/pure/verb";
 import { object, string } from "valibot";
-import type { Verb } from "../../spine/pure/verb";
-import { irreversible, reversible } from "../../spine/pure/verb";
 import type {
   ConfirmSealCommand,
   ConfirmSealResult,

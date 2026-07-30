@@ -7,7 +7,7 @@
 // The fault list is BOUNDED at the source, the same way every other slice bounds
 // what it contributes to the reasoner's digest.
 
-import type { SourceName, Timestamp } from "../../spine/pure/ids";
+import type { SourceName, Timestamp } from "@adr/spine/pure/ids";
 
 export interface InboxFault {
   readonly at: Timestamp;

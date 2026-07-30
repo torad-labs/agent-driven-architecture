@@ -6,12 +6,13 @@
 // that never happened — and flipped the session banner to "degraded" for the
 // rest of the session.
 
+import { authority } from "@adr/spine/pure/actor";
 import { describe, expect, it } from "vitest";
-import { triage } from "../../src/blocks/triage/register";
-import { authority, Signature } from "../../src/spine/pure/actor";
-import { harness } from "../harness";
+import { harness } from "../../../test/harness";
+import { stamp } from "../../../test/support/stamp";
+import { triage } from "./register";
 
-const sig = new Signature("Agent", authority("agent-run-7f"));
+const sig = stamp("Agent", authority("agent-run-7f"));
 const slice = triage.sliceOf([{ id: "4118", body: "refund not received" }]);
 
 describe("blocks/triage — the arm reads state before it decides (§12.4)", () => {

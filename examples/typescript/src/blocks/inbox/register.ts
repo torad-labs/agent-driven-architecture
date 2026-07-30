@@ -2,7 +2,7 @@
 // Six files, the standard block anatomy, no port and no adapter: this block
 // holds no client handle because it records what already happened.
 
-import type { BlockRegistration } from "../../spine/pure/verb";
+import type { BlockRegistration } from "@adr/spine/pure/verb";
 import { isInboxResult } from "./contract";
 import { inboxArm } from "./fold";
 import { inboxContextLines, inboxView } from "./project";

@@ -3,10 +3,10 @@
 // its own sealed `DropReason`. Adding a third drop reason breaks the build here
 // and in `project.ts`, and nowhere outside this folder.
 
-import type { Signature } from "../../spine/pure/actor";
-import type { Timestamp } from "../../spine/pure/ids";
-import type { ArmOut } from "../../spine/pure/verb";
-import { armOut } from "../../spine/pure/verb";
+import type { Signature } from "@adr/spine/pure/actor";
+import type { Timestamp } from "@adr/spine/pure/ids";
+import type { ArmOut } from "@adr/spine/pure/verb";
+import { armOut } from "@adr/spine/pure/verb";
 import type { DropReason, InboxResult } from "./contract";
 import type { InboxSlice } from "./slice";
 import { withConflated, withDuplicate, withFault } from "./slice";

@@ -16,8 +16,8 @@
 // `fold.ts` and `project.ts` — the three sites 15.4's G12 self-check promises,
 // all inside this one folder.
 
-import type { Authority } from "../../spine/pure/actor";
-import type { TicketId } from "../../spine/pure/ids";
+import type { Authority } from "@adr/spine/pure/actor";
+import type { TicketId } from "@adr/spine/pure/ids";
 
 export type TicketStatusKind = "Open" | "Escalating" | "Escalated" | "Resolved";
 

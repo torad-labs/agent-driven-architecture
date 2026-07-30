@@ -12,11 +12,11 @@
 // denies, and it would make replay re-query a live source (the exact bug that
 // lets a replay recall different entries than the live run).
 
+import type { Recall, StagedInput } from "@adr/spine/pure/staged";
+import { emptyRecall } from "@adr/spine/pure/staged";
+import type { Verb } from "@adr/spine/pure/verb";
+import { reversible } from "@adr/spine/pure/verb";
 import { object, string } from "valibot";
-import type { Recall, StagedInput } from "../../spine/pure/staged";
-import { emptyRecall } from "../../spine/pure/staged";
-import type { Verb } from "../../spine/pure/verb";
-import { reversible } from "../../spine/pure/verb";
 import type {
   PublishAnalysisCommand,
   PublishAnalysisResult,

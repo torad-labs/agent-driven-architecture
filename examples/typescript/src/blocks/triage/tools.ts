@@ -16,10 +16,10 @@
 // `upcastSetPriority` produces one. The v1 SHAPE is declared next to the v2
 // shape it evolved from (contract.ts); the LIFT is a production site.
 
+import type { Verb } from "@adr/spine/pure/verb";
+import { reversible } from "@adr/spine/pure/verb";
 import type { InferOutput } from "valibot";
 import { object, optional, picklist, string } from "valibot";
-import type { Verb } from "../../spine/pure/verb";
-import { reversible } from "../../spine/pure/verb";
 import type { SetPriorityCommand, SetPriorityResult, SetPriorityResultV1 } from "./contract";
 
 const priority = picklist(["Low", "Normal", "High", "Urgent"]);

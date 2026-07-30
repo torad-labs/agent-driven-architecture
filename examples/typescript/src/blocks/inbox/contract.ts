@@ -17,9 +17,9 @@
 // mapping — G11-correct: the spine does not name the block, and the block does
 // not name the consumer.
 
-import type { CommandBase } from "../../spine/pure/command";
-import type { SourceKey, SourceName } from "../../spine/pure/ids";
-import type { ToolResultBase } from "../../spine/pure/tool-result";
+import type { CommandBase } from "@adr/spine/pure/command";
+import type { SourceKey, SourceName } from "@adr/spine/pure/ids";
+import type { ToolResultBase } from "@adr/spine/pure/tool-result";
 
 export type DropReasonKind = "Conflated" | "Duplicate";
 

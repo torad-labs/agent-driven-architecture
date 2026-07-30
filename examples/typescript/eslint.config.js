@@ -46,13 +46,27 @@ export const CHECKS = [
 ];
 
 // ── import-specifier vocabulary ─────────────────────────────────────────────
-// The tree imports by relative path, so §1.3's table is a table of specifier
-// shapes. Each fragment below is one cell of it.
+// §1.3's table is a table of specifier shapes, and since the workspace wall the
+// tree spells them TWO ways: relative INSIDE a package, and a bare package
+// specifier ACROSS one. Each fragment below is one cell of the table.
+//
+// The two spellings are not interchangeable and the split is deliberate. A bare
+// specifier is resolved through the target package's `exports` map, so an
+// unpublished path is a resolution error before any rule runs; a relative path
+// is resolved against `rootDir`, so it is a resolution error only when it
+// escapes into a project this one does not reference. Neither mechanism can say
+// WHICH tier of a referenced package a folder may name — that is this table's
+// job, and it is the reason the table outlives the wall.
 const SIBLING = "\\./[a-z0-9-]+"; //                       ./slice
 const SPINE_PURE = "\\.\\./pure/[a-z0-9-]+"; //             ../pure/ids        (from inside spine/)
 const SPINE_PORTS = "\\.\\./ports/[a-z0-9-]+"; //           ../ports/bus
 const SPINE_BOUNDARY = "\\.\\./boundary/[a-z0-9-]+"; //     ../boundary/action
-const BLOCK_PURE = "\\.\\./\\.\\./spine/pure/[a-z0-9-]+"; // ../../spine/pure/ids (from inside blocks/X/)
+const BLOCK_PURE = "@adr/spine/pure/[a-z0-9-]+"; //          @adr/spine/pure/ids (from inside blocks/X/)
+// A block declares `@adr/spine` as a dependency, so it names the spine the way
+// it names any dependency. The RELATIVE spelling `../../spine/pure/ids` is
+// deliberately absent: it still compiles (a relative reach into a REFERENCED
+// project is redirected to that project's declarations, measured), so keeping it
+// off this list is what stops the package boundary being routed around by path.
 const AGENT_SDK = "ai(?:/[a-z]+)?"; //                      the agent-loop runtime
 // The schema CONVERTER, allowed here and nowhere else. spine/agent is already the one
 // file licensed to interpret a schema — a block writes Valibot, spine/pure only ever
@@ -64,13 +78,43 @@ const SCHEMA_DSL = "valibot"; //                            the input schema, mo
 //   A Standard Schema (standardschema.dev), so spine/pure names the STANDARD rather
 //   than this library: see InputSchema in spine/pure/verb.ts. Swapping it for zod or
 //   arktype is this one line plus the block imports — the spine does not move.
-const EXTERNAL = "[^.].*"; //                               any client library
+const EXTERNAL = "(?!@adr/)[^.].*"; //                       any client library, never a workspace package
+//   The negative lookahead is load-bearing and it is a REGRESSION FIX, not
+//   polish. Before the wall, `spine/*` was reachable only by a relative path, so
+//   an adapter's licence to hold a client library could not reach it. Once the
+//   spine became `@adr/spine`, a bare-anything allowance would have handed the
+//   one impure file in a block every spine tier at once — `@adr/spine/boundary`
+//   included. The adapter's spine allowance stays exactly `BLOCK_PURE`.
 
 /** C1 — THE RULE, in the book's canonical wording, verbatim: an import may
  *  point inward toward the core, or it is the composition root; it may never
  *  point outward from the core, sideways between adapters, or from a passive
  *  node — a surface or a tool — into anything but domain types.
- *  §1.3 is that sentence as an ALLOW-LIST, so anything not listed is forbidden. */
+ *  §1.3 is that sentence as an ALLOW-LIST, so anything not listed is forbidden.
+ *
+ *  SUNSET — v0.3.0, marked 2026-07-30. The workspace wall ships in this release
+ *  and this check is deleted in the next one. MEASURED, so the deletion is a
+ *  decision and not a surprise: of the NINETEEN allow-list sites in this file
+ *  the package boundary subsumes ZERO. Ten are INTRA-SPINE-TIER (`spine/pure`
+ *  may not import `spine/ports`) and the spine is one package, so no package
+ *  edge exists to express them. Eight are INTRA-BLOCK PER-FILE (only `tools.ts`
+ *  gets the schema DSL, only `adapter.ts` gets a client library, only a
+ *  `*.test.ts` resident gets the shared rig) and npm cannot scope a dependency
+ *  below package granularity — the same limitation the Kotlin port names for
+ *  Gradle. One is the catch-all, which the wall does subsume in part. What the
+ *  wall adds is a SECOND, earlier layer on the cross-package fragment; what it
+ *  cannot do is carry this table. Deleting this check on schedule therefore
+ *  means moving those eighteen sites onto a layer that does not exist yet, and
+ *  that layer is the release's work, not this file's.
+ *
+ *  The count is one `only(…)` call per bucket with an allow-list: ten spine
+ *  buckets, eight inside a block folder (four of which share the `blockImports`
+ *  helper), and the catch-all. `app` has no allow-list, which is what makes it
+ *  the composition root.
+ *
+ *  The version is written `v0.3.0` with its prefix on purpose: an unprefixed
+ *  three-component numeral on a comment line is read by the citation lint's
+ *  STRICT position as a book section, and reported as a phantom one. */
 const only = (where, ...allowed) => ({
   regex: `^(?!(?:${allowed.join("|")})$)`,
   message: `[C1] ${where}`,
@@ -79,12 +123,30 @@ const only = (where, ...allowed) => ({
 // ── the checks that ride on `no-restricted-imports` ─────────────────────────
 
 // C2 — G11: no cross-block symbol import. From inside `blocks/X`, a sibling is
-// exactly one `../` away, and any `../../blocks/…` is the long way round to the
-// same place. Blocks communicate by reading a sibling's slice off the one
-// folded State as a VALUE, or by dispatching a verb the sibling's arm folds.
+// exactly one `../` away, any `../../blocks/…` is the long way round to the same
+// place, and since the wall `@adr/block-…` is the third way. Blocks communicate
+// by reading a sibling's slice off the one folded State as a VALUE, or by
+// dispatching a verb the sibling's arm folds.
+//
+// SUNSET — v0.3.0, marked 2026-07-30, AND THE ONE ROUTE THE WALL LEAVES OPEN.
+// Five cross-block routes were measured against a standing workspace, `tsc -b`
+// exit code and error code each recorded in this port's README:
+//   · `../escalation/fold`             — denied, TS6059 + TS6307 (rootDir)
+//   · `@adr/block-escalation/fold`     — denied, TS2307 (unpublished subpath)
+//   · `@adr/block-escalation/adapter`  — denied, TS2307 (unpublished subpath)
+//   · `@adr/block-escalation`          — denied, TS2307 (no `.` export)
+//   · `@adr/block-escalation/register` — RESOLVES CLEAN, exit 0
+// The fifth is this rule's whole subject. npm links every workspace package into
+// the single root node_modules, and neither an exports map nor a tsconfig
+// reference can make a package's PUBLISHED entry visible to one consumer and
+// invisible to another. So the wall narrows this route from "any file in the
+// sibling" to "the sibling's one declared entry" and cannot close it. The third
+// pattern below is what closes it, and the release that deletes this rule owes
+// that route a replacement layer.
 const C2 = [
   { regex: "^\\.\\./(?!\\.\\./)", message: "[C2] a block may not import a sibling block — blocks talk through the one folded State" },
   { regex: "^\\.\\./\\.\\./blocks/", message: "[C2] a block may not reach another block by path — blocks talk through the one folded State" },
+  { regex: "^@adr/block-", message: "[C2] a block may not import a sibling block by package name either — the workspace links every package into one node_modules, so the sibling's published entry resolves and only this rule denies it" },
 ];
 
 // C4 — G1: an Actor is UNREPRESENTABLE where a tool could forge one.
@@ -270,9 +332,17 @@ const C8_IMPORT = [{ regex: "^node:", message: "[C8] a pure file may not import 
 // survives a future spine folder being added with a permissive bucket. (In the
 // Kotlin port it catches something C1 structurally cannot: Kotlin forces every
 // sealed-hierarchy variant into one package, which C1 has to permit.)
+//
+// SUNSET — v0.3.0, marked 2026-07-30. The wall gives this check a partner and not
+// a replacement: `@adr/app` publishes no exports at all, so the spine naming the
+// composition root by package name is TS2307, but the spine naming a BLOCK by
+// package name resolves exactly as the app's own import does. The third pattern
+// below is the one that denies it, and it is why the tier-level denial has to
+// survive the wall rather than being retired by it.
 const C15 = [
   { regex: "(^|/)blocks/", message: "[C15] the spine tier is self-contained — it may not name a block" },
   { regex: "(^|/)app/", message: "[C15] the spine tier is self-contained — it may not name the composition root" },
+  { regex: "^@adr/block-", message: "[C15] the spine tier is self-contained — it may not name a block, and a package specifier is still naming one" },
 ];
 
 // C12 — 4.6: ephemeral view-state never folds. Hover, scroll offset and an
@@ -466,6 +536,31 @@ const blockImports = (allowed, extra = []) => [
 ];
 
 const BLOCK_ALLOWED = [SIBLING, BLOCK_PURE];
+
+// A block's isolation test now lives IN the block folder — residency is what
+// makes the block's internals visible to it and to nothing else, since the
+// package publishes only its registration. It is a RESIDENT rather than part of
+// the shipped package (the package tsconfig excludes it), so it gets its own
+// bucket instead of an exemption inside another one, and the bucket is narrow:
+//   · its own folder, so the test can drive `./fold` and `./slice` directly —
+//     the whole point of co-locating it;
+//   · any spine tier, because an isolation test legitimately drives the replay
+//     harness, which no shipped block file may name;
+//   · the test runner, and the SHARED RIG under test/ by exact path — not a
+//     free `../../../` — so a test cannot quietly become the route by which a
+//     block folder reaches the composition root;
+//   · C2 still rides it, so a resident may not reach a sibling block either.
+// It does NOT get C4's mint denial by exemption: the four `new Signature(...)`
+// calls these tests used moved to test/support/stamp.ts, so no file under src/
+// binds the constructor outside `spine/boundary`. C7's literal rule and C12 are
+// off here, because a test's job is to CONSTRUCT the transport it feeds to an
+// arm and to read the view-state the console block owns.
+const BLOCK_TEST_ALLOWED = [
+  SIBLING,
+  "@adr/spine/[a-z-]+/[a-z0-9-]+",
+  "vitest",
+  "\\.\\./\\.\\./\\.\\./test/(?:harness|support/[a-z0-9-]+)",
+];
 const PURE_SYNTAX = [...C3, ...C4_SHAPE, ...C7_LITERAL, ...C8_SYNTAX, ...C10];
 
 // ── §1.3, folder by folder ─────────────────────────────────────────────────
@@ -623,6 +718,18 @@ export const gate = [
     globals: [...C3_GLOBALS, ...C8_GLOBALS],
   }),
 
+  // blocks/<X>/*.test — the CO-LOCATED isolation test, a resident of the folder.
+  bucket(["**/src/blocks/*/*.test.ts"], {
+    imports: [
+      only("a co-located block test may import its own folder, any spine tier, the runner and the shared rig", ...BLOCK_TEST_ALLOWED),
+      ...C2,
+      ...C5_MINT,
+      ...C6,
+    ],
+    syntax: [...C3, ...C8_SYNTAX, ...C10],
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+  }),
+
   // app — THE ROOT. The single cross-layer importer (G7/G10), and the only
   // place that may name every block.
   bucket(["**/src/app/**/*.ts"], {
@@ -636,7 +743,10 @@ export default [
   {
     // test/gate/fixtures holds DELIBERATELY BROKEN source — it is INPUT to the
     // gate's own block-tests, not part of the tree the gate defends.
-    ignores: ["node_modules/**", "test/gate/fixtures/**", "test/gate/.work/**"],
+    // .tsbuild holds the wall's declaration output — generated, git-ignored, and
+    // not source, exactly like test/gate/.work. Belt-and-braces: measured, eslint
+    // already skips dot-directories, so this documents intent and costs nothing.
+    ignores: ["node_modules/**", "test/gate/fixtures/**", "test/gate/.work/**", ".tsbuild/**"],
   },
   ...gate,
 ];

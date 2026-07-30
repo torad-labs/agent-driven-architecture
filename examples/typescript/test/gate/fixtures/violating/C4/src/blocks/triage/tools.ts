@@ -4,4 +4,4 @@
 // asks for slipped it entirely: the launder compiled, linted and shipped the
 // whole gate green. Any rule that keys on the path has this hole for free;
 // keying on the imported NAME does not.
-export { Signature as Stamp } from "../../spine/pure/actor.js";
+export { Signature as Stamp } from "@adr/spine/pure/actor.js";

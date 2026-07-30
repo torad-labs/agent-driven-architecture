@@ -4,7 +4,7 @@
 // composition root, and pull it out by deleting this folder plus its lines
 // there.
 
-import type { BlockRegistration } from "../../spine/pure/verb";
+import type { BlockRegistration } from "@adr/spine/pure/verb";
 import { isTriageResult } from "./contract";
 import { triageArm } from "./fold";
 import { triageContextLines, triageView } from "./project";

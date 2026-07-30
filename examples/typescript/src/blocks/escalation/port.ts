@@ -2,7 +2,7 @@
 // An interface, nothing else (check C11). The block owns its dependency; the
 // composition root binds it. No sibling and no spine file names this type.
 
-import type { TicketId } from "../../spine/pure/ids";
+import type { TicketId } from "@adr/spine/pure/ids";
 
 export interface OncallPort {
   page(ticket: TicketId): void;

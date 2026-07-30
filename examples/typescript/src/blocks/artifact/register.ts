@@ -1,6 +1,6 @@
 // ── blocks/artifact/register — THE ONE PUBLIC SYMBOL (G11) ─────────────
 
-import type { BlockRegistration } from "../../spine/pure/verb";
+import type { BlockRegistration } from "@adr/spine/pure/verb";
 import { isArtifactResult } from "./contract";
 import { artifactArm } from "./fold";
 import { artifactContextLines, artifactView } from "./project";

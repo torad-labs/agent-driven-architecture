@@ -13,33 +13,33 @@ import type {
   AnalysisResult,
   AnalysisSlice,
   AnalysisView,
-} from "../blocks/analysis/register";
-import { analysis } from "../blocks/analysis/register";
+} from "@adr/block-analysis/register";
+import { analysis } from "@adr/block-analysis/register";
 import type {
   ArtifactCommand,
   ArtifactEffect,
   ArtifactResult,
   ArtifactSlice,
   ArtifactView,
-} from "../blocks/artifact/register";
-import { artifact } from "../blocks/artifact/register";
+} from "@adr/block-artifact/register";
+import { artifact } from "@adr/block-artifact/register";
 import type {
   ConsoleCommand,
   ConsoleResult,
   ConsoleSlice,
   ConsoleView,
-} from "../blocks/console/register";
-import { consoleBlock } from "../blocks/console/register";
+} from "@adr/block-console/register";
+import { consoleBlock } from "@adr/block-console/register";
 import type {
   EscalationCommand,
   EscalationEffect,
   EscalationResult,
   EscalationSlice,
   EscalationView,
-} from "../blocks/escalation/register";
-import { escalation } from "../blocks/escalation/register";
-import type { InboxCommand, InboxResult, InboxSlice, InboxView } from "../blocks/inbox/register";
-import { inbox } from "../blocks/inbox/register";
+} from "@adr/block-escalation/register";
+import { escalation } from "@adr/block-escalation/register";
+import type { InboxCommand, InboxResult, InboxSlice, InboxView } from "@adr/block-inbox/register";
+import { inbox } from "@adr/block-inbox/register";
 import type {
   Priority,
   Ticket,
@@ -48,14 +48,14 @@ import type {
   TriageResult,
   TriageSlice,
   TriageView,
-} from "../blocks/triage/register";
-import { triage } from "../blocks/triage/register";
-import type { SpineCommand } from "../spine/pure/command";
-import type { SpineEffect } from "../spine/pure/effect";
-import type { SpineSlice } from "../spine/pure/spine-slice";
-import { emptySpineSlice } from "../spine/pure/spine-slice";
-import type { SpineResult } from "../spine/pure/tool-result";
-import type { ViewModel } from "../spine/pure/view";
+} from "@adr/block-triage/register";
+import { triage } from "@adr/block-triage/register";
+import type { SpineCommand } from "@adr/spine/pure/command";
+import type { SpineEffect } from "@adr/spine/pure/effect";
+import type { SpineSlice } from "@adr/spine/pure/spine-slice";
+import { emptySpineSlice } from "@adr/spine/pure/spine-slice";
+import type { SpineResult } from "@adr/spine/pure/tool-result";
+import type { ViewModel } from "@adr/spine/pure/view";
 
 // ── The three closed sets ───────────────────────────────────────────────────
 

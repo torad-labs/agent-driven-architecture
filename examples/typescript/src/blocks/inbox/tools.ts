@@ -9,10 +9,10 @@
 // presentation verbs. Wire a consumer without this block and the Action still
 // resolves, to a committed `Unhandled`: still on the timeline, never silent.
 
+import type { Verb } from "@adr/spine/pure/verb";
+import { reversible } from "@adr/spine/pure/verb";
 import type { InferOutput } from "valibot";
 import { literal, number, object, string, variant } from "valibot";
-import type { Verb } from "../../spine/pure/verb";
-import { reversible } from "../../spine/pure/verb";
 import type {
   NoteDropCommand,
   NoteDropResult,

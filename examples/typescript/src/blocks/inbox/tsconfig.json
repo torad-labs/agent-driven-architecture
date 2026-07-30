@@ -1,0 +1,21 @@
+{
+  "//": "THE WALL. `composite` defaults rootDir to this directory, so a relative reach into a sibling block or into the spine is a resolution error, not a lint message. `references` names the one project this block may see. `*.test.ts` is excluded because the co-located test is a RESIDENT of the folder rather than part of the shipped package: it is type-checked by the root program, which is what lets it drive the shared test rig while the package itself stays walled - and it is what keeps the wall from compiling a test into `.tsbuild`, where vitest would execute it.",
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "../../../.tsbuild/block-inbox",
+    "tsBuildInfoFile": "../../../.tsbuild/block-inbox.tsbuildinfo"
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts"
+  ],
+  "references": [
+    {
+      "path": "../../spine"
+    }
+  ]
+}

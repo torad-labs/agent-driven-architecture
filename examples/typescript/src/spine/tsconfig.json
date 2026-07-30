@@ -1,0 +1,16 @@
+{
+  "//": "The spine is ONE package, so its seven tiers stay relative inside it and the import table keeps owning the tier order - `spine/pure` may not import `spine/ports`, and package granularity cannot express that. This is the first reason the hand-rolled import checks outlive the wall rather than being replaced by it.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "../../.tsbuild/spine",
+    "tsBuildInfoFile": "../../.tsbuild/spine.tsbuildinfo"
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts"
+  ]
+}

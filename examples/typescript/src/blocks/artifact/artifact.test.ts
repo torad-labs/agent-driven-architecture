@@ -4,10 +4,10 @@
 // because the content IS State — so the golden STATE assertion is the content
 // assertion.
 
+import { refold } from "@adr/spine/replay/replay";
 import { describe, expect, it } from "vitest";
-import { refold } from "../../src/spine/replay/replay";
-import { harness, POLICY_TIER } from "../harness";
-import { must } from "../support/must";
+import { harness, POLICY_TIER } from "../../../test/harness";
+import { must } from "../../../test/support/must";
 
 function record(h: ReturnType<typeof harness>, ...texts: string[]): void {
   h.app.boundary.onStepFinish({

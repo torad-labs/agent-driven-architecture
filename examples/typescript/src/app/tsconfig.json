@@ -1,0 +1,39 @@
+{
+  "//": "The root's own wall: rootDir is src/app, so a relative reach into a project this one does NOT reference is a resolution error here too. It references every package, and that is what makes its two spellings legal - a block's REGISTRATION by package name (`@adr/block-x/register`, the one subpath a block publishes), and a block's live client by the relative `../blocks/x/adapter`, which resolves through the referenced project's declarations rather than through its exports map.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "../../.tsbuild/app",
+    "tsBuildInfoFile": "../../.tsbuild/app.tsbuildinfo"
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts"
+  ],
+  "references": [
+    {
+      "path": "../spine"
+    },
+    {
+      "path": "../blocks/analysis"
+    },
+    {
+      "path": "../blocks/artifact"
+    },
+    {
+      "path": "../blocks/console"
+    },
+    {
+      "path": "../blocks/escalation"
+    },
+    {
+      "path": "../blocks/inbox"
+    },
+    {
+      "path": "../blocks/triage"
+    }
+  ]
+}
