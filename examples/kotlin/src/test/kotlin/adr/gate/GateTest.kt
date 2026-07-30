@@ -336,6 +336,159 @@ class GateTest {
         )
     }
 
+    // ── THE HANDLER SPLIT'S HEADLINE, MEASURED ON BOTH TREES ──────────────────
+    // No compiler fixture can settle this on its own. `gateEffectKindBlockTest` proves
+    // the compiler names ONE site — the block's own performer — for an appended effect
+    // kind; what it cannot prove is that the site list it produced is the WHOLE list,
+    // because a fixture compiled on its own has no composition root and no gate in it.
+    // So the real trees are asked directly, and BOTH of them: `src/main` for the
+    // production claim, `src/test` for the cost that moved there.
+
+    /** The effect LEAVES, derived from the live tree — never listed. Every class whose
+     *  direct parent name ends in `Effect`, minus the sub-union ROOTS, which are
+     *  themselves such classes and are not leaves. */
+    private fun effectLeaves(): Set<String> = live
+        .flatMap { f -> f.file.classes(includeNested = true) }
+        .filter { cls -> cls.parents(indirectParents = false).any { it.name.endsWith("Effect") } }
+        .map { it.name }
+        .filterNot { it.endsWith("Effect") }
+        .toSet()
+
+    /** The four block sub-unions, derived the same way: a class whose direct parent is
+     *  `Effect` itself and whose own name ends in `Effect`. */
+    private fun effectSubUnions(): Set<String> = live
+        .flatMap { f -> f.file.classes(includeNested = true) }
+        .filter { cls -> cls.parents(indirectParents = false).any { it.name == "Effect" } }
+        .map { it.name }
+        .filter { it.endsWith("Effect") }
+        .toSet()
+
+    /**
+     * THE ANTI-VACUITY PIN, and it deliberately does NOT enumerate the leaves.
+     *
+     * An equality against a spelled-out five-name set would be stronger against a
+     * silent rename — and would also make THIS FILE a per-effect-kind edit, i.e. a
+     * second out-of-folder site for exactly the append the census exists to price.
+     * Worse, the ledger census below keys on "names every declared leaf", so a
+     * spelled-out set would put this file in its own result and keep it there.
+     *
+     * So the pin is DERIVED instead: the spine's own `Diag` is always a leaf, the four
+     * sub-unions are pinned as an equality (a set no leaf append moves), and every
+     * sub-union must contribute at least one leaf. A derivation that walked to nothing,
+     * or lost `Diag`, or de-scoped a whole sub-union, fails here; adding a kind does not.
+     */
+    private fun assertDerivationsBind() {
+        val leaves = effectLeaves()
+        val subUnions = effectSubUnions()
+        assertEquals(
+            setOf("TriageEffect", "EscalationEffect", "ArtifactEffect", "AnalysisEffect"),
+            subUnions,
+            "the sub-union derivation moved — it is going vacuous",
+        )
+        assertTrue("Diag" in leaves, "the spine's own effect leaf vanished from the derivation")
+        assertTrue(
+            leaves.size >= subUnions.size + 1,
+            "every sub-union contributes at least one leaf, plus Diag: $leaves vs $subUnions",
+        )
+    }
+
+    /**
+     * PRODUCTION: a novel effect kind has ZERO consumers outside the block that owns it.
+     *
+     * BEFORE the split the answer included `app/Wire.kt` for all four unions — the
+     * exhaustive `when` over Effect that made a new kind an out-of-folder append. This
+     * test is red on that tree and green on this one, which is the whole delta expressed
+     * as a check rather than as a claim.
+     *
+     * The block contracts live in the `:spine` MODULE (Kotlin's sealed rule) and
+     * normalise back under `blocks/<x>/`, which the N-ROOT NORMALISATION test above
+     * pins — so "inside the block" here means what it means everywhere else in this file.
+     */
+    @Test
+    fun `a novel effect kind has ZERO production consumers outside its own block`() {
+        val outside = listOf("triage", "escalation", "artifact", "analysis").flatMap { block ->
+            val union = block.replaceFirstChar { it.uppercase() } + "Effect"
+            live.filter { it.block != block && GateTrees().mentions(it.codeText, union) }
+                .map { "${it.path} names $union" }
+        }
+        assertEquals(
+            emptyList(),
+            outside,
+            "an effect sub-union named outside its own block folder — a novel kind is an " +
+                "out-of-folder PRODUCTION append again",
+        )
+
+        // The derivations are non-vacuous — a derivation that quietly walked to nothing
+        // would agree with any tree at all. That is the C7 rot, refused in advance.
+        assertDerivationsBind()
+
+        // …and the composition root names exactly ONE effect kind: the spine's own Diag,
+        // which the split keeps there. A root that quietly kept a second branch would
+        // satisfy the assertion above (Effect.Diag is not a sub-union) and fail this one.
+        val root = live.single { it.path == "app/Wire.kt" }
+        val kinds = effectLeaves().filter { GateTrees().mentions(root.codeText, it) }.sorted()
+        assertEquals(listOf("Diag"), kinds, "the root performs the spine's effect and no other")
+    }
+
+    /**
+     * THE GATE'S OWN TREE — where the split's remaining out-of-folder cost actually is.
+     *
+     * The composition root does not move for a novel effect kind; the gate's TOTALITY
+     * LEDGER does, exactly as it already does for a novel VERB. That cost was invisible
+     * to every instrument this port shipped, because [GateTrees.liveTree] walks
+     * `src/main` only. It is visible now, and asserted as an EQUALITY in both
+     * directions rather than as an absence: a THIRD ledger appearing is as red as the
+     * existing one losing its enumeration.
+     *
+     * TWO SETS, and the distinction is the whole point:
+     *
+     *   LEDGERS    a file that enumerates EVERY declared leaf. Appending a kind forces
+     *              an edit here — this is the out-of-folder cost, counted.
+     *   ASSEMBLERS a file that reaches the shipped dispatcher assembly. Pinned so the
+     *              set of places that exercise the real performer list cannot silently
+     *              shrink to none, which is how a dispatcher test goes decorative.
+     *
+     * A file naming SOME leaf or sub-union is deliberately NOT pinned here: twelve of
+     * the gate's test files assert about kinds that already exist, a novel kind touches
+     * none of them, and a twelve-file roster over that would be churn without signal.
+     */
+    @Test
+    fun `the out-of-folder cost of a novel effect kind is EXACTLY the gate's own ledger`() {
+        assertDerivationsBind()
+        val leaves = effectLeaves()
+
+        val tree = GateTrees().testTree()
+        assertTrue(
+            tree.size > 15,
+            "the TEST tree walked to ${tree.size} files — the marker is not binding",
+        )
+
+        val ledgers = tree
+            .filter { f -> leaves.all { GateTrees().mentions(f.codeText, it) } }
+            .map { it.path }
+            .toSet()
+        assertEquals(
+            setOf("app/TotalityTest.kt"),
+            ledgers,
+            "EXACTLY one file outside a block folder enumerates the effect leaves: the " +
+                "gate's own totality ledger. That is the whole out-of-folder cost of a " +
+                "novel effect kind in this port, and the composition root is not in it",
+        )
+
+        val assemblers = tree
+            .filter { GateTrees().mentions(it.codeText, "effectPerformers") }
+            .map { it.path }
+            .sorted()
+        assertEquals(
+            listOf("app/TotalityTest.kt", "gate/GateTest.kt", "spine/ReplayTest.kt"),
+            assemblers,
+            "the SHIPPED dispatcher assembly must stay under test from both sides: C13's " +
+                "handler half exercises it whole and thinned, ReplayTest drives the same " +
+                "assembly through REPLAY, and this census names it too. A set that shrank " +
+                "would leave a dispatcher nobody runs the real version of",
+        )
+    }
+
     /**
      * G1, the COPY half of C4(d). The detekt half denies `Signature.<init>` as a
      * resolved call — but a `data class` ships a synthesized `copy()`, and

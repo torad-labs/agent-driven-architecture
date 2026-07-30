@@ -335,7 +335,7 @@ id = "G12"
 name = "exhaustive-discriminated-modeling"
 layers = ["denying-check", "compiler-proof"]
 headline = "Denying check + compiler proof."
-note = "No <code>else</code> over a sealed subject, type-aware, plus the checked-in exhaustiveness fixture trees the real compiler must break on at exactly three sites."
+note = "No <code>else</code> over a sealed subject, type-aware, plus TWO checked-in compiler-proof fixture pairs the real compiler must break on at a named number of sites and nowhere else: a fifth state variant at exactly three sites, all inside the owning block, and a novel effect kind at exactly one, the owning block's own effect performer."
 
 [[laws.checks]]
 port = "typescript"

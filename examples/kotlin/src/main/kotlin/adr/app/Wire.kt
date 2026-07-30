@@ -2,10 +2,40 @@
 // Exactly one file may know what is real and what is faked in a build. Removing it
 // means a service locator, which G7 forbids.
 //
-// Everything that binds is here: every port→adapter binding, the effect sink, the
-// Boundary, the Controller, and the agent loop. Plugging a block in is its
-// `register(...)` line plus its port binding plus its sink branch; pulling it out is
-// the same list, subtracted, plus `rm -rf blocks/<X>/`.
+// Everything that binds is here: every port→adapter binding, the effect dispatcher,
+// the Boundary, the Controller, and the agent loop. Plugging a block in is its
+// `register(...)` line plus its port binding plus its `performer(...)` line; pulling
+// it out is the same list, subtracted, plus `rm -rf blocks/<X>/`.
+//
+// A NEW EFFECT KIND appended to a block's EXISTING effect union is not on that
+// list any more. It costs its case in the owning block's contract and its arm in
+// that block's own performer — both inside the folder — and nothing here. A block
+// growing its FIRST effect kind is the one exception: one compiler-named line in
+// this file's performer assembly, the "handful of appends, every one
+// compiler-named" headline the decisions record ratifies for the blast-radius
+// table (docs/DECISIONS.md:125). This file names exactly one effect kind,
+// `Effect.Diag`, which is the spine's own and stays the root's to perform.
+//
+// RECEIPT, 2026-07-30, addressed to the blast-radius table the decisions record
+// schedules for the book (theme 5). Three prose sites now state something this file has
+// made false — wiki §6.8's bounded-change note, wiki §16's restatement of it, and
+// ADR-001 §1.3 Q1's parenthetical — and all three are that later entry's to rewrite
+// rather than this one's. ADR-001 §1.3 Q1 pre-authorises the deletion and gates it on
+// the ADR being accepted; the ADR was ratified 2026-07-26, so only the phase order is
+// holding it.
+//
+// THE MEASURED REPLACEMENT, stated as the set the real compiler names rather than as a
+// bare zero. Appending a novel kind to an existing block's effect union costs, in this
+// port: `blocks/<owner>/Contract.kt` (the case) and `blocks/<owner>/Register.kt` (the
+// performer arm, compiler-named) — both inside the folder — plus
+// `src/test/kotlin/adr/app/TotalityTest.kt`, the GATE's own totality ledger
+// (`EffectSamples`), which is out of folder and maintained per effect case exactly as
+// the TS port's verb ledger already is. So, for kinds on an existing union (a FIRST
+// kind adds one performer-assembly line here): out-of-folder PRODUCTION sites (anything
+// under `src/main/`) = 0, in BOTH ports, earned by the real compiler — not 0 sites
+// overall. The pins that keep that honest are `gateEffectKindBlockTest` plus the
+// live-tree and TEST-tree censuses in `adr.gate.GateTest`, which assert the
+// out-of-folder set as an equality rather than as an absence.
 
 package adr.app
 
@@ -25,12 +55,8 @@ import adr.blocks.inbox.NOTE_DROP
 import adr.blocks.inbox.NOTE_FAULT
 import adr.blocks.triage.Ticket
 import adr.blocks.triage.TriageBlock
-import adr.contract.AnalysisEffect
-import adr.contract.ArtifactEffect
 import adr.contract.Effect
-import adr.contract.EscalationEffect
 import adr.contract.ToolResult
-import adr.contract.TriageEffect
 import adr.spine.agent.AgentLoop
 import adr.spine.boundary.Boundary
 import adr.spine.boundary.InMemoryBus
@@ -55,9 +81,11 @@ import adr.spine.pure.Actor
 import adr.spine.pure.Authority
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.ConsumerEvent
+import adr.spine.pure.EffectPerformer
 import adr.spine.pure.InputPolicy
 import adr.spine.pure.KeyedEffect
 import adr.spine.pure.Message
+import adr.spine.pure.Performers
 import adr.spine.pure.PerformMode
 import adr.spine.pure.Registry
 import adr.spine.pure.SessionId
@@ -72,44 +100,47 @@ import adr.spine.surface.Controller
 import ai.torad.aisdk.LanguageModel
 
 /**
- * The one branch per effect kind. Exhaustive over Effect with NO else arm, so a new
- * effect kind fails to compile until it is bound to something real (§11.1).
+ * THE SPINE-OWNED `Diag` PERFORMER, and the handler split keeps it AT THE ROOT:
+ * `Diag` is the only effect case the spine declares for itself, no block owns it, and
+ * performing it is the root's business exactly as performing a domain effect is the
+ * owning block's.
+ *
+ * It doubles as the floor an ORPHANED effect is diagnosed through, so "never silent"
+ * and "the root performs Diag" are ONE binding rather than two that could drift.
+ */
+class DiagPerformer(private val log: MutableList<String>) {
+
+    fun perform(effect: Effect.Diag) {
+        log += "diag[${effect.at.value}] ${effect.note}"
+    }
+
+    fun performer(): EffectPerformer<Effect.Diag> = EffectPerformer(
+        block = "spine",
+        narrow = { it as? Effect.Diag },
+        perform = ::perform,
+    )
+}
+
+/**
+ * The perform seam, ASSEMBLED rather than branched. The root lists performers; every
+ * arm lives in the block that owns the effect (see [Performers]).
+ *
+ * FOUR BLOCKS OF SIX contribute, and the count is a measurement rather than a
+ * preference — the same call `spine/pure/Block` makes about `contextLines` (5/6) and
+ * `register` (5/6). `console` and `inbox` declare no effect cases at all, so a
+ * performer from either could match nothing; asking them for one would make two
+ * blocks pretend to a role they do not have.
  *
  * REPLAY touches nothing — that is the mode's entire contract (14.6), and it is the
  * reason a replayed trace can be driven through the SAME sink as a live one.
  */
 class AppSink(
-    private val oncall: OncallPort,
-    private val delivery: DeliveryPort,
-    private val relay: AnalysisRelay,
-    private val log: MutableList<String>,
+    private val performers: Performers,
+    private val diag: DiagPerformer,
 ) : Sink {
     override fun perform(keyed: KeyedEffect, mode: PerformMode) {
         if (mode == PerformMode.REPLAY) return
-        when (val effect = keyed.effect) {
-            is Effect.Diag -> log += "diag[${effect.at.value}] ${effect.note}"
-
-            is TriageEffect -> when (effect) {
-                is TriageEffect.LogDecision ->
-                    log += "priority[${effect.at.value}] ${effect.ticket.value} -> ${effect.level}" +
-                        (effect.supersedes?.let { " (was $it)" } ?: "")
-            }
-
-            is EscalationEffect -> when (effect) {
-                is EscalationEffect.PageOncall -> oncall.page(effect.ticket)
-            }
-
-            is ArtifactEffect -> when (effect) {
-                is ArtifactEffect.DeliverArtifact -> delivery.deliver(effect.lines)
-            }
-
-            // The deep tier's publish is an ORDINARY EFFECT DESCRIPTOR (14.2), which is
-            // why the tiering rung inherits replay-stubbing and RECOVERY idempotency for
-            // free — the early return above already stubs it in REPLAY.
-            is AnalysisEffect -> when (effect) {
-                is AnalysisEffect.PublishConclusion -> relay.publish(effect.at, effect.text)
-            }
-        }
+        performers.perform(keyed.effect)?.let { diag.perform(it) }
     }
 }
 
@@ -327,11 +358,33 @@ class Wiring {
         object : ModelProvider<LanguageModel> {
             override fun model(): LanguageModel = model
         }
+    /**
+     * THE DISPATCHER ASSEMBLY. Its own member because it is the thing under test: gate
+     * check C13's handler half runs the SAME assembly the app runs — once whole, once
+     * with one performer deliberately withheld, and once per performer to prove each
+     * claims EXACTLY its own leaves.
+     *
+     * It sits BESIDE the verb registry rather than on [BlockRegistration], and the
+     * reason is tier independence: handler totality must hold whatever tier is wired,
+     * and hanging performers off a registration would make a two-of-six [DEEP_TIER]
+     * app ship a partial handler set — i.e. it would make the totality rule
+     * unstateable. `EffectTotalityTest` asserts that, with the tier proven reduced.
+     */
+    fun effectPerformers(env: Env, log: MutableList<String>): Performers = Performers(
+        listOf(
+            TriageBlock().performer { log += it },
+            EscalationBlock().performer(env.oncall),
+            ArtifactBlock().performer(env.delivery),
+            AnalysisBlock().performer(env.relay),
+            DiagPerformer(log).performer(),
+        ),
+    )
+
     fun wireApp(env: Env): App {
         val registry = RegistryBuilder<State>().of(*(env.verbs ?: ALL_BLOCKS).toTypedArray())
 
         val log = mutableListOf<String>()
-        val sink = RecordingSink(AppSink(env.oncall, env.delivery, env.relay, log))
+        val sink = RecordingSink(AppSink(effectPerformers(env, log), DiagPerformer(log)))
         val initial = Assembly().initialState(env.tickets)
 
         val boundary = Boundary(

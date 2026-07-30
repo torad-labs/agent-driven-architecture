@@ -104,8 +104,19 @@ class ReplayTest {
         assertEquals(1, pagesAfterLive)
         assertEquals(1, deliveriesAfterLive)
 
-        // Drive the SAME sink chain the live run used — including the real adapters.
-        val replaySink = RecordingSink(adr.app.AppSink(world.oncall, world.delivery, world.relay, mutableListOf()))
+        // Drive the SAME sink chain the live run used — including the real adapters,
+        // and the same ASSEMBLED dispatcher, so what replay is stubbing is the shipped
+        // performer set rather than a second sink that happens to resemble it.
+        val replayLog = mutableListOf<String>()
+        val replaySink = RecordingSink(
+            adr.app.AppSink(
+                adr.app.Wiring().effectPerformers(
+                    Env(world = world, authority = authority),
+                    replayLog,
+                ),
+                adr.app.DiagPerformer(replayLog),
+            ),
+        )
         Replay(Assembly()::fold).collectPerform(app.initial, app.bus.records(), replaySink, PerformMode.REPLAY)
 
         assertEquals(liveEffects, replaySink.performed, "descriptors collected…")

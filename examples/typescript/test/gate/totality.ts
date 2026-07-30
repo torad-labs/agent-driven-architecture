@@ -1,4 +1,4 @@
-// ── C13 — registry totality ────────────────────────────────────────────────
+// ── C13 — TOTALITY, both halves: the verb registry and the effect handlers ─
 // The one check in §9 that is a question about VALUES rather than syntax, so it
 // is a vitest check rather than a lint rule (§9's own C13 row says so).
 //
@@ -47,4 +47,35 @@ function signs(tool: string, verb: Verb<never>): boolean {
   const result = { outcome: "ok", tool } as unknown as ToolResultBase;
   const cmd: CommandBase = verb.sign(result, PROBE, "gate-probe-id");
   return cmd.tool === tool && cmd.id === "gate-probe-id" && cmd.sig === PROBE;
+}
+
+// ── C13's SECOND half: HANDLER totality ──────────────────────────────
+// Same question one seam over. `registryGaps` asks "does every declared result
+// case have a verb that signs?"; this asks "does every declared effect kind have
+// a registered handler, and does every registered handler answer a declared
+// kind?".
+//
+// It is the same checker shape for the same reason: a question about VALUES
+// carries its block/allow pair as two INPUTS rather than two trees on disk. The
+// ALLOW half runs it over the shipped dispatcher; the BLOCK half pulls one
+// handler out and watches it deny.
+//
+// `declared` is NOT a list this file invents. Its caller derives it from
+// `Record<Effect["kind"], true>` — a mapped type over the live union's own
+// discriminant — so a renamed or added kind breaks the derivation loudly instead
+// of leaving this checker matching nothing. That is the C7 rot, refused in
+// advance.
+
+/** Every way an assembled handler table can fail to be total. Empty means it passes. */
+export function handlerGaps(
+  declared: readonly string[],
+  handlers: Readonly<Record<string, unknown>>,
+): readonly string[] {
+  const gaps = declared
+    .filter((kind) => typeof handlers[kind] !== "function")
+    .map((kind) => `"${kind}" is a declared Effect kind with no registered handler`);
+  const orphans = Object.keys(handlers)
+    .filter((kind) => !declared.includes(kind))
+    .map((kind) => `"${kind}" has a registered handler but is not a declared Effect kind`);
+  return [...gaps, ...orphans];
 }

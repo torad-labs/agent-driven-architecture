@@ -300,14 +300,25 @@ val gateDetektAllowTest by tasks.registering {
 // real spine vocabulary. The block-test compiles the five-variant tree and demands
 // a non-zero exit naming all three sites; the allow-test compiles the four-variant
 // tree and demands exit 0. Both run under `./gradlew check`.
+//
+// A SECOND PAIR RIDES THE SAME HARNESS since effect performance became registrable
+// per block: `src/test/fixtures/effect-kind`, where the appended variant is a NOVEL
+// EFFECT KIND and the ONE compiler-named site is the owning block's own performer.
+//
+// EACH FIXTURE DIRECTORY IS A MULTI-FILE COMPILATION UNIT, and that is what makes the
+// "and nowhere else" guard below able to fail at all. One .kt file per directory would
+// leave `elsewhere` — the set of NAMED files other than the expected one — empty by
+// construction, i.e. a wall that cannot fire. So each effect-kind polarity also ships
+// a stand-in composition root written in the POST-split idiom: it holds a performer and
+// names no effect kind. Rewrite that root in the PRE-split idiom (an exhaustive `when`
+// over the demo union) and the block-test goes red naming `Root.kt` — red-proven, and
+// that is the reversal the pair keeps as a measured fact rather than a claim.
 
 val kotlinCompilerCli: Configuration by configurations.creating
 
 dependencies {
     kotlinCompilerCli("org.jetbrains.kotlin:kotlin-compiler-embeddable:2.4.0")
 }
-
-val exhaustiveFixtures = layout.projectDirectory.dir("src/test/fixtures/exhaustive")
 
 /**
  * Compile one fixture tree with the real Kotlin compiler, against the real
@@ -317,24 +328,24 @@ val exhaustiveFixtures = layout.projectDirectory.dir("src/test/fixtures/exhausti
  */
 fun registerExhaustiveCheck(
     taskName: String,
+    fixtureRoot: String,
     fixture: String,
     expectFailure: Boolean,
+    claim: String,
     mustName: List<String> = emptyList(),
+    sitesIn: String = "",
+    expectSites: Int = 0,
 ) = tasks.register<JavaExec>(taskName) {
     dependsOn(tasks.named("compileKotlin"))
     // The classpath now spans module boundaries, and it is consumed from an
     // argumentProvider — which carries no task dependency of its own. Without this the
     // compiler would be handed a path to `:spine` output nothing had built yet.
     dependsOn(gateAnalysisClasspath)
-    val source = exhaustiveFixtures.dir(fixture)
-    val outDir = layout.buildDirectory.dir("gate/exhaustive/$fixture")
-    val logFile = layout.buildDirectory.file("reports/gate/exhaustive-$fixture.txt")
+    val source = layout.projectDirectory.dir("src/test/fixtures/$fixtureRoot").dir(fixture)
+    val outDir = layout.buildDirectory.dir("gate/$fixtureRoot/$fixture")
+    val logFile = layout.buildDirectory.file("reports/gate/$fixtureRoot-$fixture.txt")
 
-    description = if (expectFailure) {
-        "G12 BLOCK-TEST: a fifth TicketStatus variant must BREAK the build at three sites."
-    } else {
-        "G12 ALLOW-TEST: the same three consumers must compile cleanly at four variants."
-    }
+    description = if (expectFailure) "G12 BLOCK-TEST: $claim" else "G12 ALLOW-TEST: $claim"
 
     classpath = kotlinCompilerCli
     mainClass.set("org.jetbrains.kotlin.cli.jvm.K2JVMCompiler")
@@ -374,15 +385,34 @@ fun registerExhaustiveCheck(
             // knock-on type errors from the same three sites, and counting those too
             // would make K look like whatever the inference cascade happened to
             // produce rather than the number §11.2 actually claims.
-            val sites = Regex("""Escalation\.kt:(\d+):\d+: error: 'when' expression must be exhaustive""")
+            val sites = Regex(
+                Regex.escape(sitesIn) + """:(\d+):\d+: error: 'when' expression must be exhaustive""",
+            )
                 .findAll(log)
                 .map { it.groupValues[1] }
                 .toSet()
-            check(sites.size == 3) {
-                "G12 BLOCK-TEST failed: expected THREE compiler-named sites, got ${sites.size} " +
-                    "at lines $sites. §11.2's K = 3 is the claim under test.\n$log"
+            check(sites.size == expectSites) {
+                "G12 BLOCK-TEST failed: expected $expectSites compiler-named site(s) in " +
+                    "$sitesIn, got ${sites.size} at lines $sites. The claim under test: " +
+                    "$claim\n$log"
             }
-            logger.lifecycle("G12 BLOCK-TEST: the compiler named 3 sites (lines ${sites.sorted()}) — edit list earned.")
+            // …AND NOWHERE ELSE. A count that only looks at the expected file passes just
+            // as happily when the append also broke the stand-in composition root, which
+            // is the exact number this pair exists to measure. Each fixture directory is
+            // MULTI-FILE precisely so this set can be non-empty.
+            val elsewhere = Regex("""([A-Za-z]+\.kt):\d+:\d+: error:""")
+                .findAll(log)
+                .map { it.groupValues[1] }
+                .filterNot { it == sitesIn }
+                .toSet()
+            check(elsewhere.isEmpty()) {
+                "G12 BLOCK-TEST failed: the compiler also named $elsewhere. The claim is " +
+                    "that $sitesIn is the WHOLE edit list.\n$log"
+            }
+            logger.lifecycle(
+                "G12 BLOCK-TEST: the compiler named $expectSites site(s) in $sitesIn " +
+                    "(lines ${sites.sorted()}) and nothing else — edit list earned.",
+            )
         } else {
             check(exit == 0) {
                 "G12 ALLOW-TEST failed: the compliant four-variant tree did NOT compile.\n" +
@@ -394,15 +424,40 @@ fun registerExhaustiveCheck(
 
 val gateExhaustiveBlockTest = registerExhaustiveCheck(
     taskName = "gateExhaustiveBlockTest",
+    fixtureRoot = "exhaustive",
     fixture = "violating",
     expectFailure = true,
+    claim = "a fifth TicketStatus variant must BREAK the build at three sites, all in the block.",
     mustName = listOf("'when' expression must be exhaustive"),
+    sitesIn = "Escalation.kt",
+    expectSites = 3,
 )
 
 val gateExhaustiveAllowTest = registerExhaustiveCheck(
     taskName = "gateExhaustiveAllowTest",
+    fixtureRoot = "exhaustive",
     fixture = "compliant",
     expectFailure = false,
+    claim = "the same three consumers must compile cleanly at four variants.",
+)
+
+val gateEffectKindBlockTest = registerExhaustiveCheck(
+    taskName = "gateEffectKindBlockTest",
+    fixtureRoot = "effect-kind",
+    fixture = "violating",
+    expectFailure = true,
+    claim = "a NOVEL EFFECT KIND must break the build at ONE site — the block's own performer.",
+    mustName = listOf("'when' expression must be exhaustive"),
+    sitesIn = "EffectKind.kt",
+    expectSites = 1,
+)
+
+val gateEffectKindAllowTest = registerExhaustiveCheck(
+    taskName = "gateEffectKindAllowTest",
+    fixtureRoot = "effect-kind",
+    fixture = "compliant",
+    expectFailure = false,
+    claim = "the same performer and stand-in root must compile cleanly at one kind.",
 )
 
 tasks.check {
@@ -413,6 +468,8 @@ tasks.check {
         gateDetektAllowTest,
         gateExhaustiveBlockTest,
         gateExhaustiveAllowTest,
+        gateEffectKindBlockTest,
+        gateEffectKindAllowTest,
     )
 }
 

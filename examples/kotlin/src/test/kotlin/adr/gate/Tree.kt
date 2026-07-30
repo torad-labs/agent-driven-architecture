@@ -111,6 +111,23 @@ class GateTrees {
     fun fixtureTree(polarity: String, check: String): List<GateFile> =
         treeOf("src/test/fixtures/konsist/$polarity/$check")
 
+    /**
+     * THE TEST TREE — the gate's own sources, read the same way.
+     *
+     * A SEPARATE marker and a separate entry point, deliberately: [LIVE_MARKER] and
+     * [fixtureTree]'s derived marker are both load-bearing (see the KDoc above — a
+     * GLOBAL marker fix breaks eight of GateTest's own tests and turns C2/C8's
+     * block-tests into vacuous ACCEPTs), so this adds a third reader rather than
+     * widening either.
+     *
+     * It exists because a census that walks only `src/main` cannot see a cost that
+     * moved into a test file — which is exactly where the handler split's remaining
+     * out-of-folder cost lives. An instrument blind to the site it is reporting on is
+     * worse than no instrument, so the site is now inside the instrument's field of
+     * view and asserted as an EQUALITY.
+     */
+    fun testTree(): List<GateFile> = treeOf("src/test/kotlin/adr", TEST_MARKER)
+
     /** True when [import] is exactly [prefix] or a member of it. */
     fun matches(import: String, prefix: String): Boolean =
         import == prefix || import.startsWith("$prefix.")
@@ -126,6 +143,13 @@ class GateTrees {
          * ONE relative namespace.
          */
         val LIVE_MARKER: String = "/src/main/kotlin/adr/"
+
+        /**
+         * The same fixed-marker trick for the gate's OWN sources, so `app/TotalityTest.kt`
+         * and `gate/GateTest.kt` normalise onto the same relative namespace the live tree
+         * uses. Separate from [LIVE_MARKER] because that one may not move.
+         */
+        val TEST_MARKER: String = "/src/test/kotlin/adr/"
 
         /**
          * EVERY source-bearing module root of ADR-001 §3's DAG. `:spine` is extracted;

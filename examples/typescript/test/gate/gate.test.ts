@@ -158,7 +158,10 @@ describe("C4 — the stamp has ONE production site", () => {
 // ── C13 — a question about values, so it is a vitest check (§9's own row) ───
 // Same checker, two inputs. The ALLOW half runs it over the shipped registry;
 // the BLOCK half pulls one verb out and watches it deny.
-describe("C13 — registry totality", () => {
+//
+// This is the VERB half. C13's handler half is the same shape one seam over and
+// lives with its own ledger in test/app/totality.test.ts.
+describe("C13 — the verb-registry half", () => {
   const declared = [
     "setPriority",
     "requestEscalation",

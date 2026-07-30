@@ -2,11 +2,58 @@
 // Exactly one file may know what is real and what is faked in a build. Removing
 // it means a service locator, which G7 forbids.
 //
-// Plugging a block in is: its `register(...)` line here, its slice field in
-// app/contract, its three union memberships there, and its branch in each of
-// app/assemble's three dispatchers. Pulling it out is the same list, subtracted,
-// plus `rm -rf src/blocks/<X>/`. Every one of those is an APPEND to a closed
-// set, and the compiler names each one you forget.
+// Plugging a block in is: its `register(...)` line here, its `handlers(...)`
+// contribution to the dispatcher below, its slice field in app/contract, its
+// three union memberships there, and its branch in each of app/assemble's three
+// dispatchers. Pulling it out is the same list, subtracted, plus
+// `rm -rf src/blocks/<X>/`. Every one of those is an APPEND to a closed set, and
+// the compiler names each one you forget.
+//
+// THE HANDLER SPLIT: a NEW EFFECT KIND appended to a block's EXISTING effect
+// union is not on that list any more. It costs its case in the owning block's
+// contract and its handler in that block's registration — both inside the
+// folder — and NOTHING here. A block growing its FIRST effect kind is the one
+// exception: it also costs one compiler-named line in this file's dispatcher
+// assembly, exactly the "handful of appends, every one compiler-named" headline
+// the decisions record ratifies for the blast-radius table (docs/DECISIONS.md:125;
+// review proved the universal zero with the console case). This
+// file names exactly one effect kind, `Diag`, which is the spine's own and
+// stays the root's to perform.
+//
+// RECEIPT, 2026-07-30, addressed to the blast-radius table the decisions record
+// schedules for the book (theme 5). THREE PROSE SITES now state something this
+// file has made false, and all three are that later entry's to rewrite, not this
+// one's — a code landing does not edit the book ahead of its own phase:
+//
+//   · wiki §6.8, the "ADDING A TOOL IS A BOUNDED CHANGE" note — "the one listed
+//     exception: a verb introducing a novel effect kind adds … one branch in the
+//     composition root's effect sink … the only out-of-folder append in the system"
+//   · wiki §16, the same claim restated, cross-referencing §6.8
+//   · ADR-001 §1.3 Q1, the parenthetical "the one exception the book now lists
+//     itself: a novel effect kind adds a compiler-named branch in the root's sink"
+//
+// THE MEASURED REPLACEMENT, stated as the set the real compiler names rather
+// than as a bare zero. Appending a novel kind to an existing block's effect
+// union costs, in this port:
+//
+//   · src/blocks/<owner>/contract.ts   the case          (in folder)
+//   · src/blocks/<owner>/register.ts   the handler arm   (in folder, compiler-named)
+//   · test/app/totality.test.ts        the GATE's own totality ledger,
+//     `EXPECTED_EFFECTS` — out of folder, and maintained per effect case EXACTLY
+//     as the pre-existing verb half already is: `Record<OkResult["tool"], true>`
+//     sits in that same file, twelve entries, and pre-dates this landing, so a
+//     new VERB has always cost that same out-of-folder edit.
+//   · test/gate/fixtures/novel-effect-kind/patch.json, when the union line it
+//     quotes is the one that changed — a hard, visible failure rather than a
+//     silent one.
+//
+// So: out-of-folder PRODUCTION sites (anything under `src/`) = 0 for kinds on
+// an existing union (a FIRST kind adds one dispatcher-assembly line here), in BOTH ports,
+// earned by the real compiler — not 0 sites overall. The pin that keeps that
+// honest rather than asserted is test/gate/exhaustiveness.test.ts, whose
+// `novel-effect-kind` fixture compiles the gate's OWN program (`src` and `test`
+// together) and asserts the out-of-folder error set as an EXACT equality; the
+// Kotlin half is the test-tree census in its gate's GateTest.
 
 import type { AnalysisRelay } from "@adr/block-analysis/register";
 import { analysis } from "@adr/block-analysis/register";
@@ -20,7 +67,7 @@ import { triage } from "@adr/block-triage/register";
 import type { Action, Registry } from "@adr/spine/boundary/action";
 import { registryOf } from "@adr/spine/boundary/action";
 import { Boundary } from "@adr/spine/boundary/boundary";
-import { InMemoryBus, sequentialIds } from "@adr/spine/boundary/in-memory";
+import { handlerSink, InMemoryBus, sequentialIds } from "@adr/spine/boundary/in-memory";
 import type { RelayRecall, TurnRunner } from "@adr/spine/concurrency/consumer";
 import { SerialConsumer } from "@adr/spine/concurrency/consumer";
 import type { Authorization } from "@adr/spine/ports/authorization";
@@ -29,12 +76,12 @@ import type { Clock } from "@adr/spine/ports/clock";
 import type { IdSource } from "@adr/spine/ports/id-source";
 import type { Mailbox } from "@adr/spine/ports/mailbox";
 import type { Scheduler } from "@adr/spine/ports/scheduler";
-import type { PerformMode, Sink } from "@adr/spine/ports/sink";
+import type { Sink } from "@adr/spine/ports/sink";
 import type { Actor, Authority } from "@adr/spine/pure/actor";
 import { authority } from "@adr/spine/pure/actor";
+import type { Diag, EffectHandler, Handlers } from "@adr/spine/pure/effect";
 import type { Emit } from "@adr/spine/pure/emit";
 import type { SessionId } from "@adr/spine/pure/ids";
-import type { KeyedEffect } from "@adr/spine/pure/keyed-effect";
 import type { DrainMessage, InputPolicy } from "@adr/spine/pure/mailbox";
 import type { ConsumerEvent } from "@adr/spine/pure/turn";
 import type { BlockRegistration } from "@adr/spine/pure/verb";
@@ -47,9 +94,26 @@ import { dispatchers, project } from "./assemble";
 import type { AppView, Effect, State } from "./contract";
 import { initialState } from "./contract";
 
-// ── The effect sink: one branch per Effect case, exhaustive ────────────────
-// A new effect kind costs TWO appends: its case in the owning block's contract,
-// and one branch here. The compiler names the second one.
+// ── The effect DISPATCHER: assembled here, registered by the blocks ────────
+// The root's job at this seam is now assembly and binding, not branching. Each
+// effect-bearing block contributes a `Handlers<XEffect>` table keyed on its own
+// union's discriminant; this file spreads them into one `Handlers<Effect>` and
+// adds the spine's own `Diag`.
+//
+// FOUR BLOCKS OF SIX contribute, and the count is a measurement rather than a
+// preference — the same call `spine/pure/block` makes about `contextLines` (5/6)
+// and `register` (5/6). `console` and `inbox` declare no effect cases at all, so
+// a table from either would be `{}`; asking them for one would make two blocks
+// pretend to a role they do not have. A block grows a handler the moment it
+// grows an effect, and not before, because that is when its `Handlers<XEffect>`
+// stops being satisfiable by an empty object.
+//
+// TOTALITY IS THE ANNOTATION. `Handlers<Effect>` is a mapped type over the
+// union's own discriminant, so a kind with no handler is a compile error, here,
+// before any test runs. It is checked against each block function's DECLARED
+// return type, which is what keeps a NEW KIND'S error inside the block folder.
+// The runtime floor in `performEffect` covers what the annotation cannot: a
+// table thinned after assembly. C13's handler half watches both.
 //
 // REPLAY touches nothing (G9). RECOVERY re-drives; the deduping sink in front
 // of it drops anything already acknowledged, keyed on the committed step index.
@@ -62,39 +126,31 @@ export interface Ports {
   readonly log: (line: string) => void;
 }
 
-export function effectSink(ports: Ports): Sink {
+/** THE SPINE-OWNED `Diag` HANDLER, and the decision keeps it AT THE ROOT:
+ *  `Diag` is the only effect case the spine declares for itself, no block owns it,
+ *  and performing it is the root's business exactly as performing a domain effect
+ *  is the owning block's. It doubles as the floor `performEffect` diagnoses an
+ *  orphaned kind through, so "never silent" and "the root performs Diag" are one
+ *  binding rather than two that could drift apart. */
+function diagHandler(log: Emit): EffectHandler<Diag> {
+  return (effect) => log(`[diag @${effect.at}] ${effect.note}`);
+}
+
+/** THE DISPATCHER ASSEMBLY. Exported because it is the thing under test: C13's
+ *  handler half runs the SAME table the app runs, once whole and once
+ *  deliberately thinned. */
+export function effectHandlers(ports: Ports): Handlers<Effect> {
   return {
-    perform(keyed: KeyedEffect<Effect>, mode: PerformMode): void {
-      if (mode === "REPLAY") return; // collect the descriptor; touch NOTHING
-      const effect = keyed.effect;
-      switch (effect.kind) {
-        case "Diag":
-          ports.log(`[diag @${effect.at}] ${effect.note}`);
-          return;
-        case "LogDecision":
-          ports.log(
-            `[decision @${effect.at}] ${effect.ticket} → ${effect.level}` +
-              (effect.supersedes === null ? "" : ` (was ${effect.supersedes})`),
-          );
-          return;
-        case "PageOncall":
-          ports.oncall.page(effect.ticket);
-          return;
-        case "DeliverArtifact":
-          ports.delivery.deliver(effect.lines);
-          return;
-        case "PublishConclusion":
-          // The deep tier's write, as an ordinary effect descriptor — so REPLAY
-          // stubs it and RECOVERY dedupes it on `EffectKey`, for free.
-          ports.relay.publish(effect.at, effect.text);
-          return;
-        default: {
-          const _never: never = effect;
-          return _never;
-        }
-      }
-    },
+    ...triage.handlers(ports.log),
+    ...escalation.handlers(ports.oncall),
+    ...artifact.handlers(ports.delivery),
+    ...analysis.handlers(ports.relay),
+    Diag: diagHandler(ports.log),
   };
+}
+
+export function effectSink(ports: Ports): Sink {
+  return handlerSink(effectHandlers(ports), diagHandler(ports.log));
 }
 
 // ── Authorization: the PRODUCT-OWNED seam (14.3, G6) ───────────────────────

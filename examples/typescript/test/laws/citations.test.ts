@@ -145,7 +145,18 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // +2 (667 -> 669): the orchestrator's adjudicated role-plugin wall in
   // settings.gradle.kts — its rationale comment cites ADR-001 §3/§4, the law
   // it hosts unconditionally after review proved the in-plugin roster circular.
-  "examples/kotlin": 669,
+  // +2 (669 -> 671), MEASURED per file by this module's own census with the
+  // handler split applied, not derived by arithmetic:
+  //   +1 spine/pure/Seams.kt — the two new effect seams, citing ADR-001 §5's rule
+  //      that the effect CASES stay sealed while the handlers do not.
+  //   +1 app/Wire.kt — net: it LOST the four sub-union branches and GAINED the dated
+  //      receipt naming the three prose sites this landing falsifies.
+  //   +1 blocks/analysis/Register.kt — 14.2's effect-descriptor note, which moved out
+  //      of app/Wire.kt with the branch it belonged to.
+  //   -1 build.gradle.kts — the must-fail harness's per-fixture claim is a parameter
+  //      now, so one hard-coded sentence became two call-site strings.
+  // Nothing was deleted from the id-and-section SET: before is a subset of after.
+  "examples/kotlin": 671,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -163,7 +174,22 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // tsconfigs, a base config, a solution file, the wall's invocation script and
   // the vitest config. No citation was removed — the four block tests that moved
   // into their packages carry the same citations at their new paths.
-  "examples/typescript": 442,
+  // +7 (442 -> 449), the same landing in TS, MEASURED per file:
+  //   +3 src/app/wire.ts — the sink banner became a dispatcher banner plus the dated
+  //      receipt, which names wiki §6.8, wiki §16 and ADR-001 §1.3 Q1 on three lines
+  //      as the sites this landing falsifies, and states the MEASURED replacement set
+  //      rather than a bare zero.
+  //   +1 src/spine/boundary/in-memory.ts — the dispatcher sink, citing G9's replay
+  //      contract.
+  //   +1 src/blocks/analysis/register.ts — the publish handler, carrying 14.2 with it
+  //      out of app/wire.ts.
+  //   +1 eslint.config.js — the `.work/**` ignore's reason, citing G12 for whose
+  //      harness the scratch copy belongs to.
+  //   +1 vitest.config.ts — the same scratch copy, from the walk that EXECUTES what it
+  //      finds; it cites G12 for the same reason.
+  // src/spine/pure/effect.ts and the four block `handlers` tables add no citation
+  // line, so they are absent above by measurement rather than by omission.
+  "examples/typescript": 449,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the
@@ -177,7 +203,16 @@ const FILE_PIN: Record<string, number> = {
   // under build-logic/ (its own settings + build script, AdrDag.kt and the five
   // convention plugins) and fourteen module build scripts, one per declared module.
   // No source file was added or deleted: the 43 that entered `:spine` were relocated.
-  "examples/kotlin": 178,
+  // +4 (178 -> 182): the effect-kind must-fail fixture PAIR, TWO files per polarity.
+  // `EffectKind.kt` holds the consumer; `Root.kt` is a stand-in composition root in
+  // the post-split idiom, and it is there because a single-file fixture directory made
+  // the harness's "and nowhere else" guard empty by construction — a wall that cannot
+  // fire. No source file was added: the block performers ride the Register.kt files
+  // that already existed.
+  // +2 (182 -> 184): the exhaustive pair's out-of-block Root.kt stand-ins,
+  // shipped in both polarities so the "and nowhere else" guard is a real
+  // measurement (review proved it empty by construction).
+  "examples/kotlin": 184,
   // +19 (163 -> 182): the workspace wall, which is nineteen COUNTED non-source
   // files and not one line of new prose. Eight `package.json` and eight
   // `tsconfig.json` (the spine, the six blocks, the composition root), plus
@@ -194,7 +229,11 @@ const FILE_PIN: Record<string, number> = {
   // library becoming a licence to hold `spine/boundary`).
   // +1 (183 -> 184): `vitest.config.ts`, which excludes `.tsbuild` from the one
   // walk that EXECUTES what it finds rather than counting it.
-  "examples/typescript": 184,
+  // +1 (184 -> 185): the novel-effect-kind patch fixture, the second fixture the
+  // exhaustiveness harness drives. No source file was added: the block handler tables
+  // ride the register.ts files that already existed, and the harness's scratch copy is
+  // named `.work`, which the walk above already skips by entry name.
+  "examples/typescript": 185,
   wiki: 10,
 };
 
