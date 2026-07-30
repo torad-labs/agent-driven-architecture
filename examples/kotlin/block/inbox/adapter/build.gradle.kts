@@ -5,9 +5,13 @@
 // socket LIBRARY is PERMITTED here and only here (plus `:app`). Only `:app` may depend
 // on this module — `adr.root` inverts §3's rule and asserts it.
 //
-// Its Adapter.kt arrives in ADR-001 §9's Stage 3, with the rest of the block's files;
-// three of the six blocks will never have one and keep this module anyway, because §5's
-// pair is unconditional and Gradle refuses a project whose directory does not exist.
+// It holds NO source, and that is the decision rather than a gap: ADR-001 §5's pair
+// is UNCONDITIONAL, `inbox` owns no live IO, and Gradle refuses to configure a project
+// whose directory does not exist — so the directory is committed and the module stays
+// declared. ADR-001 §9's Stage 3 landed the three live-IO blocks' Adapter.kt and left
+// this one empty on purpose. The emptiness is fail-closed, not merely explained: the
+// root build script's `gateCompiledRootsAreGateRoots` fails the build the moment a
+// file lands here, because this root is then compiled and is on neither gate list.
 plugins {
     id("adr.block.adapter")
 }
