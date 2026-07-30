@@ -22,8 +22,14 @@ import com.lemonappdev.konsist.api.declaration.KoTypeAliasDeclaration
 /** The stamp (G1). None of these three may be nameable upstream of the boundary. */
 private val STAMP_TYPES = setOf("Actor", "Authority", "Signature")
 
-/** The pure ring inside a block: everything but `port`, `adapter` and `view-state`. */
-private val PURE_BLOCK_FILES = setOf("Tools.kt", "Fold.kt", "Project.kt", "Slice.kt", "Contract.kt")
+/**
+ * The pure ring inside a block: everything but `port`, `adapter` and `view-state`.
+ *
+ * `internal`, not `private`, for the same reason [GateFacts] is: GateTest's N-ROOT
+ * NORMALISATION test pins C8's coverage of the six relocated `blocks/<x>/Contract.kt`
+ * against this set, so the selector cannot go quietly vacuous when a file moves module.
+ */
+internal val PURE_BLOCK_FILES = setOf("Tools.kt", "Fold.kt", "Project.kt", "Slice.kt", "Contract.kt")
 
 /** The only three transport symbols in `adr.contract` that the SPINE itself owns (C15). */
 private val SPINE_OWNED_TRANSPORT = setOf("ToolResult", "Command", "Effect")

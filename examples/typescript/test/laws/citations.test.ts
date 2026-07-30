@@ -113,7 +113,34 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // +17 (549 -> 566): D21's schemaVersion landing — StepRecord/StepRecordV1
   // envelope KDoc, the TriageUpcast banner and the 14.7 replay-over-old-log
   // cases all cite §14.7's envelope rule. No citation removed.
-  "examples/kotlin": 566,
+  // +101 (566 -> 667): the Kotlin port becomes ADR-001 §3's module DAG. The
+  // RELOCATION is citation-neutral (every spine and contract file moved with its banner
+  // intact; measured per file, the moves cancel exactly), so all 101 are NEW build code
+  // and the comments the split forced:
+  //   +32 build-logic/ — the five convention plugins plus AdrDag.kt, where §3's
+  //        dependency law, §4's two-owner IO conjunction and the measured allow-sets are
+  //        written down (14 in AdrDag alone).
+  //   +47 the fourteen module build scripts — :spine 2, :app 3, six blocks 2 each, six
+  //        adapter leaves 5 each. Each states which edges its plugin permits, and each
+  //        block pair says which §9 stage brings its files, so a DECLARED-but-empty
+  //        module cannot be read as an abandoned one.
+  //   +12 settings.gradle.kts 4 (the module set, the implicit :block container, the
+  //        directory law) and the root build.gradle.kts 8 (what the root project now is
+  //        — the gate's home plus the not-yet-migrated source — and why detekt's source
+  //        set is derived from the module roots).
+  //   +6  blocks/<x>/Contract.kt: triage +1, artifact +1, inbox +4 — the nested payload
+  //        type's justification, why the sealed rule forces it into the transport root
+  //        and why NOT into adr.spine.pure. Inbox's +4 carries the DropReason KDoc that
+  //        moved here from Slice.kt (the -2 below).
+  //   +4  gate/GateTest.kt 2 and gate/Tree.kt 2 — the N-root normalisation contract and
+  //        the two new fail-closed tests.
+  //   +0  blocks/{triage,artifact}/Slice.kt +1 each, blocks/inbox/Slice.kt -2.
+  // 32 + 47 + 12 + 6 + 4 + 0 = 101.
+  // Nothing was deleted: the id-and-section set present before is a subset of after.
+  // +2 (667 -> 669): the orchestrator's adjudicated role-plugin wall in
+  // settings.gradle.kts — its rationale comment cites ADR-001 §3/§4, the law
+  // it hosts unconditionally after review proved the in-plugin roster circular.
+  "examples/kotlin": 669,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -134,7 +161,11 @@ const RESOLVABLE_PIN: Record<string, number> = {
   wiki: 121,
 };
 const FILE_PIN: Record<string, number> = {
-  "examples/kotlin": 156,
+  // +22 (156 -> 178): ADR-001 §3's DAG adds build code and nothing else — eight files
+  // under build-logic/ (its own settings + build script, AdrDag.kt and the five
+  // convention plugins) and fourteen module build scripts, one per declared module.
+  // No source file was added or deleted: the 43 that entered `:spine` were relocated.
+  "examples/kotlin": 178,
   "examples/typescript": 163,
   wiki: 10,
 };

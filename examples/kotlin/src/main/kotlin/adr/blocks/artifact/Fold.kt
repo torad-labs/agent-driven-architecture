@@ -7,6 +7,7 @@ package adr.blocks.artifact
 
 import adr.contract.ArtifactEffect
 import adr.contract.ArtifactResult
+import adr.contract.ArtifactResult.ArtifactLine
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Notice
 import adr.spine.pure.Signature

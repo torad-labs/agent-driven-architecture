@@ -1,6 +1,24 @@
 import io.gitlab.arturbosch.detekt.Detekt
 import java.io.ByteArrayOutputStream
 
+// ── the ROOT project — the build's aggregator AND the gate's home ──────────
+// Under ADR-001 §3's DAG the architecture lives in fourteen MODULES (settings.gradle.kts).
+// This project is not one of them: it applies no `adr.*` convention plugin, and
+// `adr.root`'s roster assertion excludes `:` by name. It owns two things.
+//
+// (1) THE GATE HARNESSES, at their existing paths. `src/test/kotlin/adr/gate/**` and
+//     `src/test/fixtures/**` do NOT move, and that is a measured constraint rather
+//     than convenience: the repository's `laws.toml` names 36 `examples/kotlin` paths
+//     including on-disk fixture PAIR paths, and the TypeScript gate RESOLVES each one
+//     (`examples/typescript/test/laws/registry.ts`), so re-homing a fixture tree turns
+//     the TypeScript suite red. Konsist reads the module roots by path
+//     (GateTrees.MODULE_ROOTS) and detekt is given the same list below, so the gate
+//     reads a fourteen-module tree without moving.
+//
+// (2) The source not yet migrated. ADR-001 §9 stages the move: `:spine` is extracted
+//     in this stage, the six block pairs in stages 2-3, `:app` in stage 4. Until a
+//     module's files arrive, they compile here against `project(":spine")`.
+
 plugins {
     kotlin("jvm") version "2.4.0"
     kotlin("plugin.serialization") version "2.4.0"
@@ -9,13 +27,12 @@ plugins {
     id("io.gitlab.arturbosch.detekt") version "1.23.8"
 }
 
-repositories {
-    // ai.torad:torad-aisdk is published on Maven Central, so a fresh checkout
-    // resolves the runtime with no local setup (no publishToMavenLocal needed).
-    mavenCentral()
-}
-
 dependencies {
+    // THE KERNEL, now a module (ADR-001 §3). Everything still living in this project —
+    // the blocks, the root wiring, and the whole gate harness — compiles against it
+    // across a real module edge.
+    implementation(project(":spine"))
+
     // The agent-loop runtime: Marcos's aisdk-kotlin (the architecture sits on top of it).
     implementation("ai.torad:torad-aisdk:0.3.0-alpha01")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
@@ -66,6 +83,33 @@ tasks.test {
 // There is no warning tier, no baseline file, and no `ignoreFailures` on any task
 // that defends the live tree.
 
+/**
+ * Where the architecture's own sources live, one entry per source-bearing Gradle
+ * module (ADR-001 §3). Konsist reads the same roots with `/adr` appended; keep the
+ * two in step — GateTest fails loudly if they drift.
+ */
+val adrModuleSourceRoots = listOf("spine/src/main/kotlin", "src/main/kotlin")
+
+/**
+ * FAIL LOUDLY, never quietly. Each root must exist AND hold Kotlin, or the analysis
+ * below is reading part of the tree while reporting on all of it.
+ */
+val gateSourceRootsPresent by tasks.registering {
+    description = "Proves every ADR module source root the gate analyses exists and is non-empty."
+    outputs.upToDateWhen { false }
+    val roots = adrModuleSourceRoots.map { it to layout.projectDirectory.dir(it).asFile }
+    doLast {
+        roots.forEach { (name, dir) ->
+            val kt = dir.walkTopDown().filter { it.isFile && it.extension == "kt" }.count()
+            check(kt > 0) {
+                "gate source root `$name` holds $kt Kotlin files. detekt would report a clean " +
+                    "tree it never read — see ADR-001 §3's module roots."
+            }
+        }
+        logger.lifecycle("gate source roots: ${roots.map { it.first }} — all present and non-empty.")
+    }
+}
+
 detekt {
     // The gate IS config/detekt/gate.yml. Nothing is inherited, so no rule can
     // arrive unreviewed and no author is ever asked to silence one (15.2).
@@ -76,7 +120,15 @@ detekt {
     // The tree the gate defends. §1.3's import table is about spine/, blocks/ and
     // app/; the fixtures under src/test/fixtures are analysed by their own tasks,
     // with the assertion inverted.
-    source.setFrom(files("src/main/kotlin"))
+    //
+    // Under §3's DAG that tree is spread over MODULE ROOTS, so the source set is
+    // derived from the list above rather than hard-coded to this project's own
+    // src/main/kotlin. A module whose sources landed outside the list would be
+    // silently un-analysed by C3/C9/C14 — 43 files' worth, in the case of :spine —
+    // which is the vacuity class this repository has already been bitten by once
+    // (C7's derivation). GateTest's MODULE ROOTS test asserts this list and Konsist's
+    // GateTrees.MODULE_ROOTS name the same roots, from the other side.
+    source.setFrom(files(adrModuleSourceRoots))
 }
 
 /** Fixture pairs live outside every compiled source set: they are input, not code. */
@@ -90,6 +142,12 @@ val gateFixtures = layout.projectDirectory.dir("src/test/fixtures/detekt")
  */
 val gateAnalysisClasspath: FileCollection = files(
     configurations.named("detekt"),
+    // Under §3's DAG this is where `:spine`'s compiled output arrives — across a real
+    // module edge, as `project(":spine")`'s artifact. Everything the fixtures name
+    // from the kernel (`adr.spine.pure.Signature`, `adr.contract.ToolResult.Refused`,
+    // `adr.spine.pure.RunStatus.Degraded`) resolves through here and nowhere else, so
+    // dropping it makes gateDetektBlockTest and gateExhaustiveBlockTest go red rather
+    // than quietly pass — proven by removing it.
     sourceSets.main.get().compileClasspath,
     // The compiled tree itself, so the FIXTURES can name the real transport types.
     // A fixture that constructs its own local `Signature` would prove nothing: the
@@ -123,6 +181,12 @@ tasks.withType<Detekt>().configureEach {
 tasks.named<Detekt>("detektMain") {
     description = "C3/C9/C14 over the production tree. A finding is a failed build."
     classpath.setFrom(gateAnalysisClasspath)
+    // MEASURED, not assumed: this task is created by the Kotlin plugin per SOURCE SET,
+    // so it reads THIS project's src/main/kotlin and ignores the `detekt { source }`
+    // block entirely. Under §3's DAG that is two thirds of the tree — an ambient
+    // `System.currentTimeMillis()` inside the :spine module passed detektMain green
+    // while the plain `detekt` task caught it. Both denying tasks read the module roots.
+    setSource(files(adrModuleSourceRoots))
 }
 
 /**
@@ -258,6 +322,10 @@ fun registerExhaustiveCheck(
     mustName: List<String> = emptyList(),
 ) = tasks.register<JavaExec>(taskName) {
     dependsOn(tasks.named("compileKotlin"))
+    // The classpath now spans module boundaries, and it is consumed from an
+    // argumentProvider — which carries no task dependency of its own. Without this the
+    // compiler would be handed a path to `:spine` output nothing had built yet.
+    dependsOn(gateAnalysisClasspath)
     val source = exhaustiveFixtures.dir(fixture)
     val outDir = layout.buildDirectory.dir("gate/exhaustive/$fixture")
     val logFile = layout.buildDirectory.file("reports/gate/exhaustive-$fixture.txt")
@@ -339,6 +407,7 @@ val gateExhaustiveAllowTest = registerExhaustiveCheck(
 
 tasks.check {
     dependsOn(
+        gateSourceRootsPresent,
         tasks.named("detektMain"),
         gateDetektBlockTest,
         gateDetektAllowTest,

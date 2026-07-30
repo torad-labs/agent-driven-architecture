@@ -9,7 +9,7 @@ import adr.app.World
 import adr.app.ScriptedEvents
 import adr.app.Env
 import adr.app.Wiring
-import adr.blocks.triage.Priority
+import adr.contract.TriageResult.Priority
 import adr.contract.TriageCommand
 import adr.contract.TriageEffect
 import adr.spine.pure.Actor

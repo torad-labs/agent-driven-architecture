@@ -15,6 +15,7 @@
 
 package adr.blocks.triage
 
+import adr.contract.TriageResult.Priority
 import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 
 data class TicketRow(

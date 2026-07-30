@@ -17,7 +17,7 @@ import adr.app.RunAuthority
 import adr.app.Wiring
 import adr.app.World
 import adr.blocks.triage.PRE_V2_REASON
-import adr.blocks.triage.Priority
+import adr.contract.TriageResult.Priority
 import adr.blocks.triage.SET_PRIORITY
 import adr.blocks.triage.TriageUpcast
 import adr.contract.ToolResult

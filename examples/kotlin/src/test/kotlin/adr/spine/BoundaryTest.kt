@@ -11,7 +11,7 @@ import adr.app.Env
 import adr.app.RunAuthority
 import adr.app.Wiring
 import adr.app.World
-import adr.blocks.triage.Priority
+import adr.contract.TriageResult.Priority
 import adr.blocks.triage.SET_PRIORITY
 import adr.contract.TriageEffect
 import adr.spine.boundary.MovingClock

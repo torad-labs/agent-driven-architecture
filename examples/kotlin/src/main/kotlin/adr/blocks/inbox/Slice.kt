@@ -9,39 +9,14 @@
 
 package adr.blocks.inbox
 
+import adr.contract.InboxResult.DropReason
 import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.SourceName
 
-/**
- * Why an input was dropped. The block's OWN closed set — deliberately not the
- * spine's `ConsumerEvent`.
- *
- * The two sets are joined at the root by app/wire's `report` mapping, which is
- * G11-correct: the spine does not name the block, the block does not name the
- * consumer, and the composition root is the one place allowed to know both.
- */
-enum class DropReason {
-    /** Newest-input-wins superseded it while a turn was in flight (12.2). */
-    Conflated,
-
-    /** A redelivered lease whose source key had already been folded (12.2). */
-    Duplicate,
-    ;
-
-    /**
-     * The ONE seam from an external token to this closed set — the `fromToken()` the
-     * stringly-dispatch law asks for. It replaces a `when` over string literals, which
-     * is open-world dispatch: adding a variant there was a silent fall-through to
-     * `else -> null` rather than a compile error. Derived from `entries`, so a new
-     * variant is admitted automatically and cannot be forgotten.
-     *
-     * Still guarded, and still total: an unrecognised word is a decode failure (null),
-     * never a default.
-     */
-    fun interface Parser {
-        fun parse(token: String): DropReason?
-    }
-}
+// `DropReason` is declared on this block's own sealed transport root, in
+// blocks/inbox/Contract.kt, because both `InboxResult.NoteDrop` and
+// `InboxCommand.NoteDrop` carry one and Kotlin's sealed rule authors that file inside
+// `:spine` (ADR-001 §3). C2 admits the import by name prefix.
 
 data class InboxSlice(
     val conflated: Map<SourceName, Int> = emptyMap(),

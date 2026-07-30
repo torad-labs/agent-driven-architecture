@@ -24,7 +24,7 @@ import adr.app.Wiring
 import adr.app.World
 import adr.blocks.escalation.CONFIRM_ESCALATION
 import adr.blocks.escalation.TicketStatus
-import adr.blocks.triage.Priority
+import adr.contract.TriageResult.Priority
 import adr.blocks.triage.SET_PRIORITY
 import adr.contract.EscalationEffect
 import adr.contract.ToolResult

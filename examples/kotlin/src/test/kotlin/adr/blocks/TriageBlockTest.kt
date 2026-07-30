@@ -8,7 +8,7 @@
 
 package adr.blocks
 
-import adr.blocks.triage.Priority
+import adr.contract.TriageResult.Priority
 import adr.blocks.triage.SET_PRIORITY
 import adr.blocks.triage.Ticket
 import adr.blocks.triage.TriageBlock

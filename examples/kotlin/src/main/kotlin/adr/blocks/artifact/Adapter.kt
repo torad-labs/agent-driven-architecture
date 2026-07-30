@@ -2,6 +2,7 @@
 
 package adr.blocks.artifact
 
+import adr.contract.ArtifactResult.ArtifactLine
 import adr.spine.pure.Emit
 
 /**

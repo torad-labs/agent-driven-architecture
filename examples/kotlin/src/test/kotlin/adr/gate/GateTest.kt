@@ -165,6 +165,108 @@ class GateTest {
     }
 
     /**
+     * THE MODULE ROOTS ARE FAIL-CLOSED — the pin that makes ADR-001 §3's DAG safe to
+     * migrate one stage at a time.
+     *
+     * Under the DAG the live tree is no longer one directory: `GateTrees().MODULE_ROOTS`
+     * lists a root per source-bearing module and detekt is given the same list
+     * (`build.gradle.kts`'s `adrModuleSourceRoots`). That creates a failure mode this
+     * repository has already been bitten by once, at C7: a module whose sources exist
+     * and whose root is in NEITHER list is invisible to all eleven konsist checks and
+     * to C3/C9/C14, while every test stays green. Forty-three files' worth, for
+     * `:spine` alone.
+     *
+     * So the roots are DERIVED FROM DISK here and compared both ways. A stage that
+     * moves a block's files into `block/<x>/` and forgets either list fails HERE,
+     * before it can ship a gate reading two thirds of the tree.
+     */
+    @Test
+    fun `MODULE ROOTS - konsist and detekt read every module source root that exists on disk`() {
+        val projectRoot = java.io.File(".").canonicalFile
+        val onDisk = projectRoot.walkTopDown()
+            .onEnter { it.name != "build" && it.name != "node_modules" && !it.name.startsWith(".") }
+            .filter { dir ->
+                dir.isDirectory && dir.name == "adr" &&
+                    dir.parentFile.invariantSeparatorsPath.endsWith("/src/main/kotlin")
+            }
+            .map { it.relativeTo(projectRoot).invariantSeparatorsPath }
+            .toSortedSet()
+
+        assertEquals(
+            GateTrees().MODULE_ROOTS.toSortedSet(),
+            onDisk,
+            "GateTrees().MODULE_ROOTS does not match the module source roots on disk. A root that " +
+                "exists and is not listed is a whole module no konsist check reads.",
+        )
+
+        // detekt's own source list, from the other side of the build boundary.
+        val declared = Regex("""val adrModuleSourceRoots = listOf\(([^)]*)\)""")
+            .find(java.io.File("build.gradle.kts").readText())
+        val declaredRoots = checkNotNull(declared) {
+            "build.gradle.kts no longer declares `adrModuleSourceRoots`"
+        }
+        val detektRoots = Regex("\"([^\"]+)\"").findAll(declaredRoots.groupValues[1])
+            .map { it.groupValues[1] }
+            .toSortedSet()
+        assertEquals(
+            GateTrees().MODULE_ROOTS.map { it.removeSuffix("/adr") }.toSortedSet(),
+            detektRoots,
+            "detekt (C3/C9/C14) and konsist (C1-C15) are reading different trees",
+        )
+    }
+
+    /**
+     * N-ROOT NORMALISATION: the module roots emit the SAME relative paths the
+     * single-module tree did, and the fixture marker is still DERIVED per root.
+     *
+     * This is what makes the whole gate migration free — every selector in Rules.kt and
+     * every path pin in this file keys on the normalised path, so `spine/pure/Actor.kt`
+     * and `blocks/triage/Contract.kt` have to come back spelled exactly that way from a
+     * module root they no longer share.
+     *
+     * The second half is the refuted prescription, kept as a permanent assertion: fixing
+     * the marker GLOBALLY (for `fixtureTree` too) makes `substringAfter` return whole
+     * ABSOLUTE paths for every fixture, `GateFile.block` go null, and C1/C2/C6/C7/C8/
+     * C11/C12/C15 report their violating fixtures ACCEPTED. Measured: eight failures.
+     */
+    @Test
+    fun `N-ROOT NORMALISATION - live paths stay relative and the six block contracts still key on their block`() {
+        // (a) every live path is relative and inside one of the three tiers §1.3 names.
+        live.forEach { file ->
+            assertTrue(
+                file.path.startsWith("spine/") || file.path.startsWith("blocks/") || file.path.startsWith("app/"),
+                "`${file.path}` normalised outside spine/, blocks/ and app/ — the marker is wrong for its root",
+            )
+        }
+
+        // (b) the six block contracts now live in the `:spine` MODULE (Kotlin's sealed
+        // rule) and must still normalise under blocks/, or C8's purity clause, C2's
+        // prefix clause and the per-block roster all silently stop covering them.
+        val contracts = live.filter { it.fileName == "Contract.kt" && it.block != null }
+        assertEquals(
+            listOf(
+                "blocks/analysis/Contract.kt",
+                "blocks/artifact/Contract.kt",
+                "blocks/console/Contract.kt",
+                "blocks/escalation/Contract.kt",
+                "blocks/inbox/Contract.kt",
+                "blocks/triage/Contract.kt",
+            ),
+            contracts.map { it.path }.sorted(),
+        )
+        contracts.forEach { contract ->
+            assertTrue(
+                contract.fileName in PURE_BLOCK_FILES,
+                "C8 selects a block file by `fileName in PURE_BLOCK_FILES`; ${contract.path} fell out",
+            )
+        }
+
+        // (c) fixture paths are RELATIVE, which is what the per-root derived marker buys.
+        val fixture = GateTrees().fixtureTree("violating", "C1").map { it.path }
+        assertEquals(listOf("blocks/triage/Fold.kt"), fixture)
+    }
+
+    /**
      * THE GATE'S ANCHORS. Every konsist rule keys on a NAME, a PATH or a SHAPE —
      * `Ctx`, `RunStatus`, `ViewState.kt`, `Tools.kt`, the `ai.torad` prefix, the
      * `*Result`/`*Command` derivation. C7 demonstrated the failure class: its

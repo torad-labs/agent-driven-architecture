@@ -31,6 +31,7 @@ package adr.blocks.triage
 
 import adr.contract.TriageCommand
 import adr.contract.TriageResult
+import adr.contract.TriageResult.Priority
 import adr.contract.TriageV1Result
 import adr.spine.pure.Lens
 import adr.spine.pure.RawInput
