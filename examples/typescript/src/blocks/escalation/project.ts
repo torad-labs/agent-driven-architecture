@@ -14,7 +14,7 @@
 // sites, all inside this block folder, zero outside it. Prove it yourself:
 //   add `| Archived` to TicketStatus, run `npm run typecheck`, expect 3 errors.
 
-import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "../../spine/pure/context";
+import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "@adr/spine/pure/context";
 import type { EscalationSlice, TicketStatus } from "./slice";
 
 export interface EscalationRow {

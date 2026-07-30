@@ -14,6 +14,12 @@ __pycache__/
 # the F10 negative-compilation proof's scratch copy of src/ (deleted on success)
 examples/typescript/test/gate/.work/
 
+# the TypeScript workspace wall's declaration output (npm run typecheck:wall).
+# The wall's RED path also emits beside the source; scripts/wall.mjs sweeps that,
+# deliberately rather than ignoring it — a tree in that state fails the NEXT run,
+# so hiding it from git would hide a state the tree must never be in.
+examples/typescript/.tsbuild/
+
 # >>> torad-managed (auto-generated; do not edit inside) >>>
 .torad.state.json
 .torad.lock

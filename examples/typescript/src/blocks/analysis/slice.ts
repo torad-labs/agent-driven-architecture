@@ -6,8 +6,8 @@
 // two values (`ageOf(note.recall, note.at)`), never captured at read time — so
 // it is identical on a re-fold instead of drifting with wall-clock time.
 
-import type { Timestamp } from "../../spine/pure/ids";
-import type { Recall } from "../../spine/pure/staged";
+import type { Timestamp } from "@adr/spine/pure/ids";
+import type { Recall } from "@adr/spine/pure/staged";
 
 export interface AnalysisNote {
   readonly at: Timestamp;

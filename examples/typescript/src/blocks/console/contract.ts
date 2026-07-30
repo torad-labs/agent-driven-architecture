@@ -15,9 +15,9 @@
 // "Why did the escalation button disappear?" is a question a human needs
 // answered, so the answer is on the bus.
 
-import type { CommandBase } from "../../spine/pure/command";
-import type { PanelId, TicketId } from "../../spine/pure/ids";
-import type { ToolResultBase } from "../../spine/pure/tool-result";
+import type { CommandBase } from "@adr/spine/pure/command";
+import type { PanelId, TicketId } from "@adr/spine/pure/ids";
+import type { ToolResultBase } from "@adr/spine/pure/tool-result";
 
 // ── ToolResult cases ────────────────────────────────────────────────────────
 export interface FocusTicketResult extends ToolResultBase {

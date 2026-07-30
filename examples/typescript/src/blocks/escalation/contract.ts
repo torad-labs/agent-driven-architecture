@@ -4,10 +4,10 @@
 // Command's `sig` is declared on the spine's parent, and a ToolResult never
 // carries an actor at all, which is what makes one unforgeable upstream.
 
-import type { CommandBase } from "../../spine/pure/command";
-import type { EffectBase } from "../../spine/pure/effect";
-import type { TicketId } from "../../spine/pure/ids";
-import type { ToolResultBase } from "../../spine/pure/tool-result";
+import type { CommandBase } from "@adr/spine/pure/command";
+import type { EffectBase } from "@adr/spine/pure/effect";
+import type { TicketId } from "@adr/spine/pure/ids";
+import type { ToolResultBase } from "@adr/spine/pure/tool-result";
 
 // ── ToolResult cases ────────────────────────────────────────────────────────
 export interface RequestEscalationResult extends ToolResultBase {

@@ -1,0 +1,15 @@
+{
+  "name": "@adr/app",
+  "private": true,
+  "type": "module",
+  "//exports": "DELIBERATELY ABSENT. The composition root is the one package nothing may import: with no exports map and no main, `@adr/app` resolves from nowhere. The root spans every package and is spanned by none.",
+  "dependencies": {
+    "@adr/spine": "*",
+    "@adr/block-analysis": "*",
+    "@adr/block-artifact": "*",
+    "@adr/block-console": "*",
+    "@adr/block-escalation": "*",
+    "@adr/block-inbox": "*",
+    "@adr/block-triage": "*"
+  }
+}

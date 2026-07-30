@@ -8,9 +8,9 @@
 // irreversible effect at seal time, gated by G6 exactly as 14.3 says session-end
 // is — not one effect per line performed as you go.
 
-import type { CommandBase } from "../../spine/pure/command";
-import type { EffectBase } from "../../spine/pure/effect";
-import type { ToolResultBase } from "../../spine/pure/tool-result";
+import type { CommandBase } from "@adr/spine/pure/command";
+import type { EffectBase } from "@adr/spine/pure/effect";
+import type { ToolResultBase } from "@adr/spine/pure/tool-result";
 import type { ArtifactLine } from "./slice";
 
 // ── ToolResult cases ────────────────────────────────────────────────────────

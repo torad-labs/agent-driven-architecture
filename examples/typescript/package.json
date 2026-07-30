@@ -2,18 +2,26 @@
   "name": "agent-driven-architecture-ts",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "src/spine",
+    "src/blocks/*",
+    "src/app"
+  ],
+  "//workspaces": "Eight packages, none published. The blocks are the wall; the spine is the vendored template packaged internally for it. `npm install` links them all into the single root node_modules, which is exactly why one cross-block route stays open - recorded above C2 in eslint.config.js.",
   "type": "module",
   "description": "Functional TypeScript reference implementation of the Agent-Driven Architecture, on the Vercel AI SDK.",
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run typecheck:wall",
     "lint": "eslint .",
     "test": "npm run typecheck && npm run lint && npm run biome && vitest run",
     "demo": "tsx src/app/main.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "biome": "biome check .",
-    "laws:regenerate": "tsx test/laws/regenerate.ts"
+    "laws:regenerate": "tsx test/laws/regenerate.ts",
+    "typecheck:wall": "node scripts/wall.mjs"
   },
+  "//typecheck": "TWO checks, both blocking. `tsc --noEmit` is the whole-tree program - src, test and the gate itself still cohere. `typecheck:wall` builds the eight package programs, where rootDir is the package folder and `references` is the permission list; that is the run in which a cross-block reach is a resolution error rather than a lint message. It runs through scripts/wall.mjs rather than calling tsc directly because `tsc -b` is a BUILD: on the RED path it emits beside the source, and a failed run must not be able to change the verdict of the next one.",
   "dependencies": {
     "@valibot/to-json-schema": "^1.7.1",
     "ai": "^6.0.208",

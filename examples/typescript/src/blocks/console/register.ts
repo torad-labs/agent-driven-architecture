@@ -2,7 +2,7 @@
 // Identical in shape to `blocks/triage/register.ts`. A reader comparing the two
 // sees 6.8's whole point: there is one kind of block.
 
-import type { BlockRegistration } from "../../spine/pure/verb";
+import type { BlockRegistration } from "@adr/spine/pure/verb";
 import { isConsoleResult } from "./contract";
 import { consoleArm } from "./fold";
 import { consoleContextLines, consoleView } from "./project";

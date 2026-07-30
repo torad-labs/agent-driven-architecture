@@ -9,8 +9,8 @@
 // off any variant without a match, and a new variant must answer it by
 // construction.
 
-import type { Actor, Authority } from "../../spine/pure/actor";
-import type { Timestamp } from "../../spine/pure/ids";
+import type { Actor, Authority } from "@adr/spine/pure/actor";
+import type { Timestamp } from "@adr/spine/pure/ids";
 
 export interface ArtifactLine {
   readonly at: Timestamp;

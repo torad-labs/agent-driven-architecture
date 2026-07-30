@@ -107,48 +107,91 @@ describe("the gate's anchors hold", () => {
     // tools.ts, C11 to port.ts, C12 keys on view-state. A block file renamed
     // out of its bucket falls back to the generic rules and quietly sheds the
     // specific ones — this pin is what makes that a visible diff.
+    //
+    // THREE NON-SOURCE ENTRY CLASSES PER BLOCK SINCE THE WORKSPACE WALL, and
+    // this readdir has no extension filter on purpose, so each one had to be
+    // added here deliberately rather than slipping in:
+    //   · package.json  — the block IS a package now; its `exports` map is what
+    //     makes every file below unreachable by a bare specifier.
+    //   · tsconfig.json — the wall itself: `composite` roots the project at this
+    //     folder, so a reach into a sibling is a resolution error.
+    //   · <block>.test.ts, in the four blocks that have an isolation test — the
+    //     test co-locates, which is what makes the block's internals visible to
+    //     it and to nothing outside the folder. `*.test.ts` is a SCOPE too: it
+    //     has its own bucket, so a test renamed out of it would land on the
+    //     shipped-code rules and go red rather than quietly relax them.
     const blocks: Record<string, readonly string[]> = {
       analysis: [
         "adapter.ts",
         "contract.ts",
         "fold.ts",
+        "package.json",
         "port.ts",
         "project.ts",
         "register.ts",
         "slice.ts",
         "tools.ts",
+        "tsconfig.json",
       ],
       artifact: [
         "adapter.ts",
+        "artifact.test.ts",
         "contract.ts",
         "fold.ts",
+        "package.json",
         "port.ts",
         "project.ts",
         "register.ts",
         "slice.ts",
         "tools.ts",
+        "tsconfig.json",
       ],
       console: [
+        "console.test.ts",
         "contract.ts",
         "fold.ts",
+        "package.json",
         "project.ts",
         "register.ts",
         "slice.ts",
         "tools.ts",
+        "tsconfig.json",
         "view-state.ts",
       ],
       escalation: [
         "adapter.ts",
         "contract.ts",
+        "escalation.test.ts",
         "fold.ts",
+        "package.json",
         "port.ts",
         "project.ts",
         "register.ts",
         "slice.ts",
         "tools.ts",
+        "tsconfig.json",
       ],
-      inbox: ["contract.ts", "fold.ts", "project.ts", "register.ts", "slice.ts", "tools.ts"],
-      triage: ["contract.ts", "fold.ts", "project.ts", "register.ts", "slice.ts", "tools.ts"],
+      inbox: [
+        "contract.ts",
+        "fold.ts",
+        "package.json",
+        "project.ts",
+        "register.ts",
+        "slice.ts",
+        "tools.ts",
+        "tsconfig.json",
+      ],
+      triage: [
+        "contract.ts",
+        "fold.ts",
+        "package.json",
+        "project.ts",
+        "register.ts",
+        "slice.ts",
+        "tools.ts",
+        "triage.test.ts",
+        "tsconfig.json",
+      ],
     };
     for (const [block, files] of Object.entries(blocks)) {
       expect(readdirSync(join(ROOT, "src", "blocks", block)).sort(), block).toEqual(files);

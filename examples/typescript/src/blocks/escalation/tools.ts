@@ -10,9 +10,9 @@
 // The boundary compares that authority against the confirming one; this file
 // never sees a Signature and never decides anything.
 
+import type { Verb } from "@adr/spine/pure/verb";
+import { irreversible, reversible } from "@adr/spine/pure/verb";
 import { object, string } from "valibot";
-import type { Verb } from "../../spine/pure/verb";
-import { irreversible, reversible } from "../../spine/pure/verb";
 import type {
   ConfirmEscalationCommand,
   ConfirmEscalationResult,

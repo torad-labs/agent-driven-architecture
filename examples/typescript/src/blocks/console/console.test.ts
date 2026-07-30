@@ -3,14 +3,15 @@
 // mechanics. These tests pin the one mechanic: the committed record for
 // `setPanel` has exactly the shape the record for `setPriority` has.
 
+import { authority } from "@adr/spine/pure/actor";
 import { describe, expect, it } from "vitest";
-import { consoleBlock } from "../../src/blocks/console/register";
-import { initialViewState } from "../../src/blocks/console/view-state";
-import { authority, Signature } from "../../src/spine/pure/actor";
-import { harness } from "../harness";
-import { must } from "../support/must";
+import { harness } from "../../../test/harness";
+import { must } from "../../../test/support/must";
+import { stamp } from "../../../test/support/stamp";
+import { consoleBlock } from "./register";
+import { initialViewState } from "./view-state";
 
-const sig = new Signature("Agent", authority("agent-run-7f"));
+const sig = stamp("Agent", authority("agent-run-7f"));
 const slice = consoleBlock.sliceOf(["escalation", "findings"]);
 
 describe("blocks/console — presentation is an authored act (§6.8)", () => {

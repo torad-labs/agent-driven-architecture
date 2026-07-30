@@ -53,6 +53,10 @@ const TSCONFIG = JSON.stringify(
       noEmit: true,
     },
     include: ["src"],
+    // The copy is a SOURCE-only program. Since the block tests co-locate, `src`
+    // also holds `blocks/<X>/<X>.test.ts`, whose shared-rig import resolves
+    // relative to the real tree and not to this scratch copy.
+    exclude: ["**/*.test.ts"],
   },
   null,
   2,

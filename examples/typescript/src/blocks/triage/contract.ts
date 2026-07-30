@@ -9,10 +9,10 @@
 // This file may not name Actor, Authority or Signature (check C4). It does not
 // need to: the Command's `sig` is declared on the parent.
 
-import type { CommandBase } from "../../spine/pure/command";
-import type { EffectBase } from "../../spine/pure/effect";
-import type { TicketId } from "../../spine/pure/ids";
-import type { ToolResultBase } from "../../spine/pure/tool-result";
+import type { CommandBase } from "@adr/spine/pure/command";
+import type { EffectBase } from "@adr/spine/pure/effect";
+import type { TicketId } from "@adr/spine/pure/ids";
+import type { ToolResultBase } from "@adr/spine/pure/tool-result";
 
 export type Priority = "Low" | "Normal" | "High" | "Urgent";
 

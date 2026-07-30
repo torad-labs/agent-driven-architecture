@@ -14,5 +14,5 @@
 // accepts as a Signature. No lint rule sees any of them. They are closed at
 // RUNTIME — the minted stamp is frozen, and a Command may only carry the stamp
 // its own step minted (spine/boundary/action.ts, test/spine/stamp-residue).
-export { Signature as Stamp } from "../../spine/pure/actor";
-export * from "../../spine/pure/actor";
+export { Signature as Stamp } from "@adr/spine/pure/actor";
+export * from "@adr/spine/pure/actor";

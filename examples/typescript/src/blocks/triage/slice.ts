@@ -3,7 +3,7 @@
 // transition that cannot be applied returns nothing, so the ARM has to decide
 // what to fold instead (12.4 rule 1).
 
-import type { TicketId } from "../../spine/pure/ids";
+import type { TicketId } from "@adr/spine/pure/ids";
 import type { Priority } from "./contract";
 
 export interface Ticket {

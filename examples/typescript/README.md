@@ -3,7 +3,7 @@
 Runnable, offline, no API keys. The runtime binding is the Vercel AI SDK v6.
 
 ```
-npm run typecheck   # tsc --noEmit
+npm run typecheck   # tsc --noEmit over the whole tree, then the workspace wall
 npm run lint        # eslint . — the denying gate checks
 npm test            # typecheck + lint + vitest   ← the gate runs HERE, not separately
 npm run demo        # a scripted model drives the real loop, end to end
@@ -11,6 +11,57 @@ npm run demo        # a scripted model drives the real loop, end to end
 
 A check you have to invoke separately is not a gate, so `npm test` runs all three. The gate's own
 block-tests and allow-tests are vitest tests, so `npx vitest run` on its own exercises them too.
+
+`npm install` once before anything else: the tree is an **npm workspace** of eight private packages, and
+the wall below is nothing without the links `install` creates.
+
+---
+
+## The workspace wall — what is a resolution error, and what is still a lint message
+
+Every block is a package (`@adr/block-<x>`), the spine is a package (`@adr/spine`), the composition root
+is a package (`@adr/app`), and none of them is published. Each has a `tsconfig` with `composite: true`,
+which roots the project at the package folder, and a `references` list naming the only project it may
+see. `npm run typecheck:wall` builds that graph with `tsc -b --force`.
+
+Measured against the standing workspace, one probe file per row, `tsc -b` exit code recorded:
+
+| from inside `blocks/triage`, importing | exit | verdict |
+| --- | --- | --- |
+| `../escalation/fold` | 2 | **denied** — TS6059 + TS6307: outside this project's `rootDir`, and in a project it does not reference |
+| `../../app/contract` | 2 | **denied** — TS6059 + TS6307, same mechanism |
+| `@adr/block-escalation/fold` | 2 | **denied** — TS2307: the sibling's `exports` map publishes no such subpath |
+| `@adr/block-escalation/adapter` | 2 | **denied** — TS2307, for the same reason: `./adapter` is NOT published either |
+| `@adr/block-escalation` | 2 | **denied** — TS2307: a block package has no `.` export, only `./register` |
+| `@adr/app` | 2 | **denied** — TS2307: the root publishes no exports at all |
+| `../../spine/pure/ids` | 0 | resolves — a relative reach into a **referenced** project is redirected to its declarations; `references` is the permission list, and check C1 is what keeps the block on `@adr/spine/pure` |
+| `@adr/spine/boundary/boundary` | 0 | resolves — an `exports` map cannot vary by consumer, so tier permission stays check C1's job |
+| `@adr/block-escalation/register` | 0 | resolves — **the one cross-block route the wall cannot close** |
+
+That last row is the honest limit and it is why the hand-rolled import checks are marked for sunset in
+`v0.3.0` rather than deleted now. npm links every workspace package into the single root `node_modules`,
+and neither an `exports` map nor a `tsconfig` reference can make a package's *published* entry visible to
+one consumer and invisible to another. Check C2 is what denies it, and the release that deletes C2 owes
+that route a replacement layer. The same measurement is why C1 survives: of its nineteen allow-list sites
+the package boundary subsumes none — ten are intra-spine-tier and the spine is one package, eight are
+intra-block per-file and npm cannot scope a dependency below package granularity.
+
+A block publishes **exactly one** subpath, `./register`. The composition root still binds each block's
+live client, and it does so by reaching `../blocks/<x>/adapter` **relatively** — legal because `app`
+references every block, so the reach is redirected to that project's declarations rather than resolved
+through its `exports` map. Publishing an `./adapter` subpath instead would have widened the row above
+from one bare route to two.
+
+A block's test lives **in the block folder**, which is what makes the block's internals visible to it and
+to nothing outside: the package publishes only `./register`, so no bare specifier reaches `fold.ts` at
+all. The co-located test is a resident rather than part of the shipped package — the package `tsconfig`
+excludes `*.test.ts` — and it has its own gate bucket, so a test cannot become the route by which a block
+folder reaches the composition root.
+
+`npm run typecheck:wall` goes through `scripts/wall.mjs` rather than calling `tsc -b` directly, because
+`tsc -b` is a BUILD: on the red path it cannot place a `rootDir`-violating file's output under `outDir`
+and emits it beside the source instead. The script sweeps those droppings before and after the build, so
+a failed run cannot change the verdict of the next one.
 
 ---
 
@@ -47,7 +98,8 @@ tool — into anything but domain types.** On this tree that reads: leaves and t
 only the root spans. Inside a block the same boundary is drawn again by file name — `contract · slice · tools ·
 fold · project` are pure, `adapter` is the rim, and `view-state` is the ephemeral-only exception.
 
-Every import rule above is machine-enforced (`npm run lint`, check C1).
+Every import rule above is machine-enforced (`npm run lint`, check C1), and the cross-package half of it
+twice over: `npm run typecheck:wall` gets there first, as a resolution error rather than a lint message.
 
 ---
 

@@ -3,16 +3,16 @@
 // real boundary folds each step, the real gate holds, and the real replay
 // harness re-derives the session from committed bytes alone.
 
+import { runTurn } from "@adr/spine/agent/loop";
+import { movingClock, RecordingSink } from "@adr/spine/boundary/in-memory";
+import type { TurnContext } from "@adr/spine/concurrency/consumer";
+import { InMemoryMailbox, InMemoryRelay, virtualScheduler } from "@adr/spine/concurrency/in-memory";
+import { authority } from "@adr/spine/pure/actor";
+import { input, interrupt, isInput } from "@adr/spine/pure/mailbox";
+import { perceived } from "@adr/spine/pure/staged";
+import { refold } from "@adr/spine/replay/replay";
 import { MockLanguageModelV3 } from "ai/test";
 import { liveRelay } from "../blocks/analysis/adapter";
-import { runTurn } from "../spine/agent/loop";
-import { movingClock, RecordingSink } from "../spine/boundary/in-memory";
-import type { TurnContext } from "../spine/concurrency/consumer";
-import { InMemoryMailbox, InMemoryRelay, virtualScheduler } from "../spine/concurrency/in-memory";
-import { authority } from "../spine/pure/actor";
-import { input, interrupt, isInput } from "../spine/pure/mailbox";
-import { perceived } from "../spine/pure/staged";
-import { refold } from "../spine/replay/replay";
 import { project } from "./assemble";
 import { initialState } from "./contract";
 import type { Narrator } from "./narrator";

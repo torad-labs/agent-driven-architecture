@@ -3,9 +3,9 @@
 // `sign` entry, same reversibility decision. The authoring discipline is
 // identical (4.4) because there is only one discipline.
 
+import type { Verb } from "@adr/spine/pure/verb";
+import { reversible } from "@adr/spine/pure/verb";
 import { boolean, object, string } from "valibot";
-import type { Verb } from "../../spine/pure/verb";
-import { reversible } from "../../spine/pure/verb";
 import type {
   FocusTicketCommand,
   FocusTicketResult,

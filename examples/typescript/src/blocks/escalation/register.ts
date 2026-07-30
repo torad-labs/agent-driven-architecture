@@ -1,6 +1,6 @@
 // ── blocks/escalation/register — THE ONE PUBLIC SYMBOL (G11) ───────────
 
-import type { BlockRegistration } from "../../spine/pure/verb";
+import type { BlockRegistration } from "@adr/spine/pure/verb";
 import { isEscalationResult } from "./contract";
 import { escalationArm } from "./fold";
 import { escalationContextLines, escalationView } from "./project";

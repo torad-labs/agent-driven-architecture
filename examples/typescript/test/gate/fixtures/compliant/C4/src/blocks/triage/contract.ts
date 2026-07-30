@@ -1,4 +1,4 @@
-import type { ToolResultBase } from "../../spine/pure/tool-result";
+import type { ToolResultBase } from "@adr/spine/pure/tool-result";
 export interface SetPriorityResult extends ToolResultBase {
   readonly tool: "setPriority";
 }

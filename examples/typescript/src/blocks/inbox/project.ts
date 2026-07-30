@@ -9,7 +9,7 @@
 // An agent that does not know it dropped two inputs will confidently answer as
 // if it saw them.
 
-import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "../../spine/pure/context";
+import { bounded, MAX_CONTEXT_LINES_PER_BLOCK } from "@adr/spine/pure/context";
 import type { InboxSlice } from "./slice";
 
 export interface InboxRow {
