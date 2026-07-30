@@ -20,10 +20,13 @@
 
 package adr.blocks.triage
 
+import adr.contract.TriageEffect
 import adr.contract.TriageResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.EffectPerformer
+import adr.spine.pure.Emit
 import adr.spine.pure.Lens
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
@@ -42,6 +45,28 @@ class TriageBlock : Block<TriageSlice, TriageResult, TriageView> {
 
     fun <S> register(lens: Lens<S, TriageSlice>): BlockRegistration<S> =
         BlockRegistration(block = "triage", verbs = TriageTools(lens).verbs())
+
+    /**
+     * THE EFFECT PERFORMER. Registered exactly like the verbs above, and for the same
+     * reason: performing a [TriageEffect] is this block's business, and it closes
+     * over the block's own line writer — bound at the root, named nowhere else.
+     *
+     * The `when` is over this block's OWN sealed sub-union with no else arm, so a case
+     * it does not answer is a compile error HERE, in the folder that owns it. That is
+     * the whole claim: a novel effect kind costs zero PRODUCTION sites outside the folder.
+     */
+    fun performer(emit: Emit<String>): EffectPerformer<TriageEffect> = EffectPerformer(
+        block = "triage",
+        narrow = { it as? TriageEffect },
+        perform = { effect ->
+            when (effect) {
+                is TriageEffect.LogDecision -> emit(
+                    "priority[${effect.at.value}] ${effect.ticket.value} -> ${effect.level}" +
+                        (effect.supersedes?.let { " (was $it)" } ?: ""),
+                )
+            }
+        },
+    )
 
     override fun arm(
         slice: TriageSlice,

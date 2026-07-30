@@ -6,10 +6,12 @@
 
 package adr.blocks.escalation
 
+import adr.contract.EscalationEffect
 import adr.contract.EscalationResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.EffectPerformer
 import adr.spine.pure.Lens
 import adr.spine.pure.Signature
 import adr.spine.pure.TicketId
@@ -22,6 +24,25 @@ class EscalationBlock : Block<EscalationSlice, EscalationResult, EscalationView>
 
     fun <S> register(lens: Lens<S, EscalationSlice>): BlockRegistration<S> =
         BlockRegistration(block = "escalation", verbs = EscalationTools(lens).verbs())
+
+    /**
+     * THE EFFECT PERFORMER. Registered exactly like the verbs above, and for the same
+     * reason: performing a [EscalationEffect] is this block's business, and it closes
+     * over the block's own OncallPort — bound at the root, named nowhere else.
+     *
+     * The `when` is over this block's OWN sealed sub-union with no else arm, so a case
+     * it does not answer is a compile error HERE, in the folder that owns it. That is
+     * the whole claim: a novel effect kind costs zero PRODUCTION sites outside the folder.
+     */
+    fun performer(oncall: OncallPort): EffectPerformer<EscalationEffect> = EffectPerformer(
+        block = "escalation",
+        narrow = { it as? EscalationEffect },
+        perform = { effect ->
+            when (effect) {
+                is EscalationEffect.PageOncall -> oncall.page(effect.ticket)
+            }
+        },
+    )
 
     override fun arm(
         slice: EscalationSlice,

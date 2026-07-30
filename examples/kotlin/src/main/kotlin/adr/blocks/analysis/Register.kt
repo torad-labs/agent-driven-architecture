@@ -18,10 +18,12 @@
 
 package adr.blocks.analysis
 
+import adr.contract.AnalysisEffect
 import adr.contract.AnalysisResult
 import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
+import adr.spine.pure.EffectPerformer
 import adr.spine.pure.Lens
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
@@ -44,6 +46,28 @@ class AnalysisBlock : Block<AnalysisSlice, AnalysisResult, AnalysisView> {
     /** The deep tier: it may PUBLISH and has no reason to recall its own output. */
     fun <S> registerDeep(lens: Lens<S, AnalysisSlice>): BlockRegistration<S> =
         BlockRegistration(block = "analysis", verbs = AnalysisTools(lens).deepVerbs())
+
+    /**
+     * THE EFFECT PERFORMER. Registered exactly like the verbs above, and for the same
+     * reason: performing a [AnalysisEffect] is this block's business, and it closes
+     * over the block's own AnalysisRelay — bound at the root, named nowhere else.
+     *
+     * The `when` is over this block's OWN sealed sub-union with no else arm, so a case
+     * it does not answer is a compile error HERE, in the folder that owns it. That is
+     * the whole claim: a novel effect kind costs zero PRODUCTION sites outside the folder.
+     */
+    fun performer(relay: AnalysisRelay): EffectPerformer<AnalysisEffect> = EffectPerformer(
+        block = "analysis",
+        narrow = { it as? AnalysisEffect },
+        perform = { effect ->
+            // The deep tier's publish is an ORDINARY EFFECT DESCRIPTOR (14.2), which is
+            // why the tiering rung inherits replay-stubbing and RECOVERY idempotency for
+            // free — the sink's REPLAY early return already stubs it.
+            when (effect) {
+                is AnalysisEffect.PublishConclusion -> relay.publish(effect.at, effect.text)
+            }
+        },
+    )
 
     override fun arm(
         slice: AnalysisSlice,

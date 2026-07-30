@@ -6,7 +6,8 @@
 // 8/8 green, no CI, no lint config, no rule of any kind.
 //
 // Fifteen checks. FOURTEEN LIVE HERE, in ordinary ESLint rules that any
-// TypeScript team already runs; C13 (registry totality) is a vitest check,
+// TypeScript team already runs; C13 (registry totality plus handler totality) is
+// a vitest check,
 // because it is a question about values, not syntax. All fifteen DENY — `npm
 // run lint` exits non-zero — and every one ships a BLOCK-test and an ALLOW-test
 // (test/gate/gate.test.ts over test/gate/fixtures/). There is no warning tier.
@@ -40,7 +41,7 @@ export const CHECKS = [
   { id: "C10", invariant: "G7 — no service locators, no module-level mutable state", by: "tag", rule: "" },
   { id: "C11", invariant: "§7.9/G13 — ports are interfaces only", by: "tag", rule: "" },
   { id: "C12", invariant: "§4.6 — ephemeral view-state never folds", by: "tag", rule: "" },
-  { id: "C13", invariant: "registry totality — every ok result has a Verb that signs", by: "vitest", rule: "" },
+  { id: "C13", invariant: "registry totality plus handler totality — every ok result has a Verb that signs, and every declared Effect kind has a registered handler", by: "vitest", rule: "" },
   { id: "C14", invariant: "G3 — the loop is a declaration", by: "tag", rule: "" },
   { id: "C15", invariant: "G14 — the spine tier is self-contained and vendorable", by: "tag", rule: "" },
 ];
@@ -746,7 +747,15 @@ export default [
     // .tsbuild holds the wall's declaration output — generated, git-ignored, and
     // not source, exactly like test/gate/.work. Belt-and-braces: measured, eslint
     // already skips dot-directories, so this documents intent and costs nothing.
-    ignores: ["node_modules/**", "test/gate/fixtures/**", "test/gate/.work/**", ".tsbuild/**"],
+    ignores: [
+      "node_modules/**",
+      "test/gate/fixtures/**",
+      // the G12 harness's scratch copy, at the port root since it began carrying
+      // `test/`; the old path stays listed so a stale copy is ignored too.
+      ".work/**",
+      "test/gate/.work/**",
+      ".tsbuild/**",
+    ],
   },
   ...gate,
 ];

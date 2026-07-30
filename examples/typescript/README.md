@@ -347,7 +347,7 @@ one **allow-test** over `test/gate/fixtures/`. There is no warning tier.
 | C10 | G7 — no module-level mutable state |
 | C11 | 7.9/G13 — ports are interfaces only |
 | C12 | §4.6 — ephemeral view-state never folds |
-| C13 | registry totality — every declared case has a `Verb` entry that signs |
+| C13 | registry totality plus handler totality — every declared result case has a `Verb` entry that signs, and every declared `Effect` kind has a registered handler |
 | C14 | G3 — the loop is a declaration, not a program |
 | C15 | G14 — the spine tier is self-contained: `spine/**` names no block and no root |
 

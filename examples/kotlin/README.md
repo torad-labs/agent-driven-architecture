@@ -177,7 +177,7 @@ tier, no baseline file, and no `ignoreFailures` on any task that defends the liv
 | C10 | G7 — no top-level mutable state outside the boundary | Konsist |
 | C11 | 7.9/G13 — every declaration under `spine/ports` is an interface | Konsist |
 | C12 | §4.6 — ephemeral view-state is visible only to its own projection | Konsist |
-| C13 | registry totality, and §6.8's one-name-per-verb law | JUnit + reflection |
+| C13 | registry totality plus handler totality, and §6.8's one-name-per-verb law | JUnit + reflection |
 | C14 | G3 — the agent loop is a declaration: no branching, no looping | detekt `CyclomaticComplexMethod` |
 | C15 | G14 — the spine tier is self-contained: `spine/**` names no block and no root | Konsist |
 

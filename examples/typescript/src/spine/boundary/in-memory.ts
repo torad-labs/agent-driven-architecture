@@ -8,7 +8,8 @@ import type { Bus } from "../ports/bus";
 import type { Clock } from "../ports/clock";
 import type { IdSource } from "../ports/id-source";
 import type { PerformMode, Sink } from "../ports/sink";
-import type { EffectBase } from "../pure/effect";
+import type { Diag, EffectBase, EffectHandler, Handlers } from "../pure/effect";
+import { performEffect } from "../pure/effect";
 import type { CommandId, StepIndex, Timestamp } from "../pure/ids";
 import type { KeyedEffect } from "../pure/keyed-effect";
 import { keyOf } from "../pure/keyed-effect";
@@ -84,4 +85,30 @@ export class DedupingSink implements Sink {
     this.fired.push(keyed);
     this.inner?.perform(keyed, mode);
   }
+}
+
+/**
+ * THE DISPATCHER, as a Sink. The composition root assembles the table — one
+ * contribution per block, plus the spine's own `Diag` — and hands it here; this
+ * turns it into the one thing the boundary accepts.
+ *
+ * It lives beside the two decorators above because it is the third member of the
+ * same family: something that takes a `Sink`-shaped decision and returns a
+ * `Sink`. Keeping the construction in ONE place is what lets a test build a real
+ * sink over a DELIBERATELY THINNED table and watch the floor fire — a
+ * missing-handler test that called the floor function directly would prove the
+ * function exists, not that it is reachable.
+ *
+ * REPLAY touches nothing (G9); that contract is unchanged by who performs.
+ */
+export function handlerSink<E extends EffectBase>(
+  handlers: Handlers<E>,
+  diagnose: EffectHandler<Diag>,
+): Sink {
+  return {
+    perform(keyed: KeyedEffect<EffectBase>, mode: PerformMode): void {
+      if (mode === "REPLAY") return;
+      performEffect(handlers, keyed.effect as E, diagnose);
+    },
+  };
 }
