@@ -86,7 +86,7 @@ src/
 │   │                           mailbox (lease · ack · redeliver) and append-only relay
 │   ├── agent/loop            ← the only file that imports the agent-loop runtime
 │   ├── surface/controller    ← one ViewModel stream + one onAction(Action)
-│   └── replay/replay         ← refold · collectPerform · contextDivergence
+│   └── replay/replay         ← refold · stateAtStep · collectPerform · contextDivergence
 ├── blocks/                   ← THE LEAVES — one folder per feature; `register` is the one public symbol
 │   ├── triage/               ← contract · slice · tools · fold · project · register
 │   ├── escalation/           ← … + port · adapter   (the block's frozen contract, and its one client)

@@ -104,10 +104,22 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // to carry the canonical dependency-rule sentence verbatim (D7). It cited
   // its two section-and-law citations on one line before and on two lines
   // now — one credit became two, with no citation added or removed.
-  "examples/kotlin": 530,
+  // +1 (530 -> 531): `Replay.stateAtStep`'s doc comment cites §14.1, the section
+  // whose own equation the member is named after. One line, one new citation.
+  // +18 (531 -> 549): D20's snapshot half of `spine/replay` — the KDoc banners
+  // on Snapshot/RecordMark/Recovery.tailFrom/refoldFrom and their ReplayTest
+  // cases all cite §14.1's tagging rule and §14.6. Measured per file by this
+  // module's own census, no citation removed.
+  "examples/kotlin": 549,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
-  "examples/typescript": 408,
+  // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
+  // §14.1 on the same grounds. No citation was removed in either port.
+  // +16 (409 -> 425): the same D20 landing spelled in TS — replay.ts snapshot
+  // section + replay.test.ts snapshot describe block, all citing §14.1/§14.6.
+  // +1 (425 -> 426): the orchestrator's adjudicated hardening of that landing —
+  // the now-half refusal test's comment cites the mutation review proved.
+  "examples/typescript": 426,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the

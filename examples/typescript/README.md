@@ -25,7 +25,7 @@ src/
 │   ├── agent/              the ONLY file importing the agent-loop runtime
 │   ├── surface/            ONE ViewModel stream + ONE onAction sink — nothing else public
 │   ├── concurrency/        the BARGE-IN loop (12) and the relay's read side: consumer · in-memory
-│   └── replay/             refold · collectPerform · contextDivergence
+│   └── replay/             refold · stateAtStep · collectPerform · contextDivergence
 ├── blocks/                 THE LEAVES — one folder per feature; only `register` is public
 │   ├── triage/             contract · slice · tools · fold · project · register
 │   ├── escalation/         … + port · adapter   (the block's private frozen contract, and its client)
@@ -229,7 +229,7 @@ here rather than left to imply a parity that does not exist:
 | **Schema evolution (14.7)** | `StepRecord` carries no `schemaVersion` and no upcaster ships. A decision, not an oversight. |
 | **Cross-session global ordering** | 5.2 puts causal consistency across independent streams out of scope. The two-tier test proves *separate* buses; it proves nothing about ordering between them. |
 | **A distributed or sharded bus, bespoke persistence/retention, multi-tenant isolation** | 8.5 names these as swaps. The contracts exist; no adapter does. |
-| **Snapshots, compaction, retention (14.1/16.2)** | product policy. |
+| **Where a snapshot is stored, compaction, retention (14.1/16.2)** | product policy. The snapshot *mechanism* left this row: `spine/replay` ships the memoized fold prefix, tagged with the reducer version, the timeline offset it covers, and the mark of the record it stops at. `test/spine/replay.test.ts` proves a snapshot-seeded resume equals what the live boundary and live sink produced, and that a snapshot resumed under a reducer version the caller is not folding with — or over a tail whose boundary the log does not confirm — is refused rather than folded. Two logs whose boundary records are byte-identical stay indistinguishable to that seam; the file says so. What a product still owns is where a snapshot *lives*, and how far below one it may compact. |
 | **CI** | `.github/workflows/ci.yml` runs `npm test` (and the Kotlin suite) on every push and pull request — the same entry point a developer runs locally, no CI-only rule set. |
 | **Dispatcher confinement of `submit`** | the consumer mints the turn's only channel and calls the boundary itself, so the reference cannot violate it — but an adopter who runs a turn on another thread could interleave two folds despite the design. Structural, **not gate-checkable**. |
 | **The abandoned turn can leak** | after a cancel-deadline timeout the turn may never unwind. The design bounds the *consumer*, not the turn; removing the leak needs an unbounded join, which 12.3 itself calls a hang. The leak is named, degraded, counted and folded — never hidden. |

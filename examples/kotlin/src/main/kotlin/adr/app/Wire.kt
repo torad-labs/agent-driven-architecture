@@ -184,6 +184,16 @@ data class Env(
     val policy: ConfirmPolicy = ConfirmingAuthorities(),
     val events: EventSource = ScriptedEvents(),
     val promptVersion: String = "triage-prompt@1",
+    /**
+     * THE REDUCER VERSION (14.1) — what a snapshot's tag is checked against. App-owned
+     * for the same reason [promptVersion] is: the spine is generic in its State and
+     * cannot know which fold it was handed, so the only place that can name the reducer
+     * is the root that assembled it. It is its OWN number, never the record envelope's
+     * version and never the spine's version marker — three independent questions, three
+     * independent answers. Bump it when a fold arm changes what it derives, and every
+     * snapshot taken under the old one is refused instead of trusted.
+     */
+    val reducerVersion: String = "triage-fold@1",
     val session: SessionId = SessionId("session-1"),
     val tickets: List<Ticket> = emptyList(),
     /**
@@ -241,6 +251,11 @@ class App(
     val log: List<String>,
     val initial: State,
     val events: EventSource,
+    /**
+     * Published so a resume site READS the root's version instead of minting its own.
+     * A copy corrupted here would leave every reader green.
+     */
+    val reducerVersion: String,
 ) {
     val state: State get() = boundary.state
     val performed: List<KeyedEffect> get() = sink.performed
@@ -339,7 +354,10 @@ class Wiring {
             submit = boundary::onStepFinish,
         )
 
-        return App(boundary, controller, registry, env.bus, sink, log, initial, env.events)
+        return App(
+            boundary, controller, registry, env.bus, sink, log, initial, env.events,
+            env.reducerVersion,
+        )
     }
     /** G3: the verb table meets the runtime. The loop is the only file that converts. */
     fun agentLoop(
