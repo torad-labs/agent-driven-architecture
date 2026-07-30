@@ -66,12 +66,15 @@ describe("the boundary — the one impure seam", () => {
     });
 
     const record = must(h.app.bus.records()[0]);
+    // The 14.7 envelope plus the fields the step is. The pin is a key SET
+    // rather than a count, so a field added or renamed is a diff here.
     expect(Object.keys(record).sort()).toEqual([
       "actions",
       "commands",
       "context",
       "now",
       "results",
+      "schemaVersion",
       "sig",
       "staged",
     ]);

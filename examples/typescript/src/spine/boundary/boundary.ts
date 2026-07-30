@@ -23,7 +23,7 @@ import { Signature } from "../pure/actor";
 import { render } from "../pure/context";
 import type { SessionId, StepIndex } from "../pure/ids";
 import { keyedEffect } from "../pure/keyed-effect";
-import type { StepRecord } from "../pure/step-record";
+import { SCHEMA_VERSION, type StepRecord } from "../pure/step-record";
 import type { Ctx, Dispatchers } from "../pure/verb";
 import type { FinishedStep, Registry } from "./action";
 import { resolveAction, signResult } from "./action";
@@ -81,7 +81,10 @@ export class Boundary<S> {
 
     // 7  COMMIT (14.6) — the step is the unit, and `now` rides it (G9).
     //    6.8: EVERY verb signs, presentation and domain alike.
+    //    14.7: the envelope is stamped HERE, at the one site that mints a
+    //    record, so no committed step can be missing its version.
     const record: StepRecord = {
+      schemaVersion: SCHEMA_VERSION,
       now,
       sig,
       staged: step.staged,

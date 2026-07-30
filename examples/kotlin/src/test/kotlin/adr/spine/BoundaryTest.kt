@@ -28,7 +28,8 @@ class BoundaryTest {
         val app = Wiring().wireApp(Env(clock = MovingClock(start = 1000, step = 7)))
         Driver().human(app, SET_PRIORITY, "ticket" to "4118", "level" to "High")
 
-        // The record IS the step: seven fields, one of them the clock read.
+        // The record IS the step: the 14.7 envelope plus the fields the step is,
+        // one of them the clock read.
         val record = app.bus.records().first()
         assertEquals(Timestamp(1007), record.now)
         assertEquals(record.now, (app.performed.single().effect as TriageEffect.LogDecision).at)

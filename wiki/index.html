@@ -2154,7 +2154,8 @@ onStepFinish(step):                        // step = { by: Actor, staged, action
   sig     = Signature(by = step.by, authority = authz.authorityOf(step.by, session))
   gated   = results.map { gate(it, sig, state, registry, authz) }        // PRE-FOLD (14.3)
   (next, effects) = fold(state, gated, now, sig)              // the pure decision
-  index   = append(StepRecord{ now, sig, staged = step.staged, actions = step.actions,
+  index   = append(StepRecord{ schemaVersion, now, sig,      // 14.7: the envelope rides the record
+                               staged = step.staged, actions = step.actions,
                                results = gated,               // POST-gate: exactly what was folded
                                commands = sign(gated, sig),   // the name -> Command map (6.8)
                                context = digest(ctx) })       // COMMIT = the durable log write (14.6)
@@ -2177,7 +2178,7 @@ onStepFinish(step):                        // step = { by: Actor, staged, action
 <pre><code class="language-plaintext">// State is never stored as a primary truth. It is DERIVED, always, from the
 // recorded timeline. The UNIT of that timeline is the STEP, not the command:
 // a StepRecord carries everything the boundary handed the fold, INCLUDING `now`.
-StepRecord = { now, sig, staged, actions, results, commands, context }
+StepRecord = { schemaVersion, now, sig, staged, actions, results, commands, context }
 recordedTimeline = [StepRecord]        // append-only; one record per committed step
 
 // foldAll iterates the step-level fold(state, results, now, sig) over the timeline,
@@ -2385,7 +2386,7 @@ onStepFinish(step):
   ...     // resolve -> stamp -> gate  (13.2 shows the full order)
   (newState, effects) = fold(currentState, gatedResults, now, sig)
 
-  index = append(StepRecord{ now, sig, staged, actions, results, commands, context })
+  index = append(StepRecord{ schemaVersion, now, sig, staged, actions, results, commands, context })
                                                // COMMIT = the durable log write; RETURNS the offset
   state = newState                             // derived cache; rebuildable by re-fold
 
@@ -2398,7 +2399,7 @@ onStepFinish(step):
   <h3><span class="t">14.7</span>Schema evolution without rewriting history</h3>
   <p>The <code class="i">Command</code> set and the fold <em>will</em> change over an application's life, and old logs must still replay — that is the whole premise of &ldquo;production traces are permanent fixtures&rdquo; (<a class="x" href="#replay-and-recovery">14.5</a>). Two strategies are tempting and one is wrong. <strong>Rewriting historical commands to the new shape contradicts append-only</strong> (<a class="x" href="#replay-and-recovery">14.1</a>): it destroys the audit trail and invalidates any hash or signature over the original bytes. The correct path is <strong>upcasting</strong> — never touch history; transform an old record into the current shape <em>on the way into the fold</em>.</p>
   <ul>
-    <li><strong>Version at the envelope.</strong> Wrap every record as <code class="k">{ schemaVersion, type, by, payload }</code>. The version travels with the record, so a log written across five deployments is self-describing.</li>
+    <li><strong>Version at the envelope.</strong> Wrap every record as <code class="k">{ schemaVersion, type, by, payload }</code>. The version travels with the record, so a log written across five deployments is self-describing. A port that takes this rung carries the version alongside the fields the commit already has, and makes it <em>non-optional</em>, so the one site that mints a record cannot omit it &mdash; and types it as the <em>current</em> version, so a record in any other shape, including a correctly-shaped one still stamped with an older number, is not the current type at all and the compiler refuses it at the door of the fold.</li>
     <li><strong>Upcast on read.</strong> A chain of pure upcasters lifts <code class="k">v(n)</code> to <code class="k">v(n+1)</code> at load time. The fold only ever sees current-shape records; old fold arms can retire once no live log needs them. This keeps the dispatch &ldquo;closed&rdquo; (<a class="x" href="#stateless-reducer-agent">6.5</a>) instead of accreting historical arms forever.</li>
     <li><strong>Pin the golden trace to a version.</strong> A field-by-field state diff (<a class="x" href="#replay-and-recovery">14.1</a>) over an <em>evolved</em> State shape is trivially unequal, which silently breaks the regression story. So store each captured trace's expected folded state alongside it, tagged with the reducer version that produced it, and re-baseline only on an intentional change — never let a shape change masquerade as a regression.</li>
   </ul>
@@ -2707,7 +2708,7 @@ onStepFinish(step):
   </div>
 
   <div class="note steel"><span class="lab">EXERCISED VERSUS SPECIFIED-BUT-UNPROVEN</span><p>The fourth column above is not decoration; it is the difference between a specification and a demonstration, and a reference that blurs the two is asking for trust it has not earned. Every rung in the ladder is now exercised by the accompanying ports, on the terms stated — which is why the rungs were built at all: so the reference <em>runs</em> what it prescribes. <a class="x" href="#payoff-and-non-goals">16.4</a> still holds and is unaffected: exercising a rung here is not an argument that your app should take it.</p>
-  <p>What is <strong>specified but unproven</strong> is worth naming precisely, so nobody reads parity where there is none. The <strong>replay tooling beyond a re-fold</strong> — an interactive scrubber UI, a fork-from-step, an interactive diff — is described, not shipped; what ships is the re-fold itself, the prefix re-fold at step <code class="k">k</code> a scrubber is built on, the effect-sequence comparison, and the per-step context-digest check. <strong>Schema evolution</strong> (<a class="x" href="#replay-and-recovery">14.7</a>) is out of scope in the ports: no record carries a version and no upcaster exists, so a log written across two reducer shapes is untested ground. The <strong>hard swaps</strong> of <a class="x" href="#runtime-vs-you">8.5</a> — a sharded or networked bus, a durable persistence and retention strategy, snapshotting for very long sessions, multi-tenant isolation — are contracts with in-memory adapters behind them; the seam is proven, the distributed implementation is not, and 8.5's own qualifier applies (one adapter prices the integration, not the algorithm). <strong>Cross-session budgets</strong> (<a class="x" href="#reference-and-adoption">17.1</a>) are named as a product-owned seam and left there. And one structural claim deserves its own line, because it is the sort that quietly degrades in an adopter's hands: <strong>the single-dispatcher confinement of a turn's <code class="k">submit</code> channel is structural in the reference and not gate-checkable.</strong> The consumer mints the channel and calls the boundary itself, so the reference cannot violate it — but an adopter who runs a turn on another thread and folds from there can interleave two folds despite every rule above. No check catches that; only the shape does.</p></div>
+  <p>What is <strong>specified but unproven</strong> is worth naming precisely, so nobody reads parity where there is none. The <strong>replay tooling beyond a re-fold</strong> — an interactive scrubber UI, a fork-from-step, an interactive diff — is described, not shipped; what ships is the re-fold itself, the prefix re-fold at step <code class="k">k</code> a scrubber is built on, the effect-sequence comparison, and the per-step context-digest check. <strong>Schema evolution</strong> (<a class="x" href="#replay-and-recovery">14.7</a>) ships one rung in the ports and no more: every record carries a required <code class="k">schemaVersion</code>, and one worked v1&rarr;v2 upcaster lifts a payload that gained an optional field, with the old record refused by the type system rather than by a runtime branch &mdash; in <em>both</em> halves, the envelope and the historical payload. What is untested ground is the rest &mdash; an upcaster <em>chain</em>, a versioned wire encoding (<a class="x" href="#replay-and-recovery">14.1</a> leaves that product-owned), a golden trace pinned per reducer version, and any dispatch on the version at load time: these ports read the envelope at COMPILE time and never at run time, because they deliberately ship no loader to read it in. The <strong>hard swaps</strong> of <a class="x" href="#runtime-vs-you">8.5</a> — a sharded or networked bus, a durable persistence and retention strategy, snapshotting for very long sessions, multi-tenant isolation — are contracts with in-memory adapters behind them; the seam is proven, the distributed implementation is not, and 8.5's own qualifier applies (one adapter prices the integration, not the algorithm). <strong>Cross-session budgets</strong> (<a class="x" href="#reference-and-adoption">17.1</a>) are named as a product-owned seam and left there. And one structural claim deserves its own line, because it is the sort that quietly degrades in an adopter's hands: <strong>the single-dispatcher confinement of a turn's <code class="k">submit</code> channel is structural in the reference and not gate-checkable.</strong> The consumer mints the channel and calls the boundary itself, so the reference cannot violate it — but an adopter who runs a turn on another thread and folds from there can interleave two folds despite every rule above. No check catches that; only the shape does.</p></div>
 
   <p>Start at the core and ship something replayable in a day; climb the ladder as the agent takes on more, the inputs diversify, and the cost of an unaudited or unsafe action rises. The architecture is designed so each rung is <em>additive</em>, you never rewrite the core to add a tier, you only attach another seam to it.</p>
 
@@ -2751,7 +2752,7 @@ boundary.onStepFinish(step):                   // the one impure seam; step carr
   sig     = Signature(step.by, authz.authorityOf(step.by, session))
   gated   = results.map { gate(it, sig, state, registry, authz) }         // PRE-FOLD (14.3)
   (s, fx) = fold(state, gated, now, sig)
-  index   = append(StepRecord{ now, sig, step.staged, step.actions,
+  index   = append(StepRecord{ schemaVersion, now, sig, step.staged, step.actions,
                                results = gated, commands = sign(gated, sig),
                                context = digest(ctx) })          // COMMIT (14.6) — returns the offset
   state   = s
@@ -2794,7 +2795,7 @@ replayTest():
       <tr><td>the signed action type</td><td><code>Command</code> — a discriminated union; the parent declares <code>tool</code>, <code>sig</code>, <code>id</code></td><td class="r">one type, one bus</td></tr>
       <tr><td>who acted</td><td><code>Actor</code> — <code>Human</code> | <code>Agent</code> | <code>Spine</code> (the tier itself)</td><td class="r">stamped only at the boundary; unrepresentable upstream of it (G1)</td></tr>
       <tr><td>under whose permission</td><td><code>Authority</code> — an opaque principal id, paired with the Actor on one <code>Signature</code></td><td class="r">resolved at the boundary; the irreversible gate keys on this, never on the Actor (G1/G6)</td></tr>
-      <tr><td>the unit of commit and of replay</td><td><code>StepRecord</code> — <code>{ now, sig, staged, actions, results, commands, context }</code></td><td class="r">the append <em>is</em> the commit, and it carries <code>now</code> (14.6)</td></tr>
+      <tr><td>the unit of commit and of replay</td><td><code>StepRecord</code> — <code>{ schemaVersion, now, sig, staged, actions, results, commands, context }</code></td><td class="r">the append <em>is</em> the commit, and it carries <code>now</code> (14.6)</td></tr>
       <tr><td>the pure reducer</td><td>the <strong>pure reducer</strong> (a.k.a. the fold) — <code>fold(state, results, now, sig) -&gt; (newState, effects)</code></td><td class="r">pure; no I/O (G4/G9)</td></tr>
       <tr><td>the one mutation seam</td><td>the <strong>boundary</strong> (a.k.a. the boundary adapter) — mints id, stamps Actor, performs effects</td><td class="r">the only place identity is minted (G1/G9)</td></tr>
       <tr><td>read-only ambient input</td><td>the <strong>agent context</strong> (<code>ctx</code>) a tool reads</td><td class="r">read-only; a tool never writes it (G2)</td></tr>

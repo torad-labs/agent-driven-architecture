@@ -21,6 +21,7 @@ package adr.spine.boundary
 
 import adr.spine.pure.Context
 import adr.spine.pure.ContextFixture
+import adr.spine.pure.CURRENT_SCHEMA
 import adr.spine.pure.Ctx
 import adr.spine.pure.EffectKey
 import adr.spine.pure.Fold
@@ -95,8 +96,11 @@ class Boundary<S>(
 
         // 7 — COMMIT the step as a unit (14.6). `results` is POST-GATE: exactly what was
         //     folded. `actions` is what was ASKED. 6.8: EVERY verb signs, presentation included.
+        //     14.7: the envelope is stamped HERE, at the one site that mints a record,
+        //     so no committed step can be missing its version.
         val index = bus.append(
             StepRecord(
+                schemaVersion = CURRENT_SCHEMA,
                 now = now,
                 sig = sig,
                 staged = step.staged,

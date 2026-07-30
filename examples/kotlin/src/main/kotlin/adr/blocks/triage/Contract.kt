@@ -29,7 +29,40 @@ sealed class TriageResult(override val tool: ToolName) : ToolResult(tool) {
         override val tool: ToolName,
         val ticket: TicketId,
         val level: Priority,
+        /**
+         * v2 of this payload (14.7). OPTIONAL in the schema sense — the caller may give
+         * none — and it carries NO DEFAULT, so every construction site decides instead
+         * of forgetting.
+         */
+        val reason: String?,
     ) : TriageResult(tool)
+}
+
+/**
+ * THE v1 PAYLOAD (14.7) — what `setPriority` returned before `reason` existed.
+ *
+ * A HISTORICAL shape, so it deliberately does NOT extend ToolResult: nothing can fold
+ * it, sign it or commit it, and `StepRecord.results` refuses it BY TYPE — nominally,
+ * with no discriminant trick required. (The TypeScript port is structural and had to
+ * buy the same refusal by giving its v1 payload an `outcome` the current union does
+ * not have; the two ports are equal in GUARANTEE, spelled per language.)
+ *
+ * The only thing that may read one is the upcaster in this block's Tools.kt — which is
+ * where a block mints its results (gate check C7), and therefore the only legal home
+ * for a function whose OUTPUT is one. It is declared as a sealed union with one case
+ * so that C7's name-suffix derivation covers its construction too, exactly as it
+ * covers [TriageResult].
+ *
+ * ABSENCE IS NOT `null`. A v1 record had no field at all; a v2 record with
+ * `reason = null` says a caller supplied none. Those are different facts, and
+ * conflating them is how an upcaster quietly invents history.
+ */
+sealed class TriageV1Result {
+    data class SetPriority(
+        val tool: ToolName,
+        val ticket: TicketId,
+        val level: Priority,
+    ) : TriageV1Result()
 }
 
 /**
@@ -57,5 +90,12 @@ sealed class TriageEffect(override val at: Timestamp) : Effect(at) {
         val ticket: TicketId,
         val level: Priority,
         val supersedes: Priority?,
+        /**
+         * Carried through from the result, which is what makes the v2 field OBSERVABLE
+         * on the replay path: re-folding an upcast v1 log produces a different effect
+         * sequence from re-folding a native v2 one. A field no fold reads would make
+         * its upcaster untestable by construction.
+         */
+        val reason: String?,
     ) : TriageEffect(at)
 }

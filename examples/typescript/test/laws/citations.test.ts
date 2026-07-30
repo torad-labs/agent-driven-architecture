@@ -110,7 +110,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // on Snapshot/RecordMark/Recovery.tailFrom/refoldFrom and their ReplayTest
   // cases all cite §14.1's tagging rule and §14.6. Measured per file by this
   // module's own census, no citation removed.
-  "examples/kotlin": 549,
+  // +17 (549 -> 566): D21's schemaVersion landing — StepRecord/StepRecordV1
+  // envelope KDoc, the TriageUpcast banner and the 14.7 replay-over-old-log
+  // cases all cite §14.7's envelope rule. No citation removed.
+  "examples/kotlin": 566,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -119,7 +122,9 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // section + replay.test.ts snapshot describe block, all citing §14.1/§14.6.
   // +1 (425 -> 426): the orchestrator's adjudicated hardening of that landing —
   // the now-half refusal test's comment cites the mutation review proved.
-  "examples/typescript": 426,
+  // +15 (426 -> 441): D21 spelled in TS — step-record envelope banners, the
+  // upcaster, record-shape.test.ts and the 14.7 replay cases, all citing §14.7.
+  "examples/typescript": 441,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the

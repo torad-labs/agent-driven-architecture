@@ -18,14 +18,21 @@ describe("blocks/triage — the arm reads state before it decides (§12.4)", () 
   it("a valid transition folds, and the effect fires from the SUCCESS branch", () => {
     const out = triage.arm(
       slice,
-      { outcome: "ok", tool: "setPriority", ticket: "4118", level: "High" },
+      { outcome: "ok", tool: "setPriority", ticket: "4118", level: "High", reason: null },
       5,
       sig,
     );
 
     expect(out.slice.priority.get("4118")).toBe("High");
     expect(out.effects).toEqual([
-      { kind: "LogDecision", at: 5, ticket: "4118", level: "High", supersedes: "Normal" },
+      {
+        kind: "LogDecision",
+        at: 5,
+        ticket: "4118",
+        level: "High",
+        supersedes: "Normal",
+        reason: null,
+      },
     ]);
     expect(out.notices).toEqual([]);
     // copy-on-write: the input slice is untouched
@@ -35,7 +42,7 @@ describe("blocks/triage — the arm reads state before it decides (§12.4)", () 
   it("an unknown ticket: NO effect, exactly one per-item Rejected, slice unchanged", () => {
     const out = triage.arm(
       slice,
-      { outcome: "ok", tool: "setPriority", ticket: "9999", level: "High" },
+      { outcome: "ok", tool: "setPriority", ticket: "9999", level: "High", reason: null },
       5,
       sig,
     );

@@ -11,6 +11,18 @@
 
 package adr.spine.pure
 
+import adr.contract.ToolResult
+
+/**
+ * ONE STEP OF SCHEMA EVOLUTION (14.7): a historical payload in, a current-shape
+ * ToolResult out. Declared here with the other seams because the spine names the
+ * shape and the APP supplies it — the spine may not name a block (C15), and every
+ * old payload shape belongs to one.
+ */
+fun interface UpcastResult<R> {
+    operator fun invoke(old: R): ToolResult
+}
+
 /**
  * A block's window onto its OWN slice of the app's State (G11). The block never learns
  * what else State holds; the root hands it this and nothing more.
