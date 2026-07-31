@@ -1,0 +1,41 @@
+# ---
+# MANAGED FILE — do not edit here.
+# Source: torad-labs/github-operator templates/dependabot.yml
+# Synced by `operator sync`; local edits are overwritten on the next sync.
+# ---
+# Fleet-standard Dependabot config.
+#
+# github-actions ONLY, deliberately. It is the one ecosystem that is identical
+# in every repo: actions are SHA-pinned (zizmor enforces it), and a pinned SHA
+# never updates itself, so without this the fleet silently rots on old action
+# versions — including security fixes.
+#
+# Language ecosystems (npm/gradle/cargo/pip) are NOT here because Dependabot
+# needs the exact directory of each manifest, and those differ per repo. A wrong
+# directory is a silent no-op, which is worse than an absent entry. Add them
+# per-repo alongside this file.
+#
+# A 2026-07-30 audit found dependabot config in only 7 of 24 repos.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # Wait a week after release before proposing a bump: enough for a bad
+    # release to be yanked before it reaches the fleet.
+    cooldown:
+      default-days: 7
+    # One PR for all action bumps rather than one per action. With 20+ repos
+    # ungrouped updates are the difference between a handful of PRs a week and
+    # a hundred.
+    groups:
+      actions:
+        patterns: ['*']
+    # REQUIRED, not cosmetic: the org-pr-title ruleset gate rejects titles
+    # without a conventional type. Dependabot usually infers the convention
+    # from commit history, but a repo with no conventional history would get
+    # "Bump X from A to B" and every dependency PR would fail the gate.
+    commit-message:
+      prefix: chore(actions)
+    open-pull-requests-limit: 5
