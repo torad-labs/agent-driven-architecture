@@ -1,4 +1,4 @@
-# BLOCK-TEST for the registry check. Eight deliberate violations, one per law:
+# BLOCK-TEST for the registry check. Fifteen deliberate violations, one per law:
 #   G1  a law with NO enforcement layer             (the first bar)
 #   G2  a denying-check law whose pointer is GONE   (the un-resolved-string trap)
 #   G3  a denying-check law that names no check     (the second bar)
@@ -7,10 +7,26 @@
 #   G6  a law whose NOTE credits a check while the law names none
 #   G7  a law enforced on ONE PORT only
 #   G8  a law that dropped one PORT of a check id another law also holds
+#   G10 layers CLAIM the configuration-time rung, the headline does not
+#   G11 the headline CLAIMS a build edge, the layers do not
+#   G12 the rung claimed with edge evidence on ONE PORT ONLY
+#   G13 the rung claimed with NO edge evidence at all
+#   G14 a build edge declared while the layers omit the rung it proves
+#   G15 an edge whose file no longer DECLARES the token the row names
+#   G16 an edge pointer that resolves to nothing, and an edge naming a port the
+#       registry does not cover
 # G9 is the control: it holds the same duplicated id on BOTH ports and must not
 # be reported. A registry check that accepts this file is not a check.
+#
+# G10-G14 are the block half of THE FLOOR RULE, and they are five laws rather
+# than one because the rule is a JOINT with four ways to come apart: the machine
+# field outranking the printed sentence, the sentence outranking the field, the
+# rung claimed where only the stronger port earns it, and the rung claimed on no
+# evidence at all. G15 and G16 are the block half of "pointers are resolved,
+# never trusted" for the same field — a deleted wall whose row survived it, and
+# a row pointing at nothing.
 
-vocabulary = ["denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+vocabulary = ["configuration-time", "denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
 
 [[laws]]
 id = "G1"
@@ -154,3 +170,214 @@ home = "konsist"
 pair = "on-disk"
 violating = "fixtures/violating/C11"
 compliant = "fixtures/compliant/C11"
+
+[[laws]]
+id = "G10"
+name = "layers-claim-a-rung-the-headline-does-not"
+layers = ["configuration-time", "denying-check"]
+headline = "Denying check."
+note = "The machine field claims the module graph holds this; the printed sentence says only that a rule denies it."
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/edge/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G11"
+name = "headline-claims-a-rung-the-layers-do-not"
+layers = ["denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "The printed sentence promises a wall the registry does not record — the overclaim direction."
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G12"
+name = "the-rung-earned-on-one-port-only"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "One port draws the edge and the other does not, and the cell that prints this speaks for both."
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G13"
+name = "the-rung-claimed-on-no-evidence"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "A layer claim with nothing behind it — the shape that passed the whole gate before the floor rule."
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G14"
+name = "a-wall-the-printed-cell-does-not-report"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "Both edges are named and the layer that would print them is missing — the underclaim direction."
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/edge/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G15"
+name = "an-edge-whose-declaration-was-deleted"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "The path still resolves; the declaration that drew the refusal is gone and the row survived it."
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/LOST/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G16"
+name = "an-edge-pointing-at-nothing"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "One row names a path that is not there; a third names a port this registry does not cover."
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/GONE/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/edge/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.edges]]
+port = "elixir"
+path = "fixtures/edge/mix.exs"
+token = "deps"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"

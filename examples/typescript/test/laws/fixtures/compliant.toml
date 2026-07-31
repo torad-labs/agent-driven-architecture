@@ -1,9 +1,12 @@
 # ALLOW-TEST for the registry check: the idiomatic shape, which must pass
 # untouched — including the two shapes a naive rule would wrongly deny, a
 # value check carrying its pair inside the checker and a law that legitimately
-# names no check at all. Every field spelled the way laws.toml spells it.
+# names no check at all. It also carries a law held at the CONFIGURATION-TIME
+# rung with resolving edge evidence on BOTH ports, so the floor rule has a
+# positive half and not only the five block halves next door. Every field
+# spelled the way laws.toml spells it.
 
-vocabulary = ["denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+vocabulary = ["configuration-time", "denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
 
 [[laws]]
 id = "G1"
@@ -53,6 +56,39 @@ compliant = ""
 
 [[laws]]
 id = "G3"
+name = "a-law-held-by-a-build-edge"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "The module graph refuses the crossing half before either module compiles, on EVERY port; the check owns what stays inside one module."
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/edge/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G4"
 name = "an-un-denied-law"
 layers = ["discipline"]
 headline = "Discipline."

@@ -5,9 +5,12 @@
 // under test/laws/fixtures/. Delete any assertion body below and its
 // block-test goes red immediately.
 //
-// Five things are asserted against the SHIPPED laws.toml:
+// Seven things are asserted against the SHIPPED laws.toml:
 //   (a) every law declares an enforcement layer, from the closed vocabulary,
 //       and the book's headline and the machine field agree in both directions;
+//       (a') THE FLOOR RULE for the configuration-time rung: one `layers` field
+//       prints one cell speaking for BOTH ports, so the rung may be claimed only
+//       with a build edge named PER PORT — checked in both directions;
 //   (b) a law held by a denying check names one, every on-disk fixture pointer
 //       RESOLVES to a non-empty path, and no LINT-OWNED check claims the
 //       value-check pair shape;
@@ -17,7 +20,13 @@
 //   (d) every check on each port's OWN roster traces to a law, per (law, port,
 //       id) — four ids hold two laws each, so a set keyed on the id alone would
 //       let either occurrence be deleted;
-//   (e) a law whose NOTE credits a check with holding it names at least one.
+//   (e) a law whose NOTE credits a check with holding it names at least one;
+//   (g) the PROSE around the table cannot outlive the registry — the book states
+//       the vocabulary's size and no longer denies the module graph. The
+//       regenerator owns the fourth CELL only, so the sentences that FRAME the
+//       table had no owner at all, and both of them went stale at once;
+//   (h) every BUILD EDGE resolves and still declares the token it names —
+//       "pointers are resolved, never trusted", applied to the newest field.
 //
 // THE OWNERSHIP ORACLE IS DERIVED. `lintOwned` below is read out of the
 // SHIPPED eslint config source — the `[Cn]` marker every message carries, plus
@@ -34,6 +43,8 @@ import {
   attributionProblems,
   bindingProblems,
   bookProblems,
+  EDGE_LAYER,
+  edgeProblems,
   FOUR_CELL_ROW,
   FOURTH_HEADER,
   fixtureProblems,
@@ -41,6 +52,7 @@ import {
   type LintOwned,
   PORTS,
   parseLaws,
+  type Registry,
   type Resolve,
   rosterProblems,
   rows,
@@ -63,6 +75,16 @@ const onDisk: Resolve = (path) => {
   }
   if (stat.isDirectory()) return readdirSync(full).length === 0 ? "empty" : "present";
   return stat.size === 0 ? "empty" : "present";
+};
+
+/** The real edge reader. `null` rather than a throw, so a path that resolves and
+ *  then cannot be read is a REPORTED problem instead of a crashed suite. */
+const onDiskText = (path: string): string | null => {
+  try {
+    return readFileSync(join(REPO, path), "utf8");
+  } catch {
+    return null;
+  }
 };
 
 // ── the ownership oracle, derived from each linter's own source ───────────
@@ -141,6 +163,57 @@ function secondLayerTable(book: string, key: "id" | "name" | "plain"): string {
   );
 }
 
+// ── (g)'s checker: the sentences that FRAME §15.3's table ──────────────────
+// The regenerator owns the fourth CELL and nothing else, and `bookProblems`
+// reads rows. The paragraphs around the table therefore had NO mechanical owner,
+// and they are what went stale: §15.3's preamble denied a module graph both
+// ports had already built, and its vocabulary sentence described a column that
+// never says "configuration time". The whole gate stayed green through both.
+//
+// Two claims, pinned as facts about the REGISTRY rather than as a paraphrase:
+//   · the book states the vocabulary's SIZE in words, and it must be the
+//     registry's size. Bidirectional — growing laws.toml without the book, or
+//     the book without laws.toml, is red either way.
+//   · no prose anywhere in the book asserts the ports have no module graph.
+//     HONEST SCOPE, in the idiom of the divergence census: this is a PHRASE
+//     FAMILY, not a semantic reading, so a freshly-worded denial escapes it.
+//     What it closes is every alternative the landing measured, and the
+//     negative half below plants one of each so the family cannot silently
+//     narrow to the one spelling that happened to ship.
+const DENIES_THE_MODULE_GRAPH =
+  /(?:a|A) single build module|single-module|does not exist yet|until P4 lands it/g;
+const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven"] as const;
+
+function proseProblems(book: string, registry: Registry): string[] {
+  const problems: string[] = [];
+  for (const hit of book.match(DENIES_THE_MODULE_GRAPH) ?? []) {
+    problems.push(`the book still denies the module graph: "${hit}"`);
+  }
+  const stated = [...book.matchAll(/closed vocabulary of ([a-z]+)/g)].map((m) => m[1] as string);
+  const expected = WORDS[registry.vocabulary.length];
+  if (stated.length !== 1 || stated[0] !== expected) {
+    problems.push(
+      `the book states the vocabulary's size as [${stated.join(", ")}]; the registry declares ${registry.vocabulary.length} (${expected})`,
+    );
+  }
+  return problems;
+}
+
+/** One sentence per alternative in the denial family, each the shape a future
+ *  landing would actually write. Planted INTO the shipped book by `plant`. */
+const PLANTED_DENIALS = [
+  "Both reference ports are still a single build module, so no edge is drawn.",
+  "A single build module cannot refuse this import.",
+  "As far up the ladder as a single-module reference port reaches.",
+  "The module graph that would deny these edges does not exist yet.",
+  "The module graph is the end state; until P4 lands it, the checks hold these.",
+] as const;
+
+/** Splice a paragraph into §15.3, immediately above §15.4's head — the same
+ *  anchor (c') builds its violating book at, and asserted present there. */
+const plant = (book: string, sentence: string): string =>
+  book.replace(ANCHOR_15_4, `  <p>${sentence}</p>\n${ANCHOR_15_4}`);
+
 describe("laws.toml — the law registry parses, and says what the book says", () => {
   it("parses under the registry's own grammar, with nothing skipped", () => {
     expect(shipped.problems).toEqual([]);
@@ -216,6 +289,76 @@ describe("laws.toml — the law registry parses, and says what the book says", (
     );
   });
 
+  it("(c'') THE BUILD-EDGE RUNG IS EARNED PER PORT — the set is DERIVED, not asserted", () => {
+    // Non-empty and named: an assertion over an empty set proves nothing about
+    // the new opener, and a silent change of WHICH laws claim the module graph
+    // is exactly the drift §15.3's lead paragraph is written against.
+    const edged = shipped.registry.laws.filter((l) => l.layers.includes(EDGE_LAYER));
+    expect(edged.map((l) => l.id)).toEqual(["G10", "G11"]);
+    for (const law of edged) {
+      // the headline OPENS with the rung, because the layer census is form-keyed
+      // on that first word — see LAYER_ANYWHERE_IN_A_ROW
+      expect(law.headline.startsWith("Configuration-time"), law.id).toBe(true);
+      // every one still names a denying check beneath the edge …
+      expect(law.layers, law.id).toContain("denying-check");
+      // … and earns the rung on EVERY port, which is the floor rule itself
+      expect([...new Set(law.edges.map((e) => e.port))].sort(), law.id).toEqual([...PORTS].sort());
+    }
+    // THE EXCLUSIONS ARE MEASURED, not left to taste, and pinned so the question
+    // does not reopen. G2's violating shape (a tool naming a framework) and G4's
+    // (a pure module naming a foreign library) are refused at configuration time
+    // on one reference port and ACCEPTED on the other — edges.test.ts runs the
+    // real compiler on the accepting half. Under the floor rule that disqualifies
+    // both, however structural either feels.
+    for (const id of ["G2", "G4"]) {
+      const law = shipped.registry.laws.find((l) => l.id === id);
+      expect(law?.layers, id).not.toContain(EDGE_LAYER);
+      expect(law?.edges, id).toEqual([]);
+    }
+  });
+
+  it("(g) THE PROSE AROUND THE TABLE CANNOT OUTLIVE THE REGISTRY", () => {
+    const book = read("wiki/index.html");
+    expect(proseProblems(book, shipped.registry)).toEqual([]);
+
+    // NEGATIVE, permanent, and one planting per alternative — the half a phrase
+    // blacklist owes, in (c')'s idiom: the violating book is built FROM the
+    // shipped book, so it cannot go vacuous against a live-tree rewording.
+    for (const sentence of PLANTED_DENIALS) {
+      const said = proseProblems(plant(book, sentence), shipped.registry);
+      expect(said, sentence).not.toEqual([]);
+      expect(said.join("\n"), sentence).toContain("still denies the module graph");
+    }
+    // and the vocabulary-size claim, in BOTH directions: the book moving without
+    // the registry, and the registry moving without the book.
+    expect(
+      proseProblems(
+        book.replace("closed vocabulary of six", "closed vocabulary of five"),
+        shipped.registry,
+      ).join("\n"),
+    ).toContain("vocabulary's size");
+    expect(
+      proseProblems(book, {
+        ...shipped.registry,
+        vocabulary: [...shipped.registry.vocabulary, "a-seventh-rung"],
+      }).join("\n"),
+    ).toContain("vocabulary's size");
+  });
+
+  it("(h) every BUILD EDGE resolves, and still declares the token it names", () => {
+    expect(edgeProblems(shipped.registry, onDisk, onDiskText)).toEqual([]);
+    // Non-empty and NAMED, because the line above is satisfied by a registry with
+    // no edges at all — the vacuous-fixture failure this file already knows.
+    expect(
+      shipped.registry.laws.flatMap((l) => l.edges.map((e) => `${l.id}/${e.port}/${e.token}`)),
+    ).toEqual([
+      'G10/typescript/"./register": "./register.ts"',
+      "G10/kotlin/denyProjectEdgesExcept",
+      'G11/typescript/"./register": "./register.ts"',
+      "G11/kotlin/denyProjectEdgesExcept",
+    ]);
+  });
+
   it("(d) every check on each port's live roster traces to a law, per port", () => {
     // 15 -> 17 in BOTH ports, together: C16 and C17 land on each port's own
     // roster in that port's own home (eslint/vitest here, konsist there), and
@@ -255,6 +398,17 @@ describe("laws.toml — the law registry parses, and says what the book says", (
 const stub: Resolve = (path) =>
   path.includes("EMPTY") ? "empty" : path.includes("GONE") ? "missing" : "present";
 const stubOwned: LintOwned = (_port, id) => id !== "C13";
+/** The stub EDGE reader, beside the stub fixture resolver. A build file a
+ *  compliant edge names still declares the tokens the fixtures use; one named
+ *  `LOST` resolves and no longer declares anything, which is the deleted-wall,
+ *  surviving-row case — the whole reason an edge row is resolved and not
+ *  trusted. */
+const stubRead = (path: string): string | null =>
+  path.includes("GONE")
+    ? null
+    : path.includes("LOST")
+      ? "a build file whose declaration was deleted"
+      : 'denyProjectEdgesExcept(":spine")   "./register": "./register.ts"';
 
 const fixture = (half: string) =>
   parseLaws(readFileSync(join(HERE, "fixtures", `${half}.toml`), "utf8"));
@@ -308,6 +462,51 @@ describe("the registry check DENIES a violating laws.toml", () => {
     );
   });
 
+  it("REJECTS layers that claim the build-edge rung the headline does not", () => {
+    expect(shapeProblems(registry).join("\n")).toContain(
+      'G10: headline omits "configuration-time" but layers claim it',
+    );
+  });
+
+  it("REJECTS a headline that claims a build edge the layers do not", () => {
+    expect(shapeProblems(registry).join("\n")).toContain(
+      'G11: headline claims "configuration-time" but layers omit it',
+    );
+  });
+
+  it("REJECTS the rung claimed with evidence on ONE PORT ONLY — the floor rule", () => {
+    // The defect this whole field exists to close: one cell speaks for both
+    // ports, so an edge on the stronger port is not a rung the cell may print.
+    expect(shapeProblems(registry).join("\n")).toContain(
+      'G12: layers claim "configuration-time" with no kotlin build edge',
+    );
+  });
+
+  it("REJECTS the rung claimed with NO edge evidence at all", () => {
+    const said = shapeProblems(registry).join("\n");
+    for (const port of PORTS) {
+      expect(said).toContain(`G13: layers claim "configuration-time" with no ${port} build edge`);
+    }
+  });
+
+  it("REJECTS a build edge the printed cell would not report", () => {
+    expect(shapeProblems(registry).join("\n")).toContain(
+      'G14: names a build edge but layers omit "configuration-time"',
+    );
+  });
+
+  it("REJECTS an edge whose file no longer declares the token it names", () => {
+    expect(edgeProblems(registry, stub, stubRead).join("\n")).toContain(
+      "G15/kotlin: build edge fixtures/LOST/build.gradle.kts no longer declares",
+    );
+  });
+
+  it("REJECTS an edge pointer that names nothing on disk, and an unknown port", () => {
+    const said = edgeProblems(registry, stub, stubRead).join("\n");
+    expect(said).toContain("G16/typescript: build edge fixtures/GONE/package.json is missing");
+    expect(said).toContain('G16/elixir: "elixir" is not one of the registry\'s ports');
+  });
+
   it("REJECTS a registry that no longer matches the book", () => {
     expect(bookProblems(registry, read("wiki/index.html"))).not.toEqual([]);
   });
@@ -331,6 +530,12 @@ describe("the registry check ALLOWS a compliant laws.toml", () => {
     expect(problems).toEqual([]);
     expect(shapeProblems(registry)).toEqual([]);
     expect(fixtureProblems(registry, stub, stubOwned)).toEqual([]);
+    expect(edgeProblems(registry, stub, stubRead)).toEqual([]);
+    // and the allow half is not vacuous: a law IS held at the edge rung here,
+    // with resolving evidence on both ports.
+    expect(registry.laws.filter((l) => l.layers.includes(EDGE_LAYER)).map((l) => l.id)).toEqual([
+      "G3",
+    ]);
     expect(attributionProblems(registry)).toEqual([]);
     expect(
       rosterProblems(registry, {

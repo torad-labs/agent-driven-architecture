@@ -270,6 +270,50 @@ const tableText = normalize(s74Bodies[0] ?? "");
 const unrowed = treeFolders.filter((f) => !new RegExp(`\\b${f}\\b`).test(tableText));
 const partialParagraphs = paragraphs(s74).filter((p) => /partial<\/em> refinement/.test(p));
 
+// ── §7.8's BLOCK TREE, against the rule §4.6 states in prose ──────────────
+//
+// §4.6 says the block/leaf pair is UNCONDITIONAL and the ratified module DAG
+// agrees — every block gets a leaf, empty where it has no seam. §7.8's tree is
+// the same rule drawn, and it drew the leaf under two of the four blocks it
+// draws, under a header making the second unit conditional on the seam. Two
+// sections of one document stating a rule and its negation is a document-level
+// defect no section-local read catches, and this section had NO mechanical
+// owner at all: reinstating the pre-split spelling left the whole gate green.
+//
+// This file already owns §7.5's tree and §7.4's arithmetic, so the derivation
+// lives beside them rather than in a second detector at the same layer.
+const s78Tree = (() => {
+  const s78 = section(book, "7.8");
+  const start = s78.indexOf("├── blocks/");
+  const end = s78.indexOf("└── app/", start);
+  if (start === -1 || end === -1) {
+    throw new Error("§7.8's block tree no longer runs from `blocks/` to `app/`");
+  }
+  return s78.slice(start, end);
+})();
+/** The blocks the tree DRAWS — one level under `blocks/`, trailing slash. */
+const s78Blocks = [...s78Tree.matchAll(/^│ {3}[├└]── (\w+)\//gm)].map((m) => m[1] as string);
+/** WHICH block each adapter leaf hangs under, not how many there are.
+ *
+ *  Two independent totals were the defect: a reviewer drew four blocks and four
+ *  `adapter/` leaves with two of them under ONE block and the wall stayed green,
+ *  because it only ever compared `leaves === blocks.length`. The pair is drawn
+ *  as ASSOCIATIONS now — the block whose subtree a leaf sits in — so a leaf that
+ *  moves is a red diff even when the arithmetic still balances. */
+const s78Owners = (() => {
+  const owners: string[] = [];
+  let current: string | null = null;
+  for (const line of s78Tree.split("\n")) {
+    const block = /^│ {3}[├└]── (\w+)\//.exec(line);
+    if (block !== null) {
+      current = block[1] as string;
+      continue;
+    }
+    if (/└── adapter\//.test(line) && current !== null) owners.push(current);
+  }
+  return owners;
+})();
+
 // ── RE-DIVERGENCE: the census pool, pinned per file ───────────────────────
 
 /** The census walk from `docs/dependency-rule-census.md`, moved here so its
@@ -446,6 +490,18 @@ describe("one dependency-rule wording", () => {
     expect(claim).toContain("not a total one");
     // … and it must name every folder the table never mentions
     expect(unrowed.filter((f) => new RegExp(`\\b${f}\\b`).test(claim))).toEqual(unrowed);
+  });
+
+  it("§7.8 draws the adapter LEAF for every block it draws, and never calls it a file", () => {
+    // NAMED first, then equal. An equality alone is satisfied by a tree that
+    // stopped matching — 0 leaves under 0 blocks — which is the vacuous-fixture
+    // failure this repo has already been bitten by once.
+    expect(s78Blocks).toEqual(["triage", "escalation", "console", "artifact"]);
+    // ONE leaf under EACH block, by association — not four leaves somewhere.
+    expect(s78Owners).toEqual(s78Blocks);
+    // and the pre-split spelling the unconditional pair replaced: the leaf is a
+    // build unit, not "the only file holding a client".
+    expect(s78Tree).not.toMatch(/only (the )?file[^.]{0,40}(holds|holding) a client/i);
   });
 
   it("RE-DIVERGENCE: the spelling-family pool is pinned per file — a new wording IN the family is red; outside it, review at the convergence sites owns the question", () => {

@@ -10,9 +10,37 @@
 # cell of that one table — so id, name, guarantee and layer are read together
 # and cannot drift into two tables that disagree, in either keying.
 #
-# `layers` is a CLOSED vocabulary: denying-check | compiler-proof | behavioral
-# | discipline | structural-untested. `headline` and `note` are the book cell,
-# verbatim — the meta-check reconstructs the cell from them byte for byte.
+# `layers` is a CLOSED vocabulary: configuration-time | denying-check |
+# compiler-proof | behavioral | discipline | structural-untested. `headline`
+# and `note` are the book cell, verbatim — the meta-check reconstructs the cell
+# from them byte for byte.
+#
+# THE FLOOR RULE, for `configuration-time` and for every token that follows it.
+# One `layers` field prints ONE cell, and that cell speaks for BOTH ports — so a
+# token may appear here only where the rung holds on EVERY port the registry
+# covers. A rung one port reaches earlier than the other is prose in the `note`;
+# it is never a headline word and never a `layers` entry, because a cell that
+# reports the stronger port has promised a wall the other port has not built.
+# The floor is mechanical, not a taste call: a law claiming the token owes one
+# `[[laws.edges]]` row PER PORT, checked in both directions by the shape rule.
+#
+# `[[laws.edges]]` — keys `port`, `path`, `token`, and nothing else. `token` is
+# the DECLARATION whose deletion removes the refusal, and the checker resolves
+# the path AND requires the token to still occur in it, so a wall that is
+# deleted while its row survives is red rather than green. Without that, a
+# layer claim with nothing behind it passed the entire gate — the one field in
+# this registry that was prose wearing a machine field's clothes.
+#
+# THE EDGED SET IS DERIVED BY MEASUREMENT, recorded here so it does not reopen.
+# A build edge is the declared, permitted-dependency relation between two
+# modules, and what it refuses it refuses before either module compiles.
+# Measured on both reference ports: a deep import of a sibling block's internals
+# is a resolution refusal on BOTH, so the dependency and isolation laws carry
+# the token. A foreign library named INSIDE a module the graph already permits
+# is refused on one port and accepted on the other — so neither the purity law
+# nor the foreign-import law qualifies, however structural either feels, and
+# both stay on the denying-check rung with the asymmetry stated in their notes
+# rather than dissolved into a headline.
 #
 # `pair = "in-checker"` is §15.2's listed shape difference: a check about
 # VALUES carries its block/allow pair as two inputs to the same checker, not
@@ -27,7 +55,7 @@
 # the rows below rather than silently missing. This file is itself scanned by
 # that lint: the registry obeys the namespace it defines.
 
-vocabulary = ["denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+vocabulary = ["configuration-time", "denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
 
 [[laws]]
 id = "G1"
@@ -119,7 +147,7 @@ id = "G4"
 name = "domain-imports-nothing-foreign"
 layers = ["denying-check"]
 headline = "Denying check."
-note = "§1.3's import table as an allow-list. Both ports are still a single build module, so the module graph that would refuse a foreign import at configuration time does not exist yet; until P4 lands it, the allow-list is the highest rung that can hold this."
+note = "§1.3's import table as an allow-list, and the rung above it is out of reach for a reason worth stating. A module declares what it may depend on, so an edge can refuse a foreign module — but where a package manager hoists one copy of every dependency to a single root, a bare third-party name resolves from inside any module that root reaches, declared there or not. One reference port draws that edge and the other cannot, so the allow-list is where this law is held."
 
 [[laws.checks]]
 port = "typescript"
@@ -204,7 +232,7 @@ id = "G7"
 name = "no-service-locators"
 layers = ["denying-check"]
 headline = "Denying check."
-note = "No module-level mutable state; dependencies pass through the one root. A single build module cannot hide the ambient reach a locator needs, so nothing structural forbids reintroducing one."
+note = "No module-level mutable state; dependencies pass through the one root. A module graph bounds how far an ambient value travels, but it is drawn between modules and a locator is declared inside one, so nothing structural forbids reintroducing one beside the code that wants it."
 
 [[laws.checks]]
 port = "typescript"
@@ -271,9 +299,19 @@ compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C5"
 [[laws]]
 id = "G10"
 name = "dependencies-point-inward"
-layers = ["denying-check"]
-headline = "Denying checks."
-note = "One per folder, one at tier granularity. Both ports are still a single build module, so the module graph that would deny these edges at configuration time is the end state, not the present tense; until P4 lands it, per-folder denying checks are the highest rung that can hold the dependency laws."
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edges + denying checks."
+note = "The module-crossing half is a build edge: a block declares the trunk as the only thing it may depend on, an adapter leaf declares its own block, and the trunk declares nothing at all — so a sibling block's internals are not a name those modules can resolve — refused on both reference ports by the module graph rather than by a rule that must run, at configuration in the Gradle port and as a resolution error in the TypeScript one. An edge permits a WHOLE module, so it can neither deny a direction inside one module nor narrow which part of a permitted module a consumer may reach: a surface naming a reducer, and a block reaching past the trunk's pure tier into its impure one, both stay with the per-folder and per-tier denying checks."
+
+[[laws.edges]]
+port = "typescript"
+path = "examples/typescript/src/blocks/triage/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "examples/kotlin/build-logic/src/main/kotlin/adr.block.gradle.kts"
+token = "denyProjectEdgesExcept"
 
 [[laws.checks]]
 port = "typescript"
@@ -310,9 +348,19 @@ compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C15"
 [[laws]]
 id = "G11"
 name = "component-isolation"
-layers = ["denying-check"]
-headline = "Denying checks."
-note = "No cross-block symbol import, and view-state visible only to its own projection. The Kotlin cross-block check classifies a shared-package symbol by <em>name prefix</em> — convention-strength, stated in ADR-001 as evidence for module-level isolation."
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edges + denying checks."
+note = "A block's permitted dependencies name the trunk and never a sibling, so a sibling's internals are unresolvable rather than merely forbidden — the edge, on both reference ports. Two cross-block routes survive it and the checks still hold them, both the interim state rather than the end state: a block's own <em>published</em> entry, which a package graph cannot show the root while hiding from a sibling, and — where a language requires every variant of a sealed set to live in one module — the block's transport hosted in the trunk under a <em>name-prefix</em> convention standing in for the module wall. View-state stays visible only to its own projection."
+
+[[laws.edges]]
+port = "typescript"
+path = "examples/typescript/src/blocks/triage/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "examples/kotlin/build-logic/src/main/kotlin/adr.block.gradle.kts"
+token = "denyProjectEdgesExcept"
 
 [[laws.checks]]
 port = "typescript"
