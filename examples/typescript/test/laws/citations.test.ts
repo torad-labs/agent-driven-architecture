@@ -260,7 +260,10 @@ const FILE_PIN: Record<string, number> = {
   // check is NOT among them: `test/laws` is this census's one path-scoped exclusion.
   // No source file was added: `admit` rides `src/spine/pure/effect.ts`, which already
   // declared `EffectBase`, so the 36-file spine roster does not move.
-  "examples/typescript": 200,
+  // +3 (200 -> 203): D1's book widening ships test/laws/edges.test.ts and the
+  // three edge fixtures under test/gate/fixtures/edges/ — the build-edge rows'
+  // block/allow pair.
+  "examples/typescript": 203,
   wiki: 10,
 };
 

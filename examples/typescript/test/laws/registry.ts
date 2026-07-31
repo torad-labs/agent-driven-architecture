@@ -26,6 +26,19 @@
 //     lint-enforced would be asking the forger: flipping one token would let a
 //     live lint rule shed its fixture pair with every gate still green.
 
+/** One BUILD EDGE, at one port, holding one law's module-crossing half.
+ *
+ *  `token` is the DECLARATION whose deletion removes the refusal — not a label
+ *  for the file. That is what makes an edge row resolvable in the same sense a
+ *  fixture pointer is: the path must exist and hold something, and the text at
+ *  that path must still contain the declaration the row names. A row that is
+ *  only a string is the failure mode this file's header already refuses. */
+export interface Edge {
+  readonly port: string;
+  readonly path: string;
+  readonly token: string;
+}
+
 /** One check, at one port, holding one law. */
 export interface Check {
   readonly port: string;
@@ -45,6 +58,7 @@ export interface Law {
   readonly headline: string;
   readonly note: string;
   readonly checks: readonly Check[];
+  readonly edges: readonly Edge[];
 }
 
 export interface Registry {
@@ -65,11 +79,23 @@ export const PORTS = ["typescript", "kotlin"] as const;
 
 const LAW_KEYS = ["id", "name", "layers", "headline", "note"] as const;
 const CHECK_KEYS = ["port", "id", "home", "pair", "violating", "compliant"] as const;
+const EDGE_KEYS = ["port", "path", "token"] as const;
+
+/** The one layer whose claim is not free. See `shapeProblems` — a law naming it
+ *  owes a build edge on EVERY port, and `edgeProblems` resolves each one. */
+export const EDGE_LAYER = "configuration-time";
 
 /** The layer vocabulary, and the word in the book's headline that witnesses it.
  *  This is the joint that makes the registry's machine field and the book's
  *  human sentence check each other in BOTH directions. */
 const WITNESS: Readonly<Record<string, RegExp>> = {
+  /** The module graph's own rung. Witnessed by "build edge" as well as the bare
+   *  token because that is the phrase the book's ladder uses for it, and a
+   *  headline saying "build edge" while the machine field omits
+   *  `configuration-time` is exactly the drift this map exists to catch.
+   *  Dry-run over all sixteen shipped headlines: it fires on none of them, the
+   *  nearest misses being "one denying edge" and "one denied precondition". */
+  [EDGE_LAYER]: /configuration[ -]time|build edge/i,
   "denying-check": /Denying check|denying edge|denied precondition/i,
   behavioral: /behavior/i,
   "compiler-proof": /compiler proof/i,
@@ -128,15 +154,16 @@ export function parseLaws(text: string): { registry: Registry; problems: string[
   const laws: {
     fields: Record<string, string | readonly string[]>;
     checks: Record<string, string>[];
+    edges: Record<string, string>[];
   }[] = [];
-  let scope: "root" | "law" | "check" = "root";
+  let scope: "root" | "law" | "check" | "edge" = "root";
 
   text.split("\n").forEach((line, index) => {
     const at = `laws.toml:${index + 1}`;
     const trimmed = line.trim();
     if (trimmed === "" || trimmed.startsWith("#")) return;
     if (trimmed === "[[laws]]") {
-      laws.push({ fields: {}, checks: [] });
+      laws.push({ fields: {}, checks: [], edges: [] });
       scope = "law";
       return;
     }
@@ -148,6 +175,16 @@ export function parseLaws(text: string): { registry: Registry; problems: string[
       }
       owner.checks.push({});
       scope = "check";
+      return;
+    }
+    if (trimmed === "[[laws.edges]]") {
+      const owner = laws[laws.length - 1];
+      if (owner === undefined) {
+        problems.push(`${at}: [[laws.edges]] before any [[laws]]`);
+        return;
+      }
+      owner.edges.push({});
+      scope = "edge";
       return;
     }
     if (trimmed.startsWith("[")) {
@@ -185,6 +222,16 @@ export function parseLaws(text: string): { registry: Registry; problems: string[
       check[key] = value;
       return;
     }
+    if (scope === "edge") {
+      const edge = law.edges[law.edges.length - 1];
+      if (edge === undefined) return;
+      if (!(EDGE_KEYS as readonly string[]).includes(key) || typeof value !== "string") {
+        problems.push(`${at}: ${key} is not one of the edge keys ${EDGE_KEYS.join(", ")}`);
+        return;
+      }
+      edge[key] = value;
+      return;
+    }
     if (!(LAW_KEYS as readonly string[]).includes(key)) {
       problems.push(`${at}: ${key} is not one of the law keys ${LAW_KEYS.join(", ")}`);
       return;
@@ -214,6 +261,13 @@ export function parseLaws(text: string): { registry: Registry; problems: string[
         compliant: check.compliant ?? "",
       });
     }
+    const edges: Edge[] = [];
+    for (const edge of law.edges) {
+      const missing = EDGE_KEYS.filter((key) => edge[key] === undefined);
+      if (missing.length > 0)
+        problems.push(`${where}: a build edge is missing ${missing.join(", ")}`);
+      edges.push({ port: edge.port ?? "", path: edge.path ?? "", token: edge.token ?? "" });
+    }
     built.push({
       id: typeof id === "string" ? id : "",
       name: typeof law.fields.name === "string" ? law.fields.name : "",
@@ -221,6 +275,7 @@ export function parseLaws(text: string): { registry: Registry; problems: string[
       headline: typeof law.fields.headline === "string" ? law.fields.headline : "",
       note: typeof law.fields.note === "string" ? law.fields.note : "",
       checks,
+      edges,
     });
   });
 
@@ -233,8 +288,20 @@ export function rows(registry: Registry): readonly { law: string; check: Check }
   return registry.laws.flatMap((law) => law.checks.map((check) => ({ law: law.id, check })));
 }
 
-/** (a) every law declares a layer, from the closed vocabulary, and the book's
- *  headline says the same thing the machine field says. */
+/** (a) every law declares a layer, from the closed vocabulary, the book's
+ *  headline says the same thing the machine field says, and THE FLOOR RULE
+ *  holds for the one layer whose claim is not free.
+ *
+ *  THE FLOOR RULE. `layers` is a law-level field printed into ONE fourth-column
+ *  cell that speaks for BOTH ports, so a rung may be claimed only where it
+ *  holds on EVERY port: a rung one port reaches earlier than the other belongs
+ *  in the `note`, never in a headline word and never in `layers`. Before this
+ *  rule the token was the one thing in the registry that carried no mechanical
+ *  obligation at all — `layers = ["configuration-time"]` with no edge, no
+ *  fixture and no evidence passed the whole gate, which is prose wearing a
+ *  machine field's clothes. It is checked in BOTH directions: claiming the rung
+ *  without a per-port edge is an overclaim, and naming edges without claiming
+ *  the rung is a wall the printed cell does not report. */
 export function shapeProblems(registry: Registry): string[] {
   const problems: string[] = [];
   const known = new Set(registry.vocabulary);
@@ -259,6 +326,74 @@ export function shapeProblems(registry: Registry): string[] {
       if (inHeadline !== inLayers) {
         problems.push(
           `${law.id}: headline ${inHeadline ? "claims" : "omits"} "${token}" but layers ${inLayers ? "claim" : "omit"} it`,
+        );
+      }
+    }
+    const edged = new Set(law.edges.map((edge) => edge.port));
+    if (law.layers.includes(EDGE_LAYER)) {
+      for (const port of PORTS) {
+        if (!edged.has(port)) {
+          problems.push(
+            `${law.id}: layers claim "${EDGE_LAYER}" with no ${port} build edge — the floor is EVERY port, not the strongest one`,
+          );
+        }
+      }
+    } else if (law.edges.length > 0) {
+      problems.push(
+        `${law.id}: names a build edge but layers omit "${EDGE_LAYER}" — the printed cell would not report the wall`,
+      );
+    }
+  }
+  return problems;
+}
+
+/** THE EDGE POINTERS ARE RESOLVED, NEVER TRUSTED — the same bar this file's
+ *  header sets for fixture pointers, applied to the newest field. Every
+ *  `[[laws.edges]]` row must name a port the registry covers, resolve to a
+ *  non-empty path, and the text at that path must still contain the token the
+ *  row names. The token is the DECLARATION whose deletion removes the refusal,
+ *  so deleting the wall and leaving the row behind is red rather than green —
+ *  which is the whole difference between an edge that is evidence and an edge
+ *  that is a string. */
+export function edgeProblems(
+  registry: Registry,
+  resolve: Resolve,
+  readFile: (path: string) => string | null,
+): string[] {
+  const problems: string[] = [];
+  for (const law of registry.laws) {
+    for (const edge of law.edges) {
+      const at = `${law.id}/${edge.port}`;
+      if (!(PORTS as readonly string[]).includes(edge.port)) {
+        problems.push(`${at}: "${edge.port}" is not one of the registry's ports`);
+        continue;
+      }
+      if (edge.path === "" || edge.token === "") {
+        problems.push(`${at}: a build edge names both a path and the declaration that draws it`);
+        continue;
+      }
+      const state = resolve(edge.path);
+      if (state !== "present") {
+        problems.push(`${at}: build edge ${edge.path} is ${state}`);
+        continue;
+      }
+      const text = readFile(edge.path);
+      if (text === null) {
+        problems.push(`${at}: build edge ${edge.path} could not be read`);
+        continue;
+      }
+      // LIVE CODE ONLY. `includes` over the whole file counts a COMMENTED-OUT
+      // call, which is the single most common way an engineer disables a build
+      // wall — an adversarial reviewer commented out the five lines that draw
+      // the edge and this row stayed green. Comment bodies are stripped before
+      // the search, so a disabled edge reads as a deleted one, which is what it
+      // is. `//` and `/* */` cover both ports: Kotlin and Gradle Kotlin DSL
+      // share TypeScript's comment syntax.
+      const live = text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
+      if (!live.includes(edge.token)) {
+        problems.push(
+          `${at}: build edge ${edge.path} no longer declares "${edge.token}" in live code` +
+            ` (a commented-out declaration draws no edge)`,
         );
       }
     }
@@ -375,7 +510,7 @@ export const FOUR_CELL_ROW =
  *  census counts rows that state a layer ANYWHERE, and the caller asserts the
  *  count EQUALS the sixteen legitimate law rows rather than zero. */
 export const LAYER_ANYWHERE_IN_A_ROW =
-  /<tr>(?:(?!<\/tr>)[\s\S])*?<td[^>]*><strong>(?:Denying|Behavioral|Discipline|Impossible|Structural|Compiler)[\s\S]*?<\/tr>/g;
+  /<tr>(?:(?!<\/tr>)[\s\S])*?<td[^>]*><strong>(?:Configuration|Denying|Behavioral|Discipline|Impossible|Structural|Compiler)[\s\S]*?<\/tr>/g;
 
 /** The fourth column's header. Deleting it leaves a three-header table over
  *  four-cell rows, which no row-level read can see. */
