@@ -93,7 +93,7 @@ tasks.test {
 // had none: Date.now() inside a tool and an `fs` import in the domain both passed
 // a clean build.
 //
-// Fourteen checks now DENY, in two halves that run under ONE command:
+// Seventeen checks now DENY, in two halves that run under ONE command:
 //
 //   ./gradlew check
 //     ├── test                    Konsist + JUnit — C1, C2, C4-C8, C10-C13,

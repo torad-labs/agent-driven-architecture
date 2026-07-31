@@ -67,6 +67,14 @@ export type AnalysisCommand = RecallAnalysisCommand | PublishAnalysisCommand;
  *  through machinery that already ships. Publishing is not a side channel. */
 export interface PublishConclusion extends EffectBase {
   readonly kind: "PublishConclusion";
+  /** ROUTINE, and the classification is the REGISTRY'S rather than a judgement:
+   *  the verb that emits it (`publishAnalysis`) is registered `Reversible`
+   *  (blocks/analysis/tools.ts), and an effect class stricter than the verb that
+   *  earns it would make the reference refuse its own publish on every run. A
+   *  tier write is re-drivable and dedupes on `EffectKey` in RECOVERY. Promoting
+   *  it means promoting the VERB first, with the `requestedBy` lens 14.3
+   *  requires. */
+  readonly effectClass: "Routine";
   readonly text: string;
 }
 

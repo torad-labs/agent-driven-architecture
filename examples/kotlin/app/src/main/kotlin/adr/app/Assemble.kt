@@ -35,6 +35,7 @@ import adr.contract.EscalationResult
 import adr.contract.InboxResult
 import adr.contract.ToolResult
 import adr.contract.TriageResult
+import adr.spine.pure.Attributed
 import adr.spine.pure.Context
 import adr.spine.pure.MAX_CONTEXT_NOTICES
 import adr.spine.pure.Notice
@@ -63,7 +64,7 @@ class Assembly {
         results: List<ToolResult>,
         now: Timestamp,
         sig: Signature,
-    ): Pair<State, List<Effect>> {
+    ): Pair<State, List<Attributed>> {
         val triage = TriageBlock()
         val escalation = EscalationBlock()
         val console = ConsoleBlock()
@@ -72,55 +73,58 @@ class Assembly {
         val inbox = InboxBlock()
 
         var s = state
-        val effects = mutableListOf<Effect>()
+        // PER-EFFECT PROVENANCE (docs/DECISIONS.md:85). Each effect rides the result
+        // it came from, so the licence checked before `perform` is that result's own
+        // and not that of some other result that happened to survive in the same step.
+        val effects = mutableListOf<Attributed>()
         val notices = mutableListOf<Notice>()
 
         for (result in results) {
             when (result) {
                 is TriageResult -> triage.arm(s.triage, result, now, sig).let {
                     s = s.copy(triage = it.slice)
-                    effects += it.effects
+                    effects += it.effects.map { e -> Attributed(result, e) }
                     notices += it.notices
                 }
 
                 is EscalationResult -> escalation.arm(s.escalation, result, now, sig).let {
                     s = s.copy(escalation = it.slice)
-                    effects += it.effects
+                    effects += it.effects.map { e -> Attributed(result, e) }
                     notices += it.notices
                 }
 
                 is ConsoleResult -> console.arm(s.console, result, now, sig).let {
                     s = s.copy(console = it.slice)
-                    effects += it.effects
+                    effects += it.effects.map { e -> Attributed(result, e) }
                     notices += it.notices
                 }
 
                 is ArtifactResult -> artifact.arm(s.artifact, result, now, sig).let {
                     s = s.copy(artifact = it.slice)
-                    effects += it.effects
+                    effects += it.effects.map { e -> Attributed(result, e) }
                     notices += it.notices
                 }
 
                 is AnalysisResult -> analysis.arm(s.analysis, result, now, sig).let {
                     s = s.copy(analysis = it.slice)
-                    effects += it.effects
+                    effects += it.effects.map { e -> Attributed(result, e) }
                     notices += it.notices
                 }
 
                 is InboxResult -> inbox.arm(s.inbox, result, now, sig).let {
                     s = s.copy(inbox = it.slice)
-                    effects += it.effects
+                    effects += it.effects.map { e -> Attributed(result, e) }
                     notices += it.notices
                 }
 
                 // The spine's own two arms. Identical everywhere (§7).
                 is ToolResult.Unhandled -> SpineArms().unhandled(s.spine, result, now).let {
-                    effects += it.effects
+                    effects += it.effects.map { e -> Attributed(result, e) }
                     notices += it.notices
                 }
 
                 is ToolResult.Refused -> SpineArms().refused(s.spine, result, now).let {
-                    effects += it.effects
+                    effects += it.effects.map { e -> Attributed(result, e) }
                     notices += it.notices
                 }
             }

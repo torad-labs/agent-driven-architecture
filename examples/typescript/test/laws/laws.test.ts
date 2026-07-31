@@ -147,21 +147,28 @@ describe("laws.toml — the law registry parses, and says what the book says", (
     expect(shipped.registry.laws.map((l) => l.id)).toEqual(
       Array.from({ length: 16 }, (_, i) => `G${i + 1}`),
     );
-    // 38, not 29: C1, C7, C8 and C15 each hold two laws, so the table is keyed
+    // 42, not 33: C1, C7, C8 and C15 each hold two laws, so the table is keyed
     // per (law, port, check) and a structural deletion is a visible diff here.
-    expect(rows(shipped.registry).length).toBe(38);
+    // 38 -> 42: G6 gains C16 and C17 on BOTH ports — the two static halves of
+    // docs/DECISIONS.md:85-86.
+    expect(rows(shipped.registry).length).toBe(42);
   });
 
   it("LINT OWNERSHIP IS DERIVED — the eslint config source, not the roster token", () => {
     const derived = CHECKS.filter((c) => tsLintOwned(c.id)).map((c) => c.id);
-    // Non-empty and exactly fourteen: a change to the `[Cn]` tagging idiom must
+    // Non-empty and exactly fifteen: a change to the `[Cn]` tagging idiom must
     // fail LOUDLY here rather than quietly matching nothing (the C7 lesson).
-    expect(derived.length).toBe(14);
+    // 14 -> 15 with C16, which is tag-owned in this port and konsist-owned in
+    // the Kotlin one. C17 does NOT join it: like C13 it is a question about the
+    // TREE rather than about one file's syntax, so its home is vitest here and
+    // konsist there — two homes for one invariant, both denying.
+    expect(derived.length).toBe(15);
     expect(new Set(derived)).toEqual(
       new Set(CHECKS.filter((c) => c.by !== "vitest").map((c) => c.id)),
     );
-    // C13 is the sole id resolving via neither a tag nor a pinned rule id.
+    // C13 and C17 are the ids resolving via neither a tag nor a pinned rule id.
     expect(derived).not.toContain("C13");
+    expect(derived).not.toContain("C17");
     expect(tsLintOwned("C9")).toBe(true);
     // The Kotlin half is derived from the shipped konsist rule list.
     expect(ktKonsistOwned("C1")).toBe(true);
@@ -210,8 +217,12 @@ describe("laws.toml — the law registry parses, and says what the book says", (
   });
 
   it("(d) every check on each port's live roster traces to a law, per port", () => {
-    expect(kotlinRoster.size).toBe(15);
-    expect(tsRoster.size).toBe(15);
+    // 15 -> 17 in BOTH ports, together: C16 and C17 land on each port's own
+    // roster in that port's own home (eslint/vitest here, konsist there), and
+    // this pin is what makes the two rosters moving apart a red diff rather than
+    // a quiet divergence.
+    expect(kotlinRoster.size).toBe(17);
+    expect(tsRoster.size).toBe(17);
     expect([...PORTS]).toEqual(["typescript", "kotlin"]);
     expect(
       rosterProblems(shipped.registry, { typescript: tsRoster, kotlin: kotlinRoster }),

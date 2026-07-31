@@ -143,7 +143,7 @@ export async function main(out: Narrator): Promise<void> {
   app.controller.onAction({ tool: "confirmSeal", input: {} });
 
   // 6) Replay: re-fold ONLY the committed bytes and compare against the live run.
-  const replayed = refold(app.initial, app.bus.records(), app.dispatchers);
+  const replayed = refold(app.initial, app.bus.records(), app.dispatchers, app.licences);
   const same =
     JSON.stringify(replayed.state) === JSON.stringify(app.boundary.state) &&
     JSON.stringify(replayed.effects) === JSON.stringify(performed.performed);

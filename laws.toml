@@ -148,8 +148,8 @@ note = "No check denies a deciding surface today. The reference surfaces are pro
 id = "G6"
 name = "irreversible-action-gated"
 layers = ["denying-check", "behavioral"]
-headline = "Behavioral + one denying edge."
-note = "The gate's authority-vs-requester comparison and its committed verdict are exercised by tests; a denying check forbids minting the gate's <code>Refused</code> verdict anywhere else. Nothing statically proves every irreversible verb <em>routes through</em> the gate — that is the boundary's code path, structural but untested-by-denial."
+headline = "Behavioral + three denying edges."
+note = "The gate's authority-vs-requester comparison and its committed verdict are exercised by tests, and three denying checks fence the seam: one forbids minting the gate's <code>Refused</code> verdict anywhere else, one forbids opening the fold's attributed output outside the admission rule, and one forbids constructing an <code>Irreversible</code>-class effect anywhere but its own pinned site. So an effect reaches the perform seam only through a licence check keyed on the result it came from. What remains unproven by denial is the boundary's own code path: nothing statically proves the ordered steps stay in order."
 
 [[laws.checks]]
 port = "typescript"
@@ -166,6 +166,38 @@ home = "konsist+detekt"
 pair = "on-disk"
 violating = "examples/kotlin/src/test/fixtures/konsist/violating/C7"
 compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C7"
+
+[[laws.checks]]
+port = "typescript"
+id = "C16"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C16"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C16"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C16"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C16"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C16"
+
+[[laws.checks]]
+port = "typescript"
+id = "C17"
+home = "vitest"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C17"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C17"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C17"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C17"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C17"
 
 [[laws]]
 id = "G7"

@@ -42,7 +42,7 @@ describe("replay — a live run against its re-fold (G9)", () => {
     const h = harness({ start: 1000, step: 7 });
     driveFullSession(h);
 
-    const replayed = refold(h.app.initial, h.app.bus.records(), h.app.dispatchers);
+    const replayed = refold(h.app.initial, h.app.bus.records(), h.app.dispatchers, h.app.licences);
 
     expect(replayed.state).toEqual(h.app.boundary.state);
     // the FULL sequence: keys AND every `at`
@@ -63,7 +63,14 @@ describe("replay — a live run against its re-fold (G9)", () => {
 
     const replayWorld = fakeWorld();
     const replaySink = new RecordingSink(effectSink(replayWorld.ports));
-    collectPerform(h.app.initial, h.app.bus.records(), h.app.dispatchers, replaySink, "REPLAY");
+    collectPerform(
+      h.app.initial,
+      h.app.bus.records(),
+      h.app.dispatchers,
+      h.app.licences,
+      replaySink,
+      "REPLAY",
+    );
 
     // descriptors collected …
     expect(replaySink.performed).toEqual(h.sink.performed);
@@ -188,11 +195,12 @@ describe("schema evolution — an old-shape log replays only through its upcaste
 
     expect(lifted[0]?.schemaVersion).toBe(SCHEMA_VERSION);
 
-    const replayed = refold(h.app.initial, lifted, h.app.dispatchers);
+    const replayed = refold(h.app.initial, lifted, h.app.dispatchers, h.app.licences);
     expect(replayed.effects.map((keyed) => keyed.effect)).toEqual([
       {
         kind: "LogDecision",
         at: 1000,
+        effectClass: "Routine",
         ticket: "4118",
         level: "High",
         supersedes: "Normal",
@@ -229,11 +237,12 @@ describe("schema evolution — an old-shape log replays only through its upcaste
       },
     ];
 
-    const replayed = refold(h.app.initial, native, h.app.dispatchers);
+    const replayed = refold(h.app.initial, native, h.app.dispatchers, h.app.licences);
     expect(replayed.effects.map((keyed) => keyed.effect)).toEqual([
       {
         kind: "LogDecision",
         at: 1000,
+        effectClass: "Routine",
         ticket: "4118",
         level: "High",
         supersedes: "Normal",

@@ -125,7 +125,7 @@ class RelayTest {
         assertEquals("actually it is gateway C", relay.published().last().text)
 
         val records = tier.app.bus.records()
-        val replayed = Replay(Assembly()::fold).refold(tier.app.initial, records)
+        val replayed = Replay(Assembly()::fold, tier.app.admission).refold(tier.app.initial, records)
 
         assertEquals(
             Recall.Fresh("refunds spike on gateway B", Timestamp(500)),
@@ -143,6 +143,7 @@ class RelayTest {
             fold = Assembly()::fold,
             projectContext = Assembly()::context,
             promptVersion = "triage-prompt@1",
+            admission = tier.app.admission,
         )
         faithfulness.assertFaithful(
             initial = tier.app.initial,

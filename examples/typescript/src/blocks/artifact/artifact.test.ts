@@ -47,7 +47,7 @@ describe("blocks/artifact — a folded slice, delivered once at seal (G16)", () 
     });
     h.app.controller.onAction({ tool: "confirmSeal", input: {} });
 
-    const replayed = refold(h.app.initial, h.app.bus.records(), h.app.dispatchers);
+    const replayed = refold(h.app.initial, h.app.bus.records(), h.app.dispatchers, h.app.licences);
     expect(replayed.state.artifact).toEqual(h.app.boundary.state.artifact);
     expect(replayed.effects.filter((k) => k.effect.kind === "DeliverArtifact")).toEqual(
       h.sink.performed.filter((k) => k.effect.kind === "DeliverArtifact"),

@@ -129,7 +129,12 @@ describe("11.2 — a recall is captured, and replay never re-queries the relay",
     // "B"; a replay that reads committed bytes cannot.
     relay.text = "a completely different conclusion";
 
-    const replayed = refold(r.h.app.initial, r.h.app.bus.records(), r.h.app.dispatchers);
+    const replayed = refold(
+      r.h.app.initial,
+      r.h.app.bus.records(),
+      r.h.app.dispatchers,
+      r.h.app.licences,
+    );
     expect(replayed.state).toEqual(liveState);
     expect(replayed.effects).toEqual(r.h.sink.performed);
     expect(replayed.state.analysis.notes[0]).toEqual({

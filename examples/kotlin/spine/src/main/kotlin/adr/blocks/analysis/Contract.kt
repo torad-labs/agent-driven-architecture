@@ -16,6 +16,7 @@
 package adr.contract
 
 import adr.spine.pure.CommandId
+import adr.spine.pure.EffectClass
 import adr.spine.pure.Recall
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
@@ -67,7 +68,10 @@ sealed class AnalysisCommand(
     ) : AnalysisCommand(tool, sig, id)
 }
 
-sealed class AnalysisEffect(override val at: Timestamp) : Effect(at) {
+sealed class AnalysisEffect(
+    override val at: Timestamp,
+    effectClass: EffectClass,
+) : Effect(at, effectClass) {
     /**
      * The deep tier's own signed act. Emitted ONLY by the publish arm, so recalled
      * content cannot even reach the relay — let alone an irreversible effect.
@@ -75,9 +79,16 @@ sealed class AnalysisEffect(override val at: Timestamp) : Effect(at) {
      * Being an effect descriptor (14.2) buys the whole recovery story for free: it is
      * replay-stubbed in REPLAY mode and idempotency-keyed by EffectKey in RECOVERY,
      * through machinery that already ships.
+     *
+     * ROUTINE, and the classification is the REGISTRY'S rather than a judgement: the
+     * verb that emits it (`publishAnalysis`) is registered Reversible, and an effect
+     * class stricter than the verb that earns it would make the reference refuse its
+     * own publish on every run. A tier write is re-drivable and dedupes on EffectKey
+     * in RECOVERY. Promoting it means promoting the VERB first, with the
+     * `requestedBy` lens 14.3 requires.
      */
     data class PublishConclusion(
         override val at: Timestamp,
         val text: String,
-    ) : AnalysisEffect(at)
+    ) : AnalysisEffect(at, EffectClass.Routine)
 }

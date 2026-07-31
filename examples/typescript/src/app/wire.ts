@@ -79,7 +79,8 @@ import type { Scheduler } from "@adr/spine/ports/scheduler";
 import type { Sink } from "@adr/spine/ports/sink";
 import type { Actor, Authority } from "@adr/spine/pure/actor";
 import { authority } from "@adr/spine/pure/actor";
-import type { Diag, EffectHandler, Handlers } from "@adr/spine/pure/effect";
+import type { Diag, EffectHandler, Handlers, Licences } from "@adr/spine/pure/effect";
+import { licencesOf } from "@adr/spine/pure/effect";
 import type { Emit } from "@adr/spine/pure/emit";
 import type { SessionId } from "@adr/spine/pure/ids";
 import type { DrainMessage, InputPolicy } from "@adr/spine/pure/mailbox";
@@ -217,6 +218,12 @@ export interface App {
   readonly boundary: Boundary<State>;
   readonly controller: Controller<State, AppView>;
   readonly registry: Registry<State>;
+  /** The admission licences, DERIVED from the same registry the gate reads
+   *  (docs/DECISIONS.md:85). Published for the one reason `reducerVersion` is: a
+   *  replay site that re-derived them from its own table would be witnessing its
+   *  own copy, and the point of the rule is that the live path and every
+   *  re-derivation read ONE fact. */
+  readonly licences: Licences;
   readonly bus: Bus;
   readonly dispatchers: typeof dispatchers;
   readonly initial: State;
@@ -282,6 +289,7 @@ export function wireApp(env: Env): App {
     boundary,
     controller: new Controller<State, AppView>(boundary, project),
     registry,
+    licences: licencesOf(registry.values()),
     bus,
     dispatchers,
     initial,

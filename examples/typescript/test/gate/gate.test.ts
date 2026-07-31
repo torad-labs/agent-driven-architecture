@@ -454,6 +454,42 @@ describe("the workspace wall covers every package", () => {
   });
 });
 
+// ── C7's FORM half — the computed key, asserted on its own pair ────────────
+// The tag-keyed pair above goes green over a rule that matched NOTHING here:
+// `violating/C7` already emits `[C7]` from the enumerated-spelling rule, so the
+// widening would ship vacuous and unwatched — the C7-derivation rot in a new
+// costume. These assert the FORM rule's own message, per file.
+describe("C7 — a computed key is denied as a FORM, in every bucket", () => {
+  const COMPUTED = "a computed key spells a field under a name";
+
+  const byFile = async (kind: string): Promise<Record<string, number>> => {
+    const results = await eslint.lintFiles([join(FIXTURES, kind, "C7", "src")]);
+    const counts: Record<string, number> = {};
+    for (const r of results) {
+      const n = r.messages.filter((m) => m.message.includes(COMPUTED)).length;
+      if (n > 0) counts[basename(r.filePath)] = n;
+    }
+    return counts;
+  };
+
+  it("DENIES the computed spelling the enumerated key rule is blind to", async () => {
+    expect(await byFile("violating")).toEqual({ "project.ts": 1 });
+  });
+
+  it("ALLOWS every literal key — which is how the whole live tree is written", async () => {
+    expect(await byFile("compliant")).toEqual({});
+  });
+
+  it("rides EVERY bucket, because it is inside `bucket()` and not in one list", async () => {
+    // The measurement behind "costs nothing": the shipped tree writes zero
+    // computed object keys, so hoisting the denial into the helper is free.
+    const results = await eslint.lintFiles([join(ROOT, "src")]);
+    expect(results.flatMap((r) => r.messages.filter((m) => m.message.includes(COMPUTED)))).toEqual(
+      [],
+    );
+  });
+});
+
 // ── the gate cannot be silenced from inside a file (15.2, made structural) ──
 // `linterOptions.noInlineConfig` renders every inline directive inert. The
 // fixture below carries a file-wide `/* eslint-disable */` ABOVE a C3 violation:
@@ -477,8 +513,13 @@ describe("the gate runs against the shipped tree", () => {
     expect(messages).toEqual([]);
   });
 
-  it("ships fifteen checks — the count is not the point, the denial is", () => {
-    expect(CHECKS).toHaveLength(15);
+  it("ships seventeen checks — the count is not the point, the denial is", () => {
+    // 15 -> 17: C16 (only the admission rule opens the fold's attributed output)
+    // and C17 (an Irreversible-class effect is constructed only at its own
+    // pinned site) are the static half of docs/DECISIONS.md:85-86. They move this
+    // pin, the Kotlin roster, laws.toml's G6 rows and 15.3's cell together, and
+    // each of those is a diff a reviewer sees rather than a number that drifted.
+    expect(CHECKS).toHaveLength(17);
     expect(CHECKS.map((c) => c.id)).toEqual([
       "C1",
       "C2",
@@ -495,6 +536,8 @@ describe("the gate runs against the shipped tree", () => {
       "C13",
       "C14",
       "C15",
+      "C16",
+      "C17",
     ]);
   });
 
@@ -504,7 +547,7 @@ describe("the gate runs against the shipped tree", () => {
     expect(pkg.scripts.test).toContain("npm run lint");
   });
 
-  // This port's own arithmetic, PINNED — the same move as the fifteen-check pin
+  // This port's own arithmetic, PINNED — the same move as the seventeen-check pin
   // above. A counted claim that nothing measures is how "35 files" ships while
   // the tree holds 36, so the count lives HERE, where a spine file added or
   // removed is a diff. This port's README quotes the number; the README text is

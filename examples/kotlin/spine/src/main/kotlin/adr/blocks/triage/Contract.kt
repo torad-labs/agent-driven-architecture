@@ -14,6 +14,7 @@
 package adr.contract
 
 import adr.spine.pure.CommandId
+import adr.spine.pure.EffectClass
 import adr.spine.pure.Signature
 import adr.spine.pure.TicketId
 import adr.spine.pure.Timestamp
@@ -105,8 +106,12 @@ sealed class TriageCommand(
     ) : TriageCommand(tool, sig, id)
 }
 
-sealed class TriageEffect(override val at: Timestamp) : Effect(at) {
-    /** `supersedes` is derived BY THE FOLD from its own current state (4.3) — never by the tool. */
+sealed class TriageEffect(
+    override val at: Timestamp,
+    effectClass: EffectClass,
+) : Effect(at, effectClass) {
+    /** `supersedes` is derived BY THE FOLD from its own current state (4.3) — never by
+     *  the tool. ROUTINE: a line in a decision log, replayed and re-driven at no cost. */
     data class LogDecision(
         override val at: Timestamp,
         val ticket: TicketId,
@@ -119,5 +124,5 @@ sealed class TriageEffect(override val at: Timestamp) : Effect(at) {
          * its upcaster untestable by construction.
          */
         val reason: String?,
-    ) : TriageEffect(at)
+    ) : TriageEffect(at, EffectClass.Routine)
 }

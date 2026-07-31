@@ -69,7 +69,7 @@ class ReplayTest {
         val liveState = app.state
         val liveEffects = app.performed.toList()
 
-        val (state2, effects2) = Replay(Assembly()::fold).refold(app.initial, app.bus.records())
+        val (state2, effects2) = Replay(Assembly()::fold, app.admission).refold(app.initial, app.bus.records())
 
         assertEquals(liveState, state2, "state re-derives from the committed bytes")
         assertEquals(liveEffects, effects2, "so does the full effect sequence — keys AND timestamps")
@@ -83,6 +83,7 @@ class ReplayTest {
             fold = Assembly()::fold,
             projectContext = Assembly()::context,
             promptVersion = "triage-prompt@1",
+            admission = app.admission,
         ).assertFaithful(
             initial = app.initial,
             records = app.bus.records(),
@@ -117,7 +118,8 @@ class ReplayTest {
                 adr.app.DiagPerformer(replayLog),
             ),
         )
-        Replay(Assembly()::fold).collectPerform(app.initial, app.bus.records(), replaySink, PerformMode.REPLAY)
+        Replay(Assembly()::fold, app.admission)
+            .collectPerform(app.initial, app.bus.records(), replaySink, PerformMode.REPLAY)
 
         assertEquals(liveEffects, replaySink.performed, "descriptors collected…")
         assertEquals(pagesAfterLive, world.pages.size, "…and nothing fired")
@@ -132,7 +134,7 @@ class ReplayTest {
 
         // Drop one committed step: the re-fold must no longer match the live run.
         val truncated = app.bus.records().dropLast(1)
-        val (state2, _) = Replay(Assembly()::fold).refold(app.initial, truncated)
+        val (state2, _) = Replay(Assembly()::fold, app.admission).refold(app.initial, truncated)
         assertTrue(state2 != app.state, "a harness that cannot fail is not a harness")
     }
 
@@ -223,7 +225,7 @@ class ReplayTest {
 
         assertEquals(listOf(SchemaVersion(2)), lifted.map { it.schemaVersion })
 
-        val (state, effects) = Replay(Assembly()::fold).refold(app.initial, lifted)
+        val (state, effects) = Replay(Assembly()::fold, app.admission).refold(app.initial, lifted)
         assertEquals(
             listOf(
                 TriageEffect.LogDecision(
@@ -270,7 +272,7 @@ class ReplayTest {
             ),
         )
 
-        val (_, effects) = Replay(Assembly()::fold).refold(app.initial, native)
+        val (_, effects) = Replay(Assembly()::fold, app.admission).refold(app.initial, native)
         assertEquals(
             listOf("customer escalated"),
             effects.map { (it.effect as TriageEffect.LogDecision).reason },

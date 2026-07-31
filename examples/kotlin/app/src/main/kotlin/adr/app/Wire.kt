@@ -77,6 +77,7 @@ import adr.spine.ports.ModelProvider
 import adr.spine.ports.RelayRead
 import adr.spine.ports.Sink
 import adr.spine.pure.Action
+import adr.spine.pure.Admission
 import adr.spine.pure.Actor
 import adr.spine.pure.Authority
 import adr.spine.pure.BlockRegistration
@@ -290,6 +291,15 @@ class App(
 ) {
     val state: State get() = boundary.state
     val performed: List<KeyedEffect> get() = sink.performed
+
+    /**
+     * The admission rule, DERIVED from the same registry the boundary was handed
+     * (docs/DECISIONS.md:85). Published for [reducerVersion]'s reason: a replay site
+     * that built its own from a second table would be witnessing its own copy, and the
+     * whole point of the rule is that the live path and every re-derivation read ONE
+     * fact.
+     */
+    val admission: Admission = Admission(registry)
 }
 
 /**

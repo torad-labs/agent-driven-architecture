@@ -40,7 +40,7 @@ describe("G9 — `now` rides the committed record", () => {
 
     expect(h.app.bus.records().map((r) => r.now)).toEqual([1000, 1007, 1014]);
 
-    const replayed = refold(h.app.initial, h.app.bus.records(), h.app.dispatchers);
+    const replayed = refold(h.app.initial, h.app.bus.records(), h.app.dispatchers, h.app.licences);
     expect(replayed.effects.map((k) => k.effect.at)).toEqual(
       h.sink.performed.map((k) => k.effect.at),
     );
@@ -57,8 +57,22 @@ describe("G9 — RECOVERY re-drives a timeline exactly once", () => {
 
     const recovery = fakeWorld();
     const sink = new DedupingSink(effectSink(recovery.ports));
-    collectPerform(h.app.initial, h.app.bus.records(), h.app.dispatchers, sink, "RECOVERY");
-    collectPerform(h.app.initial, h.app.bus.records(), h.app.dispatchers, sink, "RECOVERY");
+    collectPerform(
+      h.app.initial,
+      h.app.bus.records(),
+      h.app.dispatchers,
+      h.app.licences,
+      sink,
+      "RECOVERY",
+    );
+    collectPerform(
+      h.app.initial,
+      h.app.bus.records(),
+      h.app.dispatchers,
+      h.app.licences,
+      sink,
+      "RECOVERY",
+    );
 
     expect(sink.fired.filter((k) => k.effect.kind === "PageOncall")).toHaveLength(1);
     expect(recovery.world.pages).toEqual(["4118"]);

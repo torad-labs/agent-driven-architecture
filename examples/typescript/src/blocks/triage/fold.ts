@@ -37,6 +37,7 @@ export function triageArm(
       const effect: LogDecision = {
         kind: "LogDecision",
         at: now,
+        effectClass: "Routine",
         ticket: r.ticket,
         level: r.level,
         supersedes: priorityOf(slice, r.ticket),

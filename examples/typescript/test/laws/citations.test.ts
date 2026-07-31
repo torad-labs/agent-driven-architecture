@@ -16,6 +16,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { CHECKS } from "../../eslint.config.js";
 import {
   BARE,
   bookSections,
@@ -156,7 +157,14 @@ const RESOLVABLE_PIN: Record<string, number> = {
   //   -1 build.gradle.kts — the must-fail harness's per-fixture claim is a parameter
   //      now, so one hard-coded sentence became two call-site strings.
   // Nothing was deleted from the id-and-section SET: before is a subset of after.
-  "examples/kotlin": 671,
+  // +13 (671 -> 684): the admission rule and the two new checks. §- and G-citing
+  // comment lines on `Attributed`/`Admission` in spine/pure/SpineSlice.kt, the class
+  // marker in spine/pure/Effect.kt, the two re-derivation loops and the digest-walk
+  // exemption in spine/replay/Replay.kt, the four block contracts that classify their
+  // leaf, C16's and C17's banners in test/gate/Rules.kt, and the two konsist fixture
+  // pairs. Every one cites a book section or a G-id; `docs/DECISIONS.md:85` is a PATH
+  // and is not a citation.
+  "examples/kotlin": 684,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -189,7 +197,12 @@ const RESOLVABLE_PIN: Record<string, number> = {
   //      finds; it cites G12 for the same reason.
   // src/spine/pure/effect.ts and the four block `handlers` tables add no citation
   // line, so they are absent above by measurement rather than by omission.
-  "examples/typescript": 449,
+  // +15 (449 -> 464): the same landing on this port. §-citing comment lines in
+  // spine/pure/effect.ts (the rule, the class marker and the residue note),
+  // spine/replay/replay.ts, app/assemble.ts, the four block contracts, eslint.config.js
+  // (C16 and C7's FORM half), test/gate/c17.ts, test/gate/c17.test.ts and the two
+  // eslint fixture pairs.
+  "examples/typescript": 464,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the
@@ -212,7 +225,13 @@ const FILE_PIN: Record<string, number> = {
   // +2 (182 -> 184): the exhaustive pair's out-of-block Root.kt stand-ins,
   // shipped in both polarities so the "and nowhere else" guard is a real
   // measurement (review proved it empty by construction).
-  "examples/kotlin": 184,
+  // +11 (184 -> 195): the admission probe (`src/test/kotlin/adr/spine/AdmissionTest.kt`)
+  // and TWO fixture pairs — C16 one file per polarity, C17 five violating (one per
+  // spelling plus the contract the derivation reads) and three compliant. No source
+  // file was added: the rule rides `spine/pure/SpineSlice.kt`, which already declared
+  // the fold contract it reads, so neither the 37-file spine roster nor the 49-file
+  // blocks/app roster moves.
+  "examples/kotlin": 195,
   // +19 (163 -> 182): the workspace wall, which is nineteen COUNTED non-source
   // files and not one line of new prose. Eight `package.json` and eight
   // `tsconfig.json` (the spine, the six blocks, the composition root), plus
@@ -233,7 +252,15 @@ const FILE_PIN: Record<string, number> = {
   // exhaustiveness harness drives. No source file was added: the block handler tables
   // ride the register.ts files that already existed, and the harness's scratch copy is
   // named `.work`, which the walk above already skips by entry name.
-  "examples/typescript": 185,
+  // +15 (185 -> 200): the admission probe (`test/spine/admission.test.ts`), C17's
+  // checker and its own test (`test/gate/c17.ts`, `test/gate/c17.test.ts`), C16's
+  // fixture PAIR, C17's fixture pair (five violating, three compliant), and the pair
+  // for C7's newly-closed computed-key hole — a widening that gets its own pair rather
+  // than riding C7's existing files, so it cannot ship vacuous. The count-coherence
+  // check is NOT among them: `test/laws` is this census's one path-scoped exclusion.
+  // No source file was added: `admit` rides `src/spine/pure/effect.ts`, which already
+  // declared `EffectBase`, so the 36-file spine roster does not move.
+  "examples/typescript": 200,
   wiki: 10,
 };
 
@@ -274,7 +301,7 @@ describe("citations resolve — one public namespace", () => {
     expect(MARKED.source).toBe("§\\s?(\\d{1,3}(?:\\.\\d+)*)");
     expect(BARE.source).toBe("(?<![\\w.§])(\\d{1,2}\\.\\d{1,2}(?:\\.\\d+)?)(?!\\d)");
     expect(LAW.source).toBe("\\bG\\d+\\b");
-    expect(CID.source).toBe("\\bC(?:1[0-5]|[1-9])\\b");
+    expect(CID.source).toBe("\\bC\\d{1,2}\\b");
     expect(COMMENT.source).toBe("^\\s*(\\/\\/|\\/\\*|\\*|#)");
     expect([...CODE]).toEqual([".ts", ".kt", ".kts", ".js", ".yml", ".yaml"]);
     expect([...DATA]).toEqual([".json", ".toml"]);
@@ -283,6 +310,25 @@ describe("citations resolve — one public namespace", () => {
     // The law-id set is DERIVED from the registry, never a hard-coded range.
     expect(lawIds.size).toBe(16);
     expect(lawIds.has("G17")).toBe(false);
+  });
+
+  it("THE CHECK-ID NAMESPACE COVERS THE WHOLE LIVE ROSTER — derived, not a range", () => {
+    // The hole this closes, measured: `\bC(?:1[0-5]|[1-9])\b` could not match
+    // "C16" — the `1[0-5]` alternative fails on the `6` and the `[1-9]`
+    // alternative leaves `\b` asserting between two word characters — so the
+    // FIRST id the next landing mints fell straight out of D30's denial while
+    // C15, one digit away, was caught. The bound is gone; this is the assertion
+    // that keeps the pattern bound to the roster instead, and it is DERIVED from
+    // the shipped config rather than re-listed here.
+    expect(CHECKS.length).toBeGreaterThan(15);
+    for (const check of CHECKS) {
+      expect(
+        [...`the gate ships ${check.id} today`.matchAll(CID)].map((m) => m[0]),
+        check.id,
+      ).toEqual([check.id]);
+    }
+    // …and it is not a rule that matches anything: an ordinary word is not an id.
+    expect([..."the Cn roster and G16".matchAll(CID)]).toEqual([]);
   });
 
   it("cites no retired review id anywhere", () => {

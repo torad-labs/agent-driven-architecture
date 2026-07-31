@@ -43,7 +43,9 @@ describe("blocks/escalation — the arm (§12.4)", () => {
       tier,
     );
 
-    expect(out.effects).toEqual([{ kind: "PageOncall", at: 9, ticket: "4118" }]);
+    expect(out.effects).toEqual([
+      { kind: "PageOncall", at: 9, effectClass: "Irreversible", ticket: "4118" },
+    ]);
     expect(out.slice.statuses.get("4118")).toEqual({
       kind: "Escalated",
       ticket: "4118",

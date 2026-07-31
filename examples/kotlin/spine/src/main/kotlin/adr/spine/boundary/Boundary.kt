@@ -19,6 +19,7 @@
 
 package adr.spine.boundary
 
+import adr.spine.pure.Admission
 import adr.spine.pure.Context
 import adr.spine.pure.ContextFixture
 import adr.spine.pure.CURRENT_SCHEMA
@@ -72,6 +73,14 @@ class Boundary<S>(
     /** Built here for the same reason, and a stronger one: a bindable gate is bypassable. */
     private val irreversibility = IrreversibilityGate(registry, policy)
 
+    /**
+     * Derived from the SAME registry the gate reads (docs/DECISIONS.md:85), so admission
+     * and the gate cannot disagree about which verbs are irreversible. The replay
+     * harness is handed one built from that same registry, which is what makes
+     * live == REPLAY == RECOVERY a property of the data rather than of two tables.
+     */
+    private val admission = Admission(registry)
+
     /** The bounded projection the reasoner sees right now — the loop stages it per step. */
     fun context(staged: List<StagedInput> = emptyList()): Context = projectContext(state, staged)
 
@@ -114,9 +123,12 @@ class Boundary<S>(
         // 8 — adopt the derived cache.
         state = next
 
-        // 9 — perform, with the key derived from the COMMITTED index (G9). This line
-        //     literally cannot run before step 7, because `index` does not exist until then.
-        effects.forEachIndexed { i, effect ->
+        // 9 — ADMIT, then perform with the key derived from the COMMITTED index (G9).
+        //     This line literally cannot run before step 7, because `index` does not
+        //     exist until then. The list handed to `perform` is FLAT: admission
+        //     SUBSTITUTES a diagnostic in place rather than dropping, so the
+        //     (step, index) key derivation is untouched.
+        admission.admit(effects).forEachIndexed { i, effect ->
             sink.perform(KeyedEffect(EffectKey(index, i), effect), PerformMode.LIVE)
         }
     }

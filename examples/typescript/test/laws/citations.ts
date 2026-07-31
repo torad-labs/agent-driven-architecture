@@ -83,7 +83,17 @@ export const RETIRED = /\b[FALD]\d+\b/g;
 export const MARKED = /§\s?(\d{1,3}(?:\.\d+)*)/g;
 export const BARE = /(?<![\w.§])(\d{1,2}\.\d{1,2}(?:\.\d+)?)(?!\d)/g;
 export const LAW = /\bG\d+\b/g;
-export const CID = /\bC(?:1[0-5]|[1-9])\b/g;
+/**
+ * THE CHECK-ID NAMESPACE (D30: check ids are roster internals, never book
+ * authority). NO CEILING, deliberately: the previous spelling enumerated
+ * `C1`-`C15` and stopped covering the namespace the day the roster grew — C16
+ * appended to the book read as ordinary prose while C15 one digit away was
+ * caught, so the denial had a hole at exactly the id the next landing mints.
+ * A bound that has to be edited in step with the roster is a bound that rots,
+ * so there is none; citations.test.ts asserts instead that the pattern COVERS
+ * every id on the LIVE roster, derived from the shipped eslint config.
+ */
+export const CID = /\bC\d{1,2}\b/g;
 
 /** The roots the census counts, in the order the floors are pinned. */
 export const ROOT_KEYS = ["examples/typescript", "examples/kotlin", "wiki", ".github"] as const;
