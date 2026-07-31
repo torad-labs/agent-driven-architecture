@@ -8,7 +8,7 @@
 // `npm run lint` and the tests below run the SAME rule objects over the same
 // path globs. There is no second implementation to drift.
 
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
@@ -19,6 +19,9 @@ import { must } from "../support/must";
 import { registryGaps } from "./totality";
 
 const ROOT = join(dirname(new URL(import.meta.url).pathname), "..", "..");
+/** the repository root — the sweep in scripts/wall.mjs walks from here, so the
+ *  no-committed-emission assertion has to walk the same tree it does. */
+const REPO_ROOT = join(ROOT, "..", "..");
 const FIXTURES = join(ROOT, "test", "gate", "fixtures");
 
 // `overrideConfigFile: true` means "load no config file" — so what runs below is
@@ -291,6 +294,7 @@ describe("the package-specifier route is denied, per rule", () => {
 describe("the workspace wall covers every package", () => {
   interface Manifest {
     readonly private?: boolean;
+    readonly version?: string;
     readonly publishConfig?: unknown;
     readonly workspaces?: readonly string[];
     readonly scripts?: Record<string, string>;
@@ -346,12 +350,67 @@ describe("the workspace wall covers every package", () => {
     }
   });
 
+  it("REFERENCES ARE THE WALL — a block may see the spine and nothing else", () => {
+    // `rootDir` denies a sibling reach only BECAUSE the sibling is unreferenced.
+    // An adversarial advocate pushed `{ path: "../artifact" }` into triage's
+    // references and the cross-block import RESOLVED — with the whole gate
+    // green, because composite/rootDir were both still intact. The reference
+    // list was the one part of the wall carrying no instrument, and it is the
+    // part C1/C2's sunset (v0.3.0) hands the whole job to.
+    for (const dir of declared.filter((d) => d.startsWith("src/blocks/"))) {
+      const cfg = JSON.parse(readFileSync(join(ROOT, dir, "tsconfig.json"), "utf8")) as {
+        readonly references?: readonly { readonly path: string }[];
+      };
+      expect(
+        cfg.references?.map((r) => r.path),
+        dir,
+      ).toEqual(["../../spine"]);
+    }
+  });
+
+  it("NO COMMITTED EMISSION — the wall's sweep keys on siblinghood, so the tree must have none", () => {
+    // scripts/wall.mjs identifies an inherited dropping as a `.js`/`.d.ts` with
+    // a same-base-name source beside it. That rule is only safe while the tree
+    // commits no such pair; this is the assertion that keeps it true, so a
+    // hand-written `foo.d.ts` beside `foo.ts` is a red test rather than a file
+    // the wall silently eats.
+    const emitted: string[] = [];
+    const walkTree = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (
+          ["node_modules", ".tsbuild", ".git", "build", ".gradle", ".claude"].includes(entry.name)
+        ) {
+          continue;
+        }
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walkTree(full);
+          continue;
+        }
+        for (const ext of [".d.ts.map", ".d.ts", ".js.map", ".js"]) {
+          if (!full.endsWith(ext)) continue;
+          const base = full.slice(0, -ext.length);
+          if (existsSync(`${base}.ts`) || (ext.startsWith(".d.ts") && existsSync(`${base}.js`))) {
+            emitted.push(full.slice(REPO_ROOT.length + 1));
+          }
+          break;
+        }
+      }
+    };
+    walkTree(REPO_ROOT);
+    expect(emitted).toEqual([]);
+  });
+
   it("publishes NONE of them — the spine is a vendored template, not a package", () => {
     // The wall and the template-forever decision have to coexist: the packages
     // exist for the wall and no registry ever sees one. `private` is the switch
     // npm honours; `publishConfig` is the field that would quietly undo it.
     for (const dir of declared) {
       expect(manifest(dir).private, dir).toBe(true);
+      // and no version to rot: every manifest's own `//private` note claims
+      // this, and nothing checked it until an advocate pushed a version string
+      // into a block manifest and watched the whole suite stay green.
+      expect(manifest(dir).version, dir).toBeUndefined();
       expect(manifest(dir).publishConfig, dir).toBeUndefined();
     }
     expect(root.private).toBe(true);
