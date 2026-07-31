@@ -42,7 +42,13 @@ export function artifactArm(
       if (slice.seal.requestedBy === null) {
         return armOut(slice, [], [rejected(now, r.tool, "no pending seal request")]);
       }
-      const delivery: DeliverArtifact = { kind: "DeliverArtifact", at: now, lines: slice.lines };
+      // THE ONE PINNED CONSTRUCTION SITE for this leaf (check C17).
+      const delivery: DeliverArtifact = {
+        kind: "DeliverArtifact",
+        at: now,
+        effectClass: "Irreversible",
+        lines: slice.lines,
+      };
       return armOut(withSeal(slice, sealed(now, sig.authority)), [delivery], []);
     }
     default: {

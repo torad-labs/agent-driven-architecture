@@ -21,6 +21,8 @@ import type { IdSource } from "../ports/id-source";
 import type { Sink } from "../ports/sink";
 import { Signature } from "../pure/actor";
 import { render } from "../pure/context";
+import type { Licences } from "../pure/effect";
+import { admit, licencesOf } from "../pure/effect";
 import type { SessionId, StepIndex } from "../pure/ids";
 import { keyedEffect } from "../pure/keyed-effect";
 import { SCHEMA_VERSION, type StepRecord } from "../pure/step-record";
@@ -44,11 +46,19 @@ export interface BoundaryDeps<S> extends Dispatchers<S> {
 export class Boundary<S> {
   private current: S;
 
+  /** DERIVED FROM THE REGISTRY THE GATE ALREADY READ, so admission and the gate
+   *  cannot disagree about which verbs are irreversible (docs/DECISIONS.md:85).
+   *  The same value is published by the root and handed to the replay harness,
+   *  which is what makes live == REPLAY == RECOVERY a property of the data
+   *  rather than of two independently-maintained tables. */
+  private readonly licences: Licences;
+
   constructor(
     private readonly deps: BoundaryDeps<S>,
     initial: S,
   ) {
     this.current = initial;
+    this.licences = licencesOf(deps.registry.values());
   }
 
   get state(): S {
@@ -98,8 +108,11 @@ export class Boundary<S> {
     // 8  adopt the derived cache
     this.current = folded.state;
 
-    // 9  key from the COMMITTED index (G9) — unavailable until step 7 returned
-    folded.effects.forEach((effect, i) => {
+    // 9  ADMIT, then key from the COMMITTED index (G9) — the index is
+    //    unavailable until step 7 returned, and the list handed to `perform` is
+    //    FLAT: admission SUBSTITUTES a diagnostic in place rather than dropping,
+    //    so the (step, index) key derivation is untouched.
+    admit(this.licences, folded.effects).forEach((effect, i) => {
       this.deps.sink.perform(keyedEffect(index, i, effect), "LIVE");
     });
 

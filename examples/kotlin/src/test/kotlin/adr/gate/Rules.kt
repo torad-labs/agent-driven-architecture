@@ -1,7 +1,8 @@
 // ── test/gate/rules — the structural half of the gate (15.2) ──────────────
-// Eleven denying checks, written against Konsist's parse tree. The other three
-// (C3, C9, C14) need the compiler's TYPES and live in config/detekt/gate.yml; the
-// roster in GateTest.kt names all fourteen and where each one runs.
+// Thirteen denying checks, written against Konsist's parse tree. Three more
+// (C3, C9, C14) need the compiler's TYPES and live in config/detekt/gate.yml, and
+// C13 is a reflection check over values; the roster in GateTest.kt names all
+// seventeen and where each one runs.
 //
 // 15.1 stakes the architecture's answer to its own central problem on machine
 // enforcement, and the review measured (15.2) that ZERO checks shipped: Date.now() inside a tool
@@ -33,6 +34,52 @@ internal val PURE_BLOCK_FILES = setOf("Tools.kt", "Fold.kt", "Project.kt", "Slic
 
 /** The only three transport symbols in `adr.contract` that the SPINE itself owns (C15). */
 private val SPINE_OWNED_TRANSPORT = setOf("ToolResult", "Command", "Effect")
+
+/** The one file that implements the admission rule, and therefore the one file that
+ *  may name the attributed output's members at all (C16). `internal`, like the other
+ *  anchors this file publishes, so GateTest can pin it against the live tree. */
+internal const val ADMISSION_HOME = "spine/pure/SpineSlice.kt"
+
+/** The member C16 keys on. PRIVATE in [ADMISSION_HOME], and pinned as private by
+ *  GateTest's ANCHORS — this rule is the tripwire on the widening, not the wall. */
+internal const val ATTRIBUTION_MEMBER = "emitted"
+
+/** The package Kotlin's sealed rule forces every transport declaration into (G12). */
+internal const val CONTRACT_PACKAGE = "adr.contract"
+
+/** One leaf's licence: WHERE it may be constructed, and HOW MANY TIMES there. */
+internal data class EffectSite(val path: String, val constructions: Int)
+
+/**
+ * THE PINNED PER-LEAF SITE ROSTER for C17, declared as DATA beside the check.
+ *
+ * One entry per Irreversible effect leaf: the file whose arm is allowed to CONSTRUCT
+ * it, and the NUMBER of constructions that file may hold. A leaf with NO entry is
+ * constructible nowhere, which is the fail-closed direction.
+ *
+ * THE COUNT IS THE HALF THAT MATTERS, and it is what a per-FILE roster alone cannot
+ * do. `blocks/escalation/Fold.kt` holds BOTH the Reversible verb's branch and the
+ * Irreversible one's, so a file-level licence would let the REVERSIBLE branch
+ * construct a page — the exact shape docs/DECISIONS.md:86 names — inside the one file
+ * the rule has to allow. Pinning the count closes that: a second construction
+ * appearing in that file is a red diff wherever in the file it sits, and it is red
+ * under EVERY spelling, because the spellings are summed.
+ *
+ * Moving or adding a construction is a deliberate edit HERE with a reason beside it,
+ * never a rule quietly loosened. GateTest pins that every entry really constructs its
+ * leaf, so a moved site fails at the ANCHOR rather than going vacuous.
+ */
+internal val IRREVERSIBLE_SITES: Map<String, EffectSite> = mapOf(
+    // the Irreversible verb `confirmEscalation`'s own success branch — once
+    "PageOncall" to EffectSite("blocks/escalation/Fold.kt", 1),
+    // the Irreversible verb `confirmSeal`'s own success branch — once, at seal time
+    "DeliverArtifact" to EffectSite("blocks/artifact/Fold.kt", 1),
+)
+
+/** One Irreversible effect leaf, DERIVED from the contracts — never enumerated. */
+internal data class IrreversibleLeaf(val union: String, val name: String) {
+    val fullyQualified: String get() = "$CONTRACT_PACKAGE.$union.$name"
+}
 
 val CHECKS: List<Check> = listOf(
 
@@ -294,6 +341,116 @@ val CHECKS: List<Check> = listOf(
         }
     },
 
+    // C16 — G6: the fold's ATTRIBUTED output is opened by the ADMISSION RULE and by
+    // nothing else (docs/DECISIONS.md:85).
+    //
+    // THE WALL IS THE LANGUAGE, NOT THIS RULE. `Attributed` holds `from` and `emitted`
+    // as PRIVATE constructor properties and publishes exactly one member, `admit`, so
+    // `attributed.emitted`, `with(a) { emitted }` and `val (_, e) = attributed` are all
+    // COMPILE errors — the last one because the class is deliberately not a `data`
+    // class, so no `componentN()` exists. That is the same move `Signature` makes one
+    // seam over: the wrong thing is unwritable rather than merely discouraged.
+    //
+    // What this rule is, therefore, is a TRIPWIRE on the one edit that would turn the
+    // wall back into a convention: widening the visibility. GateTest's ANCHORS test
+    // pins the private shape itself, so the two halves watch each other.
+    //
+    // A PROPERTY READ, AND ONLY THAT — the DOTTED form, never the bare token. Two
+    // things follow, and both were measured on this tree before the clause was written:
+    // a NAMED-ARGUMENT construction (`Attributed(from = from, emitted = effect)`) stays
+    // legal, and so does ordinary English prose in a KDoc attached to a declaration.
+    // `codeText` excludes only the file-HEADER comment blocks; a declaration's own KDoc
+    // is inside it, so a token scan would red the build on a sentence about what an arm
+    // emitted — 15.2's "a nuisance authors turn off", with ForbiddenSuppress locked and
+    // no exit.
+    Check("C16", "only the admission rule opens the fold's attributed output") { files ->
+        val read = Regex("""\.\s*${Regex.escape(ATTRIBUTION_MEMBER)}\b""")
+        files.filterNot { it.path == ADMISSION_HOME }
+            .filter { read.containsMatchIn(it.codeText) }
+            .map {
+                Violation(
+                    it.path,
+                    "reads `.$ATTRIBUTION_MEMBER`; an effect reaches perform through `admit`",
+                )
+            }
+    },
+
+    // C17 — G6, and docs/DECISIONS.md:86's NOW layer verbatim: "a static check denies
+    // Irreversible-class effects from Reversible-classified verbs' arms".
+    //
+    // DERIVED, NEVER ENUMERATED. The leaf set is read out of the contracts — every
+    // `Effect` leaf whose own SUPERCLASS CALL passes `EffectClass.Irreversible` — so a
+    // leaf promoted from Routine is covered the moment its contract says so. The same
+    // idiom C7 uses for transport variants, and for the same reason: a hand-listed set
+    // stops covering the tree the day the tree moves.
+    //
+    // MATCH vs CONSTRUCTION, the line C7's banner already draws: `is X ->` is a MATCH
+    // and stays legal everywhere; `X(` is a CONSTRUCTION and does not — outside the
+    // leaf's own pinned site in [IRREVERSIBLE_SITES], and beyond the COUNT that site is
+    // pinned to, which is the half a per-file roster cannot express.
+    //
+    // THE SPELLINGS THIS RESOLVES, AND THE ONE IT CANNOT — stated, because a wall's
+    // written scope is what SOUND is judged against, and this one's is narrower than
+    // the class. Resolved per file from its own imports and typealiases: the
+    // union-qualified, aliased, typealiased, nested-class-imported and fully-qualified
+    // spellings, each counted on its own. NOT resolved: a WILDCARD import
+    // (`import adr.contract.*`), which puts every leaf in scope under a bare name this
+    // check cannot enumerate — an adversarial reviewer landed exactly that and the gate
+    // stayed green, on the third round of the same class after aliases and typealiases.
+    //
+    // WHY THAT RESIDUE IS NOT CLOSED HERE, AND WHERE IT IS. Konsist models
+    // DECLARATIONS, not resolved expressions (Tree.kt's banner), so this check is a text
+    // matcher over declaration bodies, and "any construction of an Irreversible leaf, in
+    // any spelling" is not a class a text matcher can close — three rounds of adding
+    // spellings measured that. The TOTAL wall is the runtime one:
+    // `EffectAdmission.admit`, applied in the SHARED re-derivation (Replay's three fold
+    // loops and the boundary alike, docs/DECISIONS.md:85-89), which refuses on the
+    // effect's own CLASS regardless of how the construction was spelled or where it was
+    // written. This check is a fast author-time signal for the ordinary spellings, not
+    // the guarantee — and a scope proposal to close the wildcard case belongs at a layer
+    // that sees resolved types (detekt with type resolution, or a must-fail compilation
+    // fixture), never as a sixth spelling in this list.
+    //
+    // SCOPE: production sources only. `liveTree()` reads `src/main/kotlin/adr` and
+    // nothing else, so the admission probes' rogue folds — which construct exactly this
+    // shape, deliberately — stay legal. A C17 that reds the probe proving the runtime
+    // half of docs/DECISIONS.md:85 is a C17 that made the runtime half unshippable.
+    Check("C17", "an Irreversible effect is constructed only at its own pinned site (ordinary spellings; the runtime admission is the total wall)") { files ->
+        val leaves = GateFacts().irreversibleLeaves(files)
+        files.flatMap { file ->
+            leaves.flatMap { leaf ->
+                val site = IRREVERSIBLE_SITES[leaf.name]
+                val spellings = GateFacts().spellingsOf(file, leaf).sorted()
+                if (site?.path == file.path) {
+                    // THE COUNT HALF, at the one file that may construct this leaf.
+                    val held = spellings.sumOf { GateTrees().constructions(file.codeText, it) }
+                    if (held == site.constructions) {
+                        emptyList()
+                    } else {
+                        listOf(
+                            Violation(
+                                file.path,
+                                "is pinned to ${site.constructions} construction(s) of " +
+                                    "`${leaf.name}` and holds $held — a second one in a " +
+                                    "Reversible verb's branch is the shape the roster denies",
+                            ),
+                        )
+                    }
+                } else {
+                    spellings
+                        .filter { GateTrees().constructions(file.codeText, it) > 0 }
+                        .map {
+                            Violation(
+                                file.path,
+                                "constructs the Irreversible effect leaf `$it(…)`; its only " +
+                                    "pinned site is `${site?.path ?: "(none)"}`",
+                            )
+                        }
+                }
+            }
+        }
+    },
+
     // C15 — G14: THE SPINE TIER IS SELF-CONTAINED, therefore vendorable.
     //
     // 1.3 used to promise "zero of their source lives in your repository" for the
@@ -391,4 +548,62 @@ internal class GateFacts {
                 }
             classUnions + interfaceUnions
         }.toSet()
+
+    /**
+     * EVERY IRREVERSIBLE EFFECT LEAF, DERIVED from the contracts (C17).
+     *
+     * A leaf is a class whose direct parent is an effect sub-union and whose own name
+     * does not itself end in `Effect` — the same shape GateTest's effect census reads —
+     * and it is IRREVERSIBLE when its SUPERCLASS CALL passes `EffectClass.Irreversible`.
+     * Reading the superclass CALL rather than a property is what makes the
+     * classification unlaunderable: a leaf's public constructor has no such parameter,
+     * so no arm and no `copy()` can move an effect between classes.
+     */
+    fun irreversibleLeaves(files: List<GateFile>): Set<IrreversibleLeaf> =
+        files.flatMap { file -> file.file.classes(includeNested = true) }
+            .filterNot { it.name.endsWith("Effect") }
+            .mapNotNull { cls ->
+                val union = cls.parents(indirectParents = false)
+                    .map { it.name }
+                    .firstOrNull { it.endsWith("Effect") }
+                if (union != null && IRREVERSIBLE_CALL.containsMatchIn(cls.text)) {
+                    IrreversibleLeaf(union, cls.name)
+                } else {
+                    null
+                }
+            }
+            .toSet()
+
+    /**
+     * WHAT [leaf] IS CALLED INSIDE [file] — every spelling that would CONSTRUCT it,
+     * resolved from this file's own imports and typealiases rather than from a frozen
+     * list (C17).
+     */
+    fun spellingsOf(file: GateFile, leaf: IrreversibleLeaf): Set<String> {
+        val names = mutableSetOf(leaf.fullyQualified)
+        val unions = mutableSetOf<String>()
+        // Kotlin's sealed rule puts every transport declaration in ONE package, so a
+        // file that already lives there needs no import to name the union.
+        if (file.packageName == CONTRACT_PACKAGE) unions += leaf.union
+        file.importLines.forEach { line ->
+            val body = line.removePrefix("import").trim()
+            val path = body.substringBefore(" as ").trim()
+            val alias = if (" as " in body) body.substringAfterLast(" as ").trim() else null
+            if (path == leaf.fullyQualified) names += (alias ?: leaf.name)
+            if (path == "$CONTRACT_PACKAGE.${leaf.union}") unions += (alias ?: leaf.union)
+        }
+        names += unions.map { "$it.${leaf.name}" }
+        file.typeAliases.forEach { (alias, right) ->
+            if (right in names) names += alias
+            if (right in unions || right == "$CONTRACT_PACKAGE.${leaf.union}") {
+                names += "$alias.${leaf.name}"
+            }
+        }
+        return names
+    }
 }
+
+/** The superclass call that CLASSIFIES a leaf — `: SomeEffect(at, EffectClass.Irreversible)`.
+ *  Anchored on the delegation call so a mention in a KDoc cannot be read as a
+ *  classification. */
+private val IRREVERSIBLE_CALL = Regex(""":\s*[\w.]+\s*\([^)]*EffectClass\.Irreversible""")

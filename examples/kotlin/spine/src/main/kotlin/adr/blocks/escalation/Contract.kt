@@ -6,6 +6,7 @@
 package adr.contract
 
 import adr.spine.pure.CommandId
+import adr.spine.pure.EffectClass
 import adr.spine.pure.Signature
 import adr.spine.pure.TicketId
 import adr.spine.pure.Timestamp
@@ -62,10 +63,19 @@ sealed class EscalationCommand(
     ) : EscalationCommand(tool, sig, id)
 }
 
-sealed class EscalationEffect(override val at: Timestamp) : Effect(at) {
-    /** IRREVERSIBLE. Fires only inside the confirm arm's success branch. */
+sealed class EscalationEffect(
+    override val at: Timestamp,
+    effectClass: EffectClass,
+) : Effect(at, effectClass) {
+    /**
+     * IRREVERSIBLE. Fires only inside the confirm arm's success branch — a human is
+     * woken — so the class is fixed in the SUPERCLASS CALL below rather than in this
+     * leaf's own constructor: no arm has an argument to launder it with, and
+     * `copy()` covers only `(at, ticket)` (docs/DECISIONS.md:85). Gate check C17
+     * denies constructing this leaf anywhere but the escalation arm.
+     */
     data class PageOncall(
         override val at: Timestamp,
         val ticket: TicketId,
-    ) : EscalationEffect(at)
+    ) : EscalationEffect(at, EffectClass.Irreversible)
 }

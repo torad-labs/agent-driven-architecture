@@ -29,6 +29,7 @@ describe("blocks/triage — the arm reads state before it decides (§12.4)", () 
       {
         kind: "LogDecision",
         at: 5,
+        effectClass: "Routine",
         ticket: "4118",
         level: "High",
         supersedes: "Normal",

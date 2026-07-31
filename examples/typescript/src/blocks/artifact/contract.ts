@@ -57,6 +57,10 @@ export type ArtifactCommand = RecordFindingCommand | RequestSealCommand | Confir
  *  re-derives. */
 export interface DeliverArtifact extends EffectBase {
   readonly kind: "DeliverArtifact";
+  /** IRREVERSIBLE: the work product leaves the system. Its verb `confirmSeal` is
+   *  the registry's other `Irreversible` row — the same fact stated at the other
+   *  end of the same step (docs/DECISIONS.md:85). */
+  readonly effectClass: "Irreversible";
   readonly lines: readonly ArtifactLine[];
 }
 

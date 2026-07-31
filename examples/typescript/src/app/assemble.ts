@@ -1,5 +1,5 @@
 // ── app/assemble — THE THREE TOTAL DISPATCHERS (G12) ────────────────────────
-//   fold            results → (State, Effect[])      the only decider
+//   fold            results → (State, Attributed[])  the only decider
 //   project         State   → ViewModel              the Presenter (6.9)
 //   projectContext  State   → Context                the reasoner's input (G15)
 //
@@ -25,6 +25,8 @@ import { triage } from "@adr/block-triage/register";
 import type { Signature } from "@adr/spine/pure/actor";
 import type { Context } from "@adr/spine/pure/context";
 import { bounded, MAX_CONTEXT_NOTICES } from "@adr/spine/pure/context";
+import type { Attributed, EffectBase } from "@adr/spine/pure/effect";
+import { attributed } from "@adr/spine/pure/effect";
 import type { Timestamp } from "@adr/spine/pure/ids";
 import type { Notice } from "@adr/spine/pure/notice";
 import { renderNotice } from "@adr/spine/pure/notice";
@@ -34,7 +36,15 @@ import type { ToolResultBase } from "@adr/spine/pure/tool-result";
 import type { ArmOut, FoldOut } from "@adr/spine/pure/verb";
 import { spineView } from "@adr/spine/pure/view";
 
-import type { AppView, Effect, OkResult, State, ToolResult } from "./contract";
+import type { AppView, OkResult, State, ToolResult } from "./contract";
+
+/** What ONE arm produced, before the effects are attributed. Local, because the
+ *  spine's `FoldOut` is the ATTRIBUTED shape and only this loop can attribute:
+ *  the result is in hand here and nowhere below (docs/DECISIONS.md:85). */
+interface Emitted {
+  readonly state: State;
+  readonly effects: readonly EffectBase[];
+}
 
 export function fold(
   state: State,
@@ -43,16 +53,19 @@ export function fold(
   sig: Signature,
 ): FoldOut<State> {
   let current = state;
-  const effects: Effect[] = [];
+  const effects: Attributed[] = [];
   for (const r of results) {
     const out = foldOne(current, r, now, sig);
     current = out.state;
-    effects.push(...(out.effects as readonly Effect[]));
+    // PER-EFFECT PROVENANCE. The licence checked before `perform` is the licence
+    // of the result THIS effect came from — never of some other result that
+    // happened to survive in the same step.
+    for (const e of out.effects) effects.push(attributed(r, e));
   }
   return { state: current, effects };
 }
 
-function foldOne(state: State, r: ToolResult, now: Timestamp, sig: Signature): FoldOut<State> {
+function foldOne(state: State, r: ToolResult, now: Timestamp, sig: Signature): Emitted {
   switch (r.outcome) {
     // The spine's own two arms, identical in every application (§7): a
     // diagnostic and a per-item notice; no transition, no domain effect.
@@ -73,7 +86,7 @@ function foldOne(state: State, r: ToolResult, now: Timestamp, sig: Signature): F
   }
 }
 
-function foldOk(state: State, r: OkResult, now: Timestamp, sig: Signature): FoldOut<State> {
+function foldOk(state: State, r: OkResult, now: Timestamp, sig: Signature): Emitted {
   if (triage.owns(r)) {
     return merge(triage.arm(state.triage, r, now, sig), (slice) => ({ ...state, triage: slice }));
   }
@@ -130,7 +143,7 @@ function foldOk(state: State, r: OkResult, now: Timestamp, sig: Signature): Fold
 /** A block's arm returns its own slice plus per-item notices; the notices land
  *  in the SPINE's slice, so a block never has to know that notices exist as a
  *  cross-cutting concern — and never has a way to touch RunStatus (12.4). */
-function merge<S>(out: ArmOut<S>, put: (slice: S) => State): FoldOut<State> {
+function merge<S>(out: ArmOut<S>, put: (slice: S) => State): Emitted {
   const next = put(out.slice);
   return {
     state: { ...next, spine: withNotices(next.spine, out.notices as readonly Notice[]) },

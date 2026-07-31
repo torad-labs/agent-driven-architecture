@@ -27,7 +27,12 @@ export function analysisArm(
       // recall's own `publishedAt` is what makes the age replayable.
       return armOut(withNote(slice, { at: now, recall: r.recall }), [], []);
     case "publishAnalysis": {
-      const effect: PublishConclusion = { kind: "PublishConclusion", at: now, text: r.text };
+      const effect: PublishConclusion = {
+        kind: "PublishConclusion",
+        at: now,
+        effectClass: "Routine",
+        text: r.text,
+      };
       return armOut(withPublished(slice, r.text), [effect], []);
     }
     default: {

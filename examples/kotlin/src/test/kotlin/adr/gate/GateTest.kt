@@ -70,24 +70,33 @@ class GateTest {
 
     @Test fun `C15 - the spine tier is self-contained and vendorable`() = verify("C15")
 
+    @Test fun `C16 - only the admission rule opens the fold's attributed output`() = verify("C16")
+
+    @Test fun `C17 - an Irreversible effect is constructed only at its own site`() = verify("C17")
+
     /**
-     * The roster. Fifteen checks, three homes, and every one of them denying.
+     * The roster. Seventeen checks, three homes, and every one of them denying.
      *
      * This test exists so the count cannot quietly drop: deleting a rule deletes a
      * row here too, which is a diff a reviewer sees. 15.3's "roughly four dozen
-     * checks" is not the claim being made — the reference ships fifteen, and the
+     * checks" is not the claim being made — the reference ships seventeen, and the
      * point is the denial, not the count.
      */
     @Test
-    fun `THE ROSTER - all fifteen checks ship, and each one is enforced somewhere`() {
+    fun `THE ROSTER - all seventeen checks ship, and each one is enforced somewhere`() {
         val roster = mapOf(
             "C1" to "konsist", "C2" to "konsist", "C3" to "detekt",
             "C4" to "konsist+detekt", "C5" to "konsist", "C6" to "konsist+detekt",
             "C7" to "konsist+detekt", "C8" to "konsist", "C9" to "detekt",
             "C10" to "konsist", "C11" to "konsist", "C12" to "konsist",
             "C13" to "junit-reflection", "C14" to "detekt", "C15" to "konsist",
+            // 15 -> 17: the two static halves of docs/DECISIONS.md:85-86. The
+            // TypeScript port moves the same pin in the same landing, in its own
+            // homes (eslint for C16, vitest for C17), so the two rosters cannot
+            // drift apart unnoticed.
+            "C16" to "konsist", "C17" to "konsist",
         )
-        assertEquals(15, roster.size)
+        assertEquals(17, roster.size)
 
         // Every check the roster says Konsist owns is really implemented here…
         val konsistOwned = roster.filterValues { it.contains("konsist") }.keys
@@ -108,7 +117,7 @@ class GateTest {
     }
 
     /**
-     * This port's own arithmetic, PINNED — the same move as the fifteen-check
+     * This port's own arithmetic, PINNED — the same move as the seventeen-check
      * roster above. A counted claim that nothing measures is how "35 files" ships
      * while the tree holds 37, so the count lives HERE, where a spine file added
      * or removed is a diff. This port's README quotes the number; the README text
@@ -387,6 +396,51 @@ class GateTest {
         // stamp types exist where STAMP_TYPES points.
         listOf("Ctx", "StagedInput", "Perceived", "Recalled", "Actor", "Authority", "Signature")
             .forEach { assertTrue(declares(it), "C4 keys on `$it`, which no live file declares") }
+
+        // C16 keys on a MEMBER NAME and on the path of the file that declares it — and
+        // on that member being PRIVATE, which is the actual wall. A widening of the
+        // visibility would leave the rule matching nothing while its own frozen fixtures
+        // kept its block-test green: the C7 rot, one seam over.
+        val home = live.single { it.path == ADMISSION_HOME }
+        val attributed = home.file.classes(includeNested = true).single { it.name == "Attributed" }
+        val member = attributed.primaryConstructor?.parameters.orEmpty()
+            .single { it.name == ATTRIBUTION_MEMBER }
+        assertTrue(
+            member.hasModifier(com.lemonappdev.konsist.api.KoModifier.PRIVATE),
+            "`Attributed.$ATTRIBUTION_MEMBER` must stay PRIVATE — C16 is the tripwire on " +
+                "that widening, not the wall itself",
+        )
+        assertTrue(
+            !attributed.hasDataModifier,
+            "`Attributed` must not be a data class: `componentN()` would be a second " +
+                "spelling of the read C16 denies, invisible to any text rule",
+        )
+
+        // C17's derivation is NON-EMPTY, is EXACTLY the two leaves the tree declares,
+        // and each pinned site really constructs its leaf the pinned number of times. A
+        // derivation that walked to nothing agrees with any tree at all — the direct pin
+        // on the rot that shipped.
+        val irreversible = GateFacts().irreversibleLeaves(live)
+        assertEquals(
+            setOf("DeliverArtifact", "PageOncall"),
+            irreversible.map { it.name }.toSet(),
+            "C17's Irreversible-leaf derivation moved — it is going vacuous",
+        )
+        assertEquals(irreversible.map { it.name }.toSet(), IRREVERSIBLE_SITES.keys)
+        val c17 = CHECKS.single { it.id == "C17" }
+        irreversible.forEach { leaf ->
+            val pinned = IRREVERSIBLE_SITES.getValue(leaf.name)
+            val site = live.single { it.path == pinned.path }
+            val held = GateFacts().spellingsOf(site, leaf)
+                .sumOf { GateTrees().constructions(site.codeText, it) }
+            assertEquals(
+                pinned.constructions,
+                held,
+                "${leaf.name}'s pinned site ${site.path} no longer constructs it exactly " +
+                    "${pinned.constructions} time(s) — the roster is watching a file that moved",
+            )
+        }
+        assertEquals(emptyList(), c17.run(live), "C17 must pass on the live tree")
 
         // C5 and C6 key on these import names.
         listOf("KeyedEffect", "EffectKey", "RunStatus")

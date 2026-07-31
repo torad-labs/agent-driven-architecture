@@ -30,7 +30,8 @@
 
 import type { PerformMode, Sink } from "../ports/sink";
 import { render } from "../pure/context";
-import type { EffectBase } from "../pure/effect";
+import type { EffectBase, Licences } from "../pure/effect";
+import { admit } from "../pure/effect";
 import type { SourceKey, Timestamp } from "../pure/ids";
 import type { KeyedEffect } from "../pure/keyed-effect";
 import { keyedEffect } from "../pure/keyed-effect";
@@ -51,13 +52,19 @@ export function refold<S>(
   initial: S,
   records: readonly StepRecord[],
   dispatchers: Dispatchers<S>,
+  licences: Licences,
 ): Refolded<S> {
   let state = initial;
   const effects: KeyedEffect<EffectBase>[] = [];
   records.forEach((record, step) => {
     const out = dispatchers.fold(state, record.results, record.now, record.sig);
     state = out.state;
-    out.effects.forEach((effect, index) => effects.push(keyedEffect(step, index, effect)));
+    // THE SAME `admit` THE BOUNDARY APPLIED, over the same committed results
+    // (docs/DECISIONS.md:85). A re-derivation that skipped it would perform, on
+    // restart, exactly the effect the live boundary refused.
+    admit(licences, out.effects).forEach((effect, index) =>
+      effects.push(keyedEffect(step, index, effect)),
+    );
   });
   return { state, effects };
 }
@@ -87,9 +94,10 @@ export function stateAtStep<S>(
   initial: S,
   records: readonly StepRecord[],
   dispatchers: Dispatchers<S>,
+  licences: Licences,
   k: number,
 ): Refolded<S> {
-  return refold(initial, records.slice(0, Math.max(0, k)), dispatchers);
+  return refold(initial, records.slice(0, Math.max(0, k)), dispatchers, licences);
 }
 
 /** Drive the perform seam over a committed timeline. In REPLAY the sink must
@@ -99,10 +107,13 @@ export function collectPerform<S>(
   initial: S,
   records: readonly StepRecord[],
   dispatchers: Dispatchers<S>,
+  licences: Licences,
   sink: Sink,
   mode: PerformMode,
 ): void {
-  refold(initial, records, dispatchers).effects.forEach((keyed) => sink.perform(keyed, mode));
+  refold(initial, records, dispatchers, licences).effects.forEach((keyed) =>
+    sink.perform(keyed, mode),
+  );
 }
 
 /** The durable dedupe scope, re-derived from the bus alone (12.2): every
@@ -130,6 +141,10 @@ export function contextDivergence<S>(
     if (digest !== record.context.digest) {
       problems.push(`step ${step}: context digest diverged`);
     }
+    // NO ADMISSION HERE, and it is not an omission: this loop reads `.state`
+    // only and derives no effect sequence at all, so there is nothing to admit.
+    // The three sites that DO derive effects are `refold`, `refoldFrom`'s own
+    // loop, and boundary step 9 (docs/DECISIONS.md:85).
     state = dispatchers.fold(state, record.results, record.now, record.sig).state;
   });
   return problems;
@@ -265,13 +280,14 @@ export function snapshotAt<S>(
   initial: S,
   records: readonly StepRecord[],
   dispatchers: Dispatchers<S>,
+  licences: Licences,
   at: number,
   reducerVersion: string,
 ): Snapshot<S> {
   const prefix = records.slice(0, Math.max(at, 0));
   const last = prefix[prefix.length - 1];
   return {
-    ...refold(initial, prefix, dispatchers),
+    ...refold(initial, prefix, dispatchers, licences),
     tag: {
       reducerVersion,
       offset: prefix.length,
@@ -311,6 +327,7 @@ export function refoldFrom<S>(
   snapshot: Snapshot<S>,
   tail: TimelineTail,
   dispatchers: Dispatchers<S>,
+  licences: Licences,
   reducerVersion: string,
 ): Resume<S> {
   if (snapshot.tag.reducerVersion !== reducerVersion) {
@@ -343,10 +360,17 @@ export function refoldFrom<S>(
   const effects: KeyedEffect<EffectBase>[] = [...snapshot.effects];
   // equal to `tag.offset` by the guard above; the log's own number is the one
   // these records actually sit at, so it is the one the keys are minted from.
+  // THE SECOND FOLD LOOP. `refoldFrom` does not call `refold` — it re-implements
+  // the loop over a tail whose keys start at the log's own offset — so it needs
+  // its OWN `admit`. Deleting it here alone leaves `refold` green and a
+  // snapshot-resume performing what the boundary refused; that mutant is run in
+  // test/spine/admission.test.ts.
   tail.records.forEach((record, index) => {
     const out = dispatchers.fold(state, record.results, record.now, record.sig);
     state = out.state;
-    out.effects.forEach((effect, i) => effects.push(keyedEffect(tail.from + index, i, effect)));
+    admit(licences, out.effects).forEach((effect, i) =>
+      effects.push(keyedEffect(tail.from + index, i, effect)),
+    );
   });
   return { kind: "Resumed", refolded: { state, effects } };
 }

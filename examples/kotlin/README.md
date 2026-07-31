@@ -183,14 +183,14 @@ check` runs it for you. See `gateExhaustiveBlockTest` below.
 
 ---
 
-## The architecture gate (15 denying checks)
+## The architecture gate (17 denying checks)
 
 15.1 stakes the architecture's answer to its own central problem on **machine enforcement**, and 15.4
 closes with "the payoff the whole reference promises is contingent on these checks being present and
 blocking." The previously shipped ports had **none**: `Date.now()` inside a tool and an `fs` import in
 the domain both passed a clean build.
 
-Fifteen checks now deny, across three mechanisms, all under `./gradlew check`. There is no warning
+Seventeen checks now deny, across three mechanisms, all under `./gradlew check`. There is no warning
 tier, no baseline file, and no `ignoreFailures` on any task that defends the live tree.
 
 | id | Invariant | Enforced by |
@@ -213,6 +213,8 @@ tier, no baseline file, and no `ignoreFailures` on any task that defends the liv
 | C13 | registry totality plus handler totality, and §6.8's one-name-per-verb law | JUnit + reflection |
 | C14 | G3 — the agent loop is a declaration: no branching, no looping | detekt `CyclomaticComplexMethod` |
 | C15 | G14 — the spine tier is self-contained: `spine/**` names no block and no root | Konsist |
+| C16 | G6 — only the admission rule opens the fold's attributed output, so an effect reaches perform through `admit` | Konsist |
+| C17 | G6 — an Irreversible-class effect is constructed only at its own pinned site, never in a Reversible verb's arm | Konsist |
 
 **Why C15 is not redundant with C1.** C1 is a per-folder **allow**-list; C15 is a tier-level
 **denial** that no per-folder rule can accidentally relax, and it survives a future spine folder

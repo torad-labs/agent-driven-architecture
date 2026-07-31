@@ -5,10 +5,12 @@
 // inside a tool body and an `fs` import in the domain file both compiled clean,
 // 8/8 green, no CI, no lint config, no rule of any kind.
 //
-// Fifteen checks. FOURTEEN LIVE HERE, in ordinary ESLint rules that any
-// TypeScript team already runs; C13 (registry totality plus handler totality) is
-// a vitest check,
-// because it is a question about values, not syntax. All fifteen DENY — `npm
+// Seventeen checks. FIFTEEN LIVE HERE, in ordinary ESLint rules that any
+// TypeScript team already runs; C13 (registry totality plus handler totality)
+// and C17 (no Irreversible-class effect constructed outside its pinned site) are
+// vitest checks,
+// because each is a question about VALUES or about the TREE, not about one
+// file's syntax. All seventeen DENY — `npm
 // run lint` exits non-zero — and every one ships a BLOCK-test and an ALLOW-test
 // (test/gate/gate.test.ts over test/gate/fixtures/). There is no warning tier.
 //
@@ -24,7 +26,7 @@
 
 import tseslint from "typescript-eslint";
 
-// ── the fifteen ─────────────────────────────────────────────────────────────
+// ── the seventeen ───────────────────────────────────────────────────────────
 // `by` is how test/gate/gate.test.ts attributes a lint message to a check:
 // "tag" matches the `[Cn]` marker every message below carries, "rule" matches a
 // whole rule id whose own wording we do not author.
@@ -44,6 +46,8 @@ export const CHECKS = [
   { id: "C13", invariant: "registry totality plus handler totality — every ok result has a Verb that signs, and every declared Effect kind has a registered handler", by: "vitest", rule: "" },
   { id: "C14", invariant: "G3 — the loop is a declaration", by: "tag", rule: "" },
   { id: "C15", invariant: "G14 — the spine tier is self-contained and vendorable", by: "tag", rule: "" },
+  { id: "C16", invariant: "G6 — only the admission rule opens the fold's attributed output", by: "tag", rule: "" },
+  { id: "C17", invariant: "G6 — an Irreversible-class effect is constructed only at its own pinned site, never in a Reversible verb's arm", by: "vitest", rule: "" },
 ];
 
 // ── import-specifier vocabulary ─────────────────────────────────────────────
@@ -394,6 +398,73 @@ const C4_SHAPE = [
   },
 ];
 
+// C7, THIRD half — the FORM every key-named selector in this file is blind to.
+//
+// `ObjectExpression > Property[key.name="outcome"]` below, `Property[key.name=
+// "emitted"]` in C16, and every other key-keyed rule here read a NAME off the
+// parse tree. `{ ["out" + "come"]: "ok" }` and `{ ["emitted"]: e }` spell the
+// same field with a computed key and are, to all of them, invisible.
+//
+// So the FORM is denied rather than each spelling enumerated. That is a
+// DELIBERATE WIDENING of C7's existing coverage: the literal rule below has had
+// this hole since it was written, and closing it is asserted on its own fixture
+// pair in test/gate/gate.test.ts. It rides EVERY bucket from inside `bucket()`
+// for the same reason NO_DYNAMIC_IMPORT does — a table with one escape hatch is
+// not a table — and it costs nothing today, because the whole live tree writes
+// every object key literally (measured: zero hits, asserted as a standing test).
+//
+// THE ACCEPTED COST, stated so the next author is not surprised: this denies a
+// LEGITIMATE computed key anywhere in any bucket — `({ [k]: v })` in an ordinary
+// file is now a `[C7]` error. §15.2's remedy for a rule that has become a
+// nuisance is to AMEND THE RULE WITH ITS FIXTURE PAIR and re-prove it both ways.
+// It is never to suppress: an inline directive is itself a gate failure
+// (`linterOptions.noInlineConfig`), and there is no third option.
+const C7_COMPUTED = [
+  {
+    selector: "ObjectExpression > Property[computed=true]",
+    message: "[C7] a computed key spells a field under a name no key-named rule in this gate can read — every object key in this tree is written literally",
+  },
+  {
+    selector: "ObjectPattern > Property[computed=true]",
+    message: "[C7] a computed key spells a field under a name no key-named rule in this gate can read — every object key in this tree is written literally",
+  },
+];
+
+// C16 — G6: the fold's ATTRIBUTED output is opened by the admission rule and by
+// nothing else (docs/DECISIONS.md:85).
+//
+// THE WALL IS THE LANGUAGE, NOT THIS RULE. `Attributed` (spine/pure/effect.ts)
+// holds its two halves in `#`-private fields and publishes exactly one method,
+// `admit`, so `a.emitted` does not exist to be written and no destructuring,
+// spread or computed access can reach it. The Kotlin port makes the same move
+// with private constructor properties. What this rule is, therefore, is a
+// TRIPWIRE: it fires the instant a future author widens the field back out into
+// an ordinary public member, which is the one edit that would turn the wall back
+// into a convention. test/gate/anchors.test.ts pins the private shape itself.
+//
+// PROPERTY-READ ONLY, and never the bare token: `[property.type!="PrivateIdentifier"]`
+// keeps the rule off the rule's own implementation, so no bucket needs an
+// exemption flag and there is no per-file carve-out to spread. A KDoc or comment
+// naming the word is not a member access and cannot trip it either.
+//
+// THE ACCEPTED COST: `m.emitted` on an unrelated object is denied tree-wide.
+// That is the FORM being denied rather than the spelling enumerated; §15.2's
+// remedy is to amend the rule with its fixture pair, never to suppress.
+const C16 = [
+  {
+    selector: 'MemberExpression[property.type!="PrivateIdentifier"][property.name="emitted"]',
+    message: "[C16] only the admission rule opens the fold's attributed output — an effect reaches `perform` through `admit`, never by field access",
+  },
+  {
+    selector: 'MemberExpression[computed=true][property.value="emitted"]',
+    message: "[C16] only the admission rule opens the fold's attributed output — a computed member access is the same read one keystroke apart",
+  },
+  {
+    selector: 'ObjectPattern > Property[key.name="emitted"]',
+    message: "[C16] only the admission rule opens the fold's attributed output — destructuring is the same read with the dot moved",
+  },
+];
+
 // C7, second half — a ToolResult is an object literal with an `outcome` key.
 // (`r.outcome === "ok"` is a READ, and reads are everywhere they should be.)
 //
@@ -501,9 +572,12 @@ const bucket = (files, { imports, syntax, globals = [], mintsStamp = false }) =>
   rules: {
     ...C9_RULE,
     "no-restricted-imports": imports.length === 0 ? "off" : ["error", { patterns: imports }],
-    // NO_DYNAMIC_IMPORT and C4_LAUNDER ride every bucket, so a bucket added
-    // later is denied both by DEFAULT: an import table with an escape hatch is
-    // not a table, and a stamp with a second publication site is not a stamp.
+    // NO_DYNAMIC_IMPORT, C4_LAUNDER, C7_COMPUTED and C16 ride every bucket, so a
+    // bucket added later is denied all four by DEFAULT: an import table with an
+    // escape hatch is not a table, and a stamp with a second publication site is
+    // not a stamp. None of the four takes an exemption flag — C16 is written
+    // against the PUBLIC member only, so the file that implements the rule needs
+    // no carve-out and there is no per-file flag here that could spread.
     // `mintsStamp` TRADES one wall for another rather than switching a wall
     // off — the minting bucket loses C4_MINT and gains C4_SEAL — which is what
     // keeps the single exemption watched from both sides.
@@ -511,6 +585,8 @@ const bucket = (files, { imports, syntax, globals = [], mintsStamp = false }) =>
       "error",
       ...NO_DYNAMIC_IMPORT,
       ...C4_LAUNDER,
+      ...C7_COMPUTED,
+      ...C16,
       ...(mintsStamp ? C4_SEAL : []),
       ...syntax,
     ],

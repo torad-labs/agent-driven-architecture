@@ -25,6 +25,10 @@ import type { Actor, Authority } from "../../src/spine/pure/actor";
 import { authority, Signature } from "../../src/spine/pure/actor";
 // C7_LITERAL rides the `outcome` key of BOTH transport bases:
 import type { CommandBase } from "../../src/spine/pure/command";
+// C16 keys on the member `Attributed` must NOT publish, and the admission
+// rule's own totality rides `EffectClass`:
+import type { EffectBase, EffectClass } from "../../src/spine/pure/effect";
+import { attributed } from "../../src/spine/pure/effect";
 // C5 keys on these:
 import type { EffectKey, KeyedEffect } from "../../src/spine/pure/keyed-effect";
 import { keyedEffect, keyOf } from "../../src/spine/pure/keyed-effect";
@@ -64,6 +68,7 @@ type TypeAnchors = [
   Recalled,
   ToolResultBase,
   Ctx<unknown>,
+  EffectClass,
 ];
 
 describe("the gate's anchors hold", () => {
@@ -99,6 +104,33 @@ describe("the gate's anchors hold", () => {
     expect(outcomeRidesBoth).toBe("outcome");
     const anchors: TypeAnchors | null = null;
     expect(anchors).toBeNull();
+  });
+
+  it("C16's anchor: `Attributed` publishes ONLY `admit` — the halves are #-private", () => {
+    // C16 denies READING `emitted`. The wall underneath it is that there is no
+    // `emitted` to read: `Attributed` holds both halves in `#`-private fields,
+    // so every spelling of the read — dotted, computed, destructured, spread —
+    // is a language-level error rather than a lint message. Widen the field back
+    // into an ordinary public member and C16 becomes the only thing standing
+    // there; this pin is what makes that widening a RED diff instead of a quiet
+    // downgrade. (The same move `Signature` makes one seam over: the wrong thing
+    // is unwritable rather than merely discouraged.)
+    const one = attributed(
+      { outcome: "ok", tool: "setPriority" } as unknown as ToolResultBase,
+      { kind: "Diag", at: 1, effectClass: "Routine", note: "x" } as unknown as EffectBase,
+    );
+    // the public surface is exactly one method…
+    expect(Object.getOwnPropertyNames(one)).toEqual([]);
+    expect(Object.getOwnPropertyNames(Object.getPrototypeOf(one) as object).sort()).toEqual([
+      "admit",
+      "constructor",
+    ]);
+    // …and no enumerable route reaches either half.
+    expect(JSON.parse(JSON.stringify(one))).toEqual({});
+    // the class marker every effect leaf must answer is still on the BASE, so
+    // the admission rule's totality is the compiler's and not a convention.
+    const classRidesTheBase: keyof EffectBase = "effectClass";
+    expect(classRidesTheBase).toBe("effectClass");
   });
 
   it("the block rosters are pinned — the filenames the buckets scope by cannot drift silently", () => {

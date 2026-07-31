@@ -14,7 +14,7 @@
 import type { Authority, Signature } from "./actor";
 import type { CommandBase } from "./command";
 import type { Context } from "./context";
-import type { EffectBase } from "./effect";
+import type { Attributed, EffectBase } from "./effect";
 import type { CommandId, RawInput, Timestamp, ToolName } from "./ids";
 import type { Notice } from "./notice";
 import type { StagedInput } from "./staged";
@@ -161,9 +161,14 @@ export function armOut<S>(
 }
 
 // ── What the root contributes back to the spine ─────────────────────────────
+// `effects` is ATTRIBUTED, not bare. An `Attributed` has no `kind` and no `at`,
+// so it is not an `EffectBase` and `keyedEffect(step, i, …)` will not take one:
+// the only route from what the fold returned to what the sink performs is
+// `admit` (spine/pure/effect.ts), which is what makes the refusal a property of
+// the DERIVATION rather than of the live path (docs/DECISIONS.md:85).
 export interface FoldOut<S> {
   readonly state: S;
-  readonly effects: readonly EffectBase[];
+  readonly effects: readonly Attributed[];
 }
 
 /** The two total dispatchers the impure seam needs. Declared with METHOD syntax

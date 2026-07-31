@@ -18,7 +18,7 @@
 // (`SKIPPED_PATHS` in citations.test.ts), so this file adds no citation credit
 // and cannot move the `examples/typescript` RESOLVABLE_PIN. It is a document
 // check, not a code check, which is also why it is not a gate CHECK: the gate's
-// fifteen checks read Kotlin and TypeScript trees, not HTML.
+// seventeen checks read Kotlin and TypeScript trees, not HTML.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";

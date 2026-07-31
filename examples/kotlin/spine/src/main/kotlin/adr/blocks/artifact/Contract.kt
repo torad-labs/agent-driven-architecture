@@ -11,6 +11,7 @@ package adr.contract
 
 import adr.spine.pure.Actor
 import adr.spine.pure.CommandId
+import adr.spine.pure.EffectClass
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 import adr.spine.pure.ToolName
@@ -82,10 +83,15 @@ sealed class ArtifactCommand(
     ) : ArtifactCommand(tool, sig, id)
 }
 
-sealed class ArtifactEffect(override val at: Timestamp) : Effect(at) {
-    /** IRREVERSIBLE, and it fires exactly ONCE, at seal time — never once per line. */
+sealed class ArtifactEffect(
+    override val at: Timestamp,
+    effectClass: EffectClass,
+) : Effect(at, effectClass) {
+    /** IRREVERSIBLE, and it fires exactly ONCE, at seal time — never once per line: the
+     *  work product leaves the system. Its verb `confirmSeal` is the registry's other
+     *  Irreversible row — the same fact stated at the other end of the same step. */
     data class DeliverArtifact(
         override val at: Timestamp,
         val lines: List<ArtifactResult.ArtifactLine>,
-    ) : ArtifactEffect(at)
+    ) : ArtifactEffect(at, EffectClass.Irreversible)
 }

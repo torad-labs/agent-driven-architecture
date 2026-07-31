@@ -330,7 +330,7 @@ definition and was measured to catch nothing. What is asserted is a live run aga
 
 ## The gate (§15.2)
 
-Fifteen checks, each **denying** (`npm run lint` exits non-zero), each with one **block-test** and
+Seventeen checks, each **denying** (`npm run lint` exits non-zero), each with one **block-test** and
 one **allow-test** over `test/gate/fixtures/`. There is no warning tier.
 
 | id | Invariant |
@@ -350,8 +350,10 @@ one **allow-test** over `test/gate/fixtures/`. There is no warning tier.
 | C13 | registry totality plus handler totality — every declared result case has a `Verb` entry that signs, and every declared `Effect` kind has a registered handler |
 | C14 | G3 — the loop is a declaration, not a program |
 | C15 | G14 — the spine tier is self-contained: `spine/**` names no block and no root |
+| C16 | G6 — only the admission rule opens the fold's attributed output: an effect reaches `perform` through `admit`, never by field access |
+| C17 | G6 — an Irreversible-class effect is constructed only at its own pinned site, never in a Reversible verb's arm |
 
-**Boring tooling on purpose.** Fourteen of the fifteen are ordinary ESLint rules in
+**Boring tooling on purpose.** Fifteen of the seventeen are ordinary ESLint rules in
 `eslint.config.js` — `no-restricted-imports` (with one allow-list regex per folder, which is §1.3's
 import table written out verbatim), `no-restricted-syntax` (the forbidden-call list) and the
 type-aware `@typescript-eslint/switch-exhaustiveness-check`. Nothing is a bespoke analyser, so you
@@ -363,7 +365,7 @@ so the block-tests and allow-tests run the same rule objects `npm run lint` runs
 implementation to drift.
 
 **Every check has been watched deny.** Each rule was introduced as a violation into the real tree,
-the gate was run, the denial observed, and the edit reverted — for all fifteen. Sample:
+the gate was run, the denial observed, and the edit reverted — for all seventeen. Sample:
 
 ```
 $ npx eslint .    # after adding `import type { TriageSlice } from "../../blocks/triage/slice"` to spine/replay/replay.ts

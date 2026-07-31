@@ -51,7 +51,15 @@ export function escalationArm(
           [rejected(now, r.tool, `ticket ${r.ticket} has no pending request`)],
         );
       }
-      const page: PageOncall = { kind: "PageOncall", at: now, ticket: r.ticket };
+      // THE ONE PINNED CONSTRUCTION SITE for this leaf (check C17): an
+      // Irreversible-class effect is constructed in the arm of the Irreversible
+      // verb that earns it, and nowhere else in the tree.
+      const page: PageOncall = {
+        kind: "PageOncall",
+        at: now,
+        effectClass: "Irreversible",
+        ticket: r.ticket,
+      };
       return armOut(withStatus(slice, escalated(r.ticket, sig.authority)), [page], []);
     }
     default: {

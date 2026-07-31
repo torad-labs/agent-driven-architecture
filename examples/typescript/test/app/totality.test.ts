@@ -30,7 +30,7 @@ import { signResult } from "../../src/spine/boundary/action";
 import { handlerSink, movingClock } from "../../src/spine/boundary/in-memory";
 import { authority, Signature } from "../../src/spine/pure/actor";
 import type { Handlers } from "../../src/spine/pure/effect";
-import { ORPHAN_EFFECT } from "../../src/spine/pure/effect";
+import { admit, ORPHAN_EFFECT } from "../../src/spine/pure/effect";
 import type { Timestamp } from "../../src/spine/pure/ids";
 import { keyedEffect } from "../../src/spine/pure/keyed-effect";
 import { refused } from "../../src/spine/pure/tool-result";
@@ -159,7 +159,11 @@ describe("an unclaimed result folds observably instead of crashing (§6.5)", () 
     const out = fold(state, [stale], 1 as Timestamp, sig);
 
     expect(out.effects).toHaveLength(1);
-    expect(out.effects[0]).toMatchObject({ kind: "Diag" });
+    // The fold's output is ATTRIBUTED now (docs/DECISIONS.md:85): each effect
+    // rides the committed result it came from, and the ONLY way to read what an
+    // arm emitted is the admission rule itself — which passes a `Routine`
+    // effect through untouched, licence or no licence.
+    expect(admit(new Set(), out.effects)[0]).toMatchObject({ kind: "Diag" });
     const notices = out.state.spine.notices;
     expect(notices).toHaveLength(1);
     expect(notices[0]).toMatchObject({ kind: "Rejected", tool: "resolveTicket" });
@@ -227,7 +231,12 @@ describe("C13 — handler totality", () => {
       ports.log(`[diag @${effect.at}] ${effect.note}`),
     );
 
-    const orphan: PageOncall = { kind: "PageOncall", at: 7 as Timestamp, ticket: "4118" };
+    const orphan: PageOncall = {
+      kind: "PageOncall",
+      at: 7 as Timestamp,
+      effectClass: "Irreversible",
+      ticket: "4118",
+    };
     sink.perform(keyedEffect(0, 0, orphan), "LIVE");
 
     expect(log).toEqual([`[diag @7] ${ORPHAN_EFFECT} \`PageOncall\``]);
@@ -239,7 +248,12 @@ describe("C13 — handler totality", () => {
     const { log, ports } = rig();
     const sink = effectSink(ports);
     sink.perform(
-      keyedEffect(0, 0, { kind: "PageOncall", at: 7 as Timestamp, ticket: "4118" }),
+      keyedEffect(0, 0, {
+        kind: "PageOncall",
+        at: 7 as Timestamp,
+        effectClass: "Irreversible",
+        ticket: "4118",
+      } satisfies PageOncall),
       "REPLAY",
     );
     expect(log).toEqual([]);

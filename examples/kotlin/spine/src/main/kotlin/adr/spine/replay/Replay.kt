@@ -15,10 +15,10 @@
 //
 // TWO CONSTRUCTED HOSTS, no top-level functions:
 //
-//     Replay(fold).refold(initial, records)                       -> RefoldOutcome
-//     Replay(fold).stateAtStep(initial, records, k)               -> the same, over a PREFIX
-//     Replay(fold).collectPerform(initial, records, sink, mode)
-//     ReplayFaithfulness(fold, projectContext, promptVersion)
+//     Replay(fold, admission).refold(initial, records)            -> RefoldOutcome
+//     Replay(fold, admission).stateAtStep(initial, records, k)    -> the same, over a PREFIX
+//     Replay(fold, admission).collectPerform(initial, records, sink, mode)
+//     ReplayFaithfulness(fold, projectContext, promptVersion, admission)
 //         .assertFaithful(initial, records, liveState, liveEffects)
 //
 // The split is the one spine/boundary/Action.kt already makes: what is CONSTANT for
@@ -45,6 +45,7 @@ package adr.spine.replay
 
 import adr.contract.ToolResult
 import adr.spine.ports.Sink
+import adr.spine.pure.Admission
 import adr.spine.pure.ContextFixture
 import adr.spine.pure.EffectKey
 import adr.spine.pure.Fold
@@ -65,7 +66,7 @@ data class RefoldOutcome<S>(val state: S, val effects: List<KeyedEffect>)
  * app, so it is constructor state and both members lose it from their signatures;
  * the timeline, the sink and the mode vary per call and stay arguments.
  */
-class Replay<S>(private val fold: Fold<S>) {
+class Replay<S>(private val fold: Fold<S>, private val admission: Admission) {
 
     /**
      * Re-fold ONLY the committed bytes. Every effect is re-keyed from the record's own
@@ -78,7 +79,10 @@ class Replay<S>(private val fold: Fold<S>) {
         records.forEachIndexed { step, record ->
             val (next, produced) = fold(state, record.results, record.now, record.sig)
             state = next
-            produced.forEachIndexed { i, effect ->
+            // THE SAME `admit` THE BOUNDARY APPLIED, over the same committed results
+            // (docs/DECISIONS.md:85). A re-derivation that skipped it would perform,
+            // on restart, exactly the effect the live boundary refused.
+            admission.admit(produced).forEachIndexed { i, effect ->
                 effects += KeyedEffect(EffectKey(StepIndex(step), i), effect)
             }
         }
@@ -193,10 +197,14 @@ class Replay<S>(private val fold: Fold<S>) {
         val effects = snapshot.effects.toMutableList()
         // `tail.from` equals `tag.offset` by the guard above; the log's own number is
         // the one these records actually sit at, so it is the one keys are minted from.
+        // THE SECOND FOLD LOOP. This method does not call [refold] — it re-implements
+        // the loop over a tail whose keys start at the log's own offset — so it needs
+        // its OWN admission. Deleting it here alone leaves [refold] green and a
+        // snapshot-resume performing what the boundary refused.
         tail.records.forEachIndexed { i, record ->
             val (next, produced) = fold(state, record.results, record.now, record.sig)
             state = next
-            produced.forEachIndexed { j, effect ->
+            admission.admit(produced).forEachIndexed { j, effect ->
                 effects += KeyedEffect(EffectKey(StepIndex(tail.from + i), j), effect)
             }
         }
@@ -263,6 +271,7 @@ class ReplayFaithfulness<S>(
     private val fold: Fold<S>,
     private val projectContext: ProjectContext<S>,
     private val promptVersion: String,
+    private val admission: Admission,
 ) {
 
     /**
@@ -270,7 +279,7 @@ class ReplayFaithfulness<S>(
      * same records step by step; a harness that let those two halves be handed
      * different folds would compare two different runs and pass.
      */
-    private val replay = Replay(fold)
+    private val replay = Replay(fold, admission)
 
     fun assertFaithful(
         initial: S,
@@ -284,6 +293,10 @@ class ReplayFaithfulness<S>(
             check(record.context == expected) {
                 "replay: the context fixture committed at step $step does not match the projection"
             }
+            // NO ADMISSION HERE, and it is not an omission: this walk reads `.first`
+            // only and derives no effect sequence at all, so there is nothing to
+            // admit. The three sites that DO derive effects are [Replay.refold],
+            // [Replay.refoldFrom]'s own loop, and boundary step 9.
             state = fold(state, record.results, record.now, record.sig).first
         }
 

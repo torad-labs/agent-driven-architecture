@@ -44,6 +44,9 @@ export type EscalationCommand = RequestEscalationCommand | ConfirmEscalationComm
  *  only after the boundary gate admitted the confirm. */
 export interface PageOncall extends EffectBase {
   readonly kind: "PageOncall";
+  /** IRREVERSIBLE: a human is woken. Declared as a LITERAL, so no arm can spell
+   *  this leaf `Routine` (docs/DECISIONS.md:85). */
+  readonly effectClass: "Irreversible";
   readonly ticket: TicketId;
 }
 

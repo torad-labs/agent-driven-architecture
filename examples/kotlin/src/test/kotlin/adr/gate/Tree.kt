@@ -36,6 +36,19 @@ class GateFile(val path: String, val file: KoFileDeclaration) {
     /** Fully-qualified import names, straight off the parse tree. */
     val imports: List<String> = file.imports.map { it.name }
 
+    /**
+     * The import lines VERBATIM — `import a.b.C as D` — so a rule can resolve what a
+     * name means INSIDE THIS FILE rather than against a frozen table. C17 needs this:
+     * a name-keyed construction rule that cannot follow `as Ev` is defeated by one
+     * keystroke, which is the failure class this repository already paid for in C4.
+     */
+    val importLines: List<String> = file.imports.map { it.text }
+
+    /** `alias to right-hand side`, from this file's OWN typealias declarations —
+     *  the second rebinding a name-keyed rule cannot follow. */
+    val typeAliases: List<Pair<String, String>> =
+        file.typeAliases.map { it.name to it.text.substringAfter("=").trim() }
+
     /** The declared package — `adr.contract` for every transport file (G12, in Kotlin). */
     val packageName: String = file.packagee?.name.orEmpty()
 
@@ -135,6 +148,18 @@ class GateTrees {
     /** Does [code] contain [token] as a whole word (not as part of a longer identifier)? */
     fun mentions(code: String, token: String): Boolean =
         Regex("""(^|[^A-Za-z0-9_])${Regex.escape(token)}($|[^A-Za-z0-9_])""").containsMatchIn(code)
+
+    /**
+     * How many times [code] CONSTRUCTS [spelling] — `Spelling(`, and never as the tail of
+     * a longer name (C17).
+     *
+     * The negative lookbehind on `[\w.]` is what makes the spellings SUMMABLE: without
+     * it, one fully-qualified `adr.contract.EscalationEffect.PageOncall(` would be
+     * counted a second time by the union-qualified spelling nested inside it, and the
+     * count pin would fire on a file that constructs the leaf exactly once.
+     */
+    fun constructions(code: String, spelling: String): Int =
+        Regex("""(?<![\w.])${Regex.escape(spelling)}\s*\(""").findAll(code).count()
 
 
         /**

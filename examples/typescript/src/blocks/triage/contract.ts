@@ -76,6 +76,8 @@ export type TriageCommand = SetPriorityCommand;
 // from its own current state (4.3), never by the tool.
 export interface LogDecision extends EffectBase {
   readonly kind: "LogDecision";
+  /** ROUTINE: a line in a decision log, replayed and re-driven at no cost. */
+  readonly effectClass: "Routine";
   readonly ticket: TicketId;
   readonly level: Priority;
   readonly supersedes: Priority | null;
