@@ -12,12 +12,19 @@
 // in, so the block-test hands it the roots it needs to exercise. The files
 // themselves live under test/laws/fixtures/citations/, which tsconfig and biome
 // exclude exactly as they exclude test/gate/fixtures.
+//
+// TWO LINTS, TWO PAIRS. `citationProblems` judges a reference's TEXT; the second
+// half of this file drives `crossRefProblems`, which judges a LINK — its href
+// and its visible label, the book's other coordinate — against its own
+// violating/compliant mini-book pair. Same idiom throughout: one case per denied
+// class, each asserting its own located message.
 
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHECKS } from "../../eslint.config.js";
 import {
+  ANCHOR,
   BARE,
   bookSections,
   CID,
@@ -25,12 +32,26 @@ import {
   COMMENT,
   type CorpusFile,
   citationProblems,
+  crossRefProblems,
   DATA,
+  ELEMENT_ID,
+  EXTERNAL,
+  HEAD,
   LAW,
+  LAW_CELL,
+  LAW_LABEL,
   MARKED,
+  NAV_LABEL,
+  NUMBER_LABEL,
   PROSE,
   RETIRED,
   ROOT_KEYS,
+  SECTION,
+  SECTION_SIGN,
+  SECTION_TAG,
+  SUBHEAD,
+  TAGS,
+  WORDED_LABEL,
 } from "./citations";
 
 const HERE = dirname(new URL(import.meta.url).pathname);
@@ -523,5 +544,293 @@ describe("the reference lint ALLOWS a compliant corpus", () => {
     expect(said(compliant.phantomSection)).toBe("");
     expect(said(compliant.phantomLaw)).toBe("");
     expect(said(compliant.bookCid)).toBe("");
+  });
+});
+
+// ── THE SECOND COORDINATE — the cross-reference lint's own pair ───────────
+//
+// The citation lint above judges a reference's TEXT. These judge a LINK: the
+// href AND the visible label, which are two claims about one destination and can
+// disagree. Both were unguarded — the href by a two-way grep run by hand, the
+// label by nothing — and one label was wrong for the whole life of the repo.
+//
+// The whole of `wiki/` is swept, not the book alone: the worked example's pages
+// link up into the book, and a fragment that resolves in one file and not the
+// other is the same defect wearing a longer href.
+
+const wikiPages = liveCorpus.filter(
+  (file) => file.path.startsWith("wiki/") && file.path.endsWith(".html"),
+);
+const refs = crossRefProblems(wikiPages);
+const located = (hits: readonly { where: string; text: string }[]): string[] =>
+  hits.map((h) => `${h.where}  ${h.text}`);
+
+describe("cross-references agree in BOTH coordinates", () => {
+  it("SWEPT SOMETHING — an empty anchor list or an empty id map passes everything", () => {
+    // The vacuity guard and the anti-deletion pin in one: zeroing any denial
+    // below by cutting anchors, or by rewriting an adjudicable label into prose,
+    // moves one of these equalities. Inflation is as red as deletion.
+    expect(wikiPages.map((f) => f.path)).toEqual([
+      "wiki/example/01-state-and-fold.html",
+      "wiki/example/02-the-boundary.html",
+      "wiki/example/03-tools-and-context.html",
+      "wiki/example/04-projection-and-surface.html",
+      "wiki/example/05-ports-and-swap.html",
+      "wiki/example/06-blocks-and-root.html",
+      "wiki/example/07-replay-and-advanced.html",
+      "wiki/example/index.html",
+      "wiki/index.html",
+    ]);
+    // 692 -> 693: D42's CHANGELOG landing added one cross-reference to the
+    // book, in the diff before this one. The pin moves deliberately with a
+    // reason, never loosened to an inequality — that is what makes it a
+    // vacuity guard rather than a floor.
+    expect(refs.anchors).toBe(693);
+    // 18 in the book — the seventeen section ids plus `the-dependency-rule`, the
+    // in-section note anchor §7 owns; `nav` sits before the first section and
+    // carries no number — plus the worked example's own six (00–05) in
+    // `wiki/example/index.html`. The seam pages head their parts ▸/A–E, which
+    // are not digits, so their ids resolve to no number.
+    expect(refs.numberedTargets).toBe(24);
+    // 17 book TOC links carrying a fragment, and 64 whole-file ones — 8 on each
+    // of the 8 example pages. The split is the load-bearing half of the nav
+    // class: the seam pages' token sets are EMPTY and the worked example's nav
+    // runs 00–07 over a page numbered 00–05, so adjudicating a whole-file nav
+    // link would manufacture sixty-plus false positives against correct markup.
+    expect(refs.labels).toEqual({
+      nav: 17,
+      navWholeFile: 64,
+      // 243 -> 244: the same D42 CHANGELOG cross-reference that moved `anchors`.
+      numbered: 244,
+      worded: 4,
+      law: 49,
+      prose: 315,
+    });
+    // the census is TOTAL: every anchor lands in exactly one bucket.
+    expect(Object.values(refs.labels).reduce((a, b) => a + b, 0)).toBe(refs.anchors);
+    // Without these three the whole "no section number is a disagreement", the
+    // external exemption and the law-definition derivation can go silently
+    // inert: `anchors`, `numberedTargets` and `labels` are ALL invariant under a
+    // label repointed at a numberless id.
+    expect(refs.numberlessTargets).toBe(0);
+    expect(refs.external).toBe(0);
+    // 16 cells, G1–G16, all in one section (§15's invariant table). The law
+    // rule's vacuity guard: a markup change that stopped matching cells would
+    // otherwise turn class 5 into a silence rather than a red.
+    expect(refs.lawDefinitions).toBe(16);
+    expect(refs.lawDefinitionSections).toBe(1);
+  });
+
+  it("SECTIONS ARE FLAT — the id→section map's unstated assumption, asserted", () => {
+    // `SECTION` splits on a lookahead, so a NESTED `<section>` would attribute
+    // every id after the inner open to the inner section's number. Measured true
+    // on all nine pages today, and nothing else in the suite would move if it
+    // stopped being true.
+    expect(refs.maxSectionDepth).toBe(1);
+    expect(refs.unbalancedPages).toEqual([]);
+  });
+
+  it("PINS THE CROSS-REFERENCE PREDICATES — a weakened denial is a visible diff", () => {
+    expect(ANCHOR.source).toBe('<a\\b[^>]*\\bhref="([^"]*)"[^>]*>([\\s\\S]*?)<\\/a>');
+    expect(TAGS.source).toBe("<[^>]*>");
+    expect(ELEMENT_ID.source).toBe('\\bid="([^"]+)"');
+    expect(SECTION.source).toBe("(?=<section\\b)");
+    expect(SECTION_TAG.source).toBe("<section\\b|<\\/section\\s*>");
+    expect(HEAD.source).toBe('<span class="num">(\\d+)<\\/span>');
+    expect(SUBHEAD.source).toBe('<h3><span class="t">([\\d.]+)<\\/span>');
+    expect(NAV_LABEL.source).toBe('^\\s*<span class="n">(\\d+)<\\/span>');
+    expect(SECTION_SIGN.source).toBe("^§\\s?");
+    expect(NUMBER_LABEL.source).toBe("^(\\d{1,2})(?:\\.\\d{1,2}){0,2}$");
+    expect(WORDED_LABEL.source).toBe("^sections?\\s+(\\d{1,2})\\b");
+    expect(LAW_LABEL.source).toBe("^G\\d+$");
+    expect(LAW_CELL.source).toBe("<td[^>]*>\\s*(G\\d+)\\s*<\\/td>");
+    expect(EXTERNAL.source).toBe("^(?:[a-z][a-z0-9+.-]*:|\\/\\/)");
+    // ONE parser for the book's heads, so `bookSections` and the id→number map
+    // cannot drift apart and leave one of them matching nothing.
+    expect(bookSections('<span class="num">04</span>')).toEqual(new Set(["04", "4"]));
+  });
+
+  it("lands every href on an id that exists", () => {
+    expect(located(refs.dangling)).toEqual([]);
+  });
+
+  it("labels no link with a section the book does not have", () => {
+    expect(located(refs.phantomLabel)).toEqual([]);
+  });
+
+  it("labels no link with a number that disagrees with where it lands", () => {
+    // Covers all three number spellings — the table-of-contents `<span
+    // class="n">`, the bare `14.3`, and the `§01` the sweep mandates in prose.
+    expect(located(refs.numberedLabel)).toEqual([]);
+  });
+
+  it("labels no link with a WORD FORM that disagrees with where it lands", () => {
+    // The one live defect this landing fixed: `wiki/index.html:401` said
+    // `section 04` over an href to `#signed-command-bus`, which is §5 — the
+    // signed `Command` is introduced at §5.1, so the LABEL was the wrong half
+    // and the href was right. Present since the original repo split.
+    expect(located(refs.wordedLabel)).toEqual([]);
+  });
+
+  it("lands every law label where that law is WRITTEN DOWN", () => {
+    expect(located(refs.lawLabel)).toEqual([]);
+  });
+});
+
+const brokenRefs = crossRefProblems([
+  corpusFile("violating", "book.html", "wiki/index.html"),
+  corpusFile("violating", "seam.html", "wiki/example/seam.html"),
+]);
+
+describe("the cross-reference lint DENIES a violating corpus", () => {
+  it("REJECTS an href with no id behind it, IN PAGE", () => {
+    expect(said(brokenRefs.dangling)).toContain("wiki/index.html:26  the fourth -> #delta");
+  });
+
+  it("REJECTS an href whose PAGE is not in the corpus", () => {
+    expect(said(brokenRefs.dangling)).toContain(
+      "wiki/index.html:27  a page that is not in the corpus -> example/missing.html#anything",
+    );
+  });
+
+  it("REJECTS an href that resolves ACROSS FILES onto a fragment that does not", () => {
+    expect(said(brokenRefs.dangling)).toContain(
+      "wiki/example/seam.html:13  the book -> ../index.html#nope",
+    );
+  });
+
+  it("REJECTS a NAV label naming a section the book does not have", () => {
+    // The book's own table of contents, over a PERFECT href. The number lives in
+    // a dedicated element and is fused into the title by any flattening read, so
+    // a rule that only saw the flattened label scored `09Second` as prose.
+    expect(said(brokenRefs.phantomLabel)).toContain("wiki/index.html:15  09Second -> #beta");
+  });
+
+  it("REJECTS a NAV label that disagrees with where it lands", () => {
+    expect(said(brokenRefs.numberedLabel)).toContain(
+      "wiki/index.html:14  02Third -> #gamma (= section 3)",
+    );
+  });
+
+  it("REJECTS a bare label naming a section the book does not have, over a GOOD href", () => {
+    expect(said(brokenRefs.phantomLabel)).toContain("wiki/index.html:21  9.9 -> #alpha");
+  });
+
+  it("REJECTS the same phantom in the §-MARKED spelling the sweep mandates", () => {
+    expect(said(brokenRefs.phantomLabel)).toContain("wiki/index.html:23  §9.9 -> #alpha");
+  });
+
+  it("REJECTS a NUMBERED label that disagrees with where it lands", () => {
+    expect(said(brokenRefs.numberedLabel)).toContain(
+      "wiki/index.html:49  2.1 -> #gamma (= section 3)",
+    );
+  });
+
+  it("REJECTS the same disagreement in the §-MARKED spelling", () => {
+    expect(said(brokenRefs.numberedLabel)).toContain(
+      "wiki/index.html:49  §02 -> #gamma (= section 3)",
+    );
+  });
+
+  it("REJECTS a WORD-FORM label that disagrees with where it lands", () => {
+    // The class the live defect was in. Building only the bare-number half would
+    // have shipped a checker that was green before and after.
+    expect(said(brokenRefs.wordedLabel)).toContain(
+      "wiki/index.html:50  section 02 -> #gamma (= section 3)",
+    );
+  });
+
+  it("REJECTS a NUMBER landing on an id that sits in NO section", () => {
+    // Not an exemption. The label names a book section; the table of contents is
+    // not one. Every guard that read `section !== null` was inert here.
+    expect(said(brokenRefs.numberedLabel)).toContain(
+      "wiki/index.html:54  01 -> #nav (= no section)",
+    );
+  });
+
+  it("REJECTS a WORD FORM landing on an id that sits in NO section", () => {
+    expect(said(brokenRefs.wordedLabel)).toContain(
+      "wiki/index.html:55  section 01 -> #nav (= no section)",
+    );
+  });
+
+  it("REJECTS a number landing on a LETTERED part, the live seam idiom", () => {
+    // The seam pages head their parts `▸`/`A`–`E`. The page's token set is not
+    // empty — it has a numbered part too — so this is a numberless TARGET rather
+    // than a phantom, which is the branch a page-level guard cannot reach.
+    expect(said(brokenRefs.numberedLabel)).toContain(
+      "wiki/index.html:56  01 -> example/seam.html#part-a (= no section)",
+    );
+  });
+
+  it("REJECTS a law label landing where that law is NOT written down", () => {
+    expect(said(brokenRefs.lawLabel)).toContain("wiki/index.html:31  G4 -> #alpha");
+  });
+
+  it("REJECTS a law label landing where the law is only MENTIONED — the sieve", () => {
+    // The weakest possible spelling of class 5 asks whether the destination's
+    // text carries the id. §2 of the fixture carries `G4` in prose and defines
+    // it nowhere; measured on the live book, every G-id has at least two such
+    // carriers, so under a mention rule all 49 live law labels were repointable
+    // and green. The rule reads the DEFINITION CELL.
+    expect(said(brokenRefs.lawLabel)).toContain("wiki/index.html:39  G4 -> #beta");
+  });
+
+  it("and is not silent because it read nothing", () => {
+    expect(brokenRefs.anchors).toBe(17);
+    expect(brokenRefs.labels).toEqual({
+      nav: 3,
+      navWholeFile: 0,
+      numbered: 6,
+      worded: 2,
+      law: 2,
+      prose: 4,
+    });
+    expect(brokenRefs.numberedTargets).toBe(5);
+    expect(brokenRefs.numberlessTargets).toBe(3);
+    expect(brokenRefs.lawDefinitions).toBe(1);
+  });
+});
+
+describe("the cross-reference lint ALLOWS a compliant corpus", () => {
+  const cleanRefs = crossRefProblems([
+    corpusFile("compliant", "book.html", "wiki/index.html"),
+    corpusFile("compliant", "seam.html", "wiki/example/seam.html"),
+  ]);
+
+  it("passes every agreeing spelling, and every near-miss", () => {
+    // Padded and unpadded heads, a `§02` that agrees, a subsection label, a
+    // plural word form, a law label asserted from outside the section whose cell
+    // defines it, a numeric label pointing at an IN-SECTION anchor, an agreeing
+    // nav link, a WHOLE-FILE nav link, a cross-file page-and-fragment, three
+    // outbound hrefs (`https:`, `mailto:`, protocol-relative), and the prose
+    // labels — a law RANGE, a figure, a sentence, a bare `§ mapping`, a page
+    // name — none of which a machine may adjudicate.
+    expect(said(cleanRefs.dangling)).toBe("");
+    expect(said(cleanRefs.phantomLabel)).toBe("");
+    expect(said(cleanRefs.numberedLabel)).toBe("");
+    expect(said(cleanRefs.wordedLabel)).toBe("");
+    expect(said(cleanRefs.lawLabel)).toBe("");
+  });
+
+  it("and is not silent because it read nothing", () => {
+    // The allow half's own vacuity guard: a compliant fixture that stopped
+    // carrying adjudicable labels would pass for the wrong reason. `external: 3`
+    // is the false-positive proof — three hrefs that name no corpus page and are
+    // counted rather than spliced through the relative-path resolver.
+    expect(cleanRefs.anchors).toBe(23);
+    expect(cleanRefs.labels).toEqual({
+      nav: 3,
+      navWholeFile: 2,
+      numbered: 6,
+      worded: 2,
+      law: 1,
+      prose: 9,
+    });
+    expect(cleanRefs.numberedTargets).toBe(4);
+    expect(cleanRefs.numberlessTargets).toBe(0);
+    expect(cleanRefs.external).toBe(3);
+    expect(cleanRefs.lawDefinitions).toBe(1);
+    expect(cleanRefs.maxSectionDepth).toBe(1);
   });
 });
