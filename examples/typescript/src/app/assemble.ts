@@ -23,8 +23,8 @@ import { escalation } from "@adr/block-escalation/register";
 import { inbox } from "@adr/block-inbox/register";
 import { triage } from "@adr/block-triage/register";
 import type { Signature } from "@adr/spine/pure/actor";
-import type { Context } from "@adr/spine/pure/context";
-import { bounded, MAX_CONTEXT_NOTICES } from "@adr/spine/pure/context";
+import type { Context, ContextBounds } from "@adr/spine/pure/context";
+import { bounded, DEFAULT_CONTEXT_BOUNDS } from "@adr/spine/pure/context";
 import type { Attributed, EffectBase } from "@adr/spine/pure/effect";
 import { attributed } from "@adr/spine/pure/effect";
 import type { Timestamp } from "@adr/spine/pure/ids";
@@ -163,18 +163,26 @@ export function project(state: State): AppView {
   };
 }
 
-export function projectContext(state: State, staged: readonly StagedInput[]): Context {
+/** THE BOUND ARRIVES, it is not looked up (docs/DECISIONS.md:174). The default
+ *  is named in the signature rather than reached for in the body, so a caller
+ *  that omits it has inherited the spine's shipped window EXPLICITLY and a
+ *  caller that passes one reaches every block. */
+export function projectContext(
+  state: State,
+  staged: readonly StagedInput[],
+  bounds: ContextBounds = DEFAULT_CONTEXT_BOUNDS,
+): Context {
   return {
     staged,
     lines: [
-      ...triage.contextLines(state.triage),
-      ...escalation.contextLines(state.escalation),
-      ...consoleBlock.contextLines(state.console),
-      ...artifact.contextLines(state.artifact),
-      ...analysis.contextLines(state.analysis),
-      ...inbox.contextLines(state.inbox),
+      ...triage.contextLines(state.triage, bounds.linesPerBlock),
+      ...escalation.contextLines(state.escalation, bounds.linesPerBlock),
+      ...consoleBlock.contextLines(state.console, bounds.linesPerBlock),
+      ...artifact.contextLines(state.artifact, bounds.linesPerBlock),
+      ...analysis.contextLines(state.analysis, bounds.linesPerBlock),
+      ...inbox.contextLines(state.inbox, bounds.linesPerBlock),
     ],
-    notices: bounded(state.spine.notices.map(renderNotice), MAX_CONTEXT_NOTICES),
+    notices: bounded(state.spine.notices.map(renderNotice), bounds.notices),
     // the artifact by COUNT, never its lines — this is the growth bound
     artifactLineCount: state.artifact.lines.length,
   };

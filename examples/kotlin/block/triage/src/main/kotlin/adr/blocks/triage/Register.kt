@@ -28,6 +28,7 @@ import adr.spine.pure.BlockRegistration
 import adr.spine.pure.EffectPerformer
 import adr.spine.pure.Emit
 import adr.spine.pure.Lens
+import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
@@ -90,5 +91,6 @@ class TriageBlock : Block<TriageSlice, TriageResult, TriageView> {
      * Not on [Block]: blocks/artifact has no context lines at all, so pinning this to
      * the interface would force one of the six to fake a role it does not have.
      */
-    fun contextLines(slice: TriageSlice): List<String> = projection.contextLines(slice)
+    fun contextLines(slice: TriageSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
+        projection.contextLines(slice, maxLines)
 }

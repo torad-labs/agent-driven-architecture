@@ -29,6 +29,7 @@
 // bytes.
 
 import type { PerformMode, Sink } from "../ports/sink";
+import type { ContextBounds } from "../pure/context";
 import { render } from "../pure/context";
 import type { EffectBase, Licences } from "../pure/effect";
 import { admit } from "../pure/effect";
@@ -128,16 +129,25 @@ export function committedSourceKeys(records: readonly StepRecord[]): readonly So
 
 /** G15: the committed context digest must be re-derivable from committed
  *  State. A change to `projectContext` that silently alters what the model saw
- *  fails HERE — without re-running the model. */
+ *  fails HERE — without re-running the model.
+ *
+ *  `bounds` IS A PARAMETER AND NOT A DEFAULT, and that is the whole force of
+ *  the check (docs/DECISIONS.md:174). Re-deriving under the bound the timeline
+ *  was committed with answers "did the projection change?"; re-deriving under a
+ *  DIFFERENT bound answers "did the window the model saw change?" — and while
+ *  the bound was a module constant, the second question could not be asked at
+ *  all, because moving the constant moved the stamping side and the re-deriving
+ *  side together and the walk cancelled itself green. */
 export function contextDivergence<S>(
   initial: S,
   records: readonly StepRecord[],
   dispatchers: Dispatchers<S>,
+  bounds: ContextBounds,
 ): readonly string[] {
   let state = initial;
   const problems: string[] = [];
   records.forEach((record, step) => {
-    const digest = render(dispatchers.projectContext(state, record.staged));
+    const digest = render(dispatchers.projectContext(state, record.staged, bounds));
     if (digest !== record.context.digest) {
       problems.push(`step ${step}: context digest diverged`);
     }

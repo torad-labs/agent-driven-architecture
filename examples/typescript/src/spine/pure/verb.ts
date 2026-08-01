@@ -13,7 +13,7 @@
 
 import type { Authority, Signature } from "./actor";
 import type { CommandBase } from "./command";
-import type { Context } from "./context";
+import type { Context, ContextBounds } from "./context";
 import type { Attributed, EffectBase } from "./effect";
 import type { CommandId, RawInput, Timestamp, ToolName } from "./ids";
 import type { Notice } from "./notice";
@@ -176,7 +176,11 @@ export interface FoldOut<S> {
  *  (`readonly ToolResult[]`), while the spine may only name the open base. */
 export interface Dispatchers<S> {
   fold(state: S, results: readonly ToolResultBase[], now: Timestamp, sig: Signature): FoldOut<S>;
-  projectContext(state: S, staged: readonly StagedInput[]): Context;
+  /** THE BOUND IS AN ARGUMENT, not a constant this function closes over
+   *  (docs/DECISIONS.md:174). The boundary hands it the value the root wired,
+   *  and replay can hand it a different one — which is the only way the
+   *  committed digest can catch a bound that moved. */
+  projectContext(state: S, staged: readonly StagedInput[], bounds: ContextBounds): Context;
 }
 
 /** A block's ONE public contribution to the composition root (G11). */

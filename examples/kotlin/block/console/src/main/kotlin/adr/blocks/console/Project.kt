@@ -35,9 +35,9 @@ class ConsoleProjection {
             draft = ephemeral.draft,
         )
 
-    fun contextLines(slice: ConsoleSlice): List<String> =
+    fun contextLines(slice: ConsoleSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
         (
             listOfNotNull(slice.focused?.let { "the console is focused on ticket ${it.value}" }) +
                 slice.panels.filterValues { it }.keys.map { "panel ${it.value} is visible" }
-            ).take(MAX_CONTEXT_LINES_PER_BLOCK)
+            ).take(maxLines)
 }

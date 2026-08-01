@@ -38,9 +38,9 @@ function sealLabel(seal: SealStatus): string {
   }
 }
 
-export function artifactContextLines(slice: ArtifactSlice): readonly string[] {
-  return bounded(
-    [`work product: ${slice.lines.length} line(s), ${sealLabel(slice.seal)}`],
-    MAX_CONTEXT_LINES_PER_BLOCK,
-  );
+export function artifactContextLines(
+  slice: ArtifactSlice,
+  max: number = MAX_CONTEXT_LINES_PER_BLOCK,
+): readonly string[] {
+  return bounded([`work product: ${slice.lines.length} line(s), ${sealLabel(slice.seal)}`], max);
 }

@@ -13,6 +13,7 @@ import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.EffectPerformer
 import adr.spine.pure.Lens
+import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.Signature
 import adr.spine.pure.TicketId
 import adr.spine.pure.Timestamp
@@ -57,5 +58,6 @@ class EscalationBlock : Block<EscalationSlice, EscalationResult, EscalationView>
 
     override fun view(slice: EscalationSlice): EscalationView = projection.view(slice)
 
-    fun contextLines(slice: EscalationSlice): List<String> = projection.contextLines(slice)
+    fun contextLines(slice: EscalationSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
+        projection.contextLines(slice, maxLines)
 }

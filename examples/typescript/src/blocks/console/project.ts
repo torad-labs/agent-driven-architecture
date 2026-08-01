@@ -32,11 +32,14 @@ export function consoleView(
 
 /** Ephemeral state is deliberately ABSENT from the reasoner's digest: the model
  *  reads decisions, not a scroll offset. */
-export function consoleContextLines(slice: ConsoleSlice): readonly string[] {
+export function consoleContextLines(
+  slice: ConsoleSlice,
+  max: number = MAX_CONTEXT_LINES_PER_BLOCK,
+): readonly string[] {
   const focus =
     slice.focused === null ? "console: no ticket focused" : `console: focused on ${slice.focused}`;
   const panels = [...slice.panels.entries()].map(
     ([panel, visible]) => `panel ${panel}: ${visible ? "shown" : "hidden"}`,
   );
-  return bounded([focus, ...panels], MAX_CONTEXT_LINES_PER_BLOCK);
+  return bounded([focus, ...panels], max);
 }

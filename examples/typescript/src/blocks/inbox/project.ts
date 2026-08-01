@@ -35,7 +35,10 @@ export function inboxView(slice: InboxSlice): InboxView {
   };
 }
 
-export function inboxContextLines(slice: InboxSlice): readonly string[] {
+export function inboxContextLines(
+  slice: InboxSlice,
+  max: number = MAX_CONTEXT_LINES_PER_BLOCK,
+): readonly string[] {
   const drops = [...slice.conflated.entries()].map(
     ([source, dropped]) => `${dropped} input(s) conflated from ${source} — you did not see them`,
   );
@@ -43,5 +46,5 @@ export function inboxContextLines(slice: InboxSlice): readonly string[] {
     ([source, count]) => `${count} duplicate input(s) refused from ${source}`,
   );
   const faults = slice.faults.map((f) => `turn failed on ${f.source}: ${f.fault}`);
-  return bounded([...drops, ...dupes, ...faults], MAX_CONTEXT_LINES_PER_BLOCK);
+  return bounded([...drops, ...dupes, ...faults], max);
 }

@@ -144,6 +144,7 @@ class RelayTest {
             projectContext = Assembly()::context,
             promptVersion = "triage-prompt@1",
             admission = tier.app.admission,
+            bounds = tier.app.boundary.contextBounds,
         )
         faithfulness.assertFaithful(
             initial = tier.app.initial,

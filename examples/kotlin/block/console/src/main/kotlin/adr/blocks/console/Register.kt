@@ -15,6 +15,7 @@ import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.Lens
+import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.PanelId
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
@@ -40,5 +41,6 @@ class ConsoleBlock : Block<ConsoleSlice, ConsoleResult, ConsoleView> {
 
     override fun view(slice: ConsoleSlice): ConsoleView = projection.view(slice)
 
-    fun contextLines(slice: ConsoleSlice): List<String> = projection.contextLines(slice)
+    fun contextLines(slice: ConsoleSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
+        projection.contextLines(slice, maxLines)
 }

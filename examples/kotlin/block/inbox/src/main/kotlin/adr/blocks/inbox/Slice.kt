@@ -37,5 +37,11 @@ data class InboxSlice(
     }
 
     fun withFault(line: String): InboxSlice =
+        // THE MODULE CONSTANT ON PURPOSE, and it is the one read the root's window does
+        // NOT reach (docs/DECISIONS.md:174). This bound is applied INSIDE THE FOLD, so a
+        // wire-time value would make the reducer config-dependent and a re-fold under a
+        // different root would derive a different state — which is the determinism the
+        // reducer version exists to protect. The reasoner-facing bound in Project.kt is
+        // injected; this one stays welded, and the divergence is deliberate.
         copy(faults = (faults + line).takeLast(MAX_CONTEXT_LINES_PER_BLOCK))
 }

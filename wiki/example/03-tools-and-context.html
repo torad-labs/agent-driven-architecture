@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Seam 03 · Tools and context — the input port</title>
-<meta name="description" content="The tool boundary: run(input, ctx) -> a ToolResult payload, pure. A domain verb and a presentation verb are the same mechanic — everything is a tool, even the UI, and every tool signs. The context a verb reads is projectContext(state, staged): a bounded pure projection of committed State, recomputed every step and captured as a fixture. Results leave via the return value and are folded at the boundary, never written back into ctx." />
+<meta name="description" content="The tool boundary: run(input, ctx) -> a ToolResult payload, pure. A domain verb and a presentation verb are the same mechanic — everything is a tool, even the UI, and every tool signs. The context a verb reads is projectContext(state, staged, bounds): a bounded pure projection of committed State under the window the composition root wires, recomputed every step and captured as a fixture. Results leave via the return value and are folded at the boundary, never written back into ctx." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="agentd.css" />
@@ -62,7 +62,7 @@
         <div class="slot"><div class="k">The inversion</div><div class="v"><code>ctx</code> is <em>computed-by-the-boundary, read-only-to-verbs</em>; the result <em>leaves via the return value</em> and is folded at the boundary. The agent reaches state through data it returns, never through a reference to a store it holds and mutates.</div></div>
         <div class="slot"><div class="k">Why it exists</div><div class="v">So a verb is tested by a <em>direct call</em> — no model, no surface, no mock of a mutable context. And so adding a capability is a bounded, local edit: two cases, a registry entry and a fold arm, all inside one folder, and the same four whether the verb touches the domain or the interface.</div></div>
         <div class="slot"><div class="k">What breaks</div><div class="v">A verb that writes its result into <code>ctx</code> (or a shared store) instead of returning it: the fold never sees it, the bus never records it, and the re-fold diverges from the run — <em>Hidden State Coupling</em>. A verb that reports <em>who is asking</em> is worse: it silently becomes a second authorship value nothing reconciles.</div></div>
-        <div class="slot"><div class="k">The test</div><div class="v"><code>setPriority.run({4118, High}, ctx) == SetPriority(4118, High)</code> — by direct call, no doubles. And <code>projectContext(state, staged)</code> tested the same way: literal state in, assert the <code>Context</code> out, assert the bound holds at 500 tickets.</div></div>
+        <div class="slot"><div class="k">The test</div><div class="v"><code>setPriority.run({4118, High}, ctx) == SetPriority(4118, High)</code> — by direct call, no doubles. And <code>projectContext(state, staged, bounds)</code> tested the same way: literal state in, assert the <code>Context</code> out, assert that the window the caller passed holds at 500 tickets.</div></div>
       </div>
     </section>
 
@@ -119,7 +119,7 @@ flowchart LR
   T["verb.run(input, ctx)"] -- "ToolResult (returned)" --> B
   B["boundary adapter"] --> GATE["gate → fold(...)"]
   B -- "resolveAction: decode, then run" --> T
-  B -. "projectContext(state, staged), once per step" .-> CTX
+  B -. "projectContext(state, staged, bounds), once per step" .-> CTX
   style AG fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
   style CTX fill:#101218,stroke:#3a3f4a,color:#cdd5e0
   style T fill:#1a1012,stroke:#f23a48,color:#ffd7da
@@ -166,19 +166,21 @@ flowchart LR
       <div class="code"><div class="bar"><span class="path">the context projection — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">data StagedInput = { source: Text, body: Text }        // untrusted perceived content — one per turn
 data Context     = { staged: [StagedInput], lines: [Text], notices: [Text] }   // ORDERED off-bus fixture (book 6.11)
-MAX_CONTEXT_LINES = 8 ; MAX_CONTEXT_NOTICES = 8        // O(1) in session length — a bound, not a hope
+MAX_CONTEXT_LINES = 8 ; MAX_CONTEXT_NOTICES = 8        // the SHIPPED DEFAULT window, not the law
+data ContextBounds = { lines: Int, notices: Int }       // the window, as ONE value the root wires
+SHIPPED = ContextBounds(MAX_CONTEXT_LINES, MAX_CONTEXT_NOTICES)
 
-projectContext(state, staged) -&gt; Context:              // PURE. Recomputed each step; never appended to.
+projectContext(state, staged, bounds = SHIPPED) -&gt; Context:   // PURE. Recomputed each step.
   Context { staged:  staged,
-            lines:   ticketLines(state).takeLast(MAX_CONTEXT_LINES),
-            notices: state.notices.takeLast(MAX_CONTEXT_NOTICES).map(summarize) }
+            lines:   ticketLines(state).takeLast(bounds.lines),
+            notices: state.notices.takeLast(bounds.notices).map(summarize) }
 render(context) -&gt; Text                                // the exact text the reasoner sees — and a fixture</code></pre></div>
 
       <p>Three properties, and each rules out a specific way this seam usually rots.</p>
 
       <p><strong>It is a projection, not an accumulator.</strong> <code class="i">projectContext</code> is a pure function of committed <code class="i">State</code> plus the ordered inputs staged for this turn. It is recomputed from scratch at line (2) of every step and never appended to. A running buffer that the loop pushes onto is the natural thing to build and the wrong thing to have: it becomes a second source of truth that no fold wrote, that no bus recorded, and that no re-fold can reconstruct. Here there is nothing to reconstruct — you recompute it, and the same <code class="i">State</code> gives the same <code class="i">Context</code>, always.</p>
 
-      <p><strong>It is bounded, by a declared constant.</strong> The caps are named in the source, and the artifact contributes a <em>count</em> rather than its content. So the reasoner's input does not grow with session length: a thousand-step session and a three-step session hand the model the same size of thing. That is a property you can state and test, not a hope you re-audit whenever a prompt gets long.</p>
+      <p><strong>It is bounded, by declaration.</strong> The caps are named in the source as the shipped default and travel as one value the composition root may set, and the artifact contributes a <em>count</em> rather than its content. The third parameter is <em>defaulted</em>, exactly as it is in both reference ports, which is why every two-argument call below is still a legal call &mdash; a caller that says nothing has inherited the shipped window, and one that passes a window reaches every block. So the reasoner's input does not grow with session length: a thousand-step session and a three-step session hand the model the same size of thing. That is a property you can state and test, not a hope you re-audit whenever a prompt gets long.</p>
 
       <p><strong>Its rendering is captured on the timeline.</strong> Every <code class="i">StepRecord</code> carries <code class="i">ContextFixture(promptVersion, render(context))</code> — the active prompt version and the exact digest the model was shown. Neither is derivable from the bus alone: the prompt is an injected asset, and the digest is what an audit actually needs when someone asks <em>why did the agent decide this?</em> It also turns the fixture into a check. On replay, the harness re-derives each step's digest from the state that preceded it and compares it against the one committed — so a change to <code class="i">projectContext</code> that silently alters what the model saw fails the golden trace, <em>without anyone re-running the model</em>.</p>
 
@@ -251,7 +253,9 @@ test "projectContext is a bounded projection of committed State":
   assert c.staged  == [TicketArrived(4118)]               // the ORDERED off-bus fixture staged for this turn
   assert c.lines.size   &lt;= MAX_CONTEXT_LINES              // the bound holds at any session length …
   assert c.notices.size &lt;= MAX_CONTEXT_NOTICES
-  assert projectContext(s, x) == projectContext(s, x)     // recomputed, never accumulated</code></pre></div>
+  assert projectContext(s, x) == projectContext(s, x)     // recomputed, never accumulated
+  assert projectContext(s, x, ContextBounds(2, 2)).lines.size == 2   // the window ARRIVES:
+                                                          // the block declares a bound, the ROOT picks the number</code></pre></div>
 
       <p>The first test is the canonical one: <code class="i">setPriority.run({4118, High}, ctx) == SetPriority(4118, High)</code>, a plain equality on values. The second shows the symmetry — the presentation verb is tested identically, because it <em>is</em> the same mechanic — and it also shows the division of labour: the verb does not ask whether the ticket exists, because validating a transition against the state it is about to write belongs to the arm that writes it. The third is the seam that used to have no test at all: the reasoner's input, asserted by value and pinned to its declared bound.</p>
 

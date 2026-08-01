@@ -33,9 +33,9 @@ class AnalysisProjection {
         published = slice.published,
     )
 
-    fun contextLines(slice: AnalysisSlice): List<String> =
+    fun contextLines(slice: AnalysisSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
         slice.notes
-            .takeLast(MAX_CONTEXT_LINES_PER_BLOCK)
+            .takeLast(maxLines)
             .map { "recalled: ${contextWordFor(it.recall)}" }
 
     /** The operator's word for the branch. Closed match, no else arm. */

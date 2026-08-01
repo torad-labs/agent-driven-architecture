@@ -82,6 +82,8 @@ import adr.spine.pure.Actor
 import adr.spine.pure.Authority
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.ConsumerEvent
+import adr.spine.pure.ContextBounds
+import adr.spine.pure.DEFAULT_CONTEXT_BOUNDS
 import adr.spine.pure.EffectPerformer
 import adr.spine.pure.InputPolicy
 import adr.spine.pure.KeyedEffect
@@ -229,6 +231,12 @@ data class Env(
      */
     val reducerVersion: String = "triage-fold@1",
     val session: SessionId = SessionId("session-1"),
+    /**
+     * THE REASONER'S WINDOW (docs/DECISIONS.md:174), root-owned like [promptVersion] and
+     * [reducerVersion] and for the same reason: the spine declares that a bound exists,
+     * the deployment says how wide it is. Omitted, the spine's shipped defaults apply.
+     */
+    val contextBounds: ContextBounds = DEFAULT_CONTEXT_BOUNDS,
     val tickets: List<Ticket> = emptyList(),
     /**
      * 11.4's single registry, as an ALLOWLIST. Null means every block and every verb —
@@ -260,6 +268,7 @@ data class Env(
         mailbox: Mailbox? = null,
         relayRead: RelayRead? = null,
         policies: List<InputPolicy> = emptyList(),
+        contextBounds: ContextBounds = DEFAULT_CONTEXT_BOUNDS,
     ) : this(
         clock = clock,
         authority = authority,
@@ -273,6 +282,7 @@ data class Env(
         mailbox = mailbox,
         relayRead = relayRead,
         policies = policies,
+        contextBounds = contextBounds,
     )
 }
 
@@ -412,6 +422,7 @@ class Wiring {
             promptVersion = env.promptVersion,
             session = env.session,
             initial = initial,
+            contextBounds = env.contextBounds,
         )
 
         val controller = Controller(

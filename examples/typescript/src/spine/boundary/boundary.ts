@@ -20,7 +20,8 @@ import type { Clock } from "../ports/clock";
 import type { IdSource } from "../ports/id-source";
 import type { Sink } from "../ports/sink";
 import { Signature } from "../pure/actor";
-import { render } from "../pure/context";
+import type { ContextBounds } from "../pure/context";
+import { DEFAULT_CONTEXT_BOUNDS, render } from "../pure/context";
 import type { Licences } from "../pure/effect";
 import { admit, licencesOf } from "../pure/effect";
 import type { SessionId, StepIndex } from "../pure/ids";
@@ -41,6 +42,13 @@ export interface BoundaryDeps<S> extends Dispatchers<S> {
   readonly session: SessionId;
   /** an injected asset (7.3, 14.7), captured on every committed record */
   readonly promptVersion: string;
+  /** THE REASONER'S GROWTH BOUND, wired at the root (docs/DECISIONS.md:174).
+   *  Omit it and the spine's shipped defaults apply — the same shape the
+   *  mailbox deadlines already ship (spine/concurrency/consumer). It lives HERE
+   *  rather than baked into `projectContext` so that ONE value reaches both the
+   *  digest this seam commits and the projection the tools read, and a replay
+   *  can be re-derived under a different one. */
+  readonly contextBounds?: ContextBounds;
 }
 
 export class Boundary<S> {
@@ -53,16 +61,29 @@ export class Boundary<S> {
    *  rather than of two independently-maintained tables. */
   private readonly licences: Licences;
 
+  /** RESOLVED ONCE, for the reason `licences` is: a value re-defaulted per call
+   *  is a value two call sites can disagree about, and the whole point of
+   *  docs/DECISIONS.md:174 is that the bound the model saw and the bound the
+   *  digest was derived under are one fact. */
+  private readonly bounds: ContextBounds;
+
   constructor(
     private readonly deps: BoundaryDeps<S>,
     initial: S,
   ) {
     this.current = initial;
     this.licences = licencesOf(deps.registry.values());
+    this.bounds = deps.contextBounds ?? DEFAULT_CONTEXT_BOUNDS;
   }
 
   get state(): S {
     return this.current;
+  }
+
+  /** The wired bound, published so the agent loop and a replay site READ it
+   *  instead of re-defaulting their own copy. */
+  get contextBounds(): ContextBounds {
+    return this.bounds;
   }
 
   onStepFinish(step: FinishedStep): StepIndex {
@@ -72,7 +93,7 @@ export class Boundary<S> {
     // 2  the THIRD pure projection (G15) — the same Context the reasoner saw
     const ctx: Ctx<S> = {
       state: this.current,
-      context: this.deps.projectContext(this.current, step.staged),
+      context: this.deps.projectContext(this.current, step.staged, this.bounds),
     };
 
     // 3  the ONE closed name→ToolResult map (G1)

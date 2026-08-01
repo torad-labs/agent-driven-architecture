@@ -84,6 +84,7 @@ class ReplayTest {
             projectContext = Assembly()::context,
             promptVersion = "triage-prompt@1",
             admission = app.admission,
+            bounds = app.boundary.contextBounds,
         ).assertFaithful(
             initial = app.initial,
             records = app.bus.records(),

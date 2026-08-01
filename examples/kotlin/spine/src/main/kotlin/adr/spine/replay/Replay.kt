@@ -18,7 +18,7 @@
 //     Replay(fold, admission).refold(initial, records)            -> RefoldOutcome
 //     Replay(fold, admission).stateAtStep(initial, records, k)    -> the same, over a PREFIX
 //     Replay(fold, admission).collectPerform(initial, records, sink, mode)
-//     ReplayFaithfulness(fold, projectContext, promptVersion, admission)
+//     ReplayFaithfulness(fold, projectContext, promptVersion, admission, bounds)
 //         .assertFaithful(initial, records, liveState, liveEffects)
 //
 // The split is the one spine/boundary/Action.kt already makes: what is CONSTANT for
@@ -51,6 +51,7 @@ import adr.spine.pure.EffectKey
 import adr.spine.pure.Fold
 import adr.spine.pure.KeyedEffect
 import adr.spine.pure.PerformMode
+import adr.spine.pure.ContextBounds
 import adr.spine.pure.ProjectContext
 import adr.spine.pure.SourceKey
 import adr.spine.pure.StagedInput
@@ -264,14 +265,29 @@ class Recovery {
  *      the reasoner's input that silently alters what the model saw fails the
  *      golden trace — without re-running the model.
  *
- * The three values it holds are exactly the three the Boundary holds (Boundary.kt:56-58),
- * because assertion 3 has to re-derive the fixture the boundary committed.
+ * The FOUR values it holds are exactly the four the Boundary holds, because assertion 3
+ * has to re-derive the fixture the boundary committed — and the fourth, [bounds], is what
+ * lets it re-derive under a DIFFERENT window on purpose (docs/DECISIONS.md:174). Handing
+ * it the wired bound asks "did the projection change?"; handing it another asks "did the
+ * window the model saw change?", and while the bound was a module constant the second
+ * question was unaskable: moving the constant moved the stamping side and the re-deriving
+ * side together and this walk cancelled itself green.
  */
 class ReplayFaithfulness<S>(
     private val fold: Fold<S>,
     private val projectContext: ProjectContext<S>,
     private val promptVersion: String,
     private val admission: Admission,
+    /**
+     * REQUIRED, NOT DEFAULTED, and that asymmetry with the rest of this constructor is
+     * the point (docs/DECISIONS.md:174). A defaulted window silently re-derives at the
+     * spine's shipped one, so a harness pointed at a timeline committed under a narrower
+     * root FALSELY ACCUSES a faithful run — measured: a default-constructed harness threw
+     * `context fixture committed at step 0` on a timeline that was faithful. The
+     * TypeScript twin (`contextDivergence`) has always required it; one claim may not
+     * have two spellings.
+     */
+    private val bounds: ContextBounds,
 ) {
 
     /**
@@ -289,7 +305,8 @@ class ReplayFaithfulness<S>(
     ) {
         var state = initial
         records.forEachIndexed { step, record ->
-            val expected = ContextFixture(promptVersion, ContextRenderer().render(projectContext(state, record.staged)))
+            val expected =
+                ContextFixture(promptVersion, ContextRenderer().render(projectContext(state, record.staged, bounds)))
             check(record.context == expected) {
                 "replay: the context fixture committed at step $step does not match the projection"
             }

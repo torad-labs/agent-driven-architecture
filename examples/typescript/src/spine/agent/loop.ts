@@ -35,7 +35,10 @@ export function buildTools<S>(
 ): ToolSet {
   const ctx = (): Ctx<S> => ({
     state: boundary.state,
-    context: dispatchers.projectContext(boundary.state, staged),
+    // the bound comes from the BOUNDARY, never re-defaulted here: the tools
+    // must read exactly the window the committed digest was derived under
+    // (docs/DECISIONS.md:174).
+    context: dispatchers.projectContext(boundary.state, staged, boundary.contextBounds),
   });
   const entry = (verb: Verb<S>): [string, ToolSet[string]] => [
     verb.name,

@@ -207,7 +207,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // is a subset of after.
   // +4 (708 -> 712): D42's spine version marker and the module-ownership wall
   // (the path-to-module pin) each cite the decisions they hold.
-  "examples/kotlin": 712,
+  // +2 (712 -> 714): D40's injected context bounds — the amended comment in
+  // triage's projection (which previously stated the OPPOSITE of the ratified
+  // decision) and the digest probe both cite what they hold.
+  "examples/kotlin": 714,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -248,7 +251,9 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // +4 (464 -> 468): `spine/pure/version.ts`, the same marker in this port's
   // spelling and the same four citations. Measured per file; wire.ts and
   // step-record.ts moved by zero for the reason given on the Kotlin pin above.
-  "examples/typescript": 468,
+  // +2 (468 -> 470): D40's TS half — the BoundaryDeps bounds field and the
+  // digest probe that proves a silent bound change is caught.
+  "examples/typescript": 470,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the

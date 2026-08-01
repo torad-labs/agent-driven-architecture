@@ -73,7 +73,7 @@
       <div class="code"><div class="bar"><span class="path">the one impure seam — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">boundary.onStepFinish(step: FinishedStep):
   now     = clock.now()                                    // (1) the ONLY clock read in the system (G9)
-  ctx     = Ctx(state, projectContext(state, step.staged)) // (2) the third pure projection
+  ctx     = Ctx(state, projectContext(state, step.staged, bounds)) // (2) the third pure projection
   results = step.actions.map(a -&gt; resolveAction(registry, a, ctx))   // (3) the ONE name → ToolResult map
   sig     = Signature(by = step.by,                        // (4) the stamp — WHO, and under whose permission
                       authority = authz.authorityOf(step.by, session))

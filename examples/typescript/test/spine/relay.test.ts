@@ -144,9 +144,14 @@ describe("11.2 — a recall is captured, and replay never re-queries the relay",
 
     // the SAME BRANCH: the digest encodes which variant the live run took, and
     // it re-derives from committed State plus the committed staged fixture
-    expect(contextDivergence(r.h.app.initial, r.h.app.bus.records(), r.h.app.dispatchers)).toEqual(
-      [],
-    );
+    expect(
+      contextDivergence(
+        r.h.app.initial,
+        r.h.app.bus.records(),
+        r.h.app.dispatchers,
+        r.h.app.boundary.contextBounds,
+      ),
+    ).toEqual([]);
     expect(record.context.digest).toContain("fresh, published @500");
 
     // THE RELAY WAS NEVER RE-QUERIED. `refold` has no relay to query.

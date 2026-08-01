@@ -142,8 +142,15 @@ fun interface Fold<S> {
  * perceived event AND a recall from a peer tier.
  */
 fun interface ProjectContext<S> {
-    /** Committed State + this step's ORDERED staged inputs -> Context. */
-    operator fun invoke(state: S, staged: List<StagedInput>): Context
+    /**
+     * Committed State + this step's ORDERED staged inputs + the root's window -> Context.
+     *
+     * THE BOUND IS AN ARGUMENT, not a constant the implementation closes over
+     * (docs/DECISIONS.md:174). The boundary hands it the value the root wired and the
+     * replay harness can hand it a different one, which is the only way the committed
+     * digest can catch a window that moved.
+     */
+    operator fun invoke(state: S, staged: List<StagedInput>, bounds: ContextBounds): Context
 }
 
 /**
