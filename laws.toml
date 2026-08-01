@@ -156,10 +156,10 @@ compliant = "examples/typescript/test/gate/fixtures/compliant/C14"
 [[laws.checks]]
 port = "kotlin"
 id = "C14"
-home = "detekt"
+home = "konsist+detekt"
 pair = "on-disk"
-violating = "examples/kotlin/src/test/fixtures/detekt/violating/spine/agent/Loop.kt"
-compliant = "examples/kotlin/src/test/fixtures/detekt/compliant/spine/agent/Loop.kt"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C14"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C14"
 
 [[laws]]
 id = "G4"

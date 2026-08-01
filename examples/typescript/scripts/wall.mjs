@@ -122,8 +122,47 @@ function inheritedDroppings() {
   return found;
 }
 
+/** Every path git TRACKS, as a repo-relative set. The discriminator the
+ *  pre-sweep was missing.
+ *
+ *  A review measured what the undiscriminating version cost: `npm test` deleted
+ *  a hand-written, COMMITTED `docs/sample.js` — anywhere in the repository, with
+ *  no message from any step — and the assertion that licensed the deletion
+ *  (gate.test.ts's NO COMMITTED EMISSION) could never fire, because the sweep
+ *  ran first and removed the very thing the assertion looks for. Guard alone:
+ *  RED, file intact. Full gate: GREEN, file destroyed. That is a gate deleting
+ *  the evidence of its own violation.
+ *
+ *  So the two cases are separated by the only authority that can tell them
+ *  apart. An UNTRACKED emission is a dropping from an aborted run and is swept,
+ *  which is what makes this wall self-cleaning. A TRACKED one is somebody's
+ *  committed file: it is REPORTED and the build stops, never deleted. If git is
+ *  unavailable the set is empty and the sweep is skipped entirely — refusing to
+ *  delete beats deleting on a guess. */
+function trackedPaths() {
+  const listed = spawnSync("git", ["-C", REPO, "ls-files", "-z"], { encoding: "utf8" });
+  if (listed.status !== 0) return null;
+  return new Set((listed.stdout ?? "").split("\0").filter(Boolean).map((p) => join(REPO, p)));
+}
+
 rmSync(".tsbuild", { recursive: true, force: true });
-for (const stray of inheritedDroppings()) rmSync(stray, { force: true });
+const tracked = trackedPaths();
+if (tracked === null) {
+  console.error(
+    "wall: git is unavailable, so committed files cannot be told from droppings — the inherited-dropping sweep is SKIPPED rather than run blind.",
+  );
+} else {
+  const committed = inheritedDroppings().filter((file) => tracked.has(file));
+  if (committed.length > 0) {
+    console.error(
+      `wall: ${committed.length} COMMITTED file(s) sit where tsc emits, beside a same-named source:\n` +
+        committed.map((f) => `  ${f.slice(REPO.length + 1)}`).join("\n") +
+        "\nThe wall's sweep keys on siblinghood and cannot tell these from its own output, so it refuses to run rather than delete your work. Rename or remove them.",
+    );
+    process.exit(1);
+  }
+  for (const stray of inheritedDroppings()) rmSync(stray, { force: true });
+}
 const before = snapshot();
 // stdio inherited: the real TS diagnostics must reach the operator verbatim,
 // because the diagnostic IS this gate's output. Only the droppings are swept.
