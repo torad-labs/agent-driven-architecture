@@ -70,6 +70,13 @@ export interface Law {
   readonly layers: readonly string[];
   readonly headline: string;
   readonly note: string;
+  /** The book's THIRD column — the normative statement of the invariant. Held
+   *  here because a review found it the one cell of §15.3 with no mechanical
+   *  owner: `bookProblems` asserted the id, the name and the regenerated
+   *  enforcement cell, and read the guarantee only as an uncaptured `.*?`, so
+   *  the sentence that SAYS WHAT EACH LAW MEANS could be rewritten to say
+   *  anything with every gate green. */
+  readonly guarantee: string;
   readonly checks: readonly Check[];
   readonly edges: readonly Edge[];
 }
@@ -90,7 +97,7 @@ export type LintOwned = (port: string, id: string) => boolean;
  *  for EVERY port here, or one port's enforcement can be deleted in silence. */
 export const PORTS = ["typescript", "kotlin"] as const;
 
-const LAW_KEYS = ["id", "name", "layers", "headline", "note"] as const;
+const LAW_KEYS = ["id", "name", "layers", "headline", "note", "guarantee"] as const;
 const CHECK_KEYS = [
   "port",
   "id",
@@ -321,6 +328,7 @@ export function parseLaws(text: string): { registry: Registry; problems: string[
       name: typeof law.fields.name === "string" ? law.fields.name : "",
       layers: Array.isArray(law.fields.layers) ? law.fields.layers : [],
       headline: typeof law.fields.headline === "string" ? law.fields.headline : "",
+      guarantee: typeof law.fields.guarantee === "string" ? law.fields.guarantee : "",
       note: typeof law.fields.note === "string" ? law.fields.note : "",
       checks,
       edges,
@@ -777,7 +785,7 @@ export function fixtureProblems(
  *  layer. Exported so a test can census the live book with the SAME regex the
  *  reader below matches on, rather than a second spelling of it. */
 export const FOUR_CELL_ROW =
-  /<tr><td class="r">(G\d+)<\/td><td>([a-z-]+)<\/td><td>.*?<\/td><td>(<strong>.*?)<\/td><\/tr>/g;
+  /<tr><td class="r">(G\d+)<\/td><td>([a-z-]+)<\/td><td>(.*?)<\/td><td>(<strong>.*?)<\/td><\/tr>/g;
 
 /** Any row carrying an enforcement-layer cell — at ANY position, with ANY
  *  first-cell attributes. Adversarial review defeated the second-cell,
@@ -851,8 +859,11 @@ export function bookProblems(registry: Registry, book: string): string[] {
       );
       return;
     }
+    if (row[3] !== law.guarantee) {
+      problems.push(`${law.id}: the guarantee cell does not match laws.toml`);
+    }
     const expected = `<strong>${law.headline}</strong> ${law.note}`;
-    if (row[3] !== expected) {
+    if (row[4] !== expected) {
       problems.push(`${law.id}: the enforcement cell does not regenerate from laws.toml`);
     }
   });

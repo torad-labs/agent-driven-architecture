@@ -24,6 +24,7 @@ name = "an-example-law"
 layers = ["denying-check"]
 headline = "Denying check."
 note = "One denying check holds the violating shape, on both ports."
+guarantee = "the fixture's guarantee cell"
 
 [[laws.checks]]
 port = "typescript"
@@ -47,6 +48,7 @@ name = "a-value-law"
 layers = ["compiler-proof", "behavioral"]
 headline = "Behavioral + compiler proof."
 note = "A value check, so its pair is two inputs to one checker."
+guarantee = "the fixture's guarantee cell"
 
 [[laws.checks]]
 port = "typescript"
@@ -70,6 +72,7 @@ name = "a-law-held-by-a-build-edge"
 layers = ["configuration-time", "denying-check"]
 headline = "Configuration-time build edge + denying check."
 note = "The module graph refuses the crossing half before either module compiles, on EVERY port; the check owns what stays inside one module."
+guarantee = "the fixture's guarantee cell"
 
 [[laws.edges]]
 port = "typescript"
@@ -103,6 +106,7 @@ name = "an-un-denied-law"
 layers = ["discipline"]
 headline = "Discipline."
 note = "No machine holds it, and it names no check."
+guarantee = "the fixture's guarantee cell"
 
 [[laws]]
 id = "G5"
@@ -110,6 +114,7 @@ name = "a-value-law-whose-title-carries-a-quote"
 layers = ["behavioral"]
 headline = "Behavioral."
 note = "A second value check, whose block half is titled the way the formatter writes a title containing a quote."
+guarantee = "the fixture's guarantee cell"
 
 [[laws.checks]]
 port = "typescript"

@@ -365,7 +365,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // the preamble's two name a module path and a markdown heading and cite no
   // law and no section, and laws.toml's amended G13 note sits on a line that
   // already carried its own id.
-  root: 35,
+  // 35 -> 46: laws.toml's sixteen new `guarantee` fields carry the book's own
+  // third-column sentences, which cite sections and G-laws as the book does.
+  // The guarantee cell was the one cell of §15.3 with no mechanical owner.
+  root: 46,
   // NEWLY PINNED for the identical reason and in the same breath: `.github` was
   // a DECLARED root key with no pin, so the loop below — which iterates the PIN
   // map, never the live buckets — skipped it by construction. Measured: one
