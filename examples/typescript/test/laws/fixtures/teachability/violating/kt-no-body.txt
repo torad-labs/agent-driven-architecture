@@ -1,0 +1,10 @@
+// A class header the positional reader can START and cannot FINISH: a class
+// with a primary constructor and no body at all. Reading a header in three
+// steps buys the constructor and costs a new way to get lost, so the lost case
+// is pinned here. The reader must return null — reported, and a red build —
+// rather than fall through to a body-less read, which would report an empty
+// surface as a small one and score the port better for being unreadable.
+
+package adr.blocks.alpha
+
+class AlphaBlock(val maxTickets: Int)

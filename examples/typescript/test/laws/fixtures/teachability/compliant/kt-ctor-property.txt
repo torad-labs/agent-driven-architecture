@@ -1,0 +1,30 @@
+// A READER-SHAPE fixture, asserted directly rather than run through the corpus.
+//
+// Every kind of primary-constructor parameter at once, because the difference
+// between them is the whole rule: a `val` DECLARES a public property and is
+// surface; a `private val` declares one and hides it; a bare parameter declares
+// nothing and is not surface at all. The language's own keyword answers all
+// three, so nothing here is enumerated by name.
+
+package adr.blocks.alpha
+
+import adr.spine.pure.ArmOut
+import adr.spine.pure.Block
+import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
+
+class AlphaBlock(
+    val maxTickets: Int = 10,
+    private val hidden: String = "x",
+    plain: Int,
+) : Block<AlphaSlice, AlphaResult, AlphaView> {
+
+    private val armImpl = AlphaArm(plain)
+
+    fun <S> register(lens: Lens<S, AlphaSlice>): BlockRegistration<S> =
+        BlockRegistration(block = "alpha", verbs = AlphaTools(lens).verbs())
+
+    override fun arm(slice: AlphaSlice): ArmOut<AlphaSlice> = armImpl.arm(slice)
+
+    override fun view(slice: AlphaSlice): AlphaView = AlphaView(slice)
+}

@@ -471,9 +471,9 @@ allowTest = "examples/kotlin/src/test/kotlin/adr/app/TotalityTest.kt::C13 - ever
 [[laws]]
 id = "G13"
 name = "contract-first-stable-interface"
-layers = ["denying-check"]
-headline = "Denying check for the snapshot half."
-note = "A port file with a body fails. The contract-<em>first</em> ordering half is temporal and stays discipline, as G13's own text states."
+layers = ["denying-check", "discipline"]
+headline = "Denying check for the snapshot half; discipline for the rest."
+note = "A port file with a body fails. Both remaining halves are discipline, and the word is used here exactly as this column defines it — no machine holds them. The contract-<em>first</em> ordering half is temporal, as G13's own text states. The fresh-author trial is human: a person is handed one contract and asked to implement from it, and nothing automates that. What the release ritual adds is not a wall around either but a receipt for the second — the trial's shortlist is counted per release and its finding recorded — which is why the layer is declared rather than left to this note."
 
 [[laws.checks]]
 port = "typescript"

@@ -1,0 +1,7 @@
+// A register file that publishes no object literal at all — the block was
+// refactored and the census now reads nothing here. A silently unread block is
+// a silently smaller, silently better census, so it is reported.
+
+export { alphaArm } from "./fold";
+export { alphaView } from "./project";
+export type { AlphaSlice } from "./slice";

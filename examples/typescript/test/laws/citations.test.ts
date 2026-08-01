@@ -305,7 +305,17 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // one citation edit this census cannot see — precisely the attack the per-root
   // equality exists to stop. Measured: laws.toml 22, README.md 2, CHANGELOG.md 4,
   // RELEASE-RITUAL.md 6, examples/README.md 0.
-  root: 34,
+  // +1 (34 -> 35): the first teachability finding, written into `CHANGELOG.md`'s
+  // spine-1 entry under the `**Teachability:**` heading the release ritual now
+  // owes. Its opening line names G13 — one line, one new credit, no citation
+  // removed anywhere. The three other documents this landing edits contribute
+  // ZERO, by measurement rather than by argument: reverting `CHANGELOG.md` alone
+  // restores 34, and reverting `RELEASE-RITUAL.md`, the CHANGELOG PREAMBLE
+  // amendment or `laws.toml` alone leaves 35 — the ritual's new paragraphs and
+  // the preamble's two name a module path and a markdown heading and cite no
+  // law and no section, and laws.toml's amended G13 note sits on a line that
+  // already carried its own id.
+  root: 35,
   // NEWLY PINNED for the identical reason and in the same breath: `.github` was
   // a DECLARED root key with no pin, so the loop below — which iterates the PIN
   // map, never the live buckets — skipped it by construction. Measured: one

@@ -1,0 +1,14 @@
+// The facade grew a declared contract. That is PROGRESS and it is still a red
+// build: "a contract exists" and "this contract requires that member" are two
+// different claims, and only the second is teachability. Crediting the whole
+// surface here is how a census starts reporting a wall nobody built, so the
+// reader must be extended in the same landing that introduces the contract.
+
+import type { BlockFacade, BlockRegistration } from "@adr/spine/pure/verb";
+
+export const alpha = {
+  name: "alpha",
+  register: <S>(): BlockRegistration<S> => ({ block: "alpha", verbs: [] }),
+  arm: alphaArm,
+  view: alphaView,
+} as const satisfies BlockFacade;

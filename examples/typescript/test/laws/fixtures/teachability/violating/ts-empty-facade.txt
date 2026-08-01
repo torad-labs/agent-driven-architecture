@@ -1,0 +1,4 @@
+// The facade is found and publishes nothing. Distinct from the case above: the
+// reader worked, and what it read was an empty surface.
+
+export const alpha = {} as const;

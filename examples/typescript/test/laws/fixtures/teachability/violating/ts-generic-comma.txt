@@ -1,0 +1,20 @@
+// A perfectly legal return-type annotation carrying TWO type arguments. The
+// comma inside `<…, …>` sits at brace depth one, so a walker that tracks only
+// `{ ( [` returns to key position inside a TYPE and names the second type
+// argument as a member of the block.
+//
+// That is the worst failure this census can have, because it is not merely a
+// wrong count: the census would report `EscalationEffect` as a role every block
+// of the port publishes, and the release check would then COMPEL the CHANGELOG
+// to state a type name as a block role. A check that forces a false sentence
+// into a permanent document is worse than no check. So an identifier at key
+// position is only a member when a key terminator follows it, and this one is
+// reported as unreadable instead.
+
+import type { ArmOut } from "@adr/spine/pure/fold";
+
+export const escalation = {
+  name: "escalation",
+  arm: (slice: S, result: R): ArmOut<EscalationSlice, EscalationEffect> => escalationArm(slice),
+  view: escalationView,
+} as const;
