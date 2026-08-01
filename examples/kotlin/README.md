@@ -110,21 +110,53 @@ port exists to demonstrate. **No builder may "fix" it by opening the hierarchies
 
 ## Blast radius, measured on the code that is actually here
 
-**A new verb — domain OR presentation — is 4 appends, 3 files, 1 folder. Uniform.**
+`docs/DECISIONS.md:122` asks for this as **three measured rows**, written after the module DAG and
+after the handler split, and *measured* rather than asserted. It is measured here, in this port's
+README, because counts are port-facts: the book states the shape, each port states its own numbers,
+and where the two ports disagree the disagreement is the result rather than an embarrassment.
 
-| # | Site | File | Compiler-forced? |
-|---|---|---|---|
-| 1 | the `ToolResult` case | `blocks/<X>/Contract.kt` | it *is* the thing you are adding |
-| 2 | the `Command` case | `blocks/<X>/Contract.kt` | it *is* the thing you are adding |
-| 3 | the `Verb` row (name, description, decode, run, sign, reversibility) | `blocks/<X>/Tools.kt` | yes — gate check C13 |
-| 4 | the fold-arm branch | `blocks/<X>/Fold.kt` | yes — exhaustive match over the block's sealed sub-union |
+**Two counting conventions, both stated, because collapsing them is how the old numbers went wrong.**
+A **declared site** is a decision you author — a case, a table row, an arm, a field, a build
+declaration. An **edit site** is every *code* line the change touches, imports included; a comment
+line that merely names the block is not one, and a single decision spanning two physical lines is
+ONE edit site. Every excluded line below is named by number so you can add it back.
 
-Adding `setPriority` (domain) and adding `setPanel` (presentation) touch **the same four sites**.
-There is no cheaper UI path because there is no UI path: the "a UI tool folds, does not sign"
-carve-out is gone, and with it the two tool mechanics that made composition and blast radius *worse*.
+### Row 1 — a verb whose effects reuse effect kinds that already exist
 
-**Re-measured after the tiering and barge-in rungs landed, and the number did not move.** Adding a
-throwaway `resolveTicket` verb with only sites 1 and 2 written, the compiler names site 4 and nothing
+**4 declared sites, 3 files, 1 folder — and TWO Gradle modules.**
+
+| # | Site | File | Module | Named by |
+|---|---|---|---|---|
+| 1 | the `ToolResult` case | `blocks/<X>/Contract.kt` | `:spine` | it *is* the thing you are adding |
+| 2 | the `Command` case | `blocks/<X>/Contract.kt` | `:spine` | it *is* the thing you are adding |
+| 3 | the `Verb` row (name, description, decode, run, sign, reversibility) | `blocks/<X>/Tools.kt` | `:block:<X>` | gate check C13 |
+| 4 | the fold-arm branch | `blocks/<X>/Fold.kt` | `:block:<X>` | exhaustive match over the block's sealed sub-union |
+
+**The module column is the whole correction.** Kotlin seals a hierarchy within one *module*, so a
+block's transport has to be authored inside `:spine` — the shared core — while its behaviour stays in
+`:block:<X>`. The folder is still one (`blocks/<X>/`, and the census below proves it for every verb
+in the tree); the compilation unit is not. ADR-001 §1.3 Q1 says so in advance and requires the older
+four-sites-in-one-folder slogan deleted once the ADR is accepted; it was
+ratified, and these three rows are the replacement.
+
+**Zero production sites outside `blocks/<X>/`, measured for all twelve verbs, not sampled.**
+`adr.gate.GateTest`'s `BLAST RADIUS` test derives each block's transport cases from Konsist's parse
+tree and censuses which live files name each one; the answer must be exactly that block's
+`Contract.kt`, `Tools.kt` and `Fold.kt`. It is derived rather than enumerated on purpose — a
+spelled-out twelve-name set would make the census file itself a fourth site for the append it is
+pricing — and it counts site 3 through the same import/typealias resolver gate check C17 uses, so a
+verb table written `Reversible(` after `import adr.spine.pure.Verb.Reversible` is *accepted*, not
+rejected. Both polarities ship as a checked-in fixture pair under
+`src/test/fixtures/konsist/{violating,compliant}/BLAST-RADIUS/`.
+
+**Out of folder, in the test tree: two count tripwires**, and both assert a *number* rather than an
+enumerated list — `TotalityTest.kt`'s `assertEquals(12, names.size, "six blocks, twelve verbs")` and
+`spine/GateTest.kt`'s `assertEquals(14, cases.size, …)`.
+
+Adding `setPriority` (domain) and adding `setPanel` (presentation) touch **the same four sites**, and
+that is asserted per block rather than promised: there is no cheaper UI path because there is no UI
+path. **Re-measured after the tiering and barge-in rungs landed, and the number did not move.** With
+only sites 1 and 2 written for a throwaway `resolveTicket`, the compiler names site 4 and nothing
 else:
 
 ```
@@ -132,37 +164,102 @@ e: block/triage/src/main/kotlin/adr/blocks/triage/Fold.kt:28:26 'when' expressio
    Add the 'is ResolveTicket' branch or an 'else' branch.
 ```
 
-With all four appends the tree compiles, and **zero production sites outside `blocks/triage/` are
-touched** — the root's dispatch is `is TriageResult ->`, a real sealed type check, so a new variant
-routes automatically. The only other things that fire are the two deliberate confirm-you-meant-it
-count tripwires in the test tree (`TotalityTest`'s twelve verbs, `spine/GateTest`'s fourteen cases);
-both assert on a *number*, not an enumerated list.
+### Row 2 — a verb that also introduces a NOVEL EFFECT KIND
 
-**A new `State` variant is 1 append + 3 compiler-named arms, all inside one block folder.**
+**Row 1, plus 2 declared sites — both inside the owning block, and zero at the root.**
 
-**A whole new block** is one folder plus **6 appends across the 3 root files** — measured on this
-code, not asserted:
+| # | Site | File | Module | Named by |
+|---|---|---|---|---|
+| 5 | the `Effect` case | `blocks/<X>/Contract.kt` | `:spine` | it *is* the thing you are adding |
+| 6 | the performer arm in the block's own registration | `blocks/<X>/Register.kt` | `:block:<X>` | the block's own exhaustive performer |
 
-| # | Site | File |
-|---|---|---|
-| 1 | the slice field on `State` (it defaults to the block's own `initial`) | `app/Contract.kt` |
-| 2 | the view field on `AppView` | `app/Contract.kt` |
-| 3 | the fold-arm branch in `foldApp` | `app/Assemble.kt` |
-| 4 | the view row in `projectApp` | `app/Assemble.kt` |
-| 5 | the context lines in `projectContextApp` | `app/Assemble.kt` |
-| 6 | the `register()` line | `app/Wire.kt` |
+**The composition root does not move**, and that is what `docs/DECISIONS.md:64-69`'s handler split
+bought. The one qualifier, written verbatim in `app/src/main/kotlin/adr/app/Wire.kt`: a block growing
+its **first** effect kind also costs one compiler-named line in that file's performer assembly; a
+kind appended to a union the block already has costs none.
 
-Plus one sink branch in `app/Wire.kt` if the block emits effects, and one port binding if it has an
-adapter — so 6, 7 or 8 depending on what the block actually needs. Kotlin needs **no union edits at
-all**: the sealed hierarchies close themselves, which is the whole TypeScript/Kotlin delta. Every one
-is an append, and the compiler names each one (a missing dispatch arm, a missing field or a missing
-sink branch fails to compile). Removing a block is the same list, subtracted, plus `rm -rf block/<X>/`
-(which takes both modules of the pair with it), its two `include` lines in `settings.gradle.kts`, and
-its `Contract.kt` under `spine/src/main/kotlin/adr/blocks/<X>/`.
+**Out of folder: exactly one gate ledger** — `src/test/kotlin/adr/app/TotalityTest.kt`'s
+`EffectSamples`, maintained per effect case the way the verb ledger already is.
 
-G11's literal "one line" is unattainable *with* compile-time exhaustiveness. The design keeps every
-edit inside `app/`, makes every edit an append, and makes the compiler name each one. That is the
-strongest available form of G11 under G12, and no builder should pretend otherwise.
+Not asserted: `gateEffectKindBlockTest` (`build.gradle.kts`) drives the red-green fixture pair under
+`src/test/fixtures/effect-kind/{violating,compliant}/`, whose `Root.kt` exists precisely so the
+"and nowhere else" guard can go red; and `GateTest`'s live-tree and test-tree censuses assert the
+out-of-folder set as an *equality* rather than as an absence.
+
+### Row 3 — a whole new block
+
+Measured against `inbox`, the minimal block in the tree: no port, no adapter source, no effect.
+
+**New files: 8** — and that is what git tracks, not a claim:
+
+```
+git ls-files examples/kotlin/block/inbox examples/kotlin/spine/src/main/kotlin/adr/blocks/inbox
+```
+
+Five `.kt` under `block/<X>/src/main/kotlin/adr/blocks/<X>/` (`Fold`, `Project`, `Register`, `Slice`,
+`Tools`), one `Contract.kt` under `spine/src/main/kotlin/adr/blocks/<X>/`, and the two
+`build.gradle.kts` of the module pair ADR-001 §5 ratifies — `block/<X>/build.gradle.kts` and
+`block/<X>/adapter/build.gradle.kts`. The adapter's build script is unconditional even for a block
+with no live IO, because Gradle refuses to configure a project whose directory does not exist; it is
+the second member of the pair, not a ninth file, and git cannot track an empty directory.
+
+**Root cost: 18 edit sites across 6 files, 13 of them declared sites.** Recount it with:
+
+```
+cd examples/kotlin && grep -nE 'Inbox|inbox|NOTE_' \
+  app/src/main/kotlin/adr/app/Contract.kt \
+  app/src/main/kotlin/adr/app/Assemble.kt \
+  app/src/main/kotlin/adr/app/Wire.kt \
+  settings.gradle.kts build.gradle.kts build-logic/src/main/kotlin/AdrDag.kt
+```
+
+| File | Edit sites | Declared | The lines |
+|---|---|---|---|
+| `app/Contract.kt` | 4 | 2 — the slice field on `State`, the view field on `AppView` | 26, 27, 54, 65 |
+| `app/Assemble.kt` | 6 | 4 — the block instance, the fold-arm branch, the view row, the context lines | 30, 38, 77, 118–119, 148, 166 |
+| `app/Wire.kt` | 4 | 3 — the `register()` line in each of the three tiers | 58, 340, 356, 363 |
+| `settings.gradle.kts` | 1 | 1 — one string in the block list, which includes *both* modules of the pair | 37 |
+| `build.gradle.kts` | 2 | 2 — the gate's test-classpath entry, and the module source root | 51, 122 |
+| `build-logic/…/AdrDag.kt` | 1 | 1 — `ADR_BLOCKS` | 27 |
+
+**The difference between 18 and 13 is five `import` lines, and they are these five:**
+`app/Contract.kt:26` and `:27` (`InboxSlice`, `InboxView`), `app/Assemble.kt:30` and `:38`
+(`InboxBlock`, `InboxResult`), and `app/Wire.kt:58` (`InboxBlock`).
+
+**What the command prints that the table does not count, named so the two recounts land in the same
+place.** Prose: `app/Contract.kt:43` and `app/Wire.kt:138`, `:458` are comment lines. And **six lines
+of the barge-in consumer bridge are excluded** — `app/Wire.kt`'s `consumerActions` (`:470`, `:481`,
+`:487`, `:492`) plus the two imports it needs (`:59` `NOTE_DROP`, `:60` `NOTE_FAULT`). That mapping
+exists because `inbox` is the block the barge-in consumer happens to report into; it is role-specific
+wiring, not generic per-block cost, and a new block gets none of it. **Put them back and `app/Wire.kt`
+reads 10 edit sites and the total is 24 / 13** — that is the honest other number, and both recounts
+are now reproducible from one command. `app/Demo.kt` is excluded for the same reason twice over: it is
+the runnable demo rather than wiring, and one of its two hits is an unrelated `SourceName("inbox")`.
+
+Add a sink branch in `app/Wire.kt` if the block emits effects and a port binding if it owns an
+adapter. Kotlin needs **no union edits at all** — the sealed hierarchies close themselves, which is
+the whole TypeScript/Kotlin delta on this row.
+
+**Six pinned gate counts move, and they are the receipt** for a new block carrying two verbs. Four in
+this port's gate: the blocks-and-app path roster (49), the partition size it closes (`38 + 49 = 87`),
+the per-block file roster map — all three in `adr.gate.GateTest` — and `GateTrees.MODULE_ROOTS` in
+`adr/gate/Tree.kt`. Two more are the verb tripwires row 1 already names: `TotalityTest.kt`'s twelve
+verbs and `spine/GateTest.kt`'s fourteen cases. The `:spine` roster of 38 does **not** move: the new
+`Contract.kt` compiles in `:spine` but normalises to `blocks/<X>/Contract.kt`, so the blocks roster is
+where it lands. One pin moves in the *other* port's tree and is named here so nobody looks for it
+twice: the citation census's per-root file and citation counts in
+`examples/typescript/test/laws/citations.test.ts`, which count every file in both ports.
+
+Removing a block is the same list, subtracted, plus `rm -rf block/<X>/` (which takes both modules of
+the pair with it) and its `Contract.kt` under `spine/src/main/kotlin/adr/blocks/<X>/`.
+
+**A new `State` variant is 1 append + 3 compiler-named arms, all inside one block folder** — and this
+row genuinely is one folder *and* one module, because a slice is not transport.
+
+G11's literal "one line" is unattainable *with* compile-time exhaustiveness. What the design does buy
+is the honest headline ADR-001 §1.3 Q1 states: **a handful of appends, every one of them named by the
+compiler or by a check, none of them a rewrite of shared logic.** No builder should pretend
+otherwise.
 
 ### Prove the edit list yourself (the 15.4 G12 self-check, for real)
 

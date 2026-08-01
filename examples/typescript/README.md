@@ -141,31 +141,64 @@ the context line match — all three inside `blocks/escalation/`, zero outside i
 
 ## Blast radius (§16.1), measured on the code in this folder
 
-**A new verb — domain OR presentation — 4 appends, 3 files, 1 folder. UNIFORM.**
+`docs/DECISIONS.md:122` asks for this as **three measured rows**, written after the workspace wall
+and after the handler split, and *measured* rather than asserted. It is measured here, in this port's
+README, because counts are port-facts: the book states the shape, each port states its own numbers,
+and where the two ports disagree the disagreement is the result rather than an embarrassment.
 
-| # | Site | File | Compiler-forced? |
+**Two counting conventions, both stated, because collapsing them is how the old numbers went wrong.**
+A **declared site** is a decision you author — a case, a table entry, an arm, a field, a config
+entry. An **edit site** is every *code* line the change touches, imports included; a comment line
+that merely names the block is not one, and a single declaration spanning several physical lines is
+ONE edit site. Every excluded line below is named by number so you can add it back.
+
+### Row 1 — a verb whose effects reuse effect kinds that already exist
+
+**5 declared sites, 3 files, 1 folder — which here is also 1 npm workspace package.**
+
+| # | Site | File | Named by |
 |---|---|---|---|
 | 1 | the `ToolResult` case | `blocks/<X>/contract.ts` | it *is* the thing you are adding |
 | 2 | the `Command` case | `blocks/<X>/contract.ts` | it *is* the thing you are adding |
-| 3 | the `Verb` entry (name, description, schema, pure `run`, `sign`, reversibility) | `blocks/<X>/tools.ts` | yes — gate check C13 |
-| 4 | the fold-arm branch | `blocks/<X>/fold.ts` | yes — `never`-guarded match |
+| 3 | the `owns` narrowing predicate's tool-name clause | `blocks/<X>/contract.ts` | **nothing — see below** |
+| 4 | the `Verb` entry (name, description, schema, pure `run`, `sign`, reversibility) | `blocks/<X>/tools.ts` | gate check C13 |
+| 5 | the fold-arm branch | `blocks/<X>/fold.ts` | `never`-guarded match |
 
-Adding `setPriority` (domain) and adding `setPanel` (presentation) touch **the same four sites**.
-6.8's "a UI tool folds, does not sign" carve-out is gone, and with it the two tool mechanics that
-made G11 and §16.1 worse, not better.
+**This row is measured by recount, not by a gate — and that asymmetry is stated rather than
+implied.** The Kotlin port enforces its row 1 with a live-tree census in `adr.gate.GateTest`; this
+port has no equivalent, so here is the command that reproduces the five sites, on the presentation
+verb where a carve-out would have hidden if one still existed:
 
-**Re-measured after the tiering and barge-in rungs landed, and the number did not move.** Adding a
-throwaway `resolveTicket` verb with only sites 1 and 2 written, the compiler names the fold arm:
+```
+cd examples/typescript && grep -rnE 'setPanel|SetPanel' src/blocks/console
+```
+
+Read it against the table: `contract.ts:29` the `SetPanelResult` interface, `:36` its membership of
+`ConsoleResult`, `:45` the `SetPanelCommand` interface, `:52` its membership of `ConsoleCommand`,
+`:59` the `owns` clause; `tools.ts:31` the verb entry (plus its two import lines at `:12` and `:13`);
+`fold.ts:24` the arm. Excluded and named: `contract.ts:8` is prose, and `console.test.ts` is the
+block's co-located test rather than a declaration. **So a verb is 5 declared sites and 9 edit lines**
+— sites 1 and 2 each cost TWO edits in this port, the interface and its membership in a union that
+is written out by hand, which is precisely what Kotlin's sealed hierarchies do for you.
+
+**Where this port differs from Kotlin, and it is the interesting half of the row.** Kotlin pays four
+declared sites, not five — it has no hand-written `owns` — but two of its four are authored in the
+`:spine` module, because Kotlin seals a hierarchy within one *module*. TypeScript pays a fifth site
+and keeps all five inside the block's own folder **and** its own workspace package, because
+`tsconfig` project references, not module sealing, are what closes this port. Neither port is
+strictly cheaper; they pay in different currencies, and a single averaged number would hide both.
+
+**Zero production sites outside `src/blocks/<X>/`**, and the fold arm is compiler-forced:
 
 ```
 src/blocks/triage/fold.ts(51,13): error TS2322: Type '"resolveTicket"' is not assignable to type 'never'.
 ```
 
-**KNOWN HOLE — a fifth site with no guard.** Each block exports an `owns` type predicate
-(`isTriageResult`) whose declared return type is `r is TriageResult` but whose body enumerates tool
-names by hand. Measured: with all four appends written and `owns` left stale, `tsc --noEmit` exits
-**0**, `eslint` exits **0**, and the whole suite passes — then the verb fails at runtime the first
-time it is dispatched:
+**KNOWN HOLE — site 3 has no guard.** Each block exports an `owns` type predicate (`isTriageResult`)
+whose declared return type is `r is TriageResult` but whose body enumerates tool names by hand.
+Measured: with sites 1, 2, 4 and 5 written and `owns` left stale, `tsc --noEmit` exits **0**, `eslint`
+exits **0**, and the whole suite passes — then the verb fails at runtime the first time it is
+dispatched:
 
 ```
 TypeError: out.effects is not iterable (cannot read property undefined)
@@ -173,22 +206,101 @@ TypeError: out.effects is not iterable (cannot read property undefined)
 ```
 
 because `foldOk` fell through to `const _never: never = r; return _never;`, which returns
-`undefined`. Kotlin does not have this hole — its root dispatch is `is TriageResult ->`, a real
-sealed type check. **For TypeScript the honest number is 4 appends + 1 unguarded edit.** Do not write
-"4 sites, all compiler-forced" for this port.
+`undefined`. Kotlin does not have this hole — its root dispatch is `is TriageResult ->`, a real sealed
+type check. **Do not write "4 sites, all compiler-forced" for this port.** Its number is five, and one
+of the five is on you.
 
-Two hand-maintained name lists in the test tree (`test/app/totality.test.ts`, `test/gate/gate.test.ts`)
-also fire; both deny, so both are on the compiler/test edit list. A block going from one verb to two
-additionally needs its fold's `const _never: never = r.tool` changed to `= r` — that one *is*
-compiler-forced.
+**Out of folder, in the test tree: two hand-maintained name ledgers** — `test/app/totality.test.ts`'s
+verb map (`:55-56` for the inbox pair) and `test/gate/gate.test.ts`'s `declared` list (`:179-180`).
+Both deny, so both are on the edit list. A block going from one verb to two additionally needs its
+fold's `const _never: never = r.tool` changed to `= r` — that one *is* compiler-forced.
+
+Adding `setPriority` (domain) and adding `setPanel` (presentation) touch **the same five sites**.
+§6.8's "a UI tool folds, does not sign" carve-out is gone, and with it the two tool mechanics that
+made G11 and §16.1 worse, not better.
+
+### Row 2 — a verb that also introduces a NOVEL EFFECT KIND
+
+**Row 1, plus 2 declared sites — both inside the owning block, and zero at the root.**
+
+| # | Site | File | Named by |
+|---|---|---|---|
+| 6 | the `Effect` case | `blocks/<X>/contract.ts` | it *is* the thing you are adding |
+| 7 | the handler arm in the block's own registration | `blocks/<X>/register.ts` | the block's own exhaustive handler table |
+
+**The composition root does not move**, and that is what `docs/DECISIONS.md:64-69`'s handler split
+bought. The one qualifier, written verbatim in `src/app/wire.ts`: a block growing its **first** effect
+kind also costs one compiler-named line in that file's dispatcher assembly; a kind appended to a union
+the block already has costs none.
+
+**Out of folder: exactly one gate ledger** — `test/app/totality.test.ts`'s `EXPECTED_EFFECTS`,
+maintained per effect case the way `EXPECTED` already is for verbs.
+
+Not asserted: `test/gate/exhaustiveness.test.ts` applies
+`test/gate/fixtures/novel-effect-kind/patch.json` to a package farm, compiles the gate's own program
+over it, and asserts `errors: 2` and `outOfFolder: ["test/app/totality.test.ts"]` as an **exact set
+equality** — an absence proved by naming what is present, not by counting nothing.
+
+### Row 3 — a whole new block
+
+Measured against `inbox`, the minimal block in the tree: no port, no adapter, no effect.
+
+**New files: 8**, all under `src/blocks/<X>/` — `contract.ts`, `fold.ts`, `project.ts`, `register.ts`,
+`slice.ts`, `tools.ts`, plus the package's own `package.json` and `tsconfig.json`, which are what make
+the folder a wall rather than a convention.
+
+**Root cost: 18 edit sites across 6 files, 14 of them declared sites.** Recount it with:
+
+```
+cd examples/typescript && grep -nE 'Inbox|inbox|noteDrop|noteFault' \
+  src/app/contract.ts src/app/assemble.ts src/app/wire.ts \
+  src/app/package.json src/app/tsconfig.json tsconfig.wall.json
+```
+
+| File | Edit sites | Declared | The lines |
+|---|---|---|---|
+| `src/app/contract.ts` | 7 | 5 — the `ToolResult` member, the `Command` member, the `State` field, the `AppView` field, the `initialState` entry | 41, 42, 69, 78, 102, 111, 128 |
+| `src/app/assemble.ts` | 4 | 3 — the `foldOk` branch, the view row, the context lines | 23, 117–118, 162, 183 |
+| `src/app/wire.ts` | 4 | 3 — the `register()` line in each of the three tiers | 68, 259, 269, 275 |
+| `src/app/package.json` | 1 | 1 — the workspace dependency | 12 |
+| `src/app/tsconfig.json` | 1 | 1 — the project reference | 33 |
+| `tsconfig.wall.json` | 1 | 1 — the solution reference, without which the package has no wall | 22 |
+
+**The difference between 18 and 14 is four `import` lines, and they are these four:**
+`src/app/contract.ts:41` and `:42`, `src/app/assemble.ts:23`, and `src/app/wire.ts:68`.
+
+**What the command prints that the table does not count, named so the two recounts land in the same
+place.** Prose: `src/app/wire.ts:110` and `:325` are comment lines. And **four lines of the barge-in
+consumer bridge are excluded** — `src/app/wire.ts:350`, `:357`, `:362`, `:366`, where a `ConsumerEvent`
+is mapped to a `noteDrop`/`noteFault` Action. That mapping exists because `inbox` is the block the
+barge-in consumer happens to report into; it is role-specific wiring, not generic per-block cost, and
+a new block gets none of it. **Put them back and `src/app/wire.ts` reads 8 edit sites and the total is
+22 / 14** — that is the honest other number, and both recounts are now reproducible from one command.
+`src/app/demo.ts` is excluded because it is the runnable demo rather than wiring, and its one hit is an
+unrelated `"inbox"` source name; `src/spine/pure/staged.ts` names the English word in a comment.
+
+The **root** `package.json` costs nothing — `src/blocks/*` is globbed — and `package-lock.json` is
+regenerated by `npm install` rather than authored. Every union membership is written out by hand,
+which is the whole TypeScript/Kotlin delta on this row: Kotlin's sealed hierarchies close themselves
+and pay instead by authoring the block's transport inside `:spine`.
+
+**Six gate ledgers move, and they are the receipt** for a new block carrying two verbs. Four are
+structural: `test/gate/gate.test.ts`'s eight-package equality, `test/gate/anchors.test.ts`'s per-block
+file roster, `test/gate/exhaustiveness.test.ts`'s package farm, and `test/laws/edges.test.ts`'s package
+map. Two more are the verb ledgers row 1 already names: `test/app/totality.test.ts`'s verb map and
+`test/gate/gate.test.ts`'s `declared` list. The spine roster of 37 in `test/gate/gate.test.ts` does
+**not** move — a block adds no spine file. One further pin sits in this port's tree but counts *both*
+ports, and is named here so nobody looks for it twice: the citation census's per-root file and
+citation counts in `test/laws/citations.test.ts`.
+
+Removing a block is the same list, subtracted, plus `rm -rf src/blocks/<X>/`.
 
 **A new State variant — 1 append + 3 compiler-named arms, all inside one block folder.**
-**A new effect kind — 2 appends**: the case in the owning block's contract, and one branch in the
-root's effect sink (compiler-forced).
-**A whole new block — 8 appends at the root, across 2 files** (`app/contract`, `app/assemble`,
-`app/wire`), every one an append the compiler names. Kotlin needs 5; the delta is purely
-TypeScript's need to write the union out. G11's literal "one line" is unattainable *with* compile-time
-exhaustiveness, and no builder should pretend otherwise.
+
+G11's literal "one line" is unattainable *with* compile-time exhaustiveness. What the design does buy
+is the honest headline ADR-001 §1.3 Q1 states: **a handful of appends, every one of them named by the
+compiler or by a check — with this port's one documented exception — none of them a rewrite of shared
+logic.** No builder should pretend otherwise.
 
 ---
 

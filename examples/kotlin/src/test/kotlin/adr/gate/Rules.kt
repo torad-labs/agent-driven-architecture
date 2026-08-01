@@ -578,25 +578,71 @@ internal class GateFacts {
      * WHAT [leaf] IS CALLED INSIDE [file] — every spelling that would CONSTRUCT it,
      * resolved from this file's own imports and typealiases rather than from a frozen
      * list (C17).
+     *
+     * C17's entry point, and it delegates: the walk itself is [spellingsOf] below,
+     * which takes the package it resolves against as an argument. C17 always resolves
+     * against [CONTRACT_PACKAGE], because Kotlin's sealed rule puts every transport
+     * declaration there.
      */
-    fun spellingsOf(file: GateFile, leaf: IrreversibleLeaf): Set<String> {
-        val names = mutableSetOf(leaf.fullyQualified)
+    fun spellingsOf(file: GateFile, leaf: IrreversibleLeaf): Set<String> =
+        spellingsOf(file, CONTRACT_PACKAGE, leaf.union, leaf.name)
+
+    /**
+     * THE SAME WALK, WITH THE PACKAGE PASSED IN — what `$pkg.$union.$case` is called
+     * INSIDE [file], in every spelling that would construct it.
+     *
+     * ONE BODY, TWO CALLERS, and the parameterisation is the point rather than an
+     * abstraction for its own sake. C17 resolves effect leaves out of `adr.contract`;
+     * GateTest's blast-radius census resolves `adr.spine.pure.Verb`'s two
+     * classifications out of the spine. Both questions are "what does THIS file call
+     * that declaration", and answering them from two hand-kept spelling lists is the
+     * failure class this repository has already paid for four times — the KDoc on
+     * [GateFile.importLines] records the C4 instance. A rule keyed on the literal text
+     * `Verb.Reversible` is defeated by one keystroke; a rule keyed on the
+     * fully-qualified declaration and resolved through the file's own header is not.
+     *
+     * THE FIVE REBINDINGS THE LANGUAGE OFFERS, all followed:
+     *
+     *   the fully-qualified spelling                 `adr.spine.pure.Verb.Reversible(`
+     *   an import of the union                       `import …Verb`         -> `Verb.Reversible(`
+     *   an import of the case, aliased or not        `import …Verb.Reversible as R` -> `R(`
+     *   a STAR import of the package                 `import adr.spine.pure.*` -> `Verb.Reversible(`
+     *   a typealias onto either                      `typealias R = …`      -> `R(`
+     *
+     * The star clause is the one this generalisation ADDS, and it is added to the
+     * shared body deliberately rather than to the new caller alone: a resolver that
+     * two rules share must not answer differently for each. It is fail-CLOSED for C17
+     * (more spellings resolve, so more constructions are seen), and measured, it moves
+     * nothing on any tree this repository holds — no file under `examples/kotlin`
+     * star-imports anything. The new fixture pair proves the accept half; a probe
+     * against the live tree proved the deny half.
+     */
+    fun spellingsOf(file: GateFile, pkg: String, union: String, case: String): Set<String> {
+        val fullyQualified = "$pkg.$union.$case"
+        val names = mutableSetOf(fullyQualified)
         val unions = mutableSetOf<String>()
         // Kotlin's sealed rule puts every transport declaration in ONE package, so a
         // file that already lives there needs no import to name the union.
-        if (file.packageName == CONTRACT_PACKAGE) unions += leaf.union
+        if (file.packageName == pkg) unions += union
         file.importLines.forEach { line ->
             val body = line.removePrefix("import").trim()
             val path = body.substringBefore(" as ").trim()
             val alias = if (" as " in body) body.substringAfterLast(" as ").trim() else null
-            if (path == leaf.fullyQualified) names += (alias ?: leaf.name)
-            if (path == "$CONTRACT_PACKAGE.${leaf.union}") unions += (alias ?: leaf.union)
+            if (path == fullyQualified) names += (alias ?: case)
+            if (path == "$pkg.$union") unions += (alias ?: union)
+            if (path == "$pkg.*") unions += union
         }
-        names += unions.map { "$it.${leaf.name}" }
+        names += unions.map { "$it.$case" }
         file.typeAliases.forEach { (alias, right) ->
-            if (right in names) names += alias
-            if (right in unions || right == "$CONTRACT_PACKAGE.${leaf.union}") {
-                names += "$alias.${leaf.name}"
+            // The alias's TARGET, with any type arguments dropped: `typealias Rev =
+            // Verb.Reversible<S, I, R>` rebinds the same declaration as `typealias Rev =
+            // PageOncall` does, and a comparison that kept the `<…>` would follow the
+            // rebinding for a monomorphic declaration and lose it for a generic one —
+            // which is a spelling distinction wearing a type-system costume.
+            val target = right.substringBefore('<').trim()
+            if (target in names) names += alias
+            if (target in unions || target == "$pkg.$union") {
+                names += "$alias.$case"
             }
         }
         return names

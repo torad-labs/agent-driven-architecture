@@ -16,13 +16,18 @@
 // table (docs/DECISIONS.md:125). This file names exactly one effect kind,
 // `Effect.Diag`, which is the spine's own and stays the root's to perform.
 //
-// RECEIPT, 2026-07-30, addressed to the blast-radius table the decisions record
-// schedules for the book (theme 5). Three prose sites now state something this file has
-// made false — wiki §6.8's bounded-change note, wiki §16's restatement of it, and
-// ADR-001 §1.3 Q1's parenthetical — and all three are that later entry's to rewrite
-// rather than this one's. ADR-001 §1.3 Q1 pre-authorises the deletion and gates it on
-// the ADR being accepted; the ADR was ratified 2026-07-26, so only the phase order is
+// RECEIPT, 2026-07-30 — CLOSED 2026-08-01. Addressed to the blast-radius table the
+// decisions record schedules for the book (theme 5). When this file landed, three prose
+// sites still stated something it had made false, and rewriting them belonged to that
+// later entry rather than to this one; the ADR pre-authorised the deletion and gated it
+// on being accepted, and it was ratified 2026-07-26, so only the phase order was
 // holding it.
+//
+// That entry has landed, and ADR-001 §1.3 Q1 now records the deletion as performed.
+// TWO CORRECTIONS to what this receipt originally claimed, both measured rather than
+// argued. The set was FIVE prose sites, not three: the two it missed were the worked
+// example's own blast-radius table row and the TypeScript port's README. And all five
+// are rewritten, so nothing is outstanding here.
 //
 // THE MEASURED REPLACEMENT, stated as the set the real compiler names rather than as a
 // bare zero. Appending a novel kind to an existing block's effect union costs, in this

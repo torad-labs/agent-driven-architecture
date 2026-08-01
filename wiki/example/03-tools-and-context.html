@@ -141,7 +141,7 @@ flowchart LR
         </div>
         <div class="card steel">
           <h4>focusTicket · a presentation verb</h4>
-          <p>Input is the agent's intent over the <em>surface</em>. <code class="i">run</code> returns <code class="i">FocusTicket(ticket)</code> — also a fact, not a write. The same gate, the same fold, the same bus, the same four sites to add it. It signs too.</p>
+          <p>Input is the agent's intent over the <em>surface</em>. <code class="i">run</code> returns <code class="i">FocusTicket(ticket)</code> — also a fact, not a write. The same gate, the same fold, the same bus, the same sites to add it — the same four declarations, and not one fewer for being about the surface. It signs too.</p>
         </div>
       </div>
 
@@ -196,7 +196,7 @@ render(context) -&gt; Text                                // the exact text the 
 
       <p>This is the inversion. Naively, a tool that needs to &ldquo;set priority&rdquo; would hold the store and write to it. Here it cannot — it is given a read-only <code class="i">ctx</code> and asked to <em>describe</em> the outcome as data. The capability to actually change state is not in the tool's hands; it is in the fold's, reached only through the value the tool returns. Control flows outward (the boundary acts on the result), but the source dependency points inward (the tool depends on result types and on <code class="i">ctx</code>'s shape, and on nothing outer).</p>
 
-      <p>The payoff is two properties stated plainly. <strong>Testing collapses to a function call:</strong> with no mutable context to mock and no effects to intercept, you assert <code class="i">run(input, ctx) == expected</code> and you are done — no model in the loop, no surface, no doubles. <strong>Extension is local:</strong> a new capability is a <code class="i">ToolResult</code> case, a <code class="i">Command</code> case, a registry entry and a fold arm — four appended declarations, three files, one folder, and the compiler names the ones you forget. You do not thread a new method through a store, a controller, and a presenter. And the count does not depend on what the verb is <em>about</em>: adding <code class="i">setPanel</code> costs exactly what adding <code class="i">setPriority</code> costs.</p>
+      <p>The payoff is two properties stated plainly. <strong>Testing collapses to a function call:</strong> with no mutable context to mock and no effects to intercept, you assert <code class="i">run(input, ctx) == expected</code> and you are done — no model in the loop, no surface, no doubles. <strong>Extension is local:</strong> a new capability is <em>a handful of appended declarations, every one named by the compiler or by a check, none of them a rewrite of shared logic</em> — the <code class="i">ToolResult</code> case, the <code class="i">Command</code> case, a registry entry and a fold arm, three files, one folder, and the compiler names the ones you forget. (One folder is not one <em>module</em>: where a language seals a hierarchy within a module, the two transport cases are authored in the shared core, so the same folder spans two directories, and each reference port states its own measured count in its own README.) You do not thread a new method through a store, a controller, and a presenter. And the count does not depend on what the verb is <em>about</em>: adding <code class="i">setPanel</code> costs exactly what adding <code class="i">setPriority</code> costs.</p>
 
       <div class="note steel">
         <span class="lab">The Input Port, and the pre-staged request</span>

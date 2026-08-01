@@ -20,17 +20,20 @@
 // file names exactly one effect kind, `Diag`, which is the spine's own and
 // stays the root's to perform.
 //
-// RECEIPT, 2026-07-30, addressed to the blast-radius table the decisions record
-// schedules for the book (theme 5). THREE PROSE SITES now state something this
-// file has made false, and all three are that later entry's to rewrite, not this
-// one's — a code landing does not edit the book ahead of its own phase:
+// RECEIPT, 2026-07-30 — CLOSED 2026-08-01. Addressed to the blast-radius table the
+// decisions record schedules for the book (theme 5). When this file landed, prose
+// elsewhere still stated something it had made false; rewriting that prose belonged
+// to a later entry rather than to this one, because a code landing does not edit the
+// book ahead of its own phase. That entry has landed, and ADR-001 §1.3 Q1 records the
+// deletion as performed.
 //
-//   · wiki §6.8, the "ADDING A TOOL IS A BOUNDED CHANGE" note — "the one listed
-//     exception: a verb introducing a novel effect kind adds … one branch in the
-//     composition root's effect sink … the only out-of-folder append in the system"
-//   · wiki §16, the same claim restated, cross-referencing §6.8
-//   · ADR-001 §1.3 Q1, the parenthetical "the one exception the book now lists
-//     itself: a novel effect kind adds a compiler-named branch in the root's sink"
+// TWO CORRECTIONS to what this receipt originally claimed, both measured rather than
+// argued. The set was FIVE prose sites, not the three enumerated here: the two it
+// missed were the worked example's own blast-radius table row and this port's README.
+// And all five are rewritten, so the retired claim survives nowhere — not in the book,
+// not in either README, not in the ADR, and not, after this edit, in the two
+// composition-root receipts that used to quote it back at themselves. Nothing here is
+// outstanding, and the phase order is no longer holding anything.
 //
 // THE MEASURED REPLACEMENT, stated as the set the real compiler names rather
 // than as a bare zero. Appending a novel kind to an existing block's effect
