@@ -75,9 +75,12 @@ function rowFor(status: TicketStatus): EscalationRow {
   }
 }
 
-export function escalationContextLines(slice: EscalationSlice): readonly string[] {
+export function escalationContextLines(
+  slice: EscalationSlice,
+  max: number = MAX_CONTEXT_LINES_PER_BLOCK,
+): readonly string[] {
   const lines = [...slice.statuses.values()].map(contextLineFor);
-  return bounded(lines, MAX_CONTEXT_LINES_PER_BLOCK);
+  return bounded(lines, max);
 }
 
 // CONSUMER 3 — the reasoner's digest. A pure projection of the same slice, held

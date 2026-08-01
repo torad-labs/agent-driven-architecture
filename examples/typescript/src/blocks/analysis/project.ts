@@ -50,9 +50,12 @@ function rowFor(note: AnalysisNote): AnalysisRow {
   }
 }
 
-export function analysisContextLines(slice: AnalysisSlice): readonly string[] {
+export function analysisContextLines(
+  slice: AnalysisSlice,
+  max: number = MAX_CONTEXT_LINES_PER_BLOCK,
+): readonly string[] {
   const lines = slice.notes.map(contextLineFor);
-  return bounded(lines, MAX_CONTEXT_LINES_PER_BLOCK);
+  return bounded(lines, max);
 }
 
 // CONSUMER 3 — the reasoner's digest. Held to the same closed-match rule as the

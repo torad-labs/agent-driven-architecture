@@ -25,6 +25,7 @@ import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.EffectPerformer
 import adr.spine.pure.Lens
+import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
@@ -78,5 +79,6 @@ class AnalysisBlock : Block<AnalysisSlice, AnalysisResult, AnalysisView> {
 
     override fun view(slice: AnalysisSlice): AnalysisView = projection.view(slice)
 
-    fun contextLines(slice: AnalysisSlice): List<String> = projection.contextLines(slice)
+    fun contextLines(slice: AnalysisSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
+        projection.contextLines(slice, maxLines)
 }

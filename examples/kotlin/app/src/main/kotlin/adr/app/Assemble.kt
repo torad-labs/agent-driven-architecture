@@ -12,11 +12,14 @@
 //
 // THE BLOCKS ARE CONSTRUCTED HERE, per call. A block used to be a loose `object`, so
 // there was nothing to build and nothing that could be built in a test; now each
-// dispatcher stands its blocks up itself. The three signatures are UNCHANGED on
-// purpose — `Assembly()::fold` and `Assembly()::context` are passed to the Boundary against
-// `typealias Fold<S>` and `ProjectContext<S>`, and an extra parameter here would break
-// nine call sites. When these three dispatchers become a class in their own right, the
-// locals below hoist to constructor state with no other rework.
+// dispatcher stands its blocks up itself.
+//
+// `context` TAKES THE ROOT'S WINDOW as a third, DEFAULTED parameter
+// (docs/DECISIONS.md:174). It rides the call rather than the Assembly constructor for
+// two reasons: `Assembly()::context` is still exactly `ProjectContext<S>`, so the seam
+// is untouched; and the twenty-five `Assembly()` sites cost nothing, because a defaulted
+// parameter is inherited explicitly rather than threaded. The bound the boundary commits
+// under is the Boundary's own `contextBounds` — it is passed IN, never looked up here.
 
 package adr.app
 
@@ -37,7 +40,8 @@ import adr.contract.ToolResult
 import adr.contract.TriageResult
 import adr.spine.pure.Attributed
 import adr.spine.pure.Context
-import adr.spine.pure.MAX_CONTEXT_NOTICES
+import adr.spine.pure.ContextBounds
+import adr.spine.pure.DEFAULT_CONTEXT_BOUNDS
 import adr.spine.pure.Notice
 import adr.spine.pure.PanelId
 import adr.spine.pure.Signature
@@ -146,18 +150,22 @@ class Assembly {
 
     /**
      * The THIRD pure projection (G15). Recomputed from committed State every step, never
-     * appended to, and bounded by declared constants — so |Context| is O(1) in timeline
+     * appended to, and bounded by declaration — so |Context| is O(1) in timeline
      * length. The artifact contributes a COUNT, never its lines.
      */
-    fun context(state: State, staged: List<StagedInput>): Context = Context(
+    fun context(
+        state: State,
+        staged: List<StagedInput>,
+        bounds: ContextBounds = DEFAULT_CONTEXT_BOUNDS,
+    ): Context = Context(
         staged = staged,
-        lines = TriageBlock().contextLines(state.triage) +
-            EscalationBlock().contextLines(state.escalation) +
-            ConsoleBlock().contextLines(state.console) +
-            AnalysisBlock().contextLines(state.analysis) +
-            InboxBlock().contextLines(state.inbox),
+        lines = TriageBlock().contextLines(state.triage, bounds.linesPerBlock) +
+            EscalationBlock().contextLines(state.escalation, bounds.linesPerBlock) +
+            ConsoleBlock().contextLines(state.console, bounds.linesPerBlock) +
+            AnalysisBlock().contextLines(state.analysis, bounds.linesPerBlock) +
+            InboxBlock().contextLines(state.inbox, bounds.linesPerBlock),
         notices = state.spine.notices
-            .takeLast(MAX_CONTEXT_NOTICES)
+            .takeLast(bounds.notices)
             .map { "${it.tool.value}: ${it.reason}" },
         artifactLineCount = ArtifactBlock().lineCount(state.artifact),
     )

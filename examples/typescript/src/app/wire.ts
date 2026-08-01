@@ -79,6 +79,7 @@ import type { Scheduler } from "@adr/spine/ports/scheduler";
 import type { Sink } from "@adr/spine/ports/sink";
 import type { Actor, Authority } from "@adr/spine/pure/actor";
 import { authority } from "@adr/spine/pure/actor";
+import type { ContextBounds } from "@adr/spine/pure/context";
 import type { Diag, EffectHandler, Handlers, Licences } from "@adr/spine/pure/effect";
 import { licencesOf } from "@adr/spine/pure/effect";
 import type { Emit } from "@adr/spine/pure/emit";
@@ -214,6 +215,11 @@ export interface Env {
    *  derives, and every snapshot taken under the old one is refused instead of
    *  trusted. */
   readonly reducerVersion?: string;
+  /** THE REASONER'S WINDOW (docs/DECISIONS.md:174), root-owned like
+   *  `promptVersion` and `reducerVersion` and for the same reason: the spine
+   *  declares that a bound exists, the deployment says how wide it is. Omit it
+   *  and the spine's shipped defaults apply. */
+  readonly contextBounds?: ContextBounds;
   readonly initial?: State;
 }
 
@@ -282,6 +288,7 @@ export function wireApp(env: Env): App {
       registry,
       session: env.session ?? "session-1",
       promptVersion: env.promptVersion ?? "prompt-v1",
+      contextBounds: env.contextBounds,
       fold: dispatchers.fold,
       projectContext: dispatchers.projectContext,
     },

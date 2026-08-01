@@ -29,9 +29,15 @@ export function triageView(slice: TriageSlice): TriageView {
   return { rows };
 }
 
-export function triageContextLines(slice: TriageSlice): readonly string[] {
+/** `max` is the ROOT'S window, defaulted to the spine's shipped one
+ *  (docs/DECISIONS.md:174): the block still declares a bound, it just no longer
+ *  decides the number. */
+export function triageContextLines(
+  slice: TriageSlice,
+  max: number = MAX_CONTEXT_LINES_PER_BLOCK,
+): readonly string[] {
   const lines = [...slice.tickets.values()].map(
     (t) => `ticket ${t.id} [${slice.priority.get(t.id) ?? "Normal"}]: ${t.body}`,
   );
-  return bounded(lines, MAX_CONTEXT_LINES_PER_BLOCK);
+  return bounded(lines, max);
 }

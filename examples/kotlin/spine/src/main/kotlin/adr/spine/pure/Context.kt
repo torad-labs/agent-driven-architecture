@@ -7,8 +7,10 @@
 //     ContextRenderer().render(context)               -> String         PURE. Exactly what the model saw.
 //
 // It is RECOMPUTED FROM COMMITTED STATE EVERY STEP — never appended to, never a
-// mutable accumulator. That, plus the two constants below, is the whole growth
-// bound: |Context| is O(1) in timeline length.
+// mutable accumulator. That, plus the [ContextBounds] the root wires, is the whole
+// growth bound: |Context| is O(1) in timeline length. The two numbers are the
+// SHIPPED DEFAULT and not the law (docs/DECISIONS.md:174): what is fixed is that a
+// bound is declared and travels as one value, not which number it holds.
 //
 // The rendered digest plus the active prompt version ride the committed record as
 // an ordered fixture (ContextFixture), so an audit can answer "why did the agent
@@ -29,11 +31,34 @@
 
 package adr.spine.pure
 
-/** Each block's contextLines() returns at most this many lines. */
+/** Each block's contextLines() returns at most this many lines — the SHIPPED DEFAULT. */
 const val MAX_CONTEXT_LINES_PER_BLOCK = 8
 
-/** Only the most recent notices reach the reasoner. */
+/** Only the most recent notices reach the reasoner — the SHIPPED DEFAULT. */
 const val MAX_CONTEXT_NOTICES = 8
+
+/**
+ * THE REASONER'S GROWTH BOUND AS A VALUE (docs/DECISIONS.md:174), so a deployment
+ * can state its own window without forking the spine — the shape the mailbox
+ * deadlines already ship (spine/pure/Mailbox, spine/concurrency/Consumer).
+ *
+ * WHAT THE INJECTION BUYS THAT A CONSTANT COULD NOT. A constant is both the
+ * stamping side and the re-deriving side of the committed digest, so moving it moves
+ * both halves in one run and the golden trace stays green — the check re-derives
+ * with the same number it committed under and cancels itself. Once the bound is a
+ * value the boundary was HANDED, a timeline can be re-derived under a DIFFERENT one,
+ * and the divergence that produces is what makes the committed fixture a check of
+ * the bound rather than of the projection alone. `ContextTest` holds both halves.
+ */
+data class ContextBounds(
+    val linesPerBlock: Int = MAX_CONTEXT_LINES_PER_BLOCK,
+    val notices: Int = MAX_CONTEXT_NOTICES,
+)
+
+/** What a root that says nothing inherits. Pinned to its literals by `ContextTest`,
+ *  so editing a default above is a red diff rather than a silent change to what
+ *  every model saw. */
+val DEFAULT_CONTEXT_BOUNDS = ContextBounds()
 
 data class Context(
     /**

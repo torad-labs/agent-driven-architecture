@@ -4,14 +4,18 @@
 //
 // They live on one CONSTRUCTED type because they are the same kind of thing: total,
 // pure functions of committed state, with no clock, no I/O and no accumulator. The
-// context lines are BOUNDED by a declared constant, so the reasoner's input does not
+// context lines are BOUNDED by declaration, so the reasoner's input does not
 // grow with session length.
 //
-// `MAX_CONTEXT_LINES_PER_BLOCK` stays a spine constant and is deliberately NOT a
-// constructor parameter. The lesson this file teaches is "the projection is bounded by
-// a DECLARED constant"; injecting the bound would make it a per-app knob and delete the
-// lesson. Instantiation is what the law asks for — bindability is a different, stronger
-// property, and it is not wanted here.
+// THE BOUND IS DECLARED IN THE SPINE AND PASSED IN (docs/DECISIONS.md:174). This file
+// used to argue the opposite — that injecting it would make it "a per-app knob and
+// delete the lesson" — and the argument was wrong on its own terms: the lesson is that
+// the projection is bounded BY DECLARATION rather than by discipline, and a defaulted
+// parameter naming `MAX_CONTEXT_LINES_PER_BLOCK` declares it exactly as loudly. What
+// the constant additionally did was make the bound UNCHECKABLE: it stamped the
+// committed digest and re-derived it, so moving it left both gates green. The default
+// is now pinned to its literal by a test, and a timeline re-derived under a different
+// window diverges — neither of which the welded constant could express.
 
 package adr.blocks.triage
 
@@ -39,8 +43,8 @@ class TriageProjection {
         },
     )
 
-    fun contextLines(slice: TriageSlice): List<String> =
+    fun contextLines(slice: TriageSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
         slice.tickets.values
-            .take(MAX_CONTEXT_LINES_PER_BLOCK)
+            .take(maxLines)
             .map { "ticket ${it.id.value} [${(slice.priority[it.id] ?: Priority.Normal).name}] ${it.body}" }
 }

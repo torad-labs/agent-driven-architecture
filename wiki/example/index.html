@@ -119,7 +119,7 @@ flowchart TB
             <tr><td>Controller (builds the Request Model)</td><td>the <strong>boundary adapter</strong> — resolves the <code>Action</code>, reads clock, stamps the <code>Signature</code>, gates, mints id, builds the <code>Command</code></td><td class="r">02</td></tr>
             <tr><td>Request / Response Models (DTOs)</td><td><code>Action</code> in · <code>ToolResult</code> / <code>Effect</code> out · <code>Command</code> on the record — simple data, never an entity</td><td class="r">02 · 01</td></tr>
             <tr><td>Input Port (Controller calls in)</td><td>a verb's <code>run(input, ctx)</code> + <code>Runtime.onAction</code></td><td class="r">03 · 05</td></tr>
-            <tr><td>&mdash; (no counterpart)</td><td><code>projectContext(state, staged)</code> — the reasoner's input, a third pure projection</td><td class="r">03</td></tr>
+            <tr><td>&mdash; (no counterpart)</td><td><code>projectContext(state, staged, bounds)</code> — the reasoner's input, a third pure projection</td><td class="r">03</td></tr>
             <tr><td>Presenter (testable: formats)</td><td><code>project(state) -&gt; ConsoleView</code> — the pure view projection</td><td class="r">04</td></tr>
             <tr><td>View Model (formatted primitives)</td><td><code>ConsoleView</code> / <code>TicketRow</code></td><td class="r">04</td></tr>
             <tr><td>View (Humble Object)</td><td>the <strong>surface</strong> — <code>render(view)</code> + one <code>onAction</code></td><td class="r">04</td></tr>
@@ -150,7 +150,7 @@ sequenceDiagram
   participant F as fold
   participant V as project → surface
   Q->>B: TicketArrived(4118, body) — staged for this turn
-  Note over B: read clock · projectContext(state, staged)
+  Note over B: read clock · projectContext(state, staged, bounds)
   B->>T: resolveAction(Action "setPriority", ctx)
   T-->>B: SetPriority(4118, High)
   Note over B: stamp Signature(Agent, agent-run-7f) · gate
@@ -166,7 +166,7 @@ sequenceDiagram
 
       <ol>
         <li><strong>Sensing (<a class="x" href="05-ports-and-swap.html">EventSource port</a>).</strong> The <code class="i">TicketQueue</code> adapter receives a raw event and normalizes it to a typed domain event, <code class="i">TicketArrived(4118, body)</code>, which the boundary <em>stages</em> for this one turn. Raw event in; no domain logic here.</li>
-        <li><strong>The clock, then the <a class="x" href="03-tools-and-context.html">context</a>.</strong> The boundary reads the clock once — the only read in the system — and computes <code class="i">projectContext(state, staged)</code>: a bounded, pure projection of committed truth plus the staged event. That <code class="i">Context</code> is what the reasoner sees, and its rendered digest is committed at step 6. <span class="tag good">pure</span></li>
+        <li><strong>The clock, then the <a class="x" href="03-tools-and-context.html">context</a>.</strong> The boundary reads the clock once — the only read in the system — and computes <code class="i">projectContext(state, staged, bounds)</code>: a bounded, pure projection of committed truth plus the staged event, under the window the composition root wired. That <code class="i">Context</code> is what the reasoner sees, and its rendered digest is committed at step 6. <span class="tag good">pure</span></li>
         <li><strong>The <a class="x" href="03-tools-and-context.html">verb</a> crossing.</strong> The agent emits an <code class="i">Action("setPriority", {ticket:4118, level:High})</code> — an open name with a raw input. <code class="i">resolveAction</code> looks the name up in the registry, decodes the input, and calls the verb's <code class="i">run(input, ctx)</code>, which returns the payload <code class="i">SetPriority(4118, High)</code> and mutates nothing. An unknown name resolves to <code class="i">Unhandled</code> here rather than falling through. <span class="tag good">pure</span></li>
         <li><strong>The stamp &amp; the gate (<a class="x" href="02-the-boundary.html">boundary adapter</a>).</strong> The boundary mints <code class="i">Signature(by = Agent, authority = agent-run-7f)</code> and runs every result past the irreversibility gate. <code class="i">setPriority</code> is reversible, so it passes untouched; a <code class="i">confirmEscalation</code> whose authority equals the requesting one would become <code class="i">Refused</code> right here, <em>before</em> the fold. The signature is minted here and nowhere else.</li>
         <li><strong>The <a class="x" href="01-state-and-fold.html">fold</a>.</strong> <code class="i">fold(state, [SetPriority(4118,High)], now, sig)</code> checks that 4118 exists, then returns <code class="i">(state', [Effect.LogDecision(...)])</code> — a new immutable state and an effect <em>descriptor</em>. It performs nothing. <span class="tag good">pure</span></li>
@@ -256,12 +256,14 @@ VERB confirmEscalation = Irreversible {
 // ───────── The context projection · the third pure map (seam 03) ─────────
 data StagedInput = { source: Text, body: Text }        // untrusted perceived content — one per turn
 data Context     = { staged: [StagedInput], lines: [Text], notices: [Text] }   // ORDERED off-bus fixture (book 6.11)
-MAX_CONTEXT_LINES = 8 ; MAX_CONTEXT_NOTICES = 8        // O(1) in session length — a bound, not a hope
+MAX_CONTEXT_LINES = 8 ; MAX_CONTEXT_NOTICES = 8        // the SHIPPED DEFAULT window, not the law
+data ContextBounds = { lines: Int, notices: Int }       // the window, as ONE value the root wires
+SHIPPED = ContextBounds(MAX_CONTEXT_LINES, MAX_CONTEXT_NOTICES)
 
-projectContext(state, staged) -&gt; Context:              // PURE. Recomputed each step; never appended to.
+projectContext(state, staged, bounds = SHIPPED) -&gt; Context:   // PURE. Recomputed each step.
   Context { staged:  staged,
-            lines:   ticketLines(state).takeLast(MAX_CONTEXT_LINES),
-            notices: state.notices.takeLast(MAX_CONTEXT_NOTICES).map(summarize) }
+            lines:   ticketLines(state).takeLast(bounds.lines),
+            notices: state.notices.takeLast(bounds.notices).map(summarize) }
 render(context) -&gt; Text                                // the exact text the reasoner sees — and a fixture
 data ContextFixture = { promptVersion: Text, digest: Text }   // committed per step, re-checked on replay
 
@@ -332,7 +334,7 @@ gate(r, sig, state, registry, authz) -&gt; ToolResult =        // the irreversib
 // ───────── The boundary adapter · the ONE impure seam (seam 02) ─────────
 boundary.onStepFinish(step: FinishedStep):
   now     = clock.now()                                    // (1) the ONLY clock read in the system (G9)
-  ctx     = Ctx(state, projectContext(state, step.staged)) // (2) the third pure projection
+  ctx     = Ctx(state, projectContext(state, step.staged, bounds)) // (2) the third pure projection
   results = step.actions.map(a -&gt; resolveAction(registry, a, ctx))   // (3) the ONE name → ToolResult map
   sig     = Signature(by = step.by,                        // (4) the stamp — WHO, and under whose permission
                       authority = authz.authorityOf(step.by, session))

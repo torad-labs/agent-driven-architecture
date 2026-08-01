@@ -29,9 +29,9 @@ class InboxProjection {
         faults = slice.faults,
     )
 
-    fun contextLines(slice: InboxSlice): List<String> = (
+    fun contextLines(slice: InboxSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> = (
         slice.conflated.map { (source, count) -> "$count input(s) conflated from ${source.value}" } +
             slice.duplicates.map { (source, count) -> "$count duplicate input(s) from ${source.value}" } +
             slice.faults.map { "turn failed: $it" }
-        ).takeLast(MAX_CONTEXT_LINES_PER_BLOCK)
+        ).takeLast(maxLines)
 }

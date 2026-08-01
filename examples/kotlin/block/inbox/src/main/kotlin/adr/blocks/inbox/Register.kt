@@ -13,6 +13,7 @@ import adr.spine.pure.ArmOut
 import adr.spine.pure.Block
 import adr.spine.pure.BlockRegistration
 import adr.spine.pure.Lens
+import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
@@ -33,5 +34,6 @@ class InboxBlock : Block<InboxSlice, InboxResult, InboxView> {
 
     override fun view(slice: InboxSlice): InboxView = projection.view(slice)
 
-    fun contextLines(slice: InboxSlice): List<String> = projection.contextLines(slice)
+    fun contextLines(slice: InboxSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
+        projection.contextLines(slice, maxLines)
 }

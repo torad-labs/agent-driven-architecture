@@ -63,8 +63,8 @@ class EscalationProjection {
         },
     )
 
-    fun contextLines(slice: EscalationSlice): List<String> =
-        slice.status.values.take(MAX_CONTEXT_LINES_PER_BLOCK).map { status ->
+    fun contextLines(slice: EscalationSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
+        slice.status.values.take(maxLines).map { status ->
             when (status) {
                 is TicketStatus.Open -> "ticket ${status.ticket.value} is open"
                 is TicketStatus.Escalating ->

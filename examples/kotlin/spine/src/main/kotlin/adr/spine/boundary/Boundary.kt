@@ -21,7 +21,9 @@ package adr.spine.boundary
 
 import adr.spine.pure.Admission
 import adr.spine.pure.Context
+import adr.spine.pure.ContextBounds
 import adr.spine.pure.ContextFixture
+import adr.spine.pure.DEFAULT_CONTEXT_BOUNDS
 import adr.spine.pure.CURRENT_SCHEMA
 import adr.spine.pure.Ctx
 import adr.spine.pure.EffectKey
@@ -60,6 +62,17 @@ class Boundary<S>(
     private val promptVersion: String,
     private val session: SessionId,
     initial: S,
+    /**
+     * THE REASONER'S WINDOW, wired at the root (docs/DECISIONS.md:174), defaulted to
+     * the spine's shipped one — the same shape [adr.spine.concurrency.SerialConsumer]
+     * already gives its three deadlines.
+     *
+     * PUBLIC, and held HERE rather than curried into [projectContext], for one reason:
+     * ONE value must reach both the digest this seam commits and the projection the
+     * tools and the agent loop read. A root that curried the bound into the dispatcher
+     * and declared another one here would have two, and nothing would notice.
+     */
+    val contextBounds: ContextBounds = DEFAULT_CONTEXT_BOUNDS,
 ) {
     var state: S = initial
         private set
@@ -82,14 +95,15 @@ class Boundary<S>(
     private val admission = Admission(registry)
 
     /** The bounded projection the reasoner sees right now — the loop stages it per step. */
-    fun context(staged: List<StagedInput> = emptyList()): Context = projectContext(state, staged)
+    fun context(staged: List<StagedInput> = emptyList()): Context =
+        projectContext(state, staged, contextBounds)
 
     fun onStepFinish(step: FinishedStep) {
         // 1 — the ONLY clock read in the system (G9).
         val now = clock.now()
 
         // 2 — the THIRD pure projection (G15). The tools see exactly what the reasoner saw.
-        val ctx = Ctx(state, projectContext(state, step.staged))
+        val ctx = Ctx(state, projectContext(state, step.staged, contextBounds))
 
         // 3 — the ONE closed name→ToolResult map (G1), before anything is stamped.
         val results = step.actions.map { actions.resolve(it, ctx) }
