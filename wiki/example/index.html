@@ -27,6 +27,7 @@
         <a href="#scenario"><span class="n">·</span><span>A typical scenario</span></a>
         <a href="#assembled"><span class="n">·</span><span>The whole example</span></a>
         <a href="#how-to-read"><span class="n">·</span><span>How to read a seam</span></a>
+        <a href="#ladder"><span class="n">·</span><span>Which rung each seam walks</span></a>
         <div class="group">The seams</div>
         <a href="01-state-and-fold.html"><span class="n">01</span><span>State &amp; the fold</span></a>
         <a href="02-the-boundary.html"><span class="n">02</span><span>The boundary adapter</span></a>
@@ -64,7 +65,7 @@
 
       <p><strong>The running example.</strong> A <em>support-ticket triage console</em>. An agent reads an incoming ticket stream, drafts replies, sets priority, and can request escalation; a rare human operator — the <em>host</em> — can take the same actions through the same commands; and the customer receives a resolution without ever touching the interface. It is the same illustrative scenario the <a class="x" href="../index.html">reference</a> uses. Nothing in the architecture depends on it — substitute your own domain freely.</p>
 
-      <p><strong>The method, borrowed from Clean Architecture.</strong> That book does not catalogue boundaries abstractly; it traces a single request across each one in turn, names a concrete participant at every hop, and hands a simple data structure across each seam. We do the same. First the picture and the one law (<a class="x" href="#the-law">below</a>); then, for readers who already know Clean Architecture, the exact mapping of its vocabulary onto ours (<a class="x" href="#mapping">§ mapping</a>); then a single command traced end to end (<a class="x" href="#scenario">§ a typical scenario</a>); then the whole program assembled (<a class="x" href="#assembled">§ the whole example</a>); and finally the seam pages, each running the same eight-slot template (<a class="x" href="#how-to-read">§ how to read a seam</a>).</p>
+      <p><strong>The method, borrowed from Clean Architecture.</strong> That book does not catalogue boundaries abstractly; it traces a single request across each one in turn, names a concrete participant at every hop, and hands a simple data structure across each seam. We do the same. First the picture and the one law (<a class="x" href="#the-law">below</a>); then, for readers who already know Clean Architecture, the exact mapping of its vocabulary onto ours (<a class="x" href="#mapping">§ mapping</a>); then a single command traced end to end (<a class="x" href="#scenario">§ a typical scenario</a>); then the whole program assembled (<a class="x" href="#assembled">§ the whole example</a>); then the seam pages, each running the same eight-slot template (<a class="x" href="#how-to-read">§ how to read a seam</a>); and last, which rung of the reference's adoption ladder each of those pages actually walks, and where this walkthrough stops (<a class="x" href="#ladder">§ which rung each seam walks</a>).</p>
 
       <div class="note">
         <span class="lab">The one move worth holding in mind</span>
@@ -429,7 +430,33 @@ replayTest(live):                               // live = a real run: its bus, i
         <div class="slot"><div class="k">The swap / the test</div><div class="v">What becomes testable once the seam exists — usually: the whole session replays off-target.</div></div>
       </div>
 
-      <p>Start at <a class="x" href="01-state-and-fold.html">seam 01 — State &amp; the fold</a> and walk through to 07. The pages assume you have read this overview; they do not re-explain the law or the example, they apply them.</p>
+      <p>Start at <a class="x" href="01-state-and-fold.html">seam 01 — State &amp; the fold</a> and walk through to 07. The pages assume you have read this overview; they do not re-explain the law or the example, they apply them. One map is worth carrying in with you, and it is the last thing on this page: which rung of the reference's adoption ladder each of those seven pages walks.</p>
+    </section>
+
+    <section id="ladder" class="rv">
+      <div class="sec-head"><span class="num">06</span><h2>Which rung each seam walks</h2></div>
+      <p class="lede">The <a class="x" href="../index.html">reference</a> sorts the architecture into an adoption ladder — an irreducible core, then four rungs you climb only when a named failure in your own app asks for one — and it deliberately says nothing there about who has climbed what. Here is that ladder met from this example's side: for each rung, the page that walks it, and what the walkthrough actually puts in front of you. A reading map, not a scoreboard.</p>
+
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Rung</th><th>Walked at</th><th>What the walkthrough shows you</th></tr></thead>
+          <tbody>
+            <tr><td>Core</td><td class="r"><a class="x" href="01-state-and-fold.html">seam 01</a> · <a class="x" href="02-the-boundary.html">seam 02</a> · <a class="x" href="03-tools-and-context.html">seam 03</a> · <a class="x" href="04-projection-and-surface.html">seam 04</a> · <a class="x" href="06-blocks-and-root.html">seam 06</a></td><td>The whole of it, one crossing at a time: the pure <code class="i">fold</code>, the single impure boundary, the verb registry and the context projection, the view projection and the humble surface, and the one wiring site. <a class="x" href="#scenario">§ a typical scenario</a> traces one command across every crossing, and <a class="x" href="#assembled">§ the whole example</a> prints the result as one continuous program.</td></tr>
+            <tr><td>+ Safety</td><td class="r"><a class="x" href="02-the-boundary.html">seam 02</a></td><td>The irreversibility gate, run at step (5) — <em>before</em> the fold, so its verdict commits and re-folds like any other result. It keys on the <code class="i">Authority</code> and never on the <code class="i">Actor</code>, and the listing shows why the rung is not paperwork: <code class="i">Verb.Irreversible</code> cannot be constructed without naming where its matching <code class="i">Request</code> lives.</td></tr>
+            <tr><td>+ Concurrency</td><td class="r"><a class="x" href="07-replay-and-advanced.html">seam 07 § E</a></td><td>The barge-in mailbox, in four lines rather than the eight-slot template: one serial consumer selecting over the next message and the running turn at once, three closed policies (conflate · preempt · defer), cancellation landing at a step boundary, and the bounded join that revokes an abandoned turn instead of waiting on it forever.</td></tr>
+            <tr><td>+ Cognition</td><td class="r"><a class="x" href="07-replay-and-advanced.html">seam 07 § E</a></td><td>The tiered relay, on the same compact treatment: two tiers holding no handle to one another, one bounded recall that returns <em>text</em>, and a degrade that is a sealed outcome rather than a nullable string — <code>Fresh</code>, <code>LastKnown</code>, <code>Empty</code>, three genuinely different facts.</td></tr>
+            <tr><td>+ Inputs</td><td class="r"><a class="x" href="03-tools-and-context.html">seam 03</a> · <a class="x" href="05-ports-and-swap.html">seam 05</a></td><td>The mechanism, on exactly one capability. A ticket queue behind an <code class="i">EventSource</code> port normalises a raw event, the boundary stages it for one turn, and <code class="i">projectContext</code> hands it to the reasoner as untrusted text carried on the record. Every staged input in this example <em>is</em> text; no other modality appears anywhere in the listing.</td></tr>
+            <tr><td>+ Enforcement</td><td class="r"><a class="x" href="07-replay-and-advanced.html">seam 07 § D–E</a></td><td>Why the gate is a seam and not hygiene: § D shows what the replay harness structurally cannot catch — a tool that goes out to the world is never re-run by a re-fold — and § E names the invariants that therefore have to be caught at the line, at the moment the line is written.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note steel">
+        <span class="lab">Where this walkthrough stops — said here, not discovered later</span>
+        <p><strong>These pages are pseudocode, and that is the whole of what they claim.</strong> <a class="x" href="#assembled">§ the whole example</a> says so on its own banner: the listing fixes the <em>names</em> and the <em>shape</em>, so one vocabulary carries across every seam page and up into the reference. None of these listings compiles, and nothing on this page is executed by any build. That is true of the walkthrough, not of everything it points at: where one of these pages quotes a measured fact about an accompanying implementation — a count, a timing — that implementation's own build is what keeps the number honest, and a walkthrough is the wrong place to look for the receipt. A rung drawn well in a walkthrough is not evidence that it works — evidence is a property of running code, and it belongs beside the code it is a property of, stated there and measured by a build that either goes green or does not.</p>
+        <p><strong>Two rungs are drawn at lower resolution than the rest.</strong> The mailbox and the relay live in <a class="x" href="07-replay-and-advanced.html">seam 07</a>'s advanced section, four lines each, and never get an eight-slot page of their own. That is deliberate — they are opt-in and the seven core seams are not — but it does mean the walkthrough teaches them thinner than it teaches the core, and you should read the reference's own chapters before taking either rung.</p>
+        <p><strong>And one guarantee this example cannot hand you at all.</strong> Single-writer confinement of a turn is a property of the <em>shape</em> — the consumer mints the turn's one channel and calls the boundary itself — and no build check anywhere can enforce it. Keep the shape and you keep the guarantee; run a turn on another thread and fold from there, and two folds interleave with every other rule on these pages still satisfied.</p>
+      </div>
 
       <div class="foot">
         <p>A worked companion to <a href="../index.html">the Agent-Driven Architecture reference</a>. One example, one law, eight slots per seam.</p>

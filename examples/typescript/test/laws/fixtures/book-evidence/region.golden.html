@@ -1,0 +1,34 @@
+<span class="t">17.4</span>Minimum-viable versus full adoption</h3>
+  <p>You do not need the whole pattern on day one. There is an irreducible core that delivers the central payoff, and an advanced layer you grow into as the agent becomes more central and the stakes rise. The discipline that matters: <strong>stop at the tier your app needs</strong>. The simple app &mdash; the large majority &mdash; takes the core and <em>never meets</em> the deep formalism (tiered cognition, the barge-in mailbox, recovery across a crash, the swap door). Those are opt-in by scale, not a checklist to finish. You climb a rung only when an invariant you already hold starts to cost you &mdash; never pre-emptively. The operational test is one question (<a class="x" href="#payoff-and-non-goals">16.4</a>): <em>can you name the production failure this rung prevents in your app?</em> If you cannot, you do not need it yet &mdash; the restraint the architecture applies to its own growth is the same one that licenses you to stop here.</p>
+
+  <div class="cols">
+    <div class="card">
+      <h4>Minimum viable, the irreducible core</h4>
+      <p>Four pieces, and you have a replayable agent: <strong>tools</strong> (pure, return-payload), the <strong>command bus</strong> (append-only, observable), the <strong>pure reducer</strong> (<code class="i">fold</code>), and the <strong>boundary</strong> (mints identity, performs effects, stamps the actor). This alone buys replay, testable tools, and human override.</p>
+    </div>
+    <div class="card steel">
+      <h4>Full adoption, the advanced layer</h4>
+      <p>Layer on as needed: <a class="x" href="#tiered-cognition">tiered cognition</a> via a relay store, a <a class="x" href="#concurrency-barge-in">barge-in mailbox</a> for serial concurrency, <a class="x" href="#capability-as-a-tool">capability-as-a-tool</a> for arbitrary inputs, replay tooling (scrubber, fork, diff), and the full <a class="x" href="#enforced-constraints">enforcement</a> ladder.</p>
+    </div>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Tier</th><th>You build</th><th>You get</th></tr></thead>
+      <tbody>
+        <tr><td>Core</td><td>tools + bus + fold + boundary</td><td class="r">replay · testable tools · human override</td></tr>
+        <tr><td>+ Safety</td><td>the irreversible-action gate</td><td class="r">one bad inference can't fire a destructive effect</td></tr>
+        <tr><td>+ Concurrency</td><td>a serial mailbox with barge-in</td><td class="r">newest-wins · preemption · no locks</td></tr>
+        <tr><td>+ Cognition</td><td>a deep tier and a relay store</td><td class="r">deeper reasoning without stalling the fast loop</td></tr>
+        <tr><td>+ Inputs</td><td>capability-as-a-tool adapters</td><td class="r">perceive any out-of-band input as text</td></tr>
+        <tr><td>+ Enforcement</td><td>each invariant closed at the highest layer that holds it</td><td class="r">correctness scales with generated-code volume</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note steel"><span class="lab">THE LADDER IS ARCHITECTURE, NOT A REPORT ON ANY CODEBASE</span><p>Read the three columns as a design and nothing more: what each rung <em>is</em>, what you build for it, and what it buys. They make no claim about whether any particular implementation has climbed them, and that omission is deliberate. A specification that quietly cites its own accompanying code as proof is borrowing an authority it never argued for; evidence is a property of an implementation, so it belongs beside the implementation, where it can be measured and re-measured against a build that either goes green or does not. Which rungs a given codebase demonstrates is that codebase's own claim to make and its own documentation's job to keep honest — and nothing above rests on the answer. <a class="x" href="#payoff-and-non-goals">16.4</a> still holds and is unaffected: a rung someone has demonstrated is not an argument that your app should take it.</p>
+  <p>One claim inside the ladder deserves its own line, because it is the sort that quietly degrades in an adopter's hands and <em>no</em> enforcement layer can hold it: <strong>the single-dispatcher confinement of a turn's <code class="k">submit</code> channel is structural, not gate-checkable.</strong> The consumer mints the channel and calls the boundary itself, so a design that hands out exactly one channel per turn cannot violate it — but an adopter who runs a turn on another thread and folds from there can interleave two folds despite every rule above. No check catches that; only the shape does. Treat it as the one rung whose guarantee you inherit only by keeping the shape, and say so in your own documentation rather than letting it read as enforced.</p></div>
+
+  <p>Start at the core and ship something replayable in a day; climb the ladder as the agent takes on more, the inputs diversify, and the cost of an unaudited or unsafe action rises. The architecture is designed so each rung is <em>additive</em>, you never rewrite the core to add a tier, you only attach another seam to it.</p>
+
+  <h3>

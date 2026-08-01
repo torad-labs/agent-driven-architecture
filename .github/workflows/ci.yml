@@ -1,10 +1,12 @@
 # ── CI — the gate, on every push (15.1/17.4) ────────────────────────────────
 # §17.4 used to admit "nothing runs them on push: there is no CI" — a book that
 # stakes its answer on machine enforcement was itself enforced only on whoever
-# remembered to run the suites. This closes that. Both jobs run the SAME entry
-# points a contributor runs locally (`npm test`, `./gradlew check`), so green
-# here means exactly what green means on a laptop — no CI-only rule set, no
-# warning tier, no baseline.
+# remembered to run the suites. This closes that. Do not go looking for the
+# receipt in that section any more: it reports on no codebase at all now, and
+# each port's README states its own enforcement rung and names this workflow.
+# Both jobs run the SAME entry points a contributor runs locally (`npm test`,
+# `./gradlew check`), so green here means exactly what green means on a laptop
+# — no CI-only rule set, no warning tier, no baseline.
 
 name: ci
 

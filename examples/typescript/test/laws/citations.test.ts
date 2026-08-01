@@ -618,29 +618,62 @@ describe("cross-references agree in BOTH coordinates", () => {
     // D4's check-authoring appendix added eight. The pin moves deliberately with
     // a reason each time, never loosened to an inequality — that is what makes
     // it a vacuity guard rather than a floor.
-    expect(refs.anchors).toBe(701);
+    // 701 -> 715, and it is a NET of two opposite moves that must both be read.
+    // The evidence move (docs/DECISIONS.md:142) took §17.4's "exercised versus
+    // specified-but-unproven" note out of the book: that note carried FOUR
+    // numbered cross-references (14.7, 14.1, 8.5, 17.1) whose only job was to
+    // say what the accompanying code does and does not do, so all four leave
+    // with it — the two `16.4` links stay, because 16.4 is the licence to stop
+    // early and that is architecture. The worked example's new §06 adds
+    // EIGHTEEN, every one a prose label: one nav entry, one pointer from §00,
+    // and sixteen inside the section itself. Counted per structural part, so a
+    // re-derivation can land on the same sixteen: the section lede carries ONE
+    // (`../index.html`); the table carries THIRTEEN, of which the Core row alone
+    // holds SEVEN (five seam links plus `#scenario` and `#assembled`) and the
+    // other five rows hold SIX between them (+Inputs cites two seams, the other
+    // four cite one each); and the closing note carries TWO (`#assembled` again
+    // and one `seam 07`). 1 + 13 + 2 = 16.
+    // -4 + 18 = +14. Both halves are asserted below: `numbered` falls by four
+    // and `prose` rises by eighteen, so a mistake in either direction shows up
+    // in a bucket and not only in the total.
+    expect(refs.anchors).toBe(715);
     // 18 in the book — the seventeen section ids plus `the-dependency-rule`, the
     // in-section note anchor §7 owns; `nav` sits before the first section and
-    // carries no number — plus the worked example's own six (00–05) in
+    // carries no number — plus the worked example's own seven (00–06) in
     // `wiki/example/index.html`. The seam pages head their parts ▸/A–E, which
     // are not digits, so their ids resolve to no number.
     // 24 -> 25: D4's check-authoring APPENDIX is a numbered target of its own,
     // which is exactly what it should be — an appendix so sections 16/17 keep
     // their numbers, carrying its own id rather than renumbering anything.
-    expect(refs.numberedTargets).toBe(25);
+    // 25 -> 26: the worked example gains a SEVENTH section, `#ladder`, headed
+    // `06` — the rung-to-seam map the evidence move gave it. It is APPENDED,
+    // so 00–05 keep their numbers and the one label that names one of them
+    // (`§01` -> `#the-law`) is untouched; the example's own numbering namespace
+    // is now 00–06 and stays disjoint from the book's, which is why this
+    // instrument is per page and not one union.
+    expect(refs.numberedTargets).toBe(26);
     // 17 book TOC links carrying a fragment, and 64 whole-file ones — 8 on each
     // of the 8 example pages. The split is the load-bearing half of the nav
     // class: the seam pages' token sets are EMPTY and the worked example's nav
-    // runs 00–07 over a page numbered 00–05, so adjudicating a whole-file nav
+    // runs 00–07 over a page numbered 00–06, so adjudicating a whole-file nav
     // link would manufacture sixty-plus false positives against correct markup.
     expect(refs.labels).toEqual({
       nav: 18,
       navWholeFile: 64,
       // 243 -> 244 (D42's CHANGELOG reference) -> 246 (D4's appendix).
-      numbered: 246,
+      // 246 -> 242: the four numbered links the evidence move took out of §17.4
+      // with the note that held them (14.7 and 14.1 on schema evolution, 8.5 on
+      // the hard swaps, 17.1 on cross-session budgets). Each existed to qualify
+      // what an implementation ships; none of the four claims is architecture,
+      // and each destination still states its own rule in its own section.
+      numbered: 242,
       worded: 4,
       law: 53,
-      prose: 316,
+      // 316 -> 334: the worked example's §06, eighteen prose-labelled links —
+      // `seam NN` and `§ <name>` forms, none adjudicable by design, which is why
+      // they land here and not in `numbered`. See the `anchors` note above for
+      // the per-link breakdown.
+      prose: 334,
     });
     // the census is TOTAL: every anchor lands in exactly one bucket.
     expect(Object.values(refs.labels).reduce((a, b) => a + b, 0)).toBe(refs.anchors);
