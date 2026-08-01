@@ -60,12 +60,24 @@ describe("stateAtStep — the scrub prefix, at both ends and in between", () => 
     // interior position must differ from the end state, or the cursor is a
     // no-op wearing a parameter.
     const whole = at(records.length);
+    // The canonical session performs four effects across seven steps, so an
+    // interior cursor must differ from the whole timeline on BOTH halves.
+    expect(whole.effects.length).toBeGreaterThan(1);
     for (let k = 1; k < records.length; k += 1) {
       expect(at(k).state, `k=${k} must not already be the end state`).not.toEqual(whole.state);
       // and it must equal the re-fold of exactly that many records — the
       // independent derivation, not this function talking to itself.
       expect(at(k).state).toEqual(
         refold(h.app.initial, records.slice(0, k), h.app.dispatchers, h.app.licences).state,
+      );
+      // AND THE EFFECTS HALF, which the KDoc promises in as many words: "a scrub
+      // that shows state and hides the on-call page it had already sent is a lie
+      // of omission". The first landing asserted `.state` only, so suppressing
+      // every interior effect left the whole gate green — the comment promised
+      // more than the test asserted, which is the class this campaign keeps
+      // closing.
+      expect(at(k).effects).toEqual(
+        refold(h.app.initial, records.slice(0, k), h.app.dispatchers, h.app.licences).effects,
       );
     }
   });

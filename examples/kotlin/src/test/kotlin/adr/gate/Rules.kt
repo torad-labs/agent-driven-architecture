@@ -429,30 +429,32 @@ val CHECKS: List<Check> = listOf(
     // leaf's own pinned site in [IRREVERSIBLE_SITES], and beyond the COUNT that site is
     // pinned to, which is the half a per-file roster cannot express.
     //
-    // THE SPELLINGS THIS RESOLVES, AND THE ONE IT CANNOT — stated, because a wall's
-    // written scope is what SOUND is judged against, and this one's is narrower than
-    // the class. Resolved per file from its own imports and typealiases: the
-    // union-qualified, aliased, typealiased, nested-class-imported and fully-qualified
-    // spellings, each counted on its own. NOT resolved: the NESTED-STAR import
-    // (`import adr.contract.EscalationEffect.*`), which puts every leaf of ONE union in
-    // scope under a bare name this check cannot enumerate — on the third round of the
-    // same class after aliases and typealiases.
+    // THE SPELLINGS THIS RESOLVES — stated, because a wall's written scope is what
+    // SOUND is judged against. Resolved per file from its own imports and
+    // typealiases: the union-qualified, aliased, typealiased, nested-class-imported,
+    // fully-qualified, FLAT-WILDCARD (`import adr.contract.*`) and NESTED-STAR
+    // (`import adr.contract.EscalationEffect.*`) spellings, each counted on its own.
     //
-    // NAME THE RIGHT SPELLING. This paragraph previously blamed the FLAT wildcard
-    // (`import adr.contract.*`), and a later review measured that claim false: the flat
-    // form IS resolved and reds the build. The form that actually walks past C17 is the
-    // nested star, and only from inside the union's OWN block — from anywhere else C2
-    // (no cross-block symbol import) catches it first. Both measured on the live tree:
-    // flat wildcard in triage/Project.kt -> C17 FAILED; nested star in
-    // escalation/Project.kt -> BUILD SUCCESSFUL. A residue paragraph naming a spelling
-    // the check does catch is worse than none: it sends the next author looking in the
-    // wrong place.
+    // THIS PARAGRAPH HAS BEEN WRONG TWICE, IN OPPOSITE DIRECTIONS, AND BOTH ARE
+    // RECORDED HERE BECAUSE THE CLASS IS THE POINT. It first blamed the flat wildcard,
+    // which a review measured the check DOES catch. The correction named the nested
+    // star as unclosable — and the SAME diff that wrote that sentence also closed the
+    // nested star twenty lines below, so the paragraph shipped contradicting its own
+    // code, which is the exact defect that diff was titled after. A residue paragraph
+    // naming a spelling the check does catch is worse than none: it sends the next
+    // author looking in the wrong place. Re-measured on the live tree for this
+    // wording: flat wildcard -> C17 FAILED, nested star -> C17 FAILED, and a two-hop
+    // typealias chain (`typealias A = EscalationEffect; typealias B = A`) does not
+    // compile at all, so it is not an evasion to close.
     //
     // WHY THAT RESIDUE IS NOT CLOSED HERE, AND WHERE IT IS. Konsist models
     // DECLARATIONS, not resolved expressions (Tree.kt's banner), so this check is a text
     // matcher over declaration bodies, and "any construction of an Irreversible leaf, in
-    // any spelling" is not a class a text matcher can close — three rounds of adding
-    // spellings measured that. The TOTAL wall is the runtime one:
+    // any spelling" is not a class a text matcher can close: what remains open is any
+    // route where the leaf's NAME does not appear in the constructing declaration at
+    // all — reflection, or a generic factory instantiated with the type. No spelling
+    // this check could add reaches those, which is the reasoned bound, not a measured
+    // probe. The TOTAL wall is the runtime one:
     // `EffectAdmission.admit`, applied in the SHARED re-derivation (Replay's three fold
     // loops and the boundary alike, docs/DECISIONS.md:85-89), which refuses on the
     // effect's own CLASS regardless of how the construction was spelled or where it was
