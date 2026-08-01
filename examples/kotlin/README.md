@@ -393,6 +393,84 @@ you vendor once and never author per feature.**
 
 ---
 
+## Day one: a working one-verb app
+
+**Read this first: it is a step list for YOUR new repository, not for this one.** The spine is a
+vendored template and no package is published on any registry (docs/DECISIONS.md:155), so day one is
+a copy, not a dependency. This port's own roster pins and verb ledgers are not yours to maintain.
+
+Every step below was executed end to end before it was written, against this tree, and the four
+measurements a reader could not have guessed are called out where they bite. The claims are held by
+`examples/typescript/test/laws/quickstart.test.ts`, which resolves every path, command, count and
+walked fact on this list against the live tree on every `npm test` run of the sibling port. It does
+not re-run Gradle: this port's own gate is blind to this README, and its `GateTest` says so in
+writing.
+
+<!-- quickstart:begin -->
+**Scope, first, because it is the one thing a step list can be wrong about silently:** everything
+below is for YOUR new repository. None of this port's roster pins or verb ledgers travel with the
+copy; they exist because this tree is the reference.
+
+**1 — copy the spine module.** `cp -r <this repo>/examples/kotlin/spine <yours>/spine`. It is a
+Gradle module, not a folder: it arrives with `spine/build.gradle.kts`, which applies the `adr.spine`
+convention plugin and declares three dependencies.
+
+*What you get:* the folder holds 45 entries — 44 `.kt` plus that build script. It carries its own
+version marker at `spine/src/main/kotlin/adr/spine/pure/Version.kt`, which is what `CHANGELOG.md`
+entries key on; keep it.
+
+*THE MEASUREMENT THAT CHANGES THE STEP:* 6 of them are not spine at all. They are this reference
+application's blocks' transport, at
+`spine/src/main/kotlin/adr/blocks/{triage,escalation,console,artifact,analysis,inbox}/Contract.kt`.
+Delete them and 38 `.kt` remain, which is exactly the roster this port's `GateTest` pins.
+
+**2 — the constraint you must not "fix", and the one that breaks step 4.** Those six files are in
+`:spine` because Kotlin requires every variant of a sealed hierarchy in one package AND one module.
+So YOUR block's transport goes there too: `spine/src/main/kotlin/adr/blocks/<x>/Contract.kt`, package
+`adr.contract`, inside the vendored module. Authoring it in your block module instead fails the
+compiler, in those words:
+`Extending sealed classes or interfaces from a different module is prohibited`.
+
+**The "vendor once and never author per feature" headline three sections up is therefore not
+literally true in Kotlin** — you never author the spine's own components again, but you do add one
+file per block inside the vendored module's tree. That is a locked consequence of G12 plus the
+language, not a defect to route around.
+
+**3 — declare the modules.** In `settings.gradle.kts`: `:spine`, then a PAIR per block —
+`:block:<x>` pure and `:block:<x>:adapter` impure — and `:app`. The pair is unconditional even for a
+block with no I/O, and the reason is measured rather than stylistic: Gradle refuses to configure a
+project `without an existing directory`, so an I/O-less block still ships a real committed adapter
+directory holding a one-line build script. See `block/console/adapter/build.gradle.kts` for what that
+one line is. The convention plugins that carry the walls live in `build-logic/` as an included build;
+you can start without them and add them later, and until you do, none of the module-edge laws are
+enforced.
+
+**4 — register one verb, and put its test in the right project.** Measured on this tree by adding a
+real verb and letting the toolchain name the sites: **4 appends, 3 files, 2 Gradle modules. Zero
+edits at `:app`.** Two appends land in `spine/src/main/kotlin/adr/blocks/<x>/Contract.kt` (the
+`ToolResult` case and the `Command` case), one in your block's `Tools.kt`, one in its `Fold.kt` —
+both under `block/<x>/src/main/kotlin/adr/blocks/<x>/`. The compiler names exactly one of them: with
+both transport cases written and nothing else,
+`block/console/src/main/kotlin/adr/blocks/console/Fold.kt` fails with `'when' expression must be
+exhaustive. Add the 'is SetDensity' branch or an 'else' branch.` The registry entry is named a layer
+later, by gate check C13, which is why that check exists.
+
+*Tests do NOT live in the module.* Every test in this port sits in the ROOT project's `src/test/`,
+because a block module is denied the test libraries on its own classpath. A test file placed under
+`block/<x>/src/test/` compiles nowhere and silently never runs.
+
+**5 — run it.** `./gradlew --console=plain check` is this port's gate, and `./gradlew run` is the
+demo.
+
+*THE ASYMMETRY WITH THE TYPESCRIPT PORT, stated rather than papered over:* `./gradlew run` has no
+replay beat. Its six-step walkthrough ends at the barge-in ledger, and no line of it re-folds the
+bus. The replay proof in this port is a test, so the fourth beat of day one is
+`./gradlew test --tests 'adr.spine.ReplayTest'` — read `src/test/kotlin/adr/spine/ReplayTest.kt`,
+whose first case is `G9 - the live run and its re-fold agree on state and on every effect`.
+<!-- quickstart:end -->
+
+---
+
 ## Context engineering is out of scope; the context SEAM is not (§6.11)
 
 * **In scope, specified and enforced.** `projectContext(state, staged) -> Context` is a pure

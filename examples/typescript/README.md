@@ -327,6 +327,92 @@ you vendor once and never author per feature.**
 
 ---
 
+## Day one: a working one-verb app
+
+**Read this first: it is a step list for YOUR new repository, not for this one.** The spine is a
+vendored template and no package is published on any registry (docs/DECISIONS.md:155), so day one is
+a copy, not an install. Nothing below asks you to touch this repository, and none of this port's
+roster pins, anchor rosters or verb ledgers are yours to maintain — they exist because this tree is
+the reference, and an adopter inherits none of them.
+
+Every step was executed end to end before it was written, and `test/laws/quickstart.test.ts` keeps it
+that way: on every `npm test` it materialises this port's live `src/spine/` beside the adopter
+template in `test/laws/fixtures/quickstart/walk/`, then runs the very commands step 6 instructs
+against it.
+
+<!-- quickstart:begin -->
+**Scope, first, because it is the one thing a step list can be wrong about silently:** everything
+below is for YOUR new repository. None of this port's roster pins, anchor rosters or verb ledgers
+travel with the copy; they exist because this tree is the reference.
+
+**1 — the workspace.** `npm init -y`, then make the manifest `"private": true`, `"type": "module"`,
+and give it `"workspaces": ["src/spine", "src/blocks/*", "src/app"]`. The workspace list is what
+turns `npm install` into the linking step that makes `@adr/spine` resolvable at all.
+
+**2 — copy the spine.** `cp -r <this repo>/examples/typescript/src/spine <yours>/src/spine`.
+
+*What you get:* the folder holds 39 entries — the 37 `.ts` this port's roster pin names, plus
+`src/spine/package.json` (the `@adr/spine` name and its one-subpath-per-tier `exports` map) and
+`src/spine/tsconfig.json`. It carries its own version marker at `src/spine/pure/version.ts`, so a
+copy can always say which template revision it holds; keep that file, it is what `CHANGELOG.md`
+entries key on.
+
+*The step that is not obvious, and cost the walk a red run:* the copied `src/spine/tsconfig.json`
+begins `"extends": "../../tsconfig.base.json"`. That file is NOT inside the folder you copied, so
+create `tsconfig.base.json` at your repository root — this port's is a fine starting point — before
+anything else. Without it the copy is a broken project: `Failed to load tsconfig for
+src/spine/pure/actor.ts: Tsconfig not found`.
+
+**3 — the dependencies.**
+
+Mandatory install: `npm i ai @valibot/to-json-schema valibot`
+
+All three are needed to COMPILE, not merely to run, and the difference is the trap. Step 2 copies the
+whole folder and your root config will say `include: ["src"]`, so `src/spine/agent/loop.ts` is in
+your program whether or not your app ever calls the agent loop — and that one file names the runtime.
+Measured on a tree outside this repository, with the first two absent, the first command step 6
+issues exits 2: `error TS2307: Cannot find module 'ai'`, and three more beside it. `valibot` is the
+third because a verb's schema names it. Dev side: `npm i -D typescript tsx vitest @types/node`.
+
+*The one escape hatch, also measured:* if you do not want the agent loop at all, `rm -rf
+src/spine/agent/` and the first two become unnecessary — that tree typechecks clean with neither
+installed. Your copy is then 38 entries rather than 39, and you have given up the loop, not deferred
+it.
+
+**4 — register one verb.** A feature is a folder. Create `src/blocks/<x>/` with a `package.json`
+whose only `exports` subpath is `./register`, and write the six files this port's
+`src/blocks/console/` shows you: `contract.ts`, `slice.ts`, `tools.ts`, `fold.ts`, `project.ts`,
+`register.ts`. Four of the edits are the verb itself — the `ToolResult` case and the `Command` case
+in `contract.ts`, the `Verb` entry in `tools.ts`, the arm branch in `fold.ts` — and the fifth is the
+hand-kept `is<X>Result` predicate that TypeScript will not check for you. All five are inside the
+folder.
+
+**5 — the root.** `src/app/` gets `contract.ts` (State as a product of slices, plus the three closed
+unions), `assemble.ts` (fold, project, projectContext) and `wire.ts` (ports to adapters, the effect
+sink, the boundary, the registry) — read `src/app/wire.ts` here and delete what you do not have.
+`src/app/main.ts` is the one file allowed to touch the console.
+
+**6 — run it.** `npm install`, then `npm run typecheck`, `npm test`, `npm run demo`. The fourth beat
+is in the demo: re-fold the committed records with `refold(...)` and compare. The walk's own app
+prints
+
+```
+[state]   2 note(s) folded
+[bus]     2 committed step(s)
+[replay]  state and full effect sequence re-derived from the bus: true
+```
+
+**7 — what you did NOT copy, and what it costs.** The tier lifts out whole because gate check C15
+holds `spine/**` to naming no block and no root — but the walls that hold the REST of the
+architecture are not in the folder. `eslint.config.js`, `tsconfig.wall.json`, `scripts/wall.mjs` and
+the `test/gate/` fixtures stay here. Measured, the good news: no RULE in this port's lint config keys on a block name — the block names
+that do appear in `eslint.config.js` sit in explanatory comments (seven mentions, all annotations
+on what a rule denies), so the live config is copyable essentially as-is when you want it. Until you take it, you
+have the architecture and not its enforcement.
+<!-- quickstart:end -->
+
+---
+
 ## Context engineering is out of scope; the context SEAM is not (§6.11)
 
 * **In scope, specified and enforced.** `projectContext(state, staged) -> Context` is a pure

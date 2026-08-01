@@ -826,6 +826,9 @@ export default [
     ignores: [
       "node_modules/**",
       "test/gate/fixtures/**",
+      // the quickstart walk's adopter template - a SECOND application, linted by
+      // nothing here and compiled only inside its own scratch tree.
+      "test/laws/fixtures/quickstart/**",
       // the G12 harness's scratch copy, at the port root since it began carrying
       // `test/`; the old path stays listed so a stale copy is ignored too.
       ".work/**",
