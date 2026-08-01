@@ -8,7 +8,7 @@ import java.io.ByteArrayOutputStream
 //
 // (1) THE GATE HARNESSES, at their existing paths. `src/test/kotlin/adr/gate/**` and
 //     `src/test/fixtures/**` do NOT move, and that is a measured constraint rather
-//     than convenience: the repository's `laws.toml` names 36 `examples/kotlin` paths
+//     than convenience: the repository's `laws.toml` names `examples/kotlin` paths
 //     including on-disk fixture PAIR paths, and the TypeScript gate RESOLVES each one
 //     (`examples/typescript/test/laws/registry.ts`), so re-homing a fixture tree turns
 //     the TypeScript suite red. Konsist reads the module roots by path

@@ -13,7 +13,10 @@
 //       with a build edge named PER PORT — checked in both directions;
 //   (b) a law held by a denying check names one, every on-disk fixture pointer
 //       RESOLVES to a non-empty path, and no LINT-OWNED check claims the
-//       value-check pair shape;
+//       value-check pair shape; (b') the value-check shape is held to the SAME
+//       bar — an in-checker row names its two TEST SITES and each is RESOLVED,
+//       because the branch used to require two empty fields and demand nothing
+//       in their place, which is a check shipping no block-test at all, green;
 //   (c) the registry regenerates the book's §15.3 table byte for byte, off a
 //       SINGLE four-cell row per law — the shape §15's inversion put there,
 //       with (c') holding that shape against a re-separated layer table;
@@ -56,7 +59,9 @@ import {
   type Resolve,
   rosterProblems,
   rows,
+  SITE,
   shapeProblems,
+  VITEST_EXCLUDE,
 } from "./registry";
 
 const HERE = dirname(new URL(import.meta.url).pathname);
@@ -127,6 +132,28 @@ const kotlinRoster = new Map(
 );
 
 const shipped = parseLaws(read("laws.toml"));
+
+/** Local, so this file's mutation probes read like assertions rather than like
+ *  optional chains. A missing subject is the vacuity failure, not a skip. */
+function must<T>(value: T | undefined | null): T {
+  if (value === undefined || value === null) {
+    throw new Error("the subject of a probe is missing");
+  }
+  return value;
+}
+
+/** Every in-checker half in the registry, flattened and named. A helper rather
+ *  than an inline expression because two assertions read it and a third would
+ *  otherwise re-spell it. */
+const inCheckerSites = (registry: Registry): string[] =>
+  registry.laws.flatMap((law) =>
+    law.checks
+      .filter((check) => check.pair === "in-checker")
+      .flatMap((check) => [
+        `${check.id}/${check.port}/block ${check.blockTest}`,
+        `${check.id}/${check.port}/allow ${check.allowTest}`,
+      ]),
+  );
 
 /** Where the deleted map used to sit. Pinned as a constant, and asserted
  *  present by the builder, so a §15.4 rename fails LOUDLY instead of silently
@@ -253,7 +280,79 @@ describe("laws.toml — the law registry parses, and says what the book says", (
   });
 
   it("(b) every denying check names a fixture pair that RESOLVES on disk", () => {
-    expect(fixtureProblems(shipped.registry, onDisk, lintOwned)).toEqual([]);
+    expect(fixtureProblems(shipped.registry, onDisk, lintOwned, onDiskText)).toEqual([]);
+  });
+
+  it("(b') AN IN-CHECKER PAIR NAMES ITS TWO TEST SITES — resolved, not trusted", () => {
+    // NON-EMPTY AND NAMED, in (h)'s idiom: the line above is satisfied by a
+    // registry carrying no value check at all, and by a resolver that reads
+    // nothing. These four strings are the pin, so a renamed case is a diff.
+    expect(inCheckerSites(shipped.registry)).toEqual([
+      "C13/typescript/block examples/typescript/test/gate/gate.test.ts::DENIES a registry with a verb pulled out of it",
+      "C13/typescript/allow examples/typescript/test/gate/gate.test.ts::ALLOWS the shipped registry — every declared verb is registered and signs",
+      "C13/kotlin/block examples/kotlin/src/test/kotlin/adr/app/TotalityTest.kt::C13 BLOCK-TEST - a registry with a verb pulled out is DENIED",
+      "C13/kotlin/allow examples/kotlin/src/test/kotlin/adr/app/TotalityTest.kt::C13 - every ToolResult case has a registry entry, and every entry has a case",
+    ]);
+  });
+
+  it("(b'') THE RESOLVER BINDS TO THE LIVE TREE — the C7 lesson, per port", () => {
+    // THE VACUITY PROOF RIDES THE LIVE TREE, never a frozen stub. Each shipped
+    // block-test is attacked in memory, in the file it actually lives in, three
+    // ways an author really disables one, and the resolver must object each
+    // time. A rule asserted only as "reports nothing" is satisfied by a rule
+    // that matches nothing — which is exactly how C7 went silently vacuous.
+    for (const port of PORTS) {
+      const site = must(
+        shipped.registry.laws
+          .flatMap((law) => law.checks)
+          .find((check) => check.pair === "in-checker" && check.port === port),
+      );
+      const cut = site.blockTest.indexOf(SITE);
+      const path = site.blockTest.slice(0, cut);
+      const title = site.blockTest.slice(cut + SITE.length);
+      const real = must(onDiskText(path));
+      const decl = port === "typescript" ? `it("${title}"` : `fun \`${title}\``;
+      // asserted, not assumed: a rewrite that matched nothing would prove nothing
+      expect(real.split(decl).length - 1, `${port} declaration is unique`).toBe(1);
+
+      const attacks: readonly (readonly [string, string, string])[] = [
+        // DELETED, with the quoting comment a deleting author leaves behind
+        ["commented out", `// ${decl}`, `declares no case titled "${title}"`],
+        // SWITCHED OFF — declared, quoted, and it will never run
+        [
+          "switched off",
+          port === "typescript" ? `it.skip("${title}"` : `@Ignore\n    ${decl}`,
+          "SWITCHED OFF",
+        ],
+        // RENAMED — the plain case the first cut already caught, kept as the floor
+        [
+          "renamed",
+          port === "typescript" ? `it("${title} (renamed)"` : `fun \`${title} (renamed)\``,
+          `declares no case titled "${title}"`,
+        ],
+      ];
+      for (const [what, replacement, expected] of attacks) {
+        const mutated = real.replace(decl, replacement);
+        const readMutated = (p: string): string | null => (p === path ? mutated : onDiskText(p));
+        const said = fixtureProblems(shipped.registry, onDisk, lintOwned, readMutated).join("\n");
+        expect(said, `${port} / ${what}`).toContain(`C13/${port}: block-test`);
+        expect(said, `${port} / ${what}`).toContain(expected);
+      }
+    }
+  });
+
+  it("(b''') THE RUNNER'S EXCLUDE LIST IS READ FROM ITS OWN CONFIG, not remembered", () => {
+    // vitest's `exclude` REPLACES the default rather than extending it, so a
+    // copy of it in the checker is a copy that can silently fall behind the
+    // file that governs the runner. Bound here rather than trusted, and keyed
+    // on `test: { exclude:` because that file's own banner QUOTES a second
+    // exclude array while explaining why this one replaces the default.
+    // Comment-stripping is the wrong tool here for a reason worth recording:
+    // a glob spells `/**`, so `liveCode` reads `**` + `/` as a block comment.
+    const config = read("examples/typescript/vitest.config.ts");
+    const array = must(/test:\s*\{\s*exclude:\s*\[([^\]]*)\]/.exec(config))[1];
+    const declared = [...String(array).matchAll(/"([^"]*)"/g)].map((m) => m[1] as string);
+    expect(declared).toEqual([...VITEST_EXCLUDE]);
   });
 
   it("(c) the book's §15.3 table regenerates from laws.toml, byte for byte", () => {
@@ -403,12 +502,112 @@ const stubOwned: LintOwned = (_port, id) => id !== "C13";
  *  `LOST` resolves and no longer declares anything, which is the deleted-wall,
  *  surviving-row case — the whole reason an edge row is resolved and not
  *  trusted. */
+
+/** THE TEST-SITE BLOBS, KEYED BY PATH — one file per shape, because one blob
+ *  cannot hold a title that is both switched off and live. Each is the smallest
+ *  thing a real author would write, in the real idiom of its runner. */
+const SITE_BLOBS: Readonly<Record<string, string>> = {
+  // the compliant file: three titles, ALL THREE quote characters, inside an
+  // ORDINARY describe — so the suite-is-off rule is proven not to trip on it.
+  "fixtures/site/live.test.ts": [
+    'describe("the shipped registry", () => {',
+    '  it("DENIES a thinned registry", () => {});',
+    "  it(`ALLOWS the shipped registry`, () => {});",
+    "  it('DENIES a registry with \"confirmSeal\" pulled out of it', () => {});",
+    "});",
+  ].join("\n"),
+  // a file the runner is configured to skip, holding a perfectly good case
+  ".tsbuild/fixtures/site/live.test.ts": [
+    'describe("the compiled copy", () => {',
+    '  it("a case compiled into the build output", () => {});',
+    "});",
+  ].join("\n"),
+  // not a test file at all by name, holding a perfectly good case
+  "fixtures/site/notatest.ts": [
+    "export const helper = 1;",
+    '  it("a case in a file the runner never opens", () => {});',
+  ].join("\n"),
+  // the case is GONE and the note saying which case used to be here survived it
+  "fixtures/site/COMMENTED.test.ts": [
+    'describe("the shipped registry", () => {',
+    '  // REMOVED: was it("a case only a comment remembers", () => {});',
+    "});",
+  ].join("\n"),
+  "fixtures/site/SKIP.test.ts": [
+    'describe("the shipped registry", () => {',
+    '  it.skip("a case that is switched off", () => {});',
+    "});",
+  ].join("\n"),
+  "fixtures/site/XIT.test.ts": [
+    'describe("the shipped registry", () => {',
+    '  xit("a case switched off with an x", () => {});',
+    "});",
+  ].join("\n"),
+  "fixtures/site/TODO.test.ts": [
+    'describe("the shipped registry", () => {',
+    '  it.todo("a case that is only a plan");',
+    "});",
+  ].join("\n"),
+  // the case is live; the SUITE holding it is not
+  "fixtures/site/DESCSKIP.test.ts": [
+    'describe.skip("a suite that is switched off", () => {',
+    '  it("a case inside a suite that is switched off", () => {});',
+    "});",
+  ].join("\n"),
+  "fixtures/site/Totality.kt": [
+    "class TotalityTest {",
+    "    @Test",
+    "    fun `a registry with a verb pulled out is DENIED`() {}",
+    "",
+    "    @Test",
+    "    fun `every declared verb is registered`() {}",
+    "}",
+  ].join("\n"),
+  "fixtures/site/COMMENTED.kt": [
+    "class TotalityTest {",
+    "    /* was:",
+    "    @Test",
+    "    fun `a case only the comment remembers`() {}",
+    "    */",
+    "}",
+  ].join("\n"),
+  "fixtures/site/IGNORED.kt": [
+    "class TotalityTest {",
+    "    @Test",
+    '    @Ignore("flaky since the rewrite")',
+    "    fun `a case switched off with Ignore`() {}",
+    "}",
+  ].join("\n"),
+  "fixtures/site/DISABLED.kt": [
+    "class TotalityTest {",
+    "    @Test",
+    "    @Disabled",
+    "    fun `a case switched off with Disabled`() {}",
+    "}",
+  ].join("\n"),
+  "fixtures/site/NOTEST.kt": [
+    "class TotalityTest {",
+    "    fun `a helper that carries no Test annotation`() {}",
+    "}",
+  ].join("\n"),
+  // the title is QUOTED, in live code, and declares nothing — the case that
+  // makes DECLARATION POSITION non-vacuous
+  "fixtures/site/MENTION.kt": [
+    "class TotalityTest {",
+    "    @Test",
+    "    fun `the case that mentions another`() {",
+    '        assertEquals(listOf("a case nobody declares, only mentions"), said)',
+    "    }",
+    "}",
+  ].join("\n"),
+};
+
 const stubRead = (path: string): string | null =>
   path.includes("GONE")
     ? null
     : path.includes("LOST")
       ? "a build file whose declaration was deleted"
-      : 'denyProjectEdgesExcept(":spine")   "./register": "./register.ts"';
+      : (SITE_BLOBS[path] ?? 'denyProjectEdgesExcept(":spine")   "./register": "./register.ts"');
 
 const fixture = (half: string) =>
   parseLaws(readFileSync(join(HERE, "fixtures", `${half}.toml`), "utf8"));
@@ -424,23 +623,156 @@ describe("the registry check DENIES a violating laws.toml", () => {
     expect(shapeProblems(registry).join("\n")).toContain("G1: no enforcement layer declared");
   });
 
+  /** Every value-shape assertion below reads this one report, so a rule that
+   *  stopped firing goes red on its OWN named case and cannot hide behind a
+   *  sibling. */
+  const fixtures = fixtureProblems(registry, stub, stubOwned, stubRead).join("\n");
+
   it("REJECTS a denying-check law whose fixture pointer names nothing on disk", () => {
-    expect(fixtureProblems(registry, stub, stubOwned).join("\n")).toContain("violating fixture");
+    expect(fixtures).toContain("violating fixture");
   });
 
   it("REJECTS a denying-check law that names no check at all", () => {
-    expect(fixtureProblems(registry, stub, stubOwned).join("\n")).toContain(
-      'layer "denying-check" but no check',
-    );
+    expect(fixtures).toContain('layer "denying-check" but no check');
   });
 
   it("REJECTS a LINT-OWNED check claiming the in-checker pair shape", () => {
-    const said = fixtureProblems(registry, stub, stubOwned).join("\n");
-    expect(said).toContain("G4/C2/typescript: a lint-owned check may not claim an in-checker pair");
+    expect(fixtures).toContain(
+      "G4/C2/typescript: a lint-owned check may not claim an in-checker pair",
+    );
+  });
+
+  it("REJECTS a value check whose in-checker pair NAMES NO BLOCK-TEST", () => {
+    // The hole itself: two required-empty fields and nothing owed in their
+    // place is a check that may ship no block-test at all and still pass (b).
+    expect(fixtures).toContain(
+      "G17/C13/typescript: the block-test half of an in-checker pair names no test site",
+    );
+  });
+
+  it("REJECTS a named case the file does not DECLARE — the vacuous-site failure", () => {
+    expect(fixtures).toContain(
+      'G17/C13/kotlin: block-test fixtures/site/Totality.kt declares no case titled "a case nobody ever wrote"',
+    );
+  });
+
+  it("REJECTS a test site whose file is not there, and one that is not a site", () => {
+    expect(fixtures).toContain(
+      "G18/C13/typescript: block-test file fixtures/GONE/live.test.ts is missing",
+    );
+    expect(fixtures).toContain(
+      'G18/C13/kotlin: block-test site "fixtures/site/Totality.kt" is not <path>::<test title>',
+    );
+  });
+
+  it("REJECTS an ON-DISK row wearing a test site — a row read two ways", () => {
+    expect(fixtures).toContain(
+      "G19/C1/typescript: an on-disk pair names two trees, not a test site",
+    );
+  });
+
+  it("REJECTS an IN-CHECKER row wearing a fixture tree — the mirrored defect", () => {
+    // The guard that was already there and had no block-test of its own, which
+    // is how the shape stayed unproven for a landing.
+    expect(fixtures).toContain("G20/C13/typescript: an in-checker pair names no path");
+  });
+
+  it("REJECTS a case that survives ONLY in the comment its deleter left behind", () => {
+    // The exact bypass `edgeProblems` was hardened against, and the exact bypass
+    // the first cut of the site reader shipped with. Both ports, because the
+    // comment syntax is shared and a one-port proof would prove one reader.
+    expect(fixtures).toContain(
+      'G21/C13/typescript: block-test fixtures/site/COMMENTED.test.ts declares no case titled "a case only a comment remembers"',
+    );
+    expect(fixtures).toContain(
+      'G21/C13/kotlin: block-test fixtures/site/COMMENTED.kt declares no case titled "a case only the comment remembers"',
+    );
+  });
+
+  it("REJECTS an IN-CHECKER pair that is ONE input named twice", () => {
+    expect(fixtures).toContain(
+      "G22/C13/typescript: an in-checker pair's two halves are two DIFFERENT inputs",
+    );
+  });
+
+  it("REJECTS an ON-DISK pair that is ONE tree named twice — the SAME helper", () => {
+    // The parity this module's own header claims. While only one branch
+    // compared its halves, the sentence "held to the same bar" was false.
+    expect(fixtures).toContain(
+      "G22/C1/kotlin: an on-disk pair's two halves are two DIFFERENT trees",
+    );
+  });
+
+  it("REJECTS a case switched off with it.skip, and one with @Ignore", () => {
+    expect(fixtures).toContain(
+      'G23/C13/typescript: block-test fixtures/site/SKIP.test.ts declares "a case that is switched off" SWITCHED OFF',
+    );
+    expect(fixtures).toContain(
+      'G23/C13/kotlin: block-test fixtures/site/IGNORED.kt declares "a case switched off with Ignore" SWITCHED OFF',
+    );
+  });
+
+  it("REJECTS a case switched off with xit, and one with @Disabled", () => {
+    // Its own case, per the rule that a matcher catching one spelling need not
+    // catch the next: the `x` prefix is not a modifier chain at all.
+    expect(fixtures).toContain(
+      'G24/C13/typescript: block-test fixtures/site/XIT.test.ts declares "a case switched off with an x" SWITCHED OFF',
+    );
+    expect(fixtures).toContain(
+      'G24/C13/kotlin: block-test fixtures/site/DISABLED.kt declares "a case switched off with Disabled" SWITCHED OFF',
+    );
+  });
+
+  it("REJECTS a case that is only it.todo, and a fun carrying no @Test", () => {
+    expect(fixtures).toContain(
+      'G25/C13/typescript: block-test fixtures/site/TODO.test.ts declares "a case that is only a plan" SWITCHED OFF',
+    );
+    expect(fixtures).toContain(
+      'G25/C13/kotlin: block-test fixtures/site/NOTEST.kt declares no @Test on "a helper that carries no Test annotation"',
+    );
+  });
+
+  it("REJECTS a live case inside a SUITE that is switched off", () => {
+    expect(fixtures).toContain(
+      'G26/C13/typescript: block-test fixtures/site/DESCSKIP.test.ts declares "a case inside a suite that is switched off" SWITCHED OFF',
+    );
+  });
+
+  it("REJECTS a title QUOTED in live code that declares nothing", () => {
+    // Without this case the rule degenerates back to a quoted substring search:
+    // the title is present, quoted, in live code, and is an argument.
+    expect(fixtures).toContain(
+      'G26/C13/kotlin: block-test fixtures/site/MENTION.kt declares no case titled "a case nobody declares, only mentions"',
+    );
+  });
+
+  it("REJECTS a block-test the runner would never execute", () => {
+    expect(fixtures).toContain(
+      "G27/C13/typescript: block-test fixtures/site/notatest.ts is not a file vitest executes",
+    );
+    expect(fixtures).toContain(
+      "G27/C13/typescript: allow-test .tsbuild/fixtures/site/live.test.ts is not a file vitest executes",
+    );
+  });
+
+  it("REPORTS a PROTOTYPE-named pair instead of crashing on it", () => {
+    // `REQUIRED_BY_PAIR["toString"]` off a bare index hands back a function and
+    // kills the suite on `.filter`, so this case is as much about the run
+    // happening at all as about the message.
+    expect(problems).toEqual([]);
+    expect(fixtures).toContain(
+      'G28/C13/typescript: pair must be "on-disk" or "in-checker", not "toString"',
+    );
+  });
+
+  it("REPORTS an ordinary typo in pair — the guard's first block-test", () => {
+    expect(fixtures).toContain(
+      'G28/C13/kotlin: pair must be "on-disk" or "in-checker", not "on-dsik"',
+    );
   });
 
   it("REJECTS a pointer that resolves to an EMPTY fixture directory", () => {
-    expect(fixtureProblems(registry, stub, stubOwned).join("\n")).toContain("is empty");
+    expect(fixtures).toContain("is empty");
   });
 
   it("REJECTS a law whose NOTE claims a check while the law names none", () => {
@@ -529,8 +861,25 @@ describe("the registry check ALLOWS a compliant laws.toml", () => {
   it("accepts idiomatic registry shape untouched", () => {
     expect(problems).toEqual([]);
     expect(shapeProblems(registry)).toEqual([]);
-    expect(fixtureProblems(registry, stub, stubOwned)).toEqual([]);
+    expect(fixtureProblems(registry, stub, stubOwned, stubRead)).toEqual([]);
     expect(edgeProblems(registry, stub, stubRead)).toEqual([]);
+    // AND THE ALLOW HALF IS NOT VACUOUS HERE EITHER. Four value-check rows,
+    // spanning every declaration spelling a real author writes: a double-quoted
+    // TypeScript title, a BACKTICKED one, a single-quoted one whose title
+    // carries a double quote — biome's own output for such a title, and the
+    // input the first cut of this reader wrongly REJECTED — and a backticked
+    // Kotlin function name carrying @Test. A positive half covering one
+    // spelling leaves the rest of the matcher unmeasured.
+    expect(inCheckerSites(registry)).toEqual([
+      "C13/typescript/block fixtures/site/live.test.ts::DENIES a thinned registry",
+      "C13/typescript/allow fixtures/site/live.test.ts::ALLOWS the shipped registry",
+      "C13/kotlin/block fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED",
+      "C13/kotlin/allow fixtures/site/Totality.kt::every declared verb is registered",
+      'C13/typescript/block fixtures/site/live.test.ts::DENIES a registry with "confirmSeal" pulled out of it',
+      "C13/typescript/allow fixtures/site/live.test.ts::ALLOWS the shipped registry",
+      "C13/kotlin/block fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED",
+      "C13/kotlin/allow fixtures/site/Totality.kt::every declared verb is registered",
+    ]);
     // and the allow half is not vacuous: a law IS held at the edge rung here,
     // with resolving evidence on both ports.
     expect(registry.laws.filter((l) => l.layers.includes(EDGE_LAYER)).map((l) => l.id)).toEqual([

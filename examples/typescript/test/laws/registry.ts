@@ -18,7 +18,16 @@
 //   · POINTERS ARE RESOLVED, NEVER TRUSTED. A fixture pointer that is only a
 //     string has C7's failure mode exactly (a rule whose fixtures no longer
 //     stand for the tree, green forever). Every on-disk pointer is resolved and
-//     required to be a NON-EMPTY file or directory.
+//     required to be a NON-EMPTY file or directory. THE VALUE-CHECK SHAPE IS
+//     HELD TO THE SAME BAR. A check whose block/allow pair is two inputs to one
+//     checker has no tree to point at, and the field pair that would have
+//     pointed at one was required EMPTY — so the registry proved nothing about
+//     it, and the next value check could declare the shape, ship no block-test
+//     at all, and pass. An in-checker row therefore NAMES its two test sites,
+//     `<path>::<test title>`, and each is RESOLVED: the runner must be willing
+//     to open the file, the file must still DECLARE a case under that exact
+//     title in live code, that declaration must not be switched off, and the
+//     two halves must be two different inputs rather than one named twice.
 //
 //   · OWNERSHIP IS DERIVED, NEVER DECLARED. Which checks a linter owns is read
 //     out of the linter's own source by the caller and passed in as
@@ -48,6 +57,10 @@ export interface Check {
   readonly pair: string;
   readonly violating: string;
   readonly compliant: string;
+  /** An in-checker pair's two halves, each `<path>::<test title>`. Empty on an
+   *  on-disk row, where the two halves are the trees above. */
+  readonly blockTest: string;
+  readonly allowTest: string;
 }
 
 /** One law: the public id, the invariant name, and where it is really held. */
@@ -78,7 +91,36 @@ export type LintOwned = (port: string, id: string) => boolean;
 export const PORTS = ["typescript", "kotlin"] as const;
 
 const LAW_KEYS = ["id", "name", "layers", "headline", "note"] as const;
-const CHECK_KEYS = ["port", "id", "home", "pair", "violating", "compliant"] as const;
+const CHECK_KEYS = [
+  "port",
+  "id",
+  "home",
+  "pair",
+  "violating",
+  "compliant",
+  "blockTest",
+  "allowTest",
+] as const;
+
+/** The separator inside a TEST SITE: the file, then the exact title of the case
+ *  in it. Two fields rather than one string with a convention would be two
+ *  fields to forget; one field that must SPLIT is a field the reader can check. */
+export const SITE = "::";
+
+/** WHICH KEYS A ROW OWES, BY PAIR SHAPE. Two trees name two paths; two inputs to
+ *  one checker name two test sites. The base four are owed either way, and a row
+ *  whose `pair` is missing or unknown owes only those — `fixtureProblems` is
+ *  where an unreadable `pair` is reported, so the two never disagree.
+ *
+ *  READ WITH `Object.hasOwn`, NEVER A BARE INDEX. `pair` is a string off a
+ *  hand-edited file, so `pair = "toString"` would otherwise hand back
+ *  `Function.prototype.toString` and crash the whole suite on `.filter` — a
+ *  typo turning a REPORT into a dead run. */
+const REQUIRED_BY_PAIR: Readonly<Record<string, readonly (typeof CHECK_KEYS)[number][]>> = {
+  "on-disk": ["port", "id", "home", "pair", "violating", "compliant"],
+  "in-checker": ["port", "id", "home", "pair", "blockTest", "allowTest"],
+};
+const BASE_KEYS = ["port", "id", "home", "pair"] as const;
 const EDGE_KEYS = ["port", "path", "token"] as const;
 
 /** The one layer whose claim is not free. See `shapeProblems` — a law naming it
@@ -248,8 +290,12 @@ export function parseLaws(text: string): { registry: Registry; problems: string[
     }
     const checks: Check[] = [];
     for (const check of law.checks) {
-      const missing = CHECK_KEYS.filter((key) => check[key] === undefined);
-      if (missing.length > 0 && !(missing.length === 2 && check.pair === "in-checker")) {
+      const pair = check.pair ?? "";
+      const required = Object.hasOwn(REQUIRED_BY_PAIR, pair)
+        ? (REQUIRED_BY_PAIR[pair] as readonly (typeof CHECK_KEYS)[number][])
+        : BASE_KEYS;
+      const missing = required.filter((key) => check[key] === undefined);
+      if (missing.length > 0) {
         problems.push(`${where}: a check is missing ${missing.join(", ")}`);
       }
       checks.push({
@@ -259,6 +305,8 @@ export function parseLaws(text: string): { registry: Registry; problems: string[
         pair: check.pair ?? "",
         violating: check.violating ?? "",
         compliant: check.compliant ?? "",
+        blockTest: check.blockTest ?? "",
+        allowTest: check.allowTest ?? "",
       });
     }
     const edges: Edge[] = [];
@@ -347,6 +395,22 @@ export function shapeProblems(registry: Registry): string[] {
   return problems;
 }
 
+/** COMMENT BODIES, BLANKED — the one spelling both resolvers read through.
+ *
+ *  A search over raw file text counts a COMMENTED-OUT declaration, which is the
+ *  cheapest way there is to disable a wall while leaving its registry row
+ *  standing: the deleting author's own `// was: …` note keeps the row green.
+ *  `//` and block comments cover both ports — Kotlin and Gradle Kotlin DSL share
+ *  TypeScript's comment syntax. The `[^:]` guard is what keeps a `https://` URL
+ *  from eating the rest of its line.
+ *
+ *  LIFTED, NOT RESPELLED. It was inline in `edgeProblems` and the test-site
+ *  reader below shipped without it, which is precisely the divergence one
+ *  spelling prevents. */
+export function liveCode(text: string): string {
+  return text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
+}
+
 /** THE EDGE POINTERS ARE RESOLVED, NEVER TRUSTED — the same bar this file's
  *  header sets for fixture pointers, applied to the newest field. Every
  *  `[[laws.edges]]` row must name a port the registry covers, resolve to a
@@ -382,14 +446,12 @@ export function edgeProblems(
         problems.push(`${at}: build edge ${edge.path} could not be read`);
         continue;
       }
-      // LIVE CODE ONLY. `includes` over the whole file counts a COMMENTED-OUT
-      // call, which is the single most common way an engineer disables a build
-      // wall — an adversarial reviewer commented out the five lines that draw
-      // the edge and this row stayed green. Comment bodies are stripped before
-      // the search, so a disabled edge reads as a deleted one, which is what it
-      // is. `//` and `/* */` cover both ports: Kotlin and Gradle Kotlin DSL
-      // share TypeScript's comment syntax.
-      const live = text.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/(^|[^:])\/\/[^\n]*/g, "$1 ");
+      // LIVE CODE ONLY — see `liveCode`, which this reader and the TEST-SITE
+      // reader now share. One spelling, so hardening one cannot leave the other
+      // behind: the edge reader learned this from an adversarial reviewer who
+      // commented out the five lines that draw the edge, and the site reader
+      // shipped with the identical hole ninety lines below.
+      const live = liveCode(text);
       if (!live.includes(edge.token)) {
         problems.push(
           `${at}: build edge ${edge.path} no longer declares "${edge.token}" in live code` +
@@ -449,12 +511,213 @@ export function bindingProblems(
   return problems;
 }
 
-/** (b) a law held by a denying check names one, every pointer RESOLVES, and no
- *  LINT-OWNED check claims the value-check pair shape. */
+// ── RESOLVING A TEST SITE ─────────────────────────────────────────────────
+//
+// A SUBSTRING SEARCH IS NOT RESOLUTION, and the first cut of this reader was
+// one. Asking whether `"title"` occurs anywhere in a file accepts a case that
+// was DELETED (the quoting comment survives it), a case that was SWITCHED OFF,
+// and a title sitting in any role at all — an `expect(...).toContain(...)`
+// argument reads exactly like a declaration to it. It also REJECTS a live case
+// whose title carries a double quote, because biome's `quoteStyle: "double"`
+// formats that declaration single-quoted and a two-spelling search does not
+// know the third. Too weak against every attack and too strict against a real
+// title, from the same mistake.
+//
+// So a site is resolved by matching a DECLARATION POSITION, over `liveCode`
+// only, keyed on `check.home` — the joint `VALUE_HOMES` already uses. Not on
+// port and not on path: the home is what says which runner would open the file
+// and what a case looks like to it.
+
+/** What the file says about a title. `absent` — no declaration at all;
+ *  `no-test` — declared, but the annotation that makes it a case is missing;
+ *  `off` — declared and switched off; `live` — declared and it will run. */
+type Declaration = "absent" | "no-test" | "off" | "live";
+
+/** Modifier-chain segments that switch a vitest case or suite off. `only` is
+ *  deliberately absent: it runs. */
+const SWITCHED_OFF = ["skip", "todo", "fails"];
+
+/** A title, escaped for use inside a matcher. Titles are prose off a checked-in
+ *  file and carry `(`, `.`, `+` and `?` freely. */
+const escapeTitle = (title: string): string => title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const chainOff = (chain: string): boolean =>
+  chain
+    .split(".")
+    .filter((seg) => seg !== "")
+    .some((seg) => SWITCHED_OFF.includes(seg));
+
+/** Is the case at `at` sitting under a suite that is switched off?
+ *
+ *  DOCUMENTED HEURISTIC, stated rather than hidden: this reads the NEAREST
+ *  `describe(` opener before the match and asks whether that one is disabled.
+ *  It does not track nesting or closing braces, so a CLOSED sibling
+ *  `describe.skip(...)` earlier in the same file would be read as enclosing and
+ *  report a live case. That direction is a false RED with an obvious fix, never
+ *  a silent green, and the compliant fixture ships a case under an ordinary
+ *  `describe` so the ordinary shape is proven not to trip it. */
+function suiteOff(text: string, at: number): boolean {
+  let off = false;
+  for (const m of text.matchAll(/\b(x?)describe((?:\.\w+)*)\s*\(/g)) {
+    if ((m.index ?? 0) >= at) break;
+    off = m[1] === "x" || chainOff(String(m[2]));
+  }
+  return off;
+}
+
+/** `it`/`test`, with every prefix and modifier a runner understands, and ALL
+ *  THREE quote characters — which is what dissolves the quote-bearing false
+ *  positive by construction rather than by a second spelling. */
+function vitestDeclares(text: string, title: string): Declaration {
+  const decl = new RegExp(
+    `\\b(x?)(?:it|test)((?:\\.\\w+)*)\\s*\\(\\s*(['"\`])${escapeTitle(title)}\\3`,
+    "g",
+  );
+  let seen: Declaration = "absent";
+  for (const m of text.matchAll(decl)) {
+    if (m[1] !== "x" && !chainOff(String(m[2])) && !suiteOff(text, m.index ?? 0)) return "live";
+    seen = "off";
+  }
+  return seen;
+}
+
+/** A JUnit case is a BACKTICKED function carrying `@Test`. Liveness is proven by
+ *  ANNOTATION, never by path — deliberately, so a fixture tree that is not laid
+ *  out like a source tree still resolves. The annotation run is the block of
+ *  `@`-prefixed lines immediately above the `fun` line, which is where Kotlin
+ *  puts them. */
+function junitDeclares(text: string, title: string): Declaration {
+  const decl = new RegExp(`fun\\s+\`${escapeTitle(title)}\`\\s*\\(`, "g");
+  let seen: Declaration = "absent";
+  for (const m of text.matchAll(decl)) {
+    const before = text.slice(0, m.index ?? 0).split("\n");
+    before.pop();
+    const run: string[] = [];
+    for (let i = before.length - 1; i >= 0; i -= 1) {
+      const line = String(before[i]).trim();
+      if (!line.startsWith("@")) break;
+      run.push(line);
+    }
+    if (!run.some((line) => /^@Test\b/.test(line))) {
+      seen = seen === "absent" ? "no-test" : seen;
+      continue;
+    }
+    if (run.some((line) => /^@(?:Ignore|Disabled)\b/.test(line))) {
+      seen = "off";
+      continue;
+    }
+    return "live";
+  }
+  return seen;
+}
+
+/** vitest's exclude list, RESTATED FROM `examples/typescript/vitest.config.ts`
+ *  because that option REPLACES vitest's default rather than extending it — so
+ *  the config is the only honest source and laws.test.ts asserts this array
+ *  against the live file rather than trusting the copy.
+ *
+ *  Read as a path SEGMENT anywhere, even for the root-anchored entries: the
+ *  registry names REPO-relative paths while the config is rooted at the port,
+ *  so a segment read is the only one that lines the two up. It denies strictly
+ *  more than vitest skips, which is the safe direction for a check whose whole
+ *  job is refusing a block-test the runner would never open. */
+export const VITEST_EXCLUDE = [
+  "**/node_modules/**",
+  "**/dist/**",
+  ".tsbuild/**",
+  ".work/**",
+] as const;
+
+const VITEST_INCLUDE = /(?:^|\/)[^/]+\.(?:test|spec)\.[cm]?[jt]sx?$/;
+
+function vitestRuns(path: string): boolean {
+  if (!VITEST_INCLUDE.test(path)) return false;
+  const segments = path.split("/");
+  return !VITEST_EXCLUDE.some((glob) =>
+    segments.includes(glob.replace(/^\*\*\//, "").replace(/\/\*\*$/, "")),
+  );
+}
+
+/** ONE HALF OF AN IN-CHECKER PAIR, RESOLVED. The site is `<path>::<test title>`,
+ *  and every part of that is load-bearing: the runner must be willing to open
+ *  the file, the file must exist and hold something, and it must still declare a
+ *  LIVE case under that exact title. */
+function siteProblems(
+  at: string,
+  half: string,
+  home: string,
+  site: string,
+  resolve: Resolve,
+  readFile: (path: string) => string | null,
+): string[] {
+  if (site === "") {
+    return [
+      `${at}: the ${half} half of an in-checker pair names no test site — a pair carried` +
+        ` inside a checker still names its two inputs`,
+    ];
+  }
+  const cut = site.indexOf(SITE);
+  if (cut < 0) return [`${at}: ${half} site "${site}" is not <path>${SITE}<test title>`];
+  const path = site.slice(0, cut);
+  const title = site.slice(cut + SITE.length);
+  if (path === "" || title === "") {
+    return [`${at}: ${half} site "${site}" names ${path === "" ? "no file" : "no test title"}`];
+  }
+  if (home === "vitest" && !vitestRuns(path)) {
+    return [`${at}: ${half} ${path} is not a file vitest executes`];
+  }
+  const state = resolve(path);
+  if (state !== "present") return [`${at}: ${half} file ${path} is ${state}`];
+  const text = readFile(path);
+  if (text === null) return [`${at}: ${half} file ${path} could not be read`];
+  const live = liveCode(text);
+  const found =
+    home === "junit-reflection" ? junitDeclares(live, title) : vitestDeclares(live, title);
+  if (found === "live") return [];
+  if (found === "off") {
+    return [
+      `${at}: ${half} ${path} declares "${title}" SWITCHED OFF — a disabled case denies nothing`,
+    ];
+  }
+  if (found === "no-test") return [`${at}: ${half} ${path} declares no @Test on "${title}"`];
+  return [`${at}: ${half} ${path} declares no case titled "${title}"`];
+}
+
+/** A PAIR IS TWO THINGS. One input named twice is a row DECLARING that the check
+ *  ships one half, spelled so it reads like two — and it passed both branches.
+ *  ONE helper for both shapes on purpose: the in-checker branch being stricter
+ *  than the on-disk one would falsify this module's own claim that the value
+ *  shape is held to the same bar. */
+function twiceProblems(
+  at: string,
+  kind: "in-checker" | "on-disk",
+  first: string,
+  second: string,
+): string[] {
+  if (first === "" || first !== second) return [];
+  return [
+    `${at}: an ${kind} pair's two halves are two DIFFERENT` +
+      ` ${kind === "in-checker" ? "inputs" : "trees"}, not "${first}" named twice`,
+  ];
+}
+
+/** (b) a law held by a denying check names one, every pointer RESOLVES — the
+ *  on-disk trees AND the in-checker test sites — and no LINT-OWNED check claims
+ *  the value-check pair shape.
+ *
+ *  THE HOLE THIS FIELD PAIR CLOSED, stated so it does not reopen. The in-checker
+ *  branch used to REQUIRE `violating` and `compliant` empty and demand nothing in
+ *  their place, so a value check could declare `home = "vitest"`, `pair =
+ *  "in-checker"` and ship no block-test whatsoever, and this function would
+ *  report nothing. §15.2's bar reads "every check ships a paired block-test and
+ *  allow-test"; the shape difference it lists is where the pair LIVES, never
+ *  whether there is one. So the two halves are still refused a tree, and are now
+ *  owed two named, resolved, DISTINCT test sites instead. */
 export function fixtureProblems(
   registry: Registry,
   resolve: Resolve,
   lintOwned: LintOwned,
+  readFile: (path: string) => string | null,
 ): string[] {
   const problems: string[] = [];
   for (const law of registry.laws) {
@@ -473,12 +736,26 @@ export function fixtureProblems(
         if (check.violating !== "" || check.compliant !== "") {
           problems.push(`${at}: an in-checker pair names no path`);
         }
+        problems.push(...twiceProblems(at, "in-checker", check.blockTest, check.allowTest));
+        for (const [half, site] of [
+          ["block-test", check.blockTest],
+          ["allow-test", check.allowTest],
+        ] as const) {
+          problems.push(...siteProblems(at, half, check.home, site, resolve, readFile));
+        }
         continue;
       }
       if (check.pair !== "on-disk") {
         problems.push(`${at}: pair must be "on-disk" or "in-checker", not "${check.pair}"`);
         continue;
       }
+      // The mirror of the line above, and not decoration: a row that names BOTH
+      // shapes is a row whose pair nobody can say they read, and the on-disk
+      // half would be the one silently unresolved.
+      if (check.blockTest !== "" || check.allowTest !== "") {
+        problems.push(`${at}: an on-disk pair names two trees, not a test site`);
+      }
+      problems.push(...twiceProblems(at, "on-disk", check.violating, check.compliant));
       for (const [half, path] of [
         ["violating", check.violating],
         ["compliant", check.compliant],
