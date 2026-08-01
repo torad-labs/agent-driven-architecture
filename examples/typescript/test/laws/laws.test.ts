@@ -171,7 +171,9 @@ const ANCHOR_15_4 = '  <h3><span class="t">15.4</span>';
 function secondLayerTable(book: string, key: "id" | "name" | "plain"): string {
   expect(book.split(ANCHOR_15_4).length - 1).toBe(1);
   const table = [...book.matchAll(FOUR_CELL_ROW)].map((m) => {
-    const cell = String(m[3]).replace(
+    // m[3] is the GUARANTEE cell and m[4] the enforcement one, since the
+    // guarantee gained a capture group when laws.toml took ownership of it.
+    const cell = String(m[4]).replace(
       "<strong>Discipline.</strong>",
       "<strong>Impossible to express.</strong>",
     );
