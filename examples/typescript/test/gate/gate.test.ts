@@ -9,7 +9,7 @@
 // path globs. There is no second implementation to drift.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { basename, dirname, join, relative } from "node:path";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
 import { CHECKS, gate } from "../../eslint.config.js";
@@ -46,9 +46,75 @@ async function violations(check: (typeof CHECKS)[number], dir: string): Promise<
 
 const LINTED = CHECKS.filter((c) => c.by !== "vitest");
 
+/** `{ relative-path: message count }` for one check over one fixture tree. A
+ *  file that produced nothing is present with 0 rather than absent, so a vector
+ *  that stops being denied is a diff and not a shorter object. */
+async function perFile(
+  check: (typeof CHECKS)[number],
+  dir: string,
+): Promise<Record<string, number>> {
+  const src = join(dir, "src");
+  const results = await eslint.lintFiles([src]);
+  const counts: Record<string, number> = {};
+  for (const r of results) {
+    counts[relative(src, r.filePath)] = r.messages.filter((m) =>
+      check.by === "rule" ? m.ruleId === check.rule : m.message.includes(`[${check.id}]`),
+    ).length;
+  }
+  return counts;
+}
+
+/**
+ * WHAT EACH CHECK MUST DENY, PER FILE AND PER COUNT — the block-test's real
+ * assertion.
+ *
+ * The shipped version asserted `not.toEqual([])` over the whole fixture
+ * DIRECTORY, and a review proved what that buys: a check spanning several rule
+ * groups stays green when the group doing the real work is deleted, because a
+ * sibling group still fires somewhere in the tree. Measured, ten of twenty-three
+ * rule groups could be deleted outright with the full gate green — including
+ * `C7_LITERAL` (a fold arm could then mint a signed transport) and `C8_SYNTAX`
+ * (a pure file could declare `async` and `await`).
+ *
+ * This is the C4 block's own idiom below, generalised: that block already pins a
+ * per-file map for exactly this reason, and paid for the lesson once. Every
+ * count here was MEASURED off the fixture trees, never chosen; a number that
+ * moves is a rule that changed reach, which is a diff a reviewer must see.
+ */
+const DENIED: Readonly<Record<string, Readonly<Record<string, number>>>> = {
+  C1: { "blocks/triage/adapter.ts": 1, "spine/pure/thing.ts": 1 },
+  C2: { "blocks/triage/fold.ts": 2 },
+  C3: { "blocks/triage/tools.ts": 2 },
+  C4: {
+    "blocks/triage/contract.ts": 1,
+    "blocks/triage/fold.ts": 1,
+    "blocks/triage/project.ts": 1,
+    "blocks/triage/slice.ts": 4,
+    "blocks/triage/tools.ts": 2,
+    "spine/boundary/alias.ts": 2,
+    "spine/boundary/launder.ts": 1,
+    "spine/pure/actor.ts": 3,
+    "spine/pure/staged.ts": 1,
+    "spine/pure/verb.ts": 1,
+  },
+  C5: { "blocks/triage/fold.ts": 2 },
+  C6: { "blocks/escalation/fold.ts": 1 },
+  C7: { "blocks/triage/fold.ts": 2, "blocks/triage/project.ts": 3 },
+  C8: { "blocks/triage/tools.ts": 5 },
+  C9: { "blocks/escalation/project.ts": 1 },
+  C10: { "app/wire.ts": 1 },
+  C11: { "spine/ports/clock.ts": 2 },
+  C12: { "blocks/console/fold.ts": 1 },
+  C14: { "spine/agent/loop.ts": 3 },
+  C15: { "spine/pure/thing.ts": 3 },
+  C16: { "spine/replay/replay.ts": 3 },
+};
+
 describe.each(LINTED)("$id — $invariant", (check) => {
-  it("DENIES its violating fixture", async () => {
-    expect(await violations(check, join(FIXTURES, "violating", check.id))).not.toEqual([]);
+  it("DENIES its violating fixture — PER FILE, so no clause can go silent", async () => {
+    expect(await perFile(check, join(FIXTURES, "violating", check.id))).toEqual(
+      must(DENIED[check.id]),
+    );
   });
 
   it("ALLOWS its compliant fixture — idiomatic code passes untouched", async () => {

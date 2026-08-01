@@ -12,9 +12,9 @@
 package adr.spine.concurrency
 
 import adr.app.State
-import adr.blocks.triage.Triage
+import adr.blocks.triage.TriageBlock
 import adr.contract.TriageResult
 import adr.spine.pure.ToolName
 
 fun consume(state: State, result: TriageResult, name: ToolName): String =
-    "$state $result $name ${Triage.initial}"
+    "$state $result $name ${TriageBlock()}"

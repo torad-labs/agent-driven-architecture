@@ -71,7 +71,9 @@ export interface RunTurn<S> {
 }
 
 export async function runTurn<S>(opts: RunTurn<S>): Promise<{ steps: number; text: string }> {
-  const staged = opts.staged ?? [];
+  // A declared default, not a `??` decision: C14 counts expression-level
+  // branches now, and this is the TS spelling of Kotlin's defaulted parameter.
+  const { staged = [] } = opts;
   const result = await generateText({
     model: opts.model,
     tools: buildTools(opts.registry, opts.boundary, opts.dispatchers, staged),

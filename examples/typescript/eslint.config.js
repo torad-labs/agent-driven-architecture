@@ -513,10 +513,23 @@ const C11 = [
 // C14 — G3: the loop is a DECLARATION. No branching, no state, no domain logic;
 // it converts a verb table into SDK tools and hooks the boundary onto the
 // finished-step callback.
+// EXPRESSIONS DECIDE TOO. The first shipping listed statement nodes only, so a
+// ternary — or a `&&`/`||`/`??` chain — passed a rule whose G3 cell promises
+// "fails the build at its first decision point". The Kotlin half (detekt
+// CyclomaticComplexMethod, threshold 2) counts every one of those; a TS rule
+// that counted none of them made one laws.toml cell true on one port and false
+// on the other. A declared default (`{ staged = [] }`) stays legal in both
+// ports by the same reasoning: Kotlin's defaulted parameter is not a decision
+// detekt counts, and the destructuring default is its TS spelling.
 const C14 = [
   {
     selector: "IfStatement, ForStatement, ForOfStatement, ForInStatement, WhileStatement, DoWhileStatement, TryStatement, SwitchStatement",
     message: "[C14] the loop is a declaration, not a program — decisions belong to the fold",
+  },
+  {
+    selector: "ConditionalExpression, LogicalExpression",
+    message:
+      "[C14] a ternary or a logical chain is a decision the loop may not make — decisions belong to the fold",
   },
 ];
 
