@@ -106,8 +106,10 @@ import { initialState } from "./contract";
 // adds the spine's own `Diag`.
 //
 // FOUR BLOCKS OF SIX contribute, and the count is a measurement rather than a
-// preference — the same call `spine/pure/block` makes about `contextLines` (5/6)
-// and `register` (5/6). `console` and `inbox` declare no effect cases at all, so
+// preference. It is a fact about THIS port, not about the architecture: a
+// review found this sentence quoting a `contextLines` census of 5/6 and citing
+// `spine/pure/block`, which are the KOTLIN port's number and a module that
+// exists only there. Measured here, all six blocks declare `contextLines`. `console` and `inbox` declare no effect cases at all, so
 // a table from either would be `{}`; asking them for one would make two blocks
 // pretend to a role they do not have. A block grows a handler the moment it
 // grows an effect, and not before, because that is when its `Handlers<XEffect>`
