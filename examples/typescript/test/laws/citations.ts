@@ -90,6 +90,18 @@ export const PROSE = [".md", ".html"] as const;
 export const COMMENT = /^\s*(\/\/|\/\*|\*|#)/;
 export const RETIRED = /\b[FALD]\d+\b/g;
 export const MARKED = /§\s?(\d{1,3}(?:\.\d+)*)/g;
+/**
+ * A QUALIFIED reference — `ADR-001 §3`, and any future `<DOC>-NNN §N`.
+ *
+ * It names a DIFFERENT normative document with its own independent numbering,
+ * so resolving it against the book's section set is a category error. A review
+ * measured what that cost: `ADR-001 §6.6` and `ADR-001 §9` were both counted as
+ * book references — one credited `resolvable` for a line that cites nothing in
+ * the book, the other would be reported as a phantom section the moment the
+ * book stopped happening to have a §9. Matched and CONSUMED before the bare
+ * scan, so a qualified reference is neither credited nor accused.
+ */
+export const QUALIFIED = /\b[A-Z]{2,}-\d{3,}\s+§\s?\d{1,3}(?:\.\d+)*/g;
 export const BARE = /(?<![\w.§])(\d{1,2}\.\d{1,2}(?:\.\d+)?)(?!\d)/g;
 export const LAW = /\bG\d+\b/g;
 /**
@@ -126,6 +138,11 @@ export function citationProblems(
   corpus: readonly CorpusFile[],
   sections: ReadonlySet<string>,
   lawIds: ReadonlySet<string>,
+  /** Every OTHER normative document that owns a `§` namespace, by its id
+   *  (`ADR-001`). A qualified reference resolves against ITS set, never the
+   *  book's — the two numberings are independent, and a review measured 71
+   *  qualified references being judged against the wrong document. */
+  docs: ReadonlyMap<string, ReadonlySet<string>> = new Map(),
 ): CitationReport {
   const retired: Hit[] = [];
   const phantomSection: Hit[] = [];
@@ -163,11 +180,28 @@ export function citationProblems(
         for (const m of line.matchAll(CID)) bookCid.push({ where: at, text: m[0] });
       }
 
-      const refs = [...line.matchAll(MARKED)].map((m) => m[1] as string);
+      // Qualified references resolve against THEIR OWN document, then are
+      // blanked so the bare scans below cannot see a `§N` that was never the
+      // book's. A qualified reference still CREDITS the line — it is a real
+      // citation of a real normative document — and still fails loudly when it
+      // names a section that document does not have.
+      for (const m of line.matchAll(QUALIFIED)) {
+        const text = m[0];
+        const doc = text.slice(0, text.indexOf("§")).trim();
+        const ref = text.slice(text.indexOf("§") + 1).trim();
+        const owned = docs.get(doc);
+        if (owned === undefined) continue;
+        if (owned.has(ref)) credited = true;
+        else phantomSection.push({ where: at, text: `${doc} §${ref}` });
+      }
+      const unqualified = line.replace(QUALIFIED, " ");
+      const refs = [...unqualified.matchAll(MARKED)].map((m) => m[1] as string);
       if (strict) {
-        refs.push(...[...line.matchAll(BARE)].map((m) => m[1] as string));
+        refs.push(...[...unqualified.matchAll(BARE)].map((m) => m[1] as string));
       } else if (loose) {
-        refs.push(...[...line.matchAll(BARE)].map((m) => m[1] as string).filter(looseReadable));
+        refs.push(
+          ...[...unqualified.matchAll(BARE)].map((m) => m[1] as string).filter(looseReadable),
+        );
       }
       for (const ref of refs) {
         if (sections.has(ref)) credited = true;
@@ -207,6 +241,16 @@ export function bookSections(book: string): Set<string> {
     sections.add(m[1] as string);
   }
   return sections;
+}
+
+/** An ADR's own section set, from its markdown heads. `## 3. Title` and
+ *  `### 1.2.1 Title` both resolve, and a bare major (`3`) resolves too. */
+export const ADR_HEAD = /^#{2,6}\s+(\d+(?:\.\d+)*)\.?\s/gm;
+
+export function adrSections(markdown: string): Set<string> {
+  const out = new Set<string>();
+  for (const m of markdown.matchAll(ADR_HEAD)) out.add(m[1] as string);
+  return out;
 }
 
 // ── THE CROSS-REFERENCE LINT — a reference has TWO coordinates ─────────────
