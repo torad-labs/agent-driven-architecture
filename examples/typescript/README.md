@@ -349,6 +349,22 @@ travel with the copy; they exist because this tree is the reference.
 and give it `"workspaces": ["src/spine", "src/blocks/*", "src/app"]`. The workspace list is what
 turns `npm install` into the linking step that makes `@adr/spine` resolvable at all.
 
+Give it a `"scripts"` table in the same edit, because step 6 issues exactly these three and an
+earlier version of this list never provisioned them:
+
+```json
+"scripts": {
+  "typecheck": "tsc --noEmit",
+  "test": "vitest run",
+  "demo": "tsx src/app/main.ts"
+}
+```
+
+You also need a root `tsconfig.json` beside `tsconfig.base.json` — the base is what the packages
+EXTEND, and the root is what `tsc --noEmit` reads when you run it with no argument. Both files are
+in the adopter template this list is walked against, so copy them from there rather than authoring
+them.
+
 **2 — copy the spine.** `cp -r <this repo>/examples/typescript/src/spine <yours>/src/spine`.
 
 *What you get:* the folder holds 39 entries — the 37 `.ts` this port's roster pin names, plus

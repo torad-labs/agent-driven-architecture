@@ -169,8 +169,28 @@ export function releaseProblems(corpus: ReleaseCorpus): string[] {
   // exists so a copy at the previous marker knows what to DO, and that lives
   // under the migration heading or nowhere.
   for (const entry of log) {
-    if (!entry.body.includes(MIGRATION_NOTE)) {
+    const at = entry.body.indexOf(MIGRATION_NOTE);
+    if (at < 0) {
       problems.push(`the CHANGELOG entry \`${entry.key}\` states no migration note`);
+      continue;
+    }
+    // THE HEADING IS NOT THE NOTE. A substring test is satisfied by the literal
+    // heading with nothing under it, which is exactly what the ritual says is
+    // impossible: "an entry that describes a change without saying what a copy
+    // at the previous marker must do has not done its job". So the SECTION is
+    // read — everything to the next `**…**` heading or the entry's end — and it
+    // has to say something. EMPTINESS is the whole test and a length threshold
+    // is deliberately NOT: "nothing to do." is a complete and correct migration
+    // note for a release that needs none, and a rule that called it too short
+    // would be the nuisance §15.2 warns about — measured, a 20-character bar
+    // reddened exactly that legitimate entry in this file's own fixtures.
+    const rest = entry.body.slice(at + MIGRATION_NOTE.length);
+    const next = /\n\s*\*\*[^*]+\*\*/.exec(rest);
+    const note = (next === null ? rest : rest.slice(0, next.index)).trim();
+    if (note.length === 0) {
+      problems.push(
+        `the CHANGELOG entry \`${entry.key}\` carries the migration HEADING with no note under it`,
+      );
     }
   }
 

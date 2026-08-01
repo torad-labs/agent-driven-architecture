@@ -441,9 +441,13 @@ language, not a defect to route around.
 block with no I/O, and the reason is measured rather than stylistic: Gradle refuses to configure a
 project `without an existing directory`, so an I/O-less block still ships a real committed adapter
 directory holding a one-line build script. See `block/console/adapter/build.gradle.kts` for what that
-one line is. The convention plugins that carry the walls live in `build-logic/` as an included build;
-you can start without them and add them later, and until you do, none of the module-edge laws are
-enforced.
+one line is. The convention plugins that carry the walls live in `build-logic/` as an included build.
+**Copy `build-logic/` in step 1, alongside `spine/`** — it is not optional the way an earlier
+version of this list said. `spine/build.gradle.kts` opens with `plugins { id("adr.spine") }`, so
+without the included build the very first file you copy fails to configure and nothing builds at
+all. What you CAN defer is the block roles: a block that does not yet apply `adr.block` /
+`adr.block.adapter` / `adr.root` simply has none of its module-edge laws enforced, and gains them
+the day it applies them.
 
 **4 — register one verb, and put its test in the right project.** Measured on this tree by adding a
 real verb and letting the toolchain name the sites: **4 appends, 3 files, 2 Gradle modules. Zero

@@ -6,8 +6,15 @@
 // contribution to the dispatcher below, its slice field in app/contract, its
 // three union memberships there, and its branch in each of app/assemble's three
 // dispatchers. Pulling it out is the same list, subtracted, plus
-// `rm -rf src/blocks/<X>/`. Every one of those is an APPEND to a closed set, and
-// the compiler names each one you forget.
+// `rm -rf src/blocks/<X>/`. Every one of those is an APPEND to a closed set —
+// but the compiler does NOT name each one you forget, and an earlier version of
+// this sentence said it did. The compiler names the sites that ride an
+// exhaustive union: the slice field and the three dispatcher branches. The
+// `register(...)` line is not one of them — a block left out of the registry
+// simply is not there, and the program compiles perfectly well without it. That
+// omission is caught a layer later, by the registry-totality check (C13), which
+// is precisely why that check exists rather than being redundant with the
+// compiler. The Kotlin port's README states the same split in its own words.
 //
 // THE HANDLER SPLIT: a NEW EFFECT KIND appended to a block's EXISTING effect
 // union is not on that list any more. It costs its case in the owning block's
