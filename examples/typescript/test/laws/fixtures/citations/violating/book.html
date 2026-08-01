@@ -1,0 +1,60 @@
+<!-- A DELIBERATELY BROKEN mini-book. Input to the cross-reference lint's
+     block-test, never part of the build — tsconfig and biome both exclude this
+     tree. Written in the LIVE markup idiom on purpose: a table of contents whose
+     links carry a dedicated section-number element, sectioned elements each
+     carrying a head with a padded number span, subsection heads carrying a t
+     span, class-x anchors, and a definition table of one cell per law. A fixture
+     in a shape the book does not use would leave the rule matching nothing while
+     both halves passed — which is exactly how the sibling variant rule went
+     vacuous when the live tree changed idiom underneath it. The prose here
+     spells no markup, because this file is itself parsed by the thing it feeds
+     and a tag quoted in a comment is a tag. -->
+<nav class="nav" id="nav">
+  <a href="#alpha"><span class="n">01</span><span>First</span></a>
+  <a href="#gamma"><span class="n">02</span><span>Third</span></a>
+  <a href="#beta"><span class="n">09</span><span>Second</span></a>
+</nav>
+
+<section id="alpha" class="rv">
+  <div class="sec-head"><span class="num">01</span><h2>First</h2></div>
+  <p class="lede">The label below names a section this book does not have, over an
+    href that resolves perfectly: <a class="x" href="#alpha">9.9</a> — and so does
+    the same claim in the marked spelling the sweep mandates in prose,
+    <a class="x" href="#alpha">§9.9</a>.</p>
+
+  <h3><span class="t">1.1</span>A dangling fragment</h3>
+  <p>There is no fourth section, so <a class="x" href="#delta">the fourth</a> lands
+    nowhere, and neither does <a class="x" href="example/missing.html#anything">a page
+    that is not in the corpus</a>.</p>
+
+  <p>This law is written down in the third section, and this link says otherwise:
+    <a class="x" href="#alpha">G4</a>.</p>
+</section>
+
+<section id="beta" class="rv">
+  <div class="sec-head"><span class="num">02</span><h2>Second</h2></div>
+  <p>This section MENTIONS G4 and does not write it down — the cell that defines
+    G4 is in the third section. A law label landing here is the sieve case, and a
+    rule that asked only whether the destination carries the id would pass it:
+    <a class="x" href="#beta">G4</a>.</p>
+
+  <h3><span class="t">2.1</span>A note the sections own</h3>
+  <div class="note" id="beta-note"><p>An in-section anchor, so that the id map has to
+    credit it to its enclosing section rather than to nothing.</p></div>
+</section>
+
+<section id="gamma" class="rv">
+  <div class="sec-head"><span class="num">03</span><h2>Third</h2></div>
+  <p>All three of these point here and all three say two:
+    <a class="x" href="#gamma">2.1</a>, <a class="x" href="#gamma">§02</a> and
+    <a class="x" href="#gamma">section 02</a>.</p>
+
+  <h3><span class="t">3.1</span>Targets that are not sections at all</h3>
+  <p>The table of contents is not a section, and a label that numbers it names a
+    book section the destination is not: <a class="x" href="#nav">01</a> and
+    <a class="x" href="#nav">section 01</a>. A lettered part of the worked example
+    is not one either: <a class="x" href="example/seam.html#part-a">01</a>.</p>
+
+  <h3><span class="t">3.2</span>The table</h3>
+  <table><tr><td>G4</td><td>the law this section writes down</td></tr></table>
+</section>
