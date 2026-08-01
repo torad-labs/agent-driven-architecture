@@ -145,13 +145,19 @@ describe("wiki/index.html states architecture, never evidence about a port", () 
     // README states it" — the same pointing-away idiom the survivors use. The
     // census counts mentions, not violations; what it exists to catch is the
     // count moving WITHOUT a reason beside it.
-    // Back to 18. A first attempt at Fig 12.1 fixed the figure by describing
-    // what the demos do ("both reference ports implement exactly that"), which
-    // ADDS a port-fact to a document that must carry none: the book is the
-    // platform-generic specification and the two trees are demos judged against
-    // it, never the reverse. The figure now states the architecture's own
-    // conflation policy (§12.2) and names no implementation.
-    expect(hits(book, PORT_FACT)).toBe(18);
+    // 18 -> 16, and DOWN is the direction this pin should move. The book is the
+    // platform-generic specification; the two trees are demos judged against it,
+    // never the reverse. Two edits in this diff strip the last stack names from
+    // the prose: §15.3's G10 and G1 notes (through laws.toml, regenerated)
+    // stopped saying "at configuration in the Gradle port / as a resolution
+    // error in the TypeScript one" and "the Kotlin stamp / the TypeScript one",
+    // and §15.2's suppression example stopped naming two toolchains' syntax.
+    // The survivors are DEFLECTIONS — sentences pointing at where a port-fact
+    // belongs (that port's README) rather than stating one.
+    //
+    // An earlier attempt at Fig 12.1 moved this pin the WRONG way, by fixing the
+    // figure to describe what the demos do; that is reverted in the same diff.
+    expect(hits(book, PORT_FACT)).toBe(16);
   });
 
   it("the evidence-verdict census is pinned EXACTLY, region and whole book", () => {
