@@ -470,10 +470,21 @@ const C16 = [
 //
 // The SAME key rides CommandBase, so this selector also denies a COMMAND
 // literal outside a verb body or the boundary — a fold arm cannot stash a
-// Command no gate ever saw into its own slice. That coverage is structural,
-// not incidental: `outcome` is a REQUIRED member of CommandBase, so no Command
-// literal can be spelled without the key this selector matches, and the C7
-// block-fixture pins the Command half so it cannot rot away unnoticed.
+// Command no gate ever saw into its own slice — and the C7 block-fixture pins
+// the Command half so it cannot rot away unnoticed.
+//
+// NAMED RESIDUE, and it is the exact twin of the Kotlin port's `cmd.copy(…)`
+// (src/test/kotlin/adr/gate/Rules.kt): a SPREAD carries the key without
+// writing it, so `{ ...received }` in a fold arm mints a transport this
+// text-level selector cannot see. Measured: the spread passes with no message.
+// An earlier version of this paragraph claimed the opposite — that `outcome`
+// being required meant no literal could be spelled without the key — which is
+// true of a literal and false of a spread. Not closed by widening the selector:
+// `slice.ts:withPriority` spreads legitimately, so denying SpreadElement in the
+// pure buckets would be a nuisance rule §15.2 warns about. The stamp itself is
+// not forgeable this way (Signature is a class, not a plain object), so a
+// spread copy carries its original sig; the residue is recorded in
+// OPEN-GAPS.md on both ports rather than half-closed here.
 const C7_LITERAL = [
   {
     selector: 'ObjectExpression > Property[key.name="outcome"]',
