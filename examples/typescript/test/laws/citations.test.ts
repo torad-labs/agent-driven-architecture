@@ -38,7 +38,17 @@ const REPO = join(HERE, "..", "..", "..", "..");
 
 /** THE SCOPE, PINNED. Narrowing any of these is a diff a reviewer sees. */
 const ROOTS = ["examples", "wiki", ".github"] as const;
-const EXTRA = ["laws.toml", "README.md"] as const;
+/** +2: the two root documents the release ritual owns. They are IN the corpus on
+ *  purpose — a CHANGELOG outside it may spell a retired review id or a phantom
+ *  section, and it is the one file a vendored copy is asked to read. `docs/` is
+ *  deliberately NOT a root, which is what lets the ratified record spell its own
+ *  retired ids; putting these two there would have left the deliverable ungated.
+ *  `OPEN-GAPS.md` is deliberately NOT here: measured, that document spells
+ *  SIXTEEN retired ids (A1, A2, A3x2, A4, A5x2, A6, F1x2, F4x3, F11, F13x2)
+ *  because archiving them is what it is for, so admitting it would force either
+ *  a path exemption that defeats the census or the deletion of the archive.
+ *  Its counted claims are owned by the count-coherence check instead. */
+const EXTRA = ["laws.toml", "README.md", "CHANGELOG.md", "RELEASE-RITUAL.md"] as const;
 const SKIPPED = [
   ".git",
   ".gradle",
@@ -174,7 +184,9 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // module pair whose classpath ban the pin re-attaches, and behind the coordinate
   // escape it measured. Nothing was deleted: the id-and-section set present before
   // is a subset of after.
-  "examples/kotlin": 708,
+  // +4 (708 -> 712): D42's spine version marker and the module-ownership wall
+  // (the path-to-module pin) each cite the decisions they hold.
+  "examples/kotlin": 712,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -212,7 +224,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // spine/replay/replay.ts, app/assemble.ts, the four block contracts, eslint.config.js
   // (C16 and C7's FORM half), test/gate/c17.ts, test/gate/c17.test.ts and the two
   // eslint fixture pairs.
-  "examples/typescript": 464,
+  // +4 (464 -> 468): `spine/pure/version.ts`, the same marker in this port's
+  // spelling and the same four citations. Measured per file; wire.ts and
+  // step-record.ts moved by zero for the reason given on the Kotlin pin above.
+  "examples/typescript": 468,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the
@@ -220,6 +235,20 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // citations sit on half as many lines. No citation was deleted — the G-ids
   // present before and absent after are the empty set.
   wiki: 121,
+  // NEWLY PINNED, and the reason is this landing: `root` is where a file that
+  // is in the corpus but under none of the four ROOT_KEYS lands, and until now
+  // that was three files nobody counted. The release documents live there, so
+  // leaving the bucket unpinned would have made "delete the migration prose" the
+  // one citation edit this census cannot see — precisely the attack the per-root
+  // equality exists to stop. Measured: laws.toml 22, README.md 2, CHANGELOG.md 4,
+  // RELEASE-RITUAL.md 6, examples/README.md 0.
+  root: 34,
+  // NEWLY PINNED for the identical reason and in the same breath: `.github` was
+  // a DECLARED root key with no pin, so the loop below — which iterates the PIN
+  // map, never the live buckets — skipped it by construction. Measured: one
+  // file, `.github/workflows/ci.yml`, citing on two lines. The assertion under
+  // "EVERY LIVE BUCKET IS PINNED" is what stops that hole reopening.
+  ".github": 2,
 };
 const FILE_PIN: Record<string, number> = {
   // +22 (156 -> 178): ADR-001 §3's DAG adds build code and nothing else — eight files
@@ -241,7 +270,9 @@ const FILE_PIN: Record<string, number> = {
   // file was added: the rule rides `spine/pure/SpineSlice.kt`, which already declared
   // the fold contract it reads, so neither the 37-file spine roster nor the 49-file
   // blocks/app roster moves.
-  "examples/kotlin": 195,
+  // +1 (195 -> 196): `spine/pure/Version.kt`. One source file, the spine version
+  // marker, which is why the 37-file spine roster moves to 38 in the same diff.
+  "examples/kotlin": 196,
   // +19 (163 -> 182): the workspace wall, which is nineteen COUNTED non-source
   // files and not one line of new prose. Eight `package.json` and eight
   // `tsconfig.json` (the spine, the six blocks, the composition root), plus
@@ -273,14 +304,24 @@ const FILE_PIN: Record<string, number> = {
   // +3 (200 -> 203): D1's book widening ships test/laws/edges.test.ts and the
   // three edge fixtures under test/gate/fixtures/edges/ — the build-edge rows'
   // block/allow pair.
-  "examples/typescript": 203,
+  // +1 (203 -> 204): `src/spine/pure/version.ts`, the same marker here, moving
+  // the 36-file spine roster to 37. The release check's own module, its test and
+  // its eighteen fixture files are ABSENT from this count on purpose:
+  // `examples/typescript/test/laws` is this census's one path-scoped exclusion.
+  "examples/typescript": 204,
   wiki: 10,
+  // NEWLY PINNED alongside the resolvable bucket above, and +2 in the same
+  // breath: CHANGELOG.md and RELEASE-RITUAL.md join laws.toml, README.md and
+  // examples/README.md. A root document deleted is now a red diff.
+  root: 5,
+  // NEWLY PINNED: one file in that bucket, the CI workflow.
+  ".github": 1,
 };
 
 describe("citations resolve — one public namespace", () => {
   it("scans the pinned scope, and the scope cannot quietly shrink", () => {
     expect([...ROOTS]).toEqual(["examples", "wiki", ".github"]);
-    expect([...EXTRA]).toEqual(["laws.toml", "README.md"]);
+    expect([...EXTRA]).toEqual(["laws.toml", "README.md", "CHANGELOG.md", "RELEASE-RITUAL.md"]);
     expect([...SKIPPED_PATHS]).toEqual(["examples/typescript/test/laws"]);
     expect([...SKIPPED]).toEqual([
       ".git",
@@ -358,6 +399,18 @@ describe("citations resolve — one public namespace", () => {
 
   it("cites no check id as book authority", () => {
     expect(live.bookCid.map((h) => `${h.where}  ${h.text}`)).toEqual([]);
+  });
+
+  it("EVERY LIVE BUCKET IS PINNED — the loop cannot skip one it has no key for", () => {
+    // The hole this closes, measured: both maps held three keys while the census
+    // produced five, and the assertion below iterates the PIN map rather than the
+    // live buckets — so `root` and `.github` were unchecked BY CONSTRUCTION, and
+    // no amount of editing files in them could turn anything red. Pinning the two
+    // values is the fix for today; this is the fix for the class, because a sixth
+    // bucket appearing with no pin is now red rather than silent.
+    expect(Object.keys(RESOLVABLE_PIN).sort()).toEqual(Object.keys(live.resolvable).sort());
+    expect(Object.keys(FILE_PIN).sort()).toEqual(Object.keys(live.files).sort());
+    expect(Object.keys(FILE_PIN).length).toBe(5);
   });
 
   it("keeps EXACTLY the RESOLVABLE citations the sweep left, PER ROOT", () => {

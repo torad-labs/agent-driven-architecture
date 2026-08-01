@@ -1,0 +1,2 @@
+// the compliant Kotlin marker: the same value, this port's spelling.
+const val SPINE_VERSION = "spine-1"

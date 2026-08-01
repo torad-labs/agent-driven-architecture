@@ -1,0 +1,3 @@
+// the constant was renamed, so the checker must report a MISSING marker rather
+// than reading an empty string and agreeing with the other port about nothing.
+export const TEMPLATE_REVISION = "spine-1";

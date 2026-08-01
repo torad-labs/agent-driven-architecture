@@ -39,8 +39,10 @@ import adr.contract.ToolResult
  *
  * A value class, like every other id in this port, so an Int cannot wander into
  * the field by accident. It is deliberately NOT the reducer version a snapshot is
- * tagged with, and NOT the spine version marker that says which template copy this
- * tier is: three independent questions, three independent numbers.
+ * tagged with (`reducerVersion`, declared at `app/Wire.kt`), and NOT the spine
+ * version marker that says which template copy this tier is ([SPINE_VERSION],
+ * declared at `spine/pure/Version.kt`): three independent questions, three
+ * independent numbers, and the ratified record refuses to merge any two of them.
  */
 @JvmInline
 value class SchemaVersion(val value: Int)

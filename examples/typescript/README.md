@@ -69,7 +69,7 @@ a failed run cannot change the verdict of the next one.
 
 ```
 src/
-├── spine/                  THE TRUNK — block-agnostic, written once, never forked (36 files, roster pinned by a gate test)
+├── spine/                  THE TRUNK — block-agnostic, written once, never forked (37 files, roster pinned by a gate test)
 │   ├── pure/               ZERO I/O. The transport vocabulary. The purity boundary, named as a folder.
 │   ├── ports/              INTERFACES ONLY. A file here with a body is a gate failure (C11).
 │   ├── boundary/           THE ONE IMPURE SEAM: action · gate · boundary · in-memory
@@ -202,7 +202,7 @@ one of the two things you get:
   this repository — and `spine/agent/loop.ts` is the only file that names it.
 * **You vendor the spine.** The signed command bus, the fold driver, state derivation, replay, the
   barge-in mailbox, the tier relay and the enforcement gate are a **fixed, small, self-contained
-  tier: 36 files, roster pinned by a test**, the same components as the Kotlin port's 37 — spelled per language, not file-for-file identical. **No spine package is published on
+  tier: 37 files, roster pinned by a test**, the same components as the Kotlin port's 38 — spelled per language, not file-for-file identical. **No spine package is published on
   any registry**, and this pass does not publish one — that is the repository owner's decision. What
   is true today is that you copy the tier once and **never author it per feature**: every feature you
   add lands in `blocks/<X>/` plus the root, and each component is swappable behind its own contract.
