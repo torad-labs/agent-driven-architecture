@@ -10,13 +10,24 @@
 // Note what this file does NOT import: the `Boundary` class. §1.3 lets the
 // surface see `spine/boundary/action` (for `Action`) and nothing else, so the
 // seam it needs is declared here, structurally, in three lines.
+//
+// Nor does it import `Actor` any more. It used to write `by: "Human"` into the
+// step, and a surface that can write one of those three strings can write the
+// other two — which is precisely what §5.3 says it cannot. The Actor rides the
+// CHANNEL now, so the strongest thing this file can say is "a human did it", and
+// it says it by HOLDING the human channel rather than by claiming so in a payload
+// the boundary would have believed.
 
-import type { Action, FinishedStep } from "../boundary/action";
+import type { Action, StepChannel } from "../boundary/action";
 import type { ViewModel } from "../pure/view";
 
+/** ONE CHANNEL, AND IT IS THE HUMAN ONE. The seam names `human` and nothing else,
+ *  so this file cannot spell a step stamped `Agent` or `Spine` even though the
+ *  object handed to it at wiring is the whole Boundary. The type is the
+ *  confinement and `tsc` is what holds it — no rule involved. */
 export interface BoundarySeam<S> {
   readonly state: S;
-  onStepFinish(step: FinishedStep): number;
+  readonly human: StepChannel;
 }
 
 export class Controller<S, V extends ViewModel> {
@@ -33,7 +44,7 @@ export class Controller<S, V extends ViewModel> {
 
   /** the ONE sink — a tap, a drag, a form submit, all arrive here */
   onAction(action: Action): void {
-    this.boundary.onStepFinish({ by: "Human", staged: [], actions: [action] });
+    this.boundary.human.submit({ staged: [], actions: [action] });
     const view = this.view;
     this.listeners.forEach((listen) => listen(view));
   }

@@ -432,7 +432,7 @@ class Wiring {
 
         val controller = Controller(
             viewOf = { Assembly().view(boundary.state) },
-            submit = boundary::onStepFinish,
+            submit = boundary.human,
         )
 
         return App(
@@ -452,7 +452,7 @@ class Wiring {
         stateOf = { app.boundary.state },
         contextOf = { app.boundary.context() },
         stagedOf = { listOfNotNull(app.events.poll()) },
-        submit = app.boundary::onStepFinish,
+        submit = app.boundary.agent,
     )
     // ── the barge-in rung, wired (12) ──────────────────────────────────────────
     // The consumer reports SPINE-shaped events; the inbox block owns an app-shaped
@@ -520,7 +520,8 @@ class Wiring {
             SerialConsumer(
                 mailbox = mailbox,
                 runner = runner,
-                submit = app.boundary::onStepFinish,
+                turnSubmit = app.boundary.agent,
+                submit = app.boundary.spine,
                 report = ::consumerActions,
                 finalize = ::drainActions,
                 policies = env.policies,
@@ -537,8 +538,8 @@ class Wiring {
      *
      * It builds the agent loop with THIS TURN'S OWN staged inputs, so the recall the
      * consumer already bounded is exactly what the model is shown and exactly what rides
-     * the committed record. `ctx::submit` and not `boundary::onStepFinish`: the turn's
-     * only channel is the revocable one.
+     * the committed record. `ctx::submit` and not a boundary channel directly: the
+     * turn's only channel is the revocable one, and it is bound to `Actor.Agent`.
      */
     fun tierRunner(
         app: App,

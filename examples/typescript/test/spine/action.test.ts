@@ -10,8 +10,7 @@ import { must } from "../support/must";
 describe("resolveAction — the one closed name→ToolResult map (G1)", () => {
   it("an unregistered name folds a committed Unhandled, it is not silently dropped", () => {
     const { app, sink } = harness();
-    app.boundary.onStepFinish({
-      by: "Agent",
+    app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "noSuchTool", input: {} }],
     });
@@ -31,8 +30,7 @@ describe("resolveAction — the one closed name→ToolResult map (G1)", () => {
 
   it("an input that fails to decode folds Unhandled — 6.5's demand, not a dropped action", () => {
     const { app } = harness();
-    app.boundary.onStepFinish({
-      by: "Agent",
+    app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { level: "Nope" } }],
     });
@@ -46,8 +44,7 @@ describe("resolveAction — the one closed name→ToolResult map (G1)", () => {
 
   it("the human path and the agent path resolve IDENTICALLY — 3.2 made true", () => {
     const agent = harness();
-    agent.app.boundary.onStepFinish({
-      by: "Agent",
+    agent.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });

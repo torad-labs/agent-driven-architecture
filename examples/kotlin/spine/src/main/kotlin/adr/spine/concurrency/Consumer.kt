@@ -39,7 +39,12 @@
 // DISPATCHER CONFINEMENT (law, and not gate-checkable — see the README's
 // specified-but-unproven table). The consumer creates the turn's scope, and `submit`
 // is reached only through the closure minted here, on the consumer's own dispatcher.
-// No turn can reach the boundary from another thread, so onStepFinish stays serial.
+// No turn can reach the boundary from another thread, so the commit stays serial.
+//
+// ACTOR CONFINEMENT is a different claim, and a checkable one. The turn's channel
+// forwards to the boundary's AGENT channel; this consumer's own authored steps go to
+// its SPINE channel; and a FinishedStep carries no Actor at all, so neither can be
+// redirected by its payload.
 
 package adr.spine.concurrency
 
@@ -48,7 +53,6 @@ import adr.spine.boundary.Submit
 import adr.spine.ports.Mailbox
 import adr.spine.ports.RelayRead
 import adr.spine.pure.Action
-import adr.spine.pure.Actor
 import adr.spine.pure.CANCEL_DEADLINE_MS
 import adr.spine.pure.ConsumerEvent
 import adr.spine.pure.DRAIN_DEADLINE_MS
@@ -105,6 +109,13 @@ fun interface TurnRunner {
  */
 private class SubmitGate(
     override val staged: List<StagedInput>,
+    /**
+     * THE AGENT CHANNEL, and no other. This is the second thing the gate confines:
+     * not only WHEN a turn may submit, but as WHOM. The step handed over has no Actor
+     * to overrule it — a turn that raised the drain's irreversible seal as Spine and
+     * confirmed it as Agent one step later used to be granted, because the gate
+     * compares PRINCIPALS and the payload chose which principal to ask for.
+     */
     private val downstream: Submit,
 ) : TurnContext {
     private var revoked = false
@@ -167,6 +178,9 @@ private data class Read(val entry: RelayEntry?)
 class SerialConsumer(
     private val mailbox: Mailbox,
     private val runner: TurnRunner,
+    /** the AGENT channel — handed to every turn through [SubmitGate], and nowhere else */
+    private val turnSubmit: Submit,
+    /** the SPINE channel — this consumer's own authored steps, and nothing else */
     private val submit: Submit,
     private val report: Report<ConsumerEvent>,
     private val finalize: Report<Message.Drain>,
@@ -367,7 +381,7 @@ class SerialConsumer(
     }
 
     private suspend fun start(scope: CoroutineScope, message: Message) {
-        val gate = SubmitGate(stageFor(message), submit)
+        val gate = SubmitGate(stageFor(message), turnSubmit)
         val turn = Turn(message, gate)
         val job = scope.launch {
             turn.outcome = try {
@@ -415,12 +429,16 @@ class SerialConsumer(
     /**
      * THE ONE STAMP SITE for consumer-authored steps, and it serves BOTH callers:
      * `emit(ConsumerEvent)` just above, and the drain seal — `emitActions(finalize(message))`
-     * in `onDrain`. `Actor.Spine`, not `Actor.Agent`: no model chose a conflation, a
-     * fault or a blown deadline, and a timeline that stamped them `Agent` was lying
-     * about authorship in the one record that is supposed to be the truth.
+     * in `onDrain`. It goes out on the SPINE channel, not the agent one: no model chose a
+     * conflation, a fault or a blown deadline, and a timeline that stamped them `Agent`
+     * was lying about authorship in the one record that is supposed to be the truth.
+     *
+     * The Actor is no longer written here at all — it belongs to [submit], which is the
+     * spine channel this consumer was handed. That is why a turn cannot reach it: the
+     * turn holds [turnSubmit], a different channel, and the payload has no say.
      */
     private fun emitActions(actions: List<Action>) {
         if (actions.isEmpty()) return
-        submit(FinishedStep(by = Actor.Spine, staged = emptyList(), actions = actions))
+        submit(FinishedStep(staged = emptyList(), actions = actions))
     }
 }

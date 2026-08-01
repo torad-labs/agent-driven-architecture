@@ -13,12 +13,17 @@
 //    results were produced in step 3, before the signature existed. G1's
 //    two-unreconciled-actor-values problem cannot recur, because there is only
 //    one value and it is created after the tool has returned.
+//
+// AND NOTHING UPSTREAM OF STEP 4 CAN CHOOSE IT EITHER. `by` is a parameter of the
+// CHANNEL a caller was handed, never a field of the step it submits, so the value
+// fed to `authorityOf` is decided in this file and nowhere else.
 
 import type { Authorization } from "../ports/authorization";
 import type { Bus } from "../ports/bus";
 import type { Clock } from "../ports/clock";
 import type { IdSource } from "../ports/id-source";
 import type { Sink } from "../ports/sink";
+import type { Actor } from "../pure/actor";
 import { Signature } from "../pure/actor";
 import type { ContextBounds } from "../pure/context";
 import { DEFAULT_CONTEXT_BOUNDS, render } from "../pure/context";
@@ -28,7 +33,7 @@ import type { SessionId, StepIndex } from "../pure/ids";
 import { keyedEffect } from "../pure/keyed-effect";
 import { SCHEMA_VERSION, type StepRecord } from "../pure/step-record";
 import type { Ctx, Dispatchers } from "../pure/verb";
-import type { FinishedStep, Registry } from "./action";
+import type { FinishedStep, Registry, StepChannel } from "./action";
 import { resolveAction, signResult } from "./action";
 import { gate } from "./gate";
 
@@ -67,6 +72,20 @@ export class Boundary<S> {
    *  digest was derived under are one fact. */
   private readonly bounds: ContextBounds;
 
+  /** THE THREE CHANNELS, AND THEY ARE THE WHOLE PUBLIC STEP SURFACE. There is no
+   *  `onStepFinish` any more, because one entry taking the Actor as an argument
+   *  is one entry that lets its caller pick a principal — and `authorityOf` is
+   *  asked about exactly that value.
+   *
+   *  Each is handed to one owner at wiring, and the Actor it stamps is fixed
+   *  HERE, in the only folder allowed to mint a `Signature` at all. §5.3's
+   *  "decided by where it entered, never by what it asks for" stops being a
+   *  convention and becomes the shape of a type: the payload has no field to ask
+   *  with. */
+  readonly human: StepChannel;
+  readonly agent: StepChannel;
+  readonly spine: StepChannel;
+
   constructor(
     private readonly deps: BoundaryDeps<S>,
     initial: S,
@@ -74,6 +93,9 @@ export class Boundary<S> {
     this.current = initial;
     this.licences = licencesOf(deps.registry.values());
     this.bounds = deps.contextBounds ?? DEFAULT_CONTEXT_BOUNDS;
+    this.human = { submit: (step) => this.commit("Human", step) };
+    this.agent = { submit: (step) => this.commit("Agent", step) };
+    this.spine = { submit: (step) => this.commit("Spine", step) };
   }
 
   get state(): S {
@@ -86,7 +108,10 @@ export class Boundary<S> {
     return this.bounds;
   }
 
-  onStepFinish(step: FinishedStep): StepIndex {
+  /** PRIVATE, and that is the closure. `by` is a parameter of the CHANNEL and
+   *  never of the payload, so the only values it takes are the three literals
+   *  the constructor writes. */
+  private commit(by: Actor, step: FinishedStep): StepIndex {
     // 1  the ONLY clock read in the system (G9)
     const now = this.deps.clock.now();
 
@@ -99,8 +124,10 @@ export class Boundary<S> {
     // 3  the ONE closed name→ToolResult map (G1)
     const results = step.actions.map((action) => resolveAction(this.deps.registry, action, ctx));
 
-    // 4  stamp AND resolve authority (G1 + G6) — one value, created here, ever
-    const sig = new Signature(step.by, this.deps.authz.authorityOf(step.by, this.deps.session));
+    // 4  stamp AND resolve authority (G1 + G6) — one value, created here, ever.
+    //    `by` came from the CHANNEL, not from `step`, so no caller decides which
+    //    principal the authorization seam is asked about.
+    const sig = new Signature(by, this.deps.authz.authorityOf(by, this.deps.session));
 
     // 5  PRE-FOLD gate (G1/G6)
     const gated = results.map((r) =>

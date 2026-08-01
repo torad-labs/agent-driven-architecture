@@ -110,8 +110,7 @@ export async function main(out: Narrator): Promise<void> {
   out.say("[state] panels:", project(app.boundary.state).console.panels);
 
   // 2) The agent requests escalation — reversible, so nothing pages.
-  app.boundary.onStepFinish({
-    by: "Agent",
+  app.boundary.agent.submit({
     staged: [],
     actions: [{ tool: "requestEscalation", input: { ticket: "4118" } }],
   });
@@ -119,8 +118,7 @@ export async function main(out: Narrator): Promise<void> {
   // 3) The AGENT tries to confirm its own request. Same Actor, and — the part
   //    that matters — the SAME AUTHORITY that raised the request. REFUSED at
   //    the boundary, before the fold, and the refusal is committed.
-  app.boundary.onStepFinish({
-    by: "Agent",
+  app.boundary.agent.submit({
     staged: [],
     actions: [{ tool: "confirmEscalation", input: { ticket: "4118" } }],
   });
@@ -131,8 +129,7 @@ export async function main(out: Narrator): Promise<void> {
   out.say("[gate] host confirm     →", app.bus.records().at(-1)?.results.at(-1));
 
   // 5) The work product: folded lines, then ONE gated delivery at seal time.
-  app.boundary.onStepFinish({
-    by: "Agent",
+  app.boundary.agent.submit({
     staged: [perceived("inbox", "customer says the refund never arrived", "inbox-1")],
     actions: [
       { tool: "recordFinding", input: { text: "customer reports a missing refund" } },
@@ -177,8 +174,7 @@ async function tieringAndBargeIn(out: Narrator): Promise<void> {
     session: "deep-1",
     verbs: DEEP_TIER,
   });
-  deep.boundary.onStepFinish({
-    by: "Agent",
+  deep.boundary.agent.submit({
     staged: [],
     actions: [{ tool: "publishAnalysis", input: { text: "root cause: expired card token" } }],
   });
@@ -208,7 +204,6 @@ async function tieringAndBargeIn(out: Narrator): Promise<void> {
         startedAt.set(message.kind, sched.now());
         if (isInput(message)) {
           ctx.submit({
-            by: "Agent",
             staged: ctx.staged,
             actions: [
               { tool: "recallAnalysis", input: {} },
@@ -219,7 +214,6 @@ async function tieringAndBargeIn(out: Narrator): Promise<void> {
           return;
         }
         ctx.submit({
-          by: "Agent",
           staged: ctx.staged,
           actions: [{ tool: "setPanel", input: { panel: "escalation", visible: true } }],
         });

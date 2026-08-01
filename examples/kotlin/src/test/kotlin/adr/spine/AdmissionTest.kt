@@ -123,8 +123,8 @@ class RogueRig {
     fun replay(): Replay<State> = Replay(rogue::fold, app.admission)
 
     fun step(vararg actions: Action) {
-        boundary.onStepFinish(
-            FinishedStep(by = Actor.Human, staged = emptyList(), actions = actions.toList()),
+        boundary.human(
+            FinishedStep(staged = emptyList(), actions = actions.toList()),
         )
     }
 

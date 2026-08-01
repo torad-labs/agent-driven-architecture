@@ -52,7 +52,7 @@ function settle(): Promise<void> {
 }
 
 const act = (ctx: TurnContext, ...actions: Action[]): void =>
-  ctx.submit({ by: "Agent", staged: ctx.staged, actions });
+  ctx.submit({ staged: ctx.staged, actions });
 
 const PRIORITY: Action = { tool: "setPriority", input: { ticket: "4118", level: "High" } };
 const PANEL: Action = { tool: "setPanel", input: { panel: "escalation", visible: true } };
@@ -175,7 +175,7 @@ describe("12.3 — an Interrupt preempts a turn in flight", () => {
     const ctxFor = (): TurnContext => ({
       staged: [],
       signal: new AbortController().signal,
-      submit: (step) => void seam.onStepFinish(step),
+      submit: (step) => void seam.agent.submit(step),
     });
 
     // 12.3, transcribed: take() at the top, `await inFlight` at loop-body
@@ -645,6 +645,51 @@ describe("12.2 — a Drain waits, finalizes, and never preempts", () => {
 // rules the other way the fix is the product-owned confirm seam (`mayConfirm`),
 // and this test is what goes red to say so.
 
+// ── 8a. THE CHANNEL OWNS THE ACTOR (§5.3) ──────────────────────────────────
+// THE ROUTE THIS CLOSES WAS MEASURED OPEN, on the tree that shipped the
+// consumer stamp (docs/DECISIONS.md:76) and on the tree before it. A turn holds
+// `ctx.submit` — the one channel a
+// model-driven turn has — and used to put the Actor in the payload, so it could
+// raise the irreversible seal under one and confirm it under another from that
+// single channel. All three orderings reached `{"kind":"Sealed"}` with
+// `world.deliveries.length === 1`: Spine-request/Agent-confirm,
+// Human-request/Agent-confirm, and Agent-request/Human-confirm. The gate was
+// working correctly the whole time — it compares PRINCIPALS, and the payload was
+// choosing which principal to ask `authorityOf` about.
+//
+// A `FinishedStep` no longer has the field and `ctx.submit` forwards to the
+// boundary's AGENT channel, so all three orderings collapse into the one thing a
+// turn can actually say, and that is the self-confirm this gate always refused.
+// The test below is the surviving half of that instrument: the other two
+// orderings are no longer expressible, which is the point, and `tsc` is what
+// says so (test/spine/gate.test.ts's `NO_ACTOR_ON_A_FINISHED_STEP`).
+describe("§5.3 — a turn stamps what its CHANNEL stamps, never what its payload asks", () => {
+  it("a turn that requests AND confirms the seal is refused: one channel, one principal", async () => {
+    const turn: TurnRunner = {
+      run: (message: Message, ctx: TurnContext): Promise<void> => {
+        if (message.kind !== "Input") return Promise.resolve();
+        ctx.submit({ staged: [], actions: [{ tool: "requestSeal", input: {} }] });
+        ctx.submit({ staged: [], actions: [{ tool: "confirmSeal", input: {} }] });
+        return Promise.resolve();
+      },
+    };
+
+    const r = rig(turn);
+    r.mailbox.post(input("tickets", perceived("tickets", "work", "a")));
+    await settle();
+
+    // MEASURED BEFORE: seal `{"kind":"Sealed","by":"agent-run-7f"}`, deliveries [0]
+    // — i.e. the irreversible delivery FIRED. Now:
+    expect(r.h.app.boundary.state.artifact.seal.kind).toBe("Sealing");
+    expect(must(r.h.app.bus.records().at(-1)).results.at(-1)).toMatchObject({
+      outcome: "refused",
+      reason: "self-confirm: the confirming authority is the requesting authority",
+    });
+    expect(r.h.world.deliveries).toEqual([]);
+    expect(r.failures).toEqual([]);
+  });
+});
+
 describe("14.3 — the drain-requested seal and its confirmer", () => {
   it("the agent may confirm a SPINE-requested seal, and the delivery actually fires", async () => {
     const turn: TurnRunner = {
@@ -667,8 +712,7 @@ describe("14.3 — the drain-requested seal and its confirmer", () => {
     expect(r.h.world.deliveries).toEqual([]);
 
     // …so the AGENT is a DIFFERENT principal, and 14.3's rule grants.
-    r.h.app.boundary.onStepFinish({
-      by: "Agent",
+    r.h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "confirmSeal", input: {} }],
     });

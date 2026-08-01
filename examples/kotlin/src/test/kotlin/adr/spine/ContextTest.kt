@@ -329,9 +329,8 @@ class ContextTest {
         // so the SECOND digest is sensitive to the notices default as well as to the
         // lines-per-block one. A golden that only exercised one of the two would call
         // half of probe P caught when it is not.
-        app.boundary.onStepFinish(
+        app.boundary.agent(
             FinishedStep(
-                by = Actor.Agent,
                 staged = emptyList(),
                 actions = (0..3).map { Action(ToolName("nope$it"), RawInput()) },
             ),

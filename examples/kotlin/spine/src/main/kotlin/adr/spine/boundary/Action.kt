@@ -40,18 +40,40 @@ import adr.spine.pure.Signature
 import adr.spine.pure.StagedInput
 
 /**
- * The one channel a finished step travels — the turn's ONLY way into the fold.
+ * ONE CHANNEL, ONE ACTOR — the turn's ONLY way into the fold, and now also the
+ * only place the Actor is decided.
  *
  * A NAMED seam, not a raw `(FinishedStep) -> Unit`. It lives here rather than in
  * spine/pure because its payload does, and pure may not import the boundary (C1).
+ *
+ * The boundary mints one of these per [Actor] value and hands each to exactly one
+ * owner at wiring: the surface controller gets the human channel, the agent loop
+ * and every turn get the agent one, and the serial consumer's own authored steps
+ * get the spine one. A holder stamps what its channel stamps and nothing else,
+ * which is what §5.3's "decided by where it entered, never by what it asks for"
+ * costs to make TRUE.
+ *
+ * NAMED RESIDUE, because "unforgeable" would be a lie: the composition root builds
+ * the boundary and therefore holds all three channels, exactly as it holds the
+ * authority resolver that decides what each Actor resolves to. That is the residue
+ * `spine/boundary` already has for `Signature` — the minting folder can mint. What
+ * is closed is every holder that is NOT the root.
  */
 fun interface Submit {
     operator fun invoke(step: FinishedStep)
 }
 
-/** One finished step, from either path: the agent loop or the human surface. */
+/**
+ * One finished step, from either path: the agent loop or the human surface.
+ *
+ * IT CARRIES NO [Actor], AND THAT ABSENCE IS THE INVARIANT. `by` used to be a
+ * property here, which made WHO ACTED a claim the payload made about itself: the
+ * boundary fed it verbatim to `authorityOf(step.by, session)`, so anything that
+ * could reach the seam chose its own attribution AND its own principal. That is
+ * the class `Signature` closed one layer down, and it is closed here the same way
+ * — by making the value UNREPRESENTABLE rather than merely unused.
+ */
 data class FinishedStep(
-    val by: Actor,
     /** The ordered off-bus inputs this step consumed (5.4). Empty is the common case. */
     val staged: List<StagedInput>,
     val actions: List<Action>,

@@ -17,8 +17,7 @@ const slice = consoleBlock.sliceOf(["escalation", "findings"]);
 describe("blocks/console — presentation is an authored act (§6.8)", () => {
   it("an agent repositioning the interface MINTS A COMMAND, signed like any other", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPanel", input: { panel: "escalation", visible: false } }],
     });
@@ -41,8 +40,7 @@ describe("blocks/console — presentation is an authored act (§6.8)", () => {
 
   it("a presentation verb and a domain verb produce records of the SAME shape", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [
         { tool: "setPriority", input: { ticket: "4118", level: "High" } },

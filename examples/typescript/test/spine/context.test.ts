@@ -69,13 +69,11 @@ describe("projectContext — the THIRD pure projection (G15)", () => {
 
   it("the committed digest is re-derivable from committed State — the fixture IS a check", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [perceived("inbox", "urgent", "inbox-2")],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "recordFinding", input: { text: "noted" } }],
     });
@@ -92,8 +90,7 @@ describe("projectContext — the THIRD pure projection (G15)", () => {
 
   it("a change to what the model saw fails the golden trace without re-running the model", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
@@ -244,8 +241,7 @@ describe("the growth bound is wired, not welded (G15)", () => {
       contextBounds: NARROW,
     });
     expect(app.boundary.contextBounds).toEqual(NARROW);
-    app.boundary.onStepFinish({
-      by: "Agent",
+    app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "recordFinding", input: { text: "noted" } }],
     });
@@ -285,13 +281,11 @@ describe("the growth bound is wired, not welded (G15)", () => {
 
   it("a timeline re-derived under a DIFFERENT window diverges at every step", () => {
     const h = harness({ initial: initialState({ tickets: SIX }) });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "T0", level: "High" } }],
     });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "recordFinding", input: { text: "noted" } }],
     });
@@ -392,13 +386,11 @@ describe("the digest walk catches a moved default, because the committed side is
 
   it("re-derives the FROZEN digests at the shipped window", () => {
     const h = harness({ initial: goldenInitial() });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "T0", level: "High" } }],
     });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "T1", level: "High" } }],
     });

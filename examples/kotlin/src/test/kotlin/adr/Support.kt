@@ -1,6 +1,6 @@
 // ── test support — how a test drives the system ────────────────────────────
 // Two entry points, exactly as the architecture has: the human surface
-// (Controller.onAction) and the agent path (Boundary.onStepFinish with Actor.Agent).
+// (Controller.onAction) and the agent path (the boundary's AGENT channel).
 // Nothing here reaches around the boundary.
 
 package adr
@@ -15,7 +15,6 @@ import adr.blocks.escalation.REQUEST_ESCALATION
 import adr.blocks.triage.SET_PRIORITY
 import adr.spine.boundary.FinishedStep
 import adr.spine.pure.Action
-import adr.spine.pure.Actor
 import adr.spine.pure.Authority
 import adr.spine.pure.SourceKey
 import adr.spine.pure.SourceName
@@ -50,9 +49,8 @@ class Driver {
         vararg fields: Pair<String, String>,
         staged: List<StagedInput> = emptyList(),
     ) {
-        app.boundary.onStepFinish(
+        app.boundary.agent(
             FinishedStep(
-                by = Actor.Agent,
                 staged = staged,
                 actions = listOf(Action(tool, RawInput(*fields))),
             ),

@@ -17,6 +17,12 @@
 
 package adr.gate
 
+import adr.spine.boundary.FinishedStep
+import adr.spine.pure.Actor
+import kotlin.reflect.full.createType
+import kotlin.reflect.full.isSubtypeOf
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.full.withNullability
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -877,6 +883,55 @@ class GateTest {
             !signature.hasDataModifier,
             "Signature must not be a data class: `copy()` would be a second, " +
                 "ungated production site for the stamp (G1)",
+        )
+    }
+
+    /**
+     * G1, the PAYLOAD half. The Actor rides the submission CHANNEL, so a finished
+     * step must declare no way to say who acted — under any name and in any shape.
+     * Deleting `by` closed one spelling and nothing more: a TRAILING defaulted
+     * `onBehalfOf: Actor? = null` leaves every positional call site compiling, and
+     * a `commit` that prefers it restores the forge whole with the build green.
+     * MEASURED, on the tree this repairs.
+     *
+     * TWO assertions because one does not cover the other. The first keys on the
+     * TYPE, so a `typealias` or a rename buys nothing; it is blind to a member
+     * that CONTAINS an Actor rather than being one. The second pins the member
+     * set AND each member's type, which is what closes both `meta: Meta` and the
+     * evasion that adds no name at all — widening `staged` to `List<Any>` and
+     * picking the actor back out inside `commit`. Its TypeScript mirror was
+     * MEASURED delivering under a fully green suite, which is why it exists.
+     *
+     * WHAT NEITHER REACHES, named rather than implied: `StagedInput` or `Action`
+     * ITSELF growing a stamp, because both sides of the equality name the same
+     * type. That is C4's declaration rule, which already owns it.
+     */
+    @Test
+    fun `C4(e) - a FinishedStep declares no member an Actor value could inhabit`() {
+        val actor = Actor::class.createType()
+        val bearing = FinishedStep::class.memberProperties
+            .filter { p ->
+                val t = p.returnType.withNullability(false)
+                actor.isSubtypeOf(t) || t.isSubtypeOf(actor)
+            }
+            .map { it.name }
+        assertEquals(
+            emptyList(),
+            bearing,
+            "a FinishedStep may not carry an Actor under any name: $bearing",
+        )
+
+        val shape = FinishedStep::class.memberProperties.map { "${it.name}: ${it.returnType}" }.sorted()
+        assertEquals(
+            listOf(
+                "actions: kotlin.collections.List<adr.spine.pure.Action>",
+                "staged: kotlin.collections.List<adr.spine.pure.StagedInput>",
+            ),
+            shape,
+            "a FinishedStep is exactly these two members at exactly these two types. " +
+                "A THIRD member is somewhere an Actor hides one level down (`meta: Meta`, " +
+                "`by: List<Actor>`), and WIDENING one of these two is the same forge with " +
+                "no new name for the check above to see: $shape",
         )
     }
 
