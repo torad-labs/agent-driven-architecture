@@ -164,7 +164,17 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // leaf, C16's and C17's banners in test/gate/Rules.kt, and the two konsist fixture
   // pairs. Every one cites a book section or a G-id; `docs/DECISIONS.md:85` is a PATH
   // and is not a citation.
-  "examples/kotlin": 684,
+  // +24 (684 -> 708): the module-ownership pin. `GateFile` keeps the module root it
+  // was read from instead of discarding it; `GateTrees` gains the owed-root
+  // derivation, the two violation predicates, and the rim derivation whose
+  // in-checker fixture pair the new test drives; `GateTest` gains the MODULE
+  // OWNERSHIP test. Measured per file by this module's own census, never derived by
+  // arithmetic: gate/Tree.kt 3 -> 19, gate/GateTest.kt 13 -> 21. The new banners
+  // cite the ratified sections behind the two ownership exceptions, behind the
+  // module pair whose classpath ban the pin re-attaches, and behind the coordinate
+  // escape it measured. Nothing was deleted: the id-and-section set present before
+  // is a subset of after.
+  "examples/kotlin": 708,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites

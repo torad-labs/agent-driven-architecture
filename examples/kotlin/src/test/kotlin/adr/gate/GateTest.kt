@@ -187,7 +187,16 @@ class GateTest {
      * nobody listed is not in `live` and cannot fall out of this list. That case is
      * owned by build.gradle.kts's `gateCompiledRootsAreGateRoots` (a compiled root that
      * is not a gate root) and `gateNoSourceOutsideAdr` (a file beside `adr/` inside a
-     * root that is listed). Three walls, three disjoint escapes.
+     * root that is listed). Nor can any of the three see a file that changed MODULE
+     * without changing its normalised path — an equality over paths is by construction
+     * blind to exactly what normalisation threw away. That is the MODULE OWNERSHIP test
+     * below, and it is ONE wall with TWO clauses.
+     *
+     * FOUR WALLS, FIVE DISJOINT ESCAPES: the two rosters here (a path that moved inside
+     * a listed root), `gateCompiledRootsAreGateRoots` (a compiled root nobody listed),
+     * `gateNoSourceOutsideAdr` (a file beside `adr/` in a listed root), and MODULE
+     * OWNERSHIP's two clauses — a file that changed MODULE without changing its
+     * normalised path, and a block's live rim compiling on the pure side of §5's pair.
      *
      * WHAT THIS ADDS over what was already pinned, so it is an extension and not a second
      * detector at the same layer: the ANCHORS test pins each block's file NAMES grouped by
@@ -313,6 +322,214 @@ class GateTest {
             detektRoots,
             "detekt (C3/C9/C14) and konsist (C1-C15) are reading different trees",
         )
+    }
+
+    /**
+     * MODULE OWNERSHIP — a normalised path is PINNED to the modules that may own it,
+     * and a block's live rim is PINNED to the IO leaf of ADR-001 §5's ratified pair.
+     *
+     * THE HOLE THIS CLOSES, executed rather than imagined. Normalisation is deliberately
+     * lossy: eleven module roots collapse onto one relative namespace so that every
+     * selector, roster and anchor above keeps binding unedited. The price is that a file
+     * can change MODULE without changing its path, and the module is where §5's
+     * pure/adapter split has teeth — the IO-library ban is a CLASSPATH ban keyed on the
+     * Gradle module (`adr.spine` and `adr.block` are its only two owners, ADR-001:366,
+     * and settings.gradle.kts:56-70 is what binds a module DIRECTORY to the role plugin
+     * carrying that ban), while every rule in Rules.kt and every pin above is keyed on
+     * the normalised path. Two measured escapes, both BUILD SUCCESSFUL before this test:
+     *
+     *   ADAPTER INTO PURE. Move a block's live adapter out of `:block:<x>:adapter` into
+     *       `:block:<x>`, delete the emptied `src` tree, drop the two root-list entries.
+     *       The result is shape-identical to the three legitimately source-free adapter
+     *       modules, so `gateSourceRootsPresent`, `gateCompiledRootsAreGateRoots` and
+     *       `gateNoSourceOutsideAdr` are all correctly silent — and the block's live IO
+     *       now compiles inside the module `adr.block` declares pure. RENAMING the file
+     *       on the way (`Adapter.kt` -> `Rim.kt`) buys the entire exploit back from any
+     *       rule keyed on the file NAME, which is why RIM OCCUPANCY below is keyed on
+     *       SUPERTYPES instead, and why [GateTrees.owedRoots] deliberately permits
+     *       either member of the pair for a block file.
+     *   PURE INTO APP. Move `spine/surface/Controller.kt` from `:spine` into `:app`. It
+     *       is referenced only by `app/Wire.kt`, so it compiles; both root lists stay
+     *       untouched because both roots still hold Kotlin; the file is still
+     *       `spine/surface/Controller.kt` to every rule and roster. `:app` is the
+     *       composition root and `adr.root.gradle.kts` applies no
+     *       `denyExternalLibrariesExcept`, so an arbitrary third-party IO library
+     *       follows the file across: MEASURED, the coordinate `org.postgresql:postgresql`
+     *       FAILS CONFIGURATION on `:spine` ("`:spine` is PURE — ADR-001 §3 forbids an
+     *       IO/external library on its classpath") and is BUILD SUCCESSFUL on `:app`
+     *       with the relocated file importing `org.postgresql.Driver`.
+     *
+     * WHAT THIS DOES NOT CLOSE, measured rather than assumed, because a wall whose KDoc
+     * overclaims is worse than no KDoc. `denyExternalLibrariesExcept`
+     * (build-logic/src/main/kotlin/AdrDag.kt:216-229) filters `ExternalModuleDependency`
+     * and checks `"${dep.group}:${dep.name}"` — Gradle COORDINATES. A JDK package has no
+     * coordinate, so it was never gated in any module: `import java.sql.DriverManager`
+     * inside the UNMOVED `spine/surface/Controller.kt` is BUILD SUCCESSFUL today. That
+     * gap belongs to C8's impure-import prefix list (Rules.kt:288-292, which names
+     * `java.io|java.net|java.nio|kotlinx.coroutines|ai.torad` and not `java.sql`), and
+     * widening it is a separate invariant owing its own fixture pair. This test closes
+     * the RELOCATION, not that gap.
+     *
+     * WHY HERE AND NOT AS AN EIGHTEENTH KONSIST CHECK: this is a roster-class pin, the
+     * same kind as MODULE ROOTS and the two path rosters above, and it lives beside
+     * them. A C18 would have to enter THE ROSTER map and its size assertion, and would
+     * owe an on-disk fixture pair the shape cannot produce without standing up a SECOND
+     * live module tree — a [GateFile] wraps a Konsist declaration and cannot be forged.
+     * The pair is therefore in-checker, and its inputs are DERIVED FROM `live` rather
+     * than frozen as path literals: a frozen pair survives the very relocation it exists
+     * to deny, goes on asserting about a path that no longer exists in any module root,
+     * and stays green. That is C7's rot one seam over, and it is what the predecessor of
+     * this test shipped.
+     */
+    @Test
+    fun `MODULE OWNERSHIP - a path names its module, and a block rim occupies the IO leaf`() {
+        val trees = GateTrees()
+        fun blockOf(file: GateFile): String =
+            checkNotNull(file.block) { "${file.path} is not a block file" }
+
+        // ── (i) LIVE, path tier ──────────────────────────────────────────────
+        assertEquals(
+            emptyList(),
+            live.mapNotNull { trees.ownershipViolation(it.path, it.root) },
+            "a file was compiled in a module its own path does not name. The normalised " +
+                "path is what every rule reads; the MODULE is what the classpath bans " +
+                "are keyed on, and this is the only place the two are tied together",
+        )
+
+        // ── (ii) LIVE, rim occupancy ─────────────────────────────────────────
+        val rim = trees.rimClasses(live)
+        assertEquals(
+            emptyList(),
+            rim.mapNotNull { trees.rimViolation(it) },
+            "a block's live rim compiled outside the IO leaf of ADR-001 §5's pair",
+        )
+
+        // ── (iii) RIM ANCHOR — C7's rot, refused in advance ──────────────────
+        // The derivation walks supertypes, so it goes vacuous the day a Port.kt is
+        // deleted, an interface is renamed, or Konsist's parents()/interfaces()/
+        // objects() API drifts — and a derivation that walked to nothing agrees with
+        // any tree at all. ADR-001:412 names the three classes that leave
+        // `:block:<x>` for the leaf; §4.6/G11 names the ports they implement.
+        assertEquals(
+            setOf("LiveDelivery", "LivePager", "LiveRelayWriter"),
+            rim.map { it.className }.toSet(),
+            "the rim derivation moved — it is going vacuous. ADR-001:412 freezes " +
+                "exactly these three classes into the adapter leaf",
+        )
+        assertEquals(
+            setOf("AnalysisRelay", "DeliveryPort", "OncallPort"),
+            rim.map { it.port }.toSet(),
+            "the block PORT set the rim derivation reads moved (§4.6/G11)",
+        )
+
+        // ── (iv) TIE-BACK — the roots this derivation spells are the DAG's ───
+        // `GateFile.root` really carries the root its file was read from…
+        assertEquals(
+            trees.MODULE_ROOTS.toSortedSet(),
+            live.map { it.root }.toSortedSet(),
+            "GateFile.root is not carrying the module root its file was read from",
+        )
+        // …and `pureRoot`/`adapterRoot` really name Gradle module directories, which is
+        // otherwise an inference from a naming convention: that the normalised
+        // `blocks/<x>/` segment IS the module directory name. settings.gradle.kts:60-63
+        // pins the project PATHS; this pins the DIRECTORIES they are read from.
+        assertEquals(
+            emptyList(),
+            live.mapNotNull { it.block }.distinct().sorted()
+                .filterNot { trees.pureRoot(it) in trees.MODULE_ROOTS },
+            "a block's normalised `blocks/<x>/` segment no longer names its Gradle " +
+                "module directory, so `pureRoot` derives a root the DAG does not have",
+        )
+        assertEquals(
+            emptyList(),
+            rim.map { it.block }.distinct().sorted()
+                .filterNot { trees.adapterRoot(it) in trees.MODULE_ROOTS },
+            "a block with a live rim has no adapter root in the DAG",
+        )
+
+        // ── (v) BLOCK-TEST — every case REJECTED, every input derived from `live` ─
+        val pure = live.first { it.block != null && it.fileName == "Tools.kt" }
+        val contract = live.first { it.block != null && it.fileName == "Contract.kt" }
+        val spineFile = live.first { it.path.startsWith("spine/") }
+        val appFile = live.first { it.path.startsWith("app/") }
+
+        // The fail-closed default, OBSERVED rather than assumed: a path outside all
+        // three tiers is owed the EMPTY set, and no root is a member of it.
+        assertEquals(
+            emptySet(),
+            trees.owedRoots("Loose.kt"),
+            "the fail-closed default must own a path that normalised outside the tiers",
+        )
+
+        listOf(
+            // PURE INTO ADAPTER — the direction the item calls the worse one. Single-
+            // sourced from Rules.kt's PURE_BLOCK_FILES, so it cannot drift from C8.
+            pure.path to trees.adapterRoot(blockOf(pure)),
+            // a block CONTRACT out of `:spine` — Kotlin's sealed rule, run backwards.
+            contract.path to trees.pureRoot(blockOf(contract)),
+            // the two tier relocations, both measured live.
+            spineFile.path to trees.APP_ROOT,
+            appFile.path to trees.SPINE_ROOT,
+            // and the fail-closed branch, driven.
+            "Loose.kt" to trees.SPINE_ROOT,
+        ).forEach { (path, root) ->
+            assertTrue(
+                trees.ownershipViolation(path, root) != null,
+                "MODULE OWNERSHIP BLOCK-TEST: `$path` read from `$root` was ACCEPTED. " +
+                    "A check nobody has watched fail is not a check",
+            )
+        }
+
+        // RIM BLOCK-TEST — each live rim, re-pointed at a root that is not its leaf.
+        // Synthetic because a RimClass is four Strings; derived because the class, the
+        // port and the block all come out of `live`.
+        assertTrue(rim.isNotEmpty(), "the rim derivation is empty — these cases are vacuous")
+        val otherBlock = rim.map { it.block }.distinct()
+        assertTrue(otherBlock.size > 1, "one rim block only — the cross-block case is vacuous")
+        rim.forEach { r ->
+            listOf(
+                trees.pureRoot(r.block),
+                trees.SPINE_ROOT,
+                trees.APP_ROOT,
+                trees.adapterRoot(otherBlock.first { it != r.block }),
+            ).forEach { root ->
+                assertTrue(
+                    trees.rimViolation(RimClass(r.className, r.port, r.block, root)) != null,
+                    "RIM BLOCK-TEST: `${r.className}` read from `$root` was ACCEPTED",
+                )
+            }
+        }
+
+        // ── (vi) ALLOW-TEST — the ratified layout, ACCEPTED ──────────────────
+        val leafReads = live.filter { f -> f.block?.let { trees.adapterRoot(it) == f.root } == true }
+        assertTrue(leafReads.isNotEmpty(), "no live file is read from an IO leaf — vacuous")
+
+        val allowed = leafReads.map { it.path to it.root } +
+            // A SECOND, differently-named file in that same leaf.
+            // `docs/DECISIONS.md:53-56` gives `:block:<x>:adapter` "IO allowed" and
+            // fixes neither a file count nor a file name; ADR-001:412 freezes the three
+            // CLASSES, not `Adapter.kt`. The predecessor of this test rejected exactly
+            // this, with the inverted remediation
+            // "…owe it to `block/<x>/src/main/kotlin/adr`".
+            leafReads.flatMap { f ->
+                listOf("Client.kt", "Rim.kt", "Wire.kt").map {
+                    "blocks/${blockOf(f)}/$it" to f.root
+                }
+            } +
+            // and the ratified exceptions run FORWARDS.
+            listOf(
+                pure.path to trees.pureRoot(blockOf(pure)),
+                contract.path to trees.SPINE_ROOT,
+                spineFile.path to trees.SPINE_ROOT,
+                appFile.path to trees.APP_ROOT,
+            )
+        allowed.forEach { (path, root) ->
+            assertEquals(
+                null,
+                trees.ownershipViolation(path, root),
+                "MODULE OWNERSHIP ALLOW-TEST: the ratified layout was rejected (15.2)",
+            )
+        }
     }
 
     /**
