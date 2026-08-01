@@ -131,9 +131,9 @@ block Escalation {
       <div class="sec-head"><span class="num">B</span><h2>How blocks plug into one spine</h2></div>
       <p>A block never stands up its own infrastructure. It does not <code class="i">new Bus()</code>, it does not write its own fold loop, it does not own a boundary. Those are the spine — one each, shared — and the block <em>plugs into</em> them through the typed pieces it registers. The priority block and the escalation block both contribute up into the <em>same</em> trunk; the root reaches down and hands the trunk its concrete adapters.</p>
 
-      <p>You can read all of that off the folder names, which is the point of arranging them this way. Here is the whole tree of the assembled program — trunk, leaves, root — with nothing elided:</p>
+      <p>You can read all of that off the folder names, which is the point of arranging them this way. Here is the tree of the assembled program — trunk, leaves, root — drawn to show the SHAPE the architecture asks for. It is a teaching diagram, not a transcript of any one codebase: where a language forces a different physical arrangement (a sealed hierarchy that must share a compilation unit, a build system that needs a directory to exist before it can configure a module) the shape survives and the layout differs. Each implementation&rsquo;s own README states its real tree.</p>
 
-      <div class="code"><div class="bar"><span class="path">the source tree — trunk / leaves / root, the same in both reference ports</span><span class="lang">tree</span></div>
+      <div class="code"><div class="bar"><span class="path">the source tree — trunk / leaves / root, as this walkthrough draws it</span><span class="lang">tree</span></div>
 <pre><code class="language-plaintext">src/
 ├── spine/                     THE TRUNK — block-agnostic, written once, never forked
 │   ├── pure/                  ZERO I/O: ids · actor · tool-result · command · effect ·

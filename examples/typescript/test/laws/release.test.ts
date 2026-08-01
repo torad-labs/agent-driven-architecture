@@ -268,6 +268,17 @@ describe("the release check DENIES an incoherent release", () => {
     );
   });
 
+  it("REJECTS the migration HEADING with nothing under it", () => {
+    // The substring test this replaced was satisfied by the bare heading, which
+    // is exactly what RELEASE-RITUAL.md says is impossible: an entry that
+    // describes a change without saying what a copy at the previous marker must
+    // do has not done its job. The fixture is the compliant CHANGELOG with only
+    // the note's TEXT removed, so it cannot rot away from the live shape.
+    expect(
+      swap({ changelog: fixture("violating", "changelog-empty-migration.md") }).join("\n"),
+    ).toContain("carries the migration HEADING with no note under it");
+  });
+
   it("REJECTS an entry keyed on a date instead of the marker", () => {
     expect(swap({ changelog: fixture("violating", "changelog-dated.md") })).toContain(
       "the CHANGELOG heading `2026-07-31` is not a marker value",

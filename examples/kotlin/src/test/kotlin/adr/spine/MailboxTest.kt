@@ -258,6 +258,53 @@ class MailboxTest {
         job.cancelAndJoin()
     }
 
+    /**
+     * A DRAIN LANDING ON A FILLED CONFLATION SLOT STILL REPORTS THE DROPS.
+     *
+     * The shipped drain path never flushed the count: superseded perishable inputs
+     * are acked at supersede time, so they are genuinely destroyed, and the only
+     * emit site is `startPending` — which a Drain arriving first prevents from ever
+     * running. Measured before the fix: zero NoteDrop commands and an empty
+     * `conflated` map for an interleaving the other port counts. §12.2 says what
+     * the consumer sheds is observable, never silent.
+     *
+     * The HELD survivor is asserted absent from the timeline on purpose: its lease
+     * is still out, so a crash re-delivers it. Counting or acking it here would
+     * turn a retained message into a lost one.
+     */
+    @Test
+    fun `DRAIN - a filled conflation slot still folds its counted drop`() = runTest {
+        val handled = mutableListOf<String>()
+        val h = Barge(
+            policies = listOf(InputPolicy.Perishable(SENSOR)),
+            runner = TurnRunner { message, ctx ->
+                (message as? Message.Input)?.let { handled += it.staged.body }
+                ctx.submit(Msgs().stepOf(RECORD_FINDING, "text" to Wiring().promptFor(message), staged = ctx.staged))
+                delay(1_000)
+            },
+        )
+        val job = launch { h.consumer.run() }
+
+        h.mailbox.post(Msgs().inputOf(SENSOR, "a", "reading A"))
+        advanceTimeBy(10)
+        // b fills the slot; c supersedes it — b is acked and destroyed, count = 1
+        h.mailbox.post(Msgs().inputOf(SENSOR, "b", "reading B"))
+        h.mailbox.post(Msgs().inputOf(SENSOR, "c", "reading C"))
+        advanceTimeBy(1)
+        h.mailbox.post(Message.Drain(OPERATOR, "shutting down"))
+        advanceUntilIdle()
+        job.cancel()
+
+        assertContentEquals(listOf("reading A"), handled, "the drain stopped the consumer before c ran")
+        val drop = h.app.bus.records()
+            .flatMap { it.commands }
+            .filterIsInstance<InboxCommand.NoteDrop>()
+            .single()
+        assertEquals(1, drop.dropped, "b was destroyed by supersession and must be counted")
+        assertEquals(DropReason.Conflated, drop.reason)
+        assertEquals(mapOf(SENSOR to 1), h.app.state.inbox.conflated)
+    }
+
     // ── 3 · perishable: newest-input-wins, and the drop is never silent ─────
     @Test
     fun `PERISHABLE - three inputs while busy conflate to the newest and FOLD a counted drop`() = runTest {

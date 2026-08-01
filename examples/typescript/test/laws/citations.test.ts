@@ -254,7 +254,9 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // +5 (724 -> 729): C14's konsist half — the check's own rationale (G3 and the
   // detekt/konsist scope split), its verify entry, its denial-map row, and the
   // fixture pair's headers each cite what they hold.
-  "examples/kotlin": 729,
+  // +2 (729 -> 731): the drain's conflation-flush clause and its pinning test
+  // each cite §12.2 (what the consumer sheds is observable, never silent).
+  "examples/kotlin": 731,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites

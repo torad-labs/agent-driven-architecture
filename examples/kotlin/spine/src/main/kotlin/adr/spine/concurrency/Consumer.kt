@@ -297,6 +297,23 @@ class SerialConsumer(
             runState = RunState.Idle
             joinWithin(running, drainDeadlineMs)
         }
+        // A DRAIN MUST NOT SWALLOW THE CONFLATION COUNT. Superseded perishable
+        // inputs are acked at supersede time — they are genuinely destroyed — and
+        // their count is only ever emitted by `startPending`. When a Drain lands
+        // before the next turn starts, that call never happens, so the drops
+        // vanished with no timeline evidence and this port reported nothing where
+        // the other reported a count for the identical interleaving. §12.2 says
+        // what the consumer sheds is observable, never silent.
+        //
+        // The HELD survivor is deliberately NOT acked and NOT counted here: its
+        // lease is still out, so a crash re-delivers it. Acking it would create
+        // the data loss this clause exists to make visible.
+        pending?.let { held ->
+            if (dropped > 0) {
+                emit(ConsumerEvent.Conflated(held.source, dropped))
+                dropped = 0
+            }
+        }
         emitActions(finalize(message))
         mailbox.ack(message)
         stopped = true
