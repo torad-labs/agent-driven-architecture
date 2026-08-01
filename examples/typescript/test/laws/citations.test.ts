@@ -239,7 +239,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // Attributed per file by this module's own census against HEAD.
   // +1 (723 -> 724): GateTest's per-file denial map cites §11.2, the clause the
   // review proved was silently deletable.
-  "examples/kotlin": 724,
+  // +5 (724 -> 729): C14's konsist half — the check's own rationale (G3 and the
+  // detekt/konsist scope split), its verify entry, its denial-map row, and the
+  // fixture pair's headers each cite what they hold.
+  "examples/kotlin": 729,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -386,7 +389,9 @@ const FILE_PIN: Record<string, number> = {
   // was added; the census rides `gate/GateTest.kt` and `gate/Rules.kt`, which
   // already existed, so neither the 38-file spine roster nor the 49-file
   // blocks/app roster moves.
-  "examples/kotlin": 202,
+  // +2 (202 -> 204): C14's konsist fixture pair — one violating file written in
+  // the live constructor-arg-lambda idiom, one compliant.
+  "examples/kotlin": 204,
   // +19 (163 -> 182): the workspace wall, which is nineteen COUNTED non-source
   // files and not one line of new prose. Eight `package.json` and eight
   // `tsconfig.json` (the spine, the six blocks, the composition root), plus

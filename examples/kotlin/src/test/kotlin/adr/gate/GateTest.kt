@@ -47,6 +47,7 @@ private val DENIED: Map<String, Map<String, Int>> = mapOf(
     "C10" to mapOf("spine/pure/Ids.kt" to 2),
     "C11" to mapOf("spine/ports/Clock.kt" to 2),
     "C12" to mapOf("blocks/console/Fold.kt" to 1),
+    "C14" to mapOf("spine/agent/Loop.kt" to 4),
     "C15" to mapOf("spine/concurrency/Consumer.kt" to 3),
     "C16" to mapOf("spine/replay/Replay.kt" to 1),
     "C17" to mapOf(
@@ -113,6 +114,11 @@ class GateTest {
 
     @Test fun `C12 - ephemeral view-state never folds`() = verify("C12")
 
+    // C14's konsist half. The detekt half (CyclomaticComplexMethod) measures named
+    // functions and cannot see the live loop's constructor-argument lambda; this
+    // clause is file-scoped, matching the TypeScript port's eslint selectors.
+    @Test fun `C14 - the loop is a declaration, not a program`() = verify("C14")
+
     @Test fun `C15 - the spine tier is self-contained and vendorable`() = verify("C15")
 
     @Test fun `C16 - only the admission rule opens the fold's attributed output`() = verify("C16")
@@ -134,7 +140,13 @@ class GateTest {
             "C4" to "konsist+detekt", "C5" to "konsist", "C6" to "konsist+detekt",
             "C7" to "konsist+detekt", "C8" to "konsist", "C9" to "detekt",
             "C10" to "konsist", "C11" to "konsist", "C12" to "konsist",
-            "C13" to "junit-reflection", "C14" to "detekt", "C15" to "konsist",
+            "C13" to "junit-reflection",
+            // C14 gains its konsist half: detekt's CyclomaticComplexMethod measures
+            // NAMED FUNCTIONS, and the live loop's only decision site is a lambda in a
+            // constructor argument list, which it never reaches. The konsist clause is
+            // FILE-scoped, matching the TypeScript port's eslint selectors, so G3's one
+            // laws.toml cell is now true at the same strength on both ports.
+            "C14" to "konsist+detekt", "C15" to "konsist",
             // 15 -> 17: the two static halves of docs/DECISIONS.md:85-86. The
             // TypeScript port moves the same pin in the same landing, in its own
             // homes (eslint for C16, vitest for C17), so the two rosters cannot

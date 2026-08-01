@@ -365,6 +365,44 @@ val CHECKS: List<Check> = listOf(
     // is inside it, so a token scan would red the build on a sentence about what an arm
     // emitted — 15.2's "a nuisance authors turn off", with ForbiddenSuppress locked and
     // no exit.
+    // C14 — G3: THE LOOP IS A DECLARATION, and this clause is FILE-SCOPED on
+    // purpose. The type-aware half (detekt CyclomaticComplexMethod, threshold 2,
+    // config/detekt/gate.yml) measures NAMED FUNCTIONS — and the shipped loop's
+    // only decision site is a lambda in a superclass-constructor argument list,
+    // which that rule never reaches. A review shipped an if/else, a three-arm
+    // `when`, an elvis AND a `&&` inside `onStepFinish` with the whole Kotlin
+    // gate green, while the same constructs redden the TypeScript port
+    // immediately: its eslint selectors are file-scoped, so the two ports
+    // enforced G3 at different strengths while laws.toml stated one cell for
+    // both. This restores parity by matching the TypeScript SCOPE — anywhere in
+    // an agent-folder file, not anywhere in a named function.
+    //
+    // Read off `codeText`, so a header comment explaining the rule cannot fire
+    // it, and keyed on the KEYWORD as a token rather than on a spelling: `if`,
+    // `when`, `for`, `while`, `try` and the elvis operator are the decision
+    // forms the language has. `&&`/`||` are deliberately NOT denied here — the
+    // detekt half already counts them inside any named function, and denying a
+    // boolean AND in a declaration would redden the legitimate guard clauses the
+    // loop's own helpers use.
+    Check("C14", "the loop is a declaration, not a program") { files ->
+        val decisions = Regex("""\b(if|when|for|while|try)\b|\?:""")
+        // COMMENTS ARE PROSE, NOT CODE. `codeText` drops the file header but KEEPS
+        // the KDoc attached to each declaration, and this file's KDoc legitimately
+        // contains the English words "for" and "when" — measured, three matches on
+        // the clean tree. A rule that fires on its own explanation is the
+        // false-positive half of §15.2's nuisance test, so both comment forms are
+        // stripped before the scan.
+        val strip = Regex("""/\*[\s\S]*?\*/|//[^\n]*""")
+        files.filter { it.path.startsWith("spine/agent/") }.flatMap { file ->
+            decisions.findAll(strip.replace(file.codeText, " ")).map { found ->
+                Violation(
+                    file.path,
+                    "the agent loop decides (`${found.value}`) — decisions belong to the fold (G3)",
+                )
+            }.toList()
+        }
+    },
+
     Check("C16", "only the admission rule opens the fold's attributed output") { files ->
         val read = Regex("""\.\s*${Regex.escape(ATTRIBUTION_MEMBER)}\b""")
         files.filterNot { it.path == ADMISSION_HOME }

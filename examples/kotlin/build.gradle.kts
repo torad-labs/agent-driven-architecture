@@ -84,6 +84,25 @@ tasks.test {
     // The architecture gate (src/test/kotlin/adr/gate) reads the source tree,
     // so pin the working directory to the project root.
     workingDir = project.projectDir
+
+    // WHAT THIS TASK ACTUALLY READS, DECLARED — or Gradle cannot know when to
+    // re-run it. The gate reads two trees from disk at RUNTIME: the live
+    // sources it judges, and the fixture pairs that are its block- and
+    // allow-tests. Neither is on `tasks.test`'s classpath, so neither was an
+    // input, so on any warm build directory `:test` stayed UP-TO-DATE while a
+    // fixture was edited or DELETED underneath it. A review measured the whole
+    // konsist gate silently not running under plain `./gradlew check` — which
+    // is the command both READMEs and the enforcement tables name as the gate.
+    // That defeats the per-file denial map one layer up: a map cannot fail if
+    // the test never executes. CI was never affected (a fresh checkout has no
+    // build/), which is exactly why it survived until someone ran the local
+    // command twice.
+    inputs.dir("src/test/fixtures").withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.files(
+        fileTree(project.projectDir) {
+            include("*/src/main/kotlin/**/*.kt", "*/*/src/main/kotlin/**/*.kt")
+        },
+    ).withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
 // ── the gate (15.2) ────────────────────────────────────────────────────────
