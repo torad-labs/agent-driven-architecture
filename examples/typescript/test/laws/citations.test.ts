@@ -225,7 +225,9 @@ const RESOLVABLE_PIN: Record<string, number> = {
   //      deletion, and deliberate: the sites it named no longer say what it said
   //      they said, so a pointer at them is worse than none.
   // The blast-radius fixture pair adds ZERO here: fixtures carry no citations.
-  "examples/kotlin": 716,
+  // +2 (716 -> 718): the quickstart's day-one section cites the decisions it
+  // holds (the vendored-template law and the spine version marker).
+  "examples/kotlin": 718,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites

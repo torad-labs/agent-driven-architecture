@@ -6,7 +6,8 @@
       "src/**/*.ts",
       "test/**/*.ts",
       "!test/gate/fixtures/**",
-      "!test/laws/fixtures/citations/**"
+      "!test/laws/fixtures/citations/**",
+      "!test/laws/fixtures/quickstart/**"
     ]
   },
   "formatter": {

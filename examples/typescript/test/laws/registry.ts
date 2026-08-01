@@ -626,6 +626,7 @@ export const VITEST_EXCLUDE = [
   "**/dist/**",
   ".tsbuild/**",
   ".work/**",
+  "**/quickstart/**",
 ] as const;
 
 const VITEST_INCLUDE = /(?:^|\/)[^/]+\.(?:test|spec)\.[cm]?[jt]sx?$/;

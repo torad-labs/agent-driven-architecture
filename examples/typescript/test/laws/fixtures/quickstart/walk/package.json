@@ -1,0 +1,11 @@
+{
+  "name": "notes-app",
+  "private": true,
+  "type": "module",
+  "workspaces": ["src/spine", "src/blocks/*", "src/app"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "demo": "tsx src/app/main.ts"
+  }
+}

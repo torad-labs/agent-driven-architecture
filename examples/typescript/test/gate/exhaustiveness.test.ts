@@ -108,6 +108,10 @@ const TSCONFIG = JSON.stringify(
       "test/gate/fixtures",
       "test/gate/.work",
       "test/laws/fixtures/citations",
+      // the quickstart walk's adopter template: a SECOND application, compiled
+      // against its own copy of the tier by test/laws/quickstart.test.ts and
+      // never as part of this program.
+      "test/laws/fixtures/quickstart",
     ],
   },
   null,
@@ -238,6 +242,11 @@ describe("G12 — the compiler produces the edit list §15.4 promises", () => {
   });
 
   it("cleans up after itself", () => {
-    rmSync(WORK, { recursive: true, force: true });
+    // ITS OWN FIXTURE DIRECTORIES, not the whole of `.work`. vitest runs test
+    // FILES in parallel, so a wholesale delete here would race any other
+    // harness that scratches in the same place.
+    for (const name of ["compliant", ...FIXTURES]) {
+      rmSync(join(WORK, name), { recursive: true, force: true });
+    }
   });
 });

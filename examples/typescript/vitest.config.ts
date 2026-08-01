@@ -22,5 +22,21 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  test: { exclude: ["**/node_modules/**", "**/dist/**", ".tsbuild/**", ".work/**"] },
+  test: {
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      ".tsbuild/**",
+      ".work/**",
+      // A THIRD kind of walk, and the same danger as `.tsbuild`: the quickstart
+      // walk's adopter template holds a REAL test file - it has to, running the
+      // block test is one of the four beats - and from THIS root it would
+      // execute against this port's packages instead of its own copy of the
+      // tier. Scoped to that one segment rather than to `fixtures` at large,
+      // which was measured to be wrong: laws.toml's in-checker rows name test
+      // sites that legitimately live under a `fixtures` path, and denying them
+      // here made the registry report every one as a file vitest never runs.
+      "**/quickstart/**",
+    ],
+  },
 });

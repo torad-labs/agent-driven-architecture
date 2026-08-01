@@ -38,7 +38,7 @@
 import { execFileSync } from "node:child_process";
 import { cpSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { EDGE_LAYER, parseLaws } from "./registry";
 
 const HERE = dirname(new URL(import.meta.url).pathname);
@@ -46,6 +46,9 @@ const ROOT = join(HERE, "..", "..");
 const REPO = join(ROOT, "..", "..");
 const WORK = join(ROOT, ".work");
 const PROBES = join(ROOT, "test", "gate", "fixtures", "edges");
+/** The three probe files, named once so the cleanup below cannot fall behind
+ *  the set the tests drive. */
+const PROBE_NAMES = ["cross-block-deep", "cross-block-published", "foreign-library"] as const;
 
 /** Where a probe is planted: a block package that is NOT the one it reaches
  *  into. A file outside every package would still resolve the same specifiers,
@@ -118,6 +121,18 @@ function typecheck(dir: string): { code: number; output: string } {
 }
 
 const shipped = parseLaws(readFileSync(join(REPO, "laws.toml"), "utf8"));
+
+/** ITS OWN SCRATCH DIRECTORIES, removed by the harness that made them. They used
+ *  to be swept by test/gate/exhaustiveness.test.ts's `rmSync(WORK)`, which was an
+ *  accident twice over: vitest runs test FILES in parallel, so that sweep could
+ *  fire WHILE these probes were compiling, and it only ever ran if that file
+ *  happened to finish last. That sweep is now scoped to its own fixtures, so this
+ *  one is scoped to its own too. */
+afterAll(() => {
+  for (const probe of PROBE_NAMES) {
+    rmSync(join(WORK, `edge-${probe}`), { recursive: true, force: true });
+  }
+});
 
 describe("the configuration-time rung, measured rather than reasoned about", () => {
   it("runs under the resolver the wall really uses", () => {
