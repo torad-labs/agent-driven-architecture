@@ -221,9 +221,11 @@ data class Env(
      * for the same reason [promptVersion] is: the spine is generic in its State and
      * cannot know which fold it was handed, so the only place that can name the reducer
      * is the root that assembled it. It is its OWN number, never the record envelope's
-     * version and never the spine's version marker — three independent questions, three
-     * independent answers. Bump it when a fold arm changes what it derives, and every
-     * snapshot taken under the old one is refused instead of trusted.
+     * [adr.spine.pure.CURRENT_SCHEMA] and never the spine's version marker
+     * [adr.spine.pure.SPINE_VERSION], which says which copy of the vendored template this
+     * tree is — three independent questions, three independent answers, and the ratified
+     * record refuses to merge any two of them. Bump it when a fold arm changes what it
+     * derives, and every snapshot taken under the old one is refused instead of trusted.
      */
     val reducerVersion: String = "triage-fold@1",
     val session: SessionId = SessionId("session-1"),

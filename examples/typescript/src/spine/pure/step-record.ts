@@ -51,9 +51,11 @@ export interface Action {
 
 /** The shape this port WRITES today.
  *
- *  It is deliberately NOT the reducer version a snapshot is tagged with, and
- *  NOT the spine version marker that says which template copy this tier is.
- *  Three independent questions, three independent numbers. */
+ *  It is deliberately NOT the reducer version a snapshot is tagged with
+ *  (`reducerVersion`, declared at `app/wire`), and NOT the spine version marker
+ *  that says which template copy this tier is (`SPINE_VERSION`, declared at
+ *  `spine/pure/version`). Three independent questions, three independent
+ *  numbers, and the ratified record refuses to merge any two of them. */
 export const SCHEMA_VERSION = 2;
 
 /** GENESIS is 1, and there is no v0: the reference persists no log, so the

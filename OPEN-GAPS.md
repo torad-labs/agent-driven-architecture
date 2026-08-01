@@ -145,7 +145,7 @@ spine from `examples/` into an actual published package and make the claim true.
 headline claiming (b) while the repo demonstrates (a).
 
 **Taken: (a), and sharpened by something that was not true when this gap was written.** The spine is
-no longer prose scattered through a flat port — it is a **tier**: 36 files in TypeScript, 37 in Kotlin
+no longer prose scattered through a flat port — it is a **tier**: 37 files in TypeScript, 38 in Kotlin
 (the same components, spelled per language; each port pins its exact roster with a test), holding the
 signed bus, the fold driver, state derivation, replay, the barge-in mailbox, the tier relay and the
 enforcement gate. It can be lifted out whole and vendored.

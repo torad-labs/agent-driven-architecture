@@ -552,10 +552,18 @@ describe("the gate runs against the shipped tree", () => {
   // the tree holds 36, so the count lives HERE, where a spine file added or
   // removed is a diff. This port's README quotes the number; the README text is
   // not itself measured, so a README that disagrees with this pin is a review
-  // catch, not a build catch. (The Kotlin port pins its own roster of 37 — one
+  // catch, not a build catch. (The Kotlin port pins its own roster of 38 — one
   // extra ports file here, three pure files there; same components, spelled per
   // language.)
-  it("the spine roster is pinned: exactly these 36 files", () => {
+  // 36 -> 37: `pure/version.ts`, the spine version marker. It is a SOURCE file on
+  // purpose — a marker in a manifest or a data file would be invisible to this
+  // roster and to the Kotlin one, which is exactly the silent-addition class
+  // these pins exist to stop. The Kotlin port moves its own 37 -> 38 in the same
+  // landing, in its own home, so the two rosters cannot drift apart. The prose
+  // that quotes these two numbers is no longer unmeasured either: the file-count
+  // band in test/laws/roster-count.test.ts reads every shipped .md/.html for a
+  // spine-count claim and derives the truth from the filesystem.
+  it("the spine roster is pinned: exactly these 37 files", () => {
     const files = readdirSync(join(ROOT, "src", "spine"), { recursive: true })
       .map((f) => String(f).replaceAll("\\", "/"))
       .filter((f) => f.endsWith(".ts"))
@@ -594,6 +602,7 @@ describe("the gate runs against the shipped tree", () => {
       "pure/tool-result.ts",
       "pure/turn.ts",
       "pure/verb.ts",
+      "pure/version.ts",
       "pure/view.ts",
       "replay/replay.ts",
       "surface/controller.ts",

@@ -1,0 +1,2 @@
+// the same rename, this port's spelling.
+const val TEMPLATE_REVISION = "spine-1"

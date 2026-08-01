@@ -1,0 +1,2 @@
+// THE HEADLINE FAILURE: the marker moved and the CHANGELOG did not.
+export const SPINE_VERSION = "spine-2";

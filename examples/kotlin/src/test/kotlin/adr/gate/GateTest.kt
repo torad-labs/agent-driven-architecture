@@ -122,12 +122,18 @@ class GateTest {
      * while the tree holds 37, so the count lives HERE, where a spine file added
      * or removed is a diff. This port's README quotes the number; the README text
      * is not itself measured, so a README that disagrees with this pin is a
-     * review catch, not a build catch. (The TS port pins its own roster of 36 —
+     * review catch, not a build catch. (The TS port pins its own roster of 37 —
      * one extra ports file there, three pure files here; same components, spelled
      * per language.)
+     *
+     * 37 -> 38: `spine/pure/Version.kt`, the spine version marker. It is a SOURCE
+     * file on purpose — a marker in a build script or a resource would be invisible
+     * to this roster and to the TypeScript one, which is exactly the silent-addition
+     * class these pins exist to stop. The TypeScript port moves its own 36 -> 37 in
+     * the same landing, in its own home, so the two rosters cannot drift apart.
      */
     @Test
-    fun `the spine roster is pinned - exactly these 37 files`() {
+    fun `the spine roster is pinned - exactly these 38 files`() {
         val spine = live.map { it.path }.filter { it.startsWith("spine/") }.sorted()
         assertEquals(
             listOf(
@@ -165,6 +171,7 @@ class GateTest {
                 "spine/pure/ToolResult.kt",
                 "spine/pure/Turn.kt",
                 "spine/pure/Verb.kt",
+                "spine/pure/Version.kt",
                 "spine/pure/View.kt",
                 "spine/replay/Replay.kt",
                 "spine/surface/Controller.kt",
@@ -203,7 +210,7 @@ class GateTest {
      * `GateFile.block`, which covers 43 of these 49 but says nothing about the `app/` tier
      * (6 files, previously pinned only as the single `app/Wire.kt` lookup) and nothing
      * about how a path is SPELLED. The equality here is over full normalised paths, and
-     * the size assertion closes the partition: 37 + 49 = 86, so every file the gate reads
+     * the size assertion closes the partition: 38 + 49 = 87, so every file the gate reads
      * is named by one of the two rosters and a disappearance cannot be silent.
      */
     @Test
@@ -267,9 +274,9 @@ class GateTest {
         )
 
         assertEquals(
-            86,
+            87,
             live.size,
-            "the live tree is the two rosters and nothing else: 37 spine + 49 blocks/app",
+            "the live tree is the two rosters and nothing else: 38 spine + 49 blocks/app",
         )
     }
 

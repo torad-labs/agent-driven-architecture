@@ -28,7 +28,7 @@ module roots are read by the gate as ONE namespace.
 
 ```
 spine/src/main/kotlin/adr/               :spine — THE TRUNK, block-agnostic, written once, never forked
-│                                        (37 files, roster pinned by a GateTest; depends on NO other module)
+│                                        (38 files, roster pinned by a GateTest; depends on NO other module)
 ├── spine/pure/                          ZERO I/O. The transport vocabulary and the shapes the app assembles.
 ├── spine/ports/                         INTERFACES ONLY. A file here with a body is a gate failure (C11).
 ├── spine/boundary/                      THE ONE IMPURE SEAM: action · gate · boundary · in-memory
@@ -282,7 +282,7 @@ one of the two things you get:
   Central, zero source in this repository — and `spine/agent/Loop.kt` is the only file that names it.
 * **You vendor the spine.** The signed command bus, the fold driver, state derivation, replay, the
   barge-in mailbox, the tier relay and the enforcement gate are a **fixed, small, self-contained
-  tier: 37 files, roster pinned by a test**, the same components as the TypeScript port's 36 — spelled per language, not file-for-file identical. **No spine package is published
+  tier: 38 files, roster pinned by a test**, the same components as the TypeScript port's 37 — spelled per language, not file-for-file identical. **No spine package is published
   on any registry**, and this pass does not publish one — that is the repository owner's decision.
   What is true today is that you copy the tier once and **never author it per feature**: every
   feature you add lands in `blocks/<X>/` plus the root, and each component is swappable behind its
