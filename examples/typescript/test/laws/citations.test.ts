@@ -327,7 +327,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // read, so it credits nothing and is absent above by measurement. The two
   // EDITED rows already carried their citation and moved by zero. No citation
   // was removed.
-  wiki: 127,
+  // +1 (127 -> 128): §13.2's boundary listing gains the admission step and one
+  // paragraph explaining it, citing §15.3/G6 — the mechanism the enforcement
+  // column asserted while every teaching listing of the same seam omitted it.
+  wiki: 128,
   // NEWLY PINNED, and the reason is this landing: `root` is where a file that
   // is in the corpus but under none of the four ROOT_KEYS lands, and until now
   // that was three files nobody counted. The release documents live there, so

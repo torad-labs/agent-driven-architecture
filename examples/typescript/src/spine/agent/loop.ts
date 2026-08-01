@@ -18,18 +18,32 @@
 
 import { toJsonSchema } from "@valibot/to-json-schema";
 import { generateText, jsonSchema, type LanguageModel, stepCountIs, type ToolSet, tool } from "ai";
-import type { Registry } from "../boundary/action";
-import type { Boundary } from "../boundary/boundary";
+import type { Registry, StepChannel } from "../boundary/action";
+import type { ContextBounds } from "../pure/context";
 import type { StagedInput } from "../pure/staged";
 import type { Ctx, Dispatchers, Verb } from "../pure/verb";
 
 type FlexibleInputSchema = Parameters<typeof tool>[0]["inputSchema"];
 
+/** WHAT THIS PATH MAY REACH, and it is the type that says so — the idiom
+ *  `spine/surface/controller.ts` and `spine/concurrency/consumer.ts` already
+ *  use. The agent loop held the whole `Boundary` while its own comment claimed
+ *  the agent channel "is the only one this path can reach"; a review measured
+ *  that false — `boundary.human.submit` compiled fine from here, so a
+ *  model-driven step could be stamped `Human`. The confinement is `tsc` now,
+ *  not a sentence: this seam names the agent channel and the two reads the
+ *  tools need, and no other channel is on the type at all. */
+export interface AgentSeam<S> {
+  readonly state: S;
+  readonly contextBounds: ContextBounds;
+  readonly agent: StepChannel;
+}
+
 /** The verb table → the SDK's tool set. One row per registered verb; a
  *  presentation verb and a domain verb produce identical rows (6.8). */
 export function buildTools<S>(
   registry: Registry<S>,
-  boundary: Boundary<S>,
+  boundary: AgentSeam<S>,
   dispatchers: Dispatchers<S>,
   staged: readonly StagedInput[],
 ): ToolSet {
@@ -64,7 +78,7 @@ export function buildTools<S>(
 export interface RunTurn<S> {
   readonly model: LanguageModel;
   readonly prompt: string;
-  readonly boundary: Boundary<S>;
+  readonly boundary: AgentSeam<S>;
   readonly registry: Registry<S>;
   readonly dispatchers: Dispatchers<S>;
   readonly staged?: readonly StagedInput[];
@@ -80,9 +94,10 @@ export async function runTurn<S>(opts: RunTurn<S>): Promise<{ steps: number; tex
     stopWhen: stepCountIs(8),
     prompt: opts.prompt,
     // THE BOUNDARY SEAM. Actions in — the model's raw input, unresolved.
-    // THE AGENT CHANNEL, and it is the only one this path can reach: the step it
-    // builds carries no Actor field, so nothing that drove these tool calls can
-    // promote itself to `Human` or to the consumer's `Spine`.
+    // THE AGENT CHANNEL, and it is the only one this path can reach — now a fact
+    // of the TYPE (`AgentSeam` above) and not only of the payload: the step
+    // carries no Actor field to forge, and the other two channels are not even
+    // named on what this path holds.
     onStepFinish: ({ toolCalls }) =>
       void opts.boundary.agent.submit({
         staged,
