@@ -91,6 +91,22 @@ moves. Three extra obligations attach to it:
   periodic teachability review belongs to nobody and therefore happens never; attaching it
   to the release gives it an owner and a date (§17.2 is the checklist it exercises).
 
+  The trial itself is human and stays human — nothing here pretends to automate it. What is
+  measured for you is its PRECONDITION: `examples/typescript/test/laws/teachability.ts`
+  reads every block's one public symbol in both ports, counts the members some declared
+  contract requires against the members the block publishes, and names the members every
+  block of a port publishes that no contract requires. That list is exactly what a fresh
+  author would otherwise have to infer by opening a sibling, so it is the shortlist the
+  human trial starts from.
+
+  Write the run's finding into the new `CHANGELOG.md` entry under the literal heading
+  `**Teachability:**`, in the census's own numbers and with the verdict those numbers
+  support. The same check reads both back off the live tree, so a release cannot record a
+  pass the tree does not support: soften the numbers and it is red, soften the reading and
+  it is red. A finding that says the contract is *not* sufficient is a finding, not a
+  failure — the metric's job is to be true, not to be zero, and softening it to get a green
+  is the one move this step exists to make impossible.
+
 - **The marker and the entry move together, and a check enforces it.** Bumping
   `SPINE_VERSION` in either port without writing the matching entry fails the build, as
   does an entry whose heading is not a marker value. That check is

@@ -1,0 +1,16 @@
+// A TypeScript block facade in the shipped idiom: one exported object literal,
+// `as const`, answering to no declared contract. Four members.
+
+import type { BlockRegistration } from "@adr/spine/pure/verb";
+import { alphaArm } from "./fold";
+import { alphaView } from "./project";
+import { alphaVerbs } from "./tools";
+
+export const alpha = {
+  name: "alpha",
+  register: <S>(): BlockRegistration<S> => ({ block: "alpha", verbs: alphaVerbs<S>() }),
+  arm: alphaArm,
+  view: alphaView,
+} as const;
+
+export type { AlphaSlice } from "./slice";

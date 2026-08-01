@@ -1,0 +1,30 @@
+// A Kotlin block facade in the shipped idiom: a class implementing the spine's
+// declared block contract. `private val` is here so the reader is proven to drop
+// it — a private field is not public surface and must not inflate the census.
+
+package adr.blocks.alpha
+
+import adr.spine.pure.ArmOut
+import adr.spine.pure.Block
+import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
+import adr.spine.pure.Signature
+import adr.spine.pure.Timestamp
+
+class AlphaBlock : Block<AlphaSlice, AlphaResult, AlphaView> {
+
+    private val armImpl = AlphaArm()
+    private val projection = AlphaProjection()
+
+    fun <S> register(lens: Lens<S, AlphaSlice>): BlockRegistration<S> =
+        BlockRegistration(block = "alpha", verbs = AlphaTools(lens).verbs())
+
+    override fun arm(
+        slice: AlphaSlice,
+        result: AlphaResult,
+        now: Timestamp,
+        sig: Signature,
+    ): ArmOut<AlphaSlice> = armImpl.arm(slice, result, now, sig)
+
+    override fun view(slice: AlphaSlice): AlphaView = projection.view(slice)
+}

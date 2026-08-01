@@ -1,0 +1,14 @@
+// A facade whose surface is not enumerable: one key is computed. The census
+// refuses to guess, because a member it silently dropped would make the port
+// look one member more teachable than it is.
+
+import type { BlockRegistration } from "@adr/spine/pure/verb";
+
+const ROLE = "arm";
+
+export const alpha = {
+  name: "alpha",
+  register: <S>(): BlockRegistration<S> => ({ block: "alpha", verbs: [] }),
+  [ROLE]: alphaArm,
+  view: alphaView,
+} as const;

@@ -1,0 +1,21 @@
+// A READER-SHAPE fixture. The constructor's default value carries its own
+// parentheses — the nested `)` that defeats any `[^)]*` header pattern, and one
+// entirely legal refactor away from a real block. The header is therefore read
+// positionally with the same balancing scanner as the body.
+
+package adr.blocks.alpha
+
+import adr.spine.pure.ArmOut
+import adr.spine.pure.Block
+import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
+
+class AlphaBlock(
+    val armImpl: AlphaArm = AlphaArm(),
+) : Block<AlphaSlice, AlphaResult, AlphaView> {
+
+    fun <S> register(lens: Lens<S, AlphaSlice>): BlockRegistration<S> =
+        BlockRegistration(block = "alpha", verbs = AlphaTools(lens).verbs())
+
+    override fun arm(slice: AlphaSlice): ArmOut<AlphaSlice> = armImpl.arm(slice)
+}

@@ -1,0 +1,45 @@
+// The SECOND Kotlin facade, publishing two members `alpha` does not, so this
+// port's universal set is an intersection too. The `when` inside `performer`
+// sits at brace depth two and its branches must not be read as members.
+
+package adr.blocks.beta
+
+import adr.spine.pure.ArmOut
+import adr.spine.pure.Block
+import adr.spine.pure.BlockRegistration
+import adr.spine.pure.EffectPerformer
+import adr.spine.pure.Lens
+import adr.spine.pure.MAX_CONTEXT_LINES_PER_BLOCK
+import adr.spine.pure.Signature
+import adr.spine.pure.Timestamp
+
+class BetaBlock : Block<BetaSlice, BetaResult, BetaView> {
+
+    private val projection = BetaProjection()
+
+    fun <S> register(lens: Lens<S, BetaSlice>): BlockRegistration<S> =
+        BlockRegistration(block = "beta", verbs = BetaTools(lens).verbs())
+
+    fun performer(out: BetaPort): EffectPerformer<BetaEffect> = EffectPerformer(
+        block = "beta",
+        narrow = { it as? BetaEffect },
+        perform = { effect ->
+            when (effect) {
+                is BetaEffect.SendBeta -> out.send(effect.line)
+                is BetaEffect.DropBeta -> out.drop(effect.line)
+            }
+        },
+    )
+
+    override fun arm(
+        slice: BetaSlice,
+        result: BetaResult,
+        now: Timestamp,
+        sig: Signature,
+    ): ArmOut<BetaSlice> = projection.arm(slice, result, now, sig)
+
+    override fun view(slice: BetaSlice): BetaView = projection.view(slice)
+
+    fun contextLines(slice: BetaSlice, maxLines: Int = MAX_CONTEXT_LINES_PER_BLOCK): List<String> =
+        projection.contextLines(slice, maxLines)
+}

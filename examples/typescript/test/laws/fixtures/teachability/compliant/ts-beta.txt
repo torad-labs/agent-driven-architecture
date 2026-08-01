@@ -1,0 +1,25 @@
+// The SECOND facade of the compliant port, and it is not a copy of the first:
+// it publishes two members `alpha` does not, so the port's universal set is a
+// real intersection rather than "whatever the only block happens to have". The
+// nested handler table is here on purpose — its keys sit at brace depth two and
+// must not be counted as the facade's.
+
+import type { Handlers } from "@adr/spine/pure/effect";
+import type { BlockRegistration } from "@adr/spine/pure/verb";
+import { betaArm } from "./fold";
+import type { BetaPort } from "./port";
+import { betaView } from "./project";
+import { betaSliceOf } from "./slice";
+import { betaVerbs } from "./tools";
+
+export const beta = {
+  name: "beta",
+  register: <S>(): BlockRegistration<S> => ({ block: "beta", verbs: betaVerbs<S>() }),
+  handlers: (out: BetaPort): Handlers<BetaEffect> => ({
+    SendBeta: (effect) => out.send(effect.line),
+    DropBeta: (effect) => out.drop(effect.line),
+  }),
+  arm: betaArm,
+  view: betaView,
+  sliceOf: betaSliceOf,
+} as const;
