@@ -27,6 +27,36 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/**
+ * WHAT EACH CHECK MUST DENY, PER FILE — the Kotlin half of the block-test's real
+ * assertion. Keys are fixture-relative paths; values are message counts.
+ */
+private val DENIED: Map<String, Map<String, Int>> = mapOf(
+    "C1" to mapOf("blocks/triage/Fold.kt" to 1),
+    "C2" to mapOf("blocks/triage/Fold.kt" to 1),
+    "C4" to mapOf(
+        "blocks/escalation/Contract.kt" to 1,
+        "blocks/escalation/Tools.kt" to 2,
+        "spine/pure/Staged.kt" to 1,
+        "spine/pure/Verb.kt" to 1,
+    ),
+    "C5" to mapOf("blocks/escalation/Fold.kt" to 2),
+    "C6" to mapOf("blocks/escalation/Fold.kt" to 1),
+    "C7" to mapOf("blocks/triage/Fold.kt" to 2),
+    "C8" to mapOf("blocks/triage/Tools.kt" to 2),
+    "C10" to mapOf("spine/pure/Ids.kt" to 2),
+    "C11" to mapOf("spine/ports/Clock.kt" to 2),
+    "C12" to mapOf("blocks/console/Fold.kt" to 1),
+    "C15" to mapOf("spine/concurrency/Consumer.kt" to 3),
+    "C16" to mapOf("spine/replay/Replay.kt" to 1),
+    "C17" to mapOf(
+        "app/Wire.kt" to 2,
+        "blocks/console/Fold.kt" to 1,
+        "blocks/inbox/Fold.kt" to 1,
+        "blocks/triage/Fold.kt" to 1,
+    ),
+)
+
 class GateTest {
 
     private val live = GateTrees().liveTree()
@@ -40,11 +70,20 @@ class GateTest {
             "${check.id} (${check.title}) must pass on the live tree",
         )
 
+        // THE BLOCK-TEST IS PER FILE, not per tree. A review proved what
+        // `blocked.isNotEmpty()` bought: a CLAUSE inside a multi-clause check
+        // could be deleted with `./gradlew check --rerun-tasks` fully green,
+        // because a sibling clause still fired somewhere else in the same
+        // fixture tree — including C4's clause (e), the sole guard on §11.2's
+        // "recall confers no authority BY CONSTRUCTION". Every count below was
+        // MEASURED off the fixture trees; a number that moves is a clause that
+        // changed reach, and that is a diff a reviewer has to see.
         val blocked = check.run(GateTrees().fixtureTree("violating", id))
-        assertTrue(
-            blocked.isNotEmpty(),
-            "${check.id} BLOCK-TEST: the violating fixture was ACCEPTED. " +
-                "A check nobody has watched fail is not a check.",
+        assertEquals(
+            DENIED.getValue(id),
+            blocked.groupingBy { it.path.substringAfterLast("violating/") }.eachCount(),
+            "${check.id} BLOCK-TEST: the violating fixture's per-file denials moved. " +
+                "A clause that stops firing and one that starts firing twice are both this failure.",
         )
 
         assertEquals(

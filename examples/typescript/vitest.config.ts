@@ -38,5 +38,13 @@ export default defineConfig({
       // here made the registry report every one as a file vitest never runs.
       "**/quickstart/**",
     ],
+    // THE VERDICT MUST NOT DEPEND ON HOST LOAD. Six cases shell out to tsc, npm
+    // or the demo runner, and under vitest's default 5000 ms per-test timeout
+    // they go red on byte-identical pristine source whenever the machine is
+    // contended — a gate that fails at random breeds exactly the re-run culture
+    // §15.2 is written against. 60s is generous headroom, not a target: the
+    // slowest observed case (the quickstart walk, cold) is well under half.
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
   },
 });

@@ -237,7 +237,9 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // KDoc, Boundary.kt's minted-channel banner, MailboxTest/RelayTest's moved
   // call sites — each cites the section or decision the channel design holds.
   // Attributed per file by this module's own census against HEAD.
-  "examples/kotlin": 723,
+  // +1 (723 -> 724): GateTest's per-file denial map cites §11.2, the clause the
+  // review proved was silently deletable.
+  "examples/kotlin": 724,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -294,7 +296,12 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // two in test/spine/mailbox.test.ts (the behavioural probe's banner and its
   // describe title). Measured per file by this module's own census; no citation
   // was added under any other section and none was removed.
-  "examples/typescript": 477,
+  // +4 (477 -> 481): the review-close hardening — C14's expression-decision
+  // comment cites G3 and the two ports' parity, the vitest timeout note cites
+  // §15.2, and the widened violating fixture cites G3 twice more.
+  // +3 more (481 -> 484): the per-file denial map's rationale cites G1/G9/G12 —
+  // the three clauses the review proved were deletable in silence.
+  "examples/typescript": 484,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the
