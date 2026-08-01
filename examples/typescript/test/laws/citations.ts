@@ -45,10 +45,13 @@
 //     reported as one.
 //   · LOOSE — any other line of a source file, and any line of a data file
 //     (.json, .toml): a bare `N.N` is read only when it has exactly two
-//     components and a head inside the book's 1..17 range. Dependency versions
+//     components and a head inside the book's 1..18 range. Dependency versions
 //     are three-component (`2.4.0`, `1.11.0`, `6.0.208`) and fall outside;
 //     measured across the whole tree, this narrowing costs ZERO real citations
-//     and admits ZERO version strings.
+//     and admits ZERO version strings. The bound moves WITH the book: the
+//     appendix made 18 a real head, and the widening was measured before it
+//     landed — no two-component `18.N` exists anywhere in the scanned corpus,
+//     so it admits no version string either.
 //   · PROSE (.md, .html) — a bare `N.N` is NOT read. Widening it here drowns:
 //     `node >=14.17` and `Apache-2.0` are indistinguishable from citations.
 //     The sweep therefore writes `§N.N` in prose, and the §-marked form IS read
@@ -116,7 +119,7 @@ const rootOf = (path: string): string =>
 const looseReadable = (ref: string): boolean => {
   const parts = ref.split(".");
   const head = Number(parts[0]);
-  return parts.length === 2 && head >= 1 && head <= 17;
+  return parts.length === 2 && head >= 1 && head <= 18;
 };
 
 export function citationProblems(
@@ -189,8 +192,11 @@ export function citationProblems(
 export const HEAD = /<span class="num">(\d+)<\/span>/g;
 export const SUBHEAD = /<h3><span class="t">([\d.]+)<\/span>/g;
 
-/** The book's own section set: the seventeen heads (padded in the markup,
- *  unpadded in prose — both spellings resolve) and every subsection head. */
+/** The book's own section set: the eighteen heads — seventeen chapters plus the
+ *  appendix, which is labelled with a NUMERAL for this reason: the parse below
+ *  reads digits, so a letter-labelled appendix would make every reference into
+ *  it a phantom — padded in the markup, unpadded in prose (both spellings
+ *  resolve), and every subsection head. */
 export function bookSections(book: string): Set<string> {
   const sections = new Set<string>();
   for (const m of book.matchAll(HEAD)) {

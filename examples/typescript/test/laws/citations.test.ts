@@ -255,7 +255,16 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // fourth cell of the sixteen rows already counted, so the same sixteen
   // citations sit on half as many lines. No citation was deleted — the G-ids
   // present before and absent after are the empty set.
-  wiki: 121,
+  // +3 (121 -> 124): the check-authoring appendix, MEASURED per line by this
+  // module's own census. Its ladder probes cite G1 (the rung a declaration rule
+  // reaches) on one line and G10/G11 on one more, and the value-check paragraph
+  // cites G12, whose registry-totality check is the one value check the
+  // reference ports ship. §15.2's new pointer paragraph cites nothing and is
+  // absent above by measurement, and so is the sentence added to that same
+  // value-check paragraph when the register learned to RESOLVE a site rather
+  // than read it — one paragraph is one line, and it already carried G12. No
+  // citation was removed.
+  wiki: 124,
   // NEWLY PINNED, and the reason is this landing: `root` is where a file that
   // is in the corpus but under none of the four ROOT_KEYS lands, and until now
   // that was three files nobody counted. The release documents live there, so
@@ -453,6 +462,17 @@ describe("citations resolve — one public namespace", () => {
     expect(sections.has("15.3")).toBe(true);
     expect(sections.has("14.1.1")).toBe(true);
     expect(sections.has("1.5")).toBe(false);
+    // THE APPENDIX'S LABEL IS LOAD-BEARING, and this is what makes it so. The
+    // parse above reads DIGITS: a letter-labelled appendix ("A", "A.2") is
+    // invisible to it, so every reference into the appendix would silently
+    // become a phantom and the two rules keyed on this set would stop covering
+    // a whole chapter. Pinned here rather than trusted, because the failure is
+    // a silence. Sections 16 and 17 keep their numbers forever, so the
+    // appendix appends rather than inserts, and 18 is the only free numeral.
+    expect(sections.has("18")).toBe(true);
+    expect(sections.has("18.2")).toBe(true);
+    expect(sections.has("16")).toBe(true);
+    expect(sections.has("17")).toBe(true);
   });
 });
 
@@ -581,30 +601,33 @@ describe("cross-references agree in BOTH coordinates", () => {
       "wiki/example/index.html",
       "wiki/index.html",
     ]);
-    // 692 -> 693: D42's CHANGELOG landing added one cross-reference to the
-    // book, in the diff before this one. The pin moves deliberately with a
-    // reason, never loosened to an inequality — that is what makes it a
-    // vacuity guard rather than a floor.
-    expect(refs.anchors).toBe(693);
+    // 692 -> 693 -> 701: D42's CHANGELOG landing added one cross-reference, and
+    // D4's check-authoring appendix added eight. The pin moves deliberately with
+    // a reason each time, never loosened to an inequality — that is what makes
+    // it a vacuity guard rather than a floor.
+    expect(refs.anchors).toBe(701);
     // 18 in the book — the seventeen section ids plus `the-dependency-rule`, the
     // in-section note anchor §7 owns; `nav` sits before the first section and
     // carries no number — plus the worked example's own six (00–05) in
     // `wiki/example/index.html`. The seam pages head their parts ▸/A–E, which
     // are not digits, so their ids resolve to no number.
-    expect(refs.numberedTargets).toBe(24);
+    // 24 -> 25: D4's check-authoring APPENDIX is a numbered target of its own,
+    // which is exactly what it should be — an appendix so sections 16/17 keep
+    // their numbers, carrying its own id rather than renumbering anything.
+    expect(refs.numberedTargets).toBe(25);
     // 17 book TOC links carrying a fragment, and 64 whole-file ones — 8 on each
     // of the 8 example pages. The split is the load-bearing half of the nav
     // class: the seam pages' token sets are EMPTY and the worked example's nav
     // runs 00–07 over a page numbered 00–05, so adjudicating a whole-file nav
     // link would manufacture sixty-plus false positives against correct markup.
     expect(refs.labels).toEqual({
-      nav: 17,
+      nav: 18,
       navWholeFile: 64,
-      // 243 -> 244: the same D42 CHANGELOG cross-reference that moved `anchors`.
-      numbered: 244,
+      // 243 -> 244 (D42's CHANGELOG reference) -> 246 (D4's appendix).
+      numbered: 246,
       worded: 4,
-      law: 49,
-      prose: 315,
+      law: 53,
+      prose: 316,
     });
     // the census is TOTAL: every anchor lands in exactly one bucket.
     expect(Object.values(refs.labels).reduce((a, b) => a + b, 0)).toBe(refs.anchors);

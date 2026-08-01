@@ -295,6 +295,8 @@ td.r{font-family:var(--mono);color:var(--accent);font-size:12.5px;white-space:no
         <div class="group">Close</div>
         <a href="#payoff-and-non-goals"><span class="n">16</span><span>Why it pays off &amp; when not to</span></a>
         <a href="#reference-and-adoption"><span class="n">17</span><span>Reference &amp; adopt it</span></a>
+        <div class="group">Appendix</div>
+        <a href="#authoring-a-check"><span class="n">18</span><span>Authoring a check</span></a>
       </nav>
     </details>
   </aside>
@@ -2441,6 +2443,7 @@ onStepFinish(step):
     <li><strong>Every check ships a paired block-test and allow-test.</strong> The block-test proves the violating shape is rejected; the allow-test proves idiomatic, compliant code passes untouched. Without the allow-test, a check drifts into a nuisance that authors disable. One listed shape difference: a check about <em>values</em> rather than syntax — a registry-totality check, say — carries its pair as two <em>inputs to the same checker</em> — the real registry for the allow half, a deliberately thinned one for the block half — rather than as two files on disk. Same discipline, same red-green proof.</li>
     <li><strong>A wrong rule is fixed, never disabled — and "disabled" must be structurally impossible from inside the tree.</strong> When a check rejects legitimate code, the remedy is to correct the check and add a test, not to switch off enforcement. That discipline is only as strong as its cheapest bypass, so the gate locks the inline channel: a file-level suppression (<code class="k">/* eslint-disable */</code>, <code class="k">@Suppress</code> of a gate rule) must be inert or itself a reported violation, with a block-test watching one fail to work. Weakening the gate then requires editing the gate's own config — a diff a reviewer sees — never an annotation buried in the tree it defends.</li>
   </ul>
+  <p>Both rules are statements about what must be true of a check. The procedure that makes them true — what you write first, which run must be green before the rule exists, where the pair is recorded, and what to do when the rule turns out to be wrong — is the <a class="x" href="#authoring-a-check">appendix</a>.</p>
 
   <h3><span class="t">15.3</span>The guarantees, as named portable invariants</h3>
   <p>The invariants below are deliberately stack-agnostic. Each carries a generic id, states the single guarantee it enforces, and — in its own row, not in a second table further down — names the layer that actually holds it today in the reference ports. Adopt the ids as-is; the checks that implement them differ per language, the guarantee does not.</p>
@@ -2837,6 +2840,44 @@ replayTest():
   (<a class="x" href="#runtime-vs-you">8.5</a>) for the cases that need more. You are not meant to choose among its parts; you
   are meant to inherit them and spend your judgment on your domain.</p>
 </section>
+
+<section id="authoring-a-check" class="rv">
+  <div class="sec-head"><span class="num">18</span><h2>Appendix: authoring a check</h2></div>
+  <p class="lede">The two discipline rules in <a class="x" href="#enforced-constraints">15.2</a> — every check ships a paired block-test and allow-test, and a wrong rule is fixed rather than disabled — say <em>what</em> must be true of a check. This appendix is the procedure they imply: the order you write things in, which run must be green and which must be red, where the result is recorded so it cannot quietly go missing, and what to do the day the rule is wrong. It is mechanical on purpose. The failure it exists to prevent is the check that was never once observed to deny anything.</p>
+
+  <h3><span class="t">18.1</span>First, try not to write it</h3>
+  <p>A check is the residue, so the first move is to make the residue smaller. Three probes, in ladder order, each of which either removes the need for a rule or fails in a way you can write down:</p>
+  <ol>
+    <li><strong>Try to make the violation unspellable.</strong> Write the offending code and compile it. If a sealed set with no catch-all, a constructor only one folder may name, or a type that simply has no such member already rejects it, you are done and the invariant is structural — no rule, nothing to keep green, nothing to disable (the stamp rule reaches this rung, which is why <a class="x" href="#enforced-constraints">G1</a> reads as a declaration rule rather than a usage rule).</li>
+    <li><strong>Try to draw a module edge across it.</strong> If the two parties can be separate build units, declare what each may depend on and let the forbidden name fail to resolve. That refusal happens before either unit compiles, and it cannot be annotated past from inside a source file (<a class="x" href="#enforced-constraints">G10</a> and <a class="x" href="#enforced-constraints">G11</a> are held this way, per port). An edge permits a whole unit at once, so it will not hold a direction <em>inside</em> one unit — that residue is real and is what you are about to write.</li>
+    <li><strong>Only then, write the rule</strong> — and write down, in one sentence, why neither rung above could hold it. That sentence is what a later reader audits, and <a class="x" href="#enforced-constraints">15.3</a>'s fourth column is where it lands. &ldquo;Nobody tried&rdquo; is not one of the available reasons.</li>
+  </ol>
+
+  <h3><span class="t">18.2</span>The loop: the violating half first, and a green you must see</h3>
+  <p>Author in this order. The first three steps are one red-green proof and none of them is skippable; steps four and five are what keep the rule usable and honest.</p>
+  <ol>
+    <li><strong>Read the nearest existing check and copy its idiom</strong> — message shape, fixture layout, where the id lives. A check that reads like its neighbours is a check the next author can edit; a bespoke one is a check nobody touches until it is deleted.</li>
+    <li><strong>Write the violating fixture, and run the gate. It must PASS.</strong> That green is a measurement, not a formality: it is the proof that nothing in the tree already denies this shape. Skip it and you cannot distinguish a rule that works from a rule that fires on something else entirely — or from one that never fires at all.</li>
+    <li><strong>Write the rule, and run it again. The violating fixture must go RED</strong>, with the message you want a tired author to read: state the remedy, not the offence. This is the only step that proves the rule denies the shape you meant, and it is the step a check written directly against a passing tree never performs.</li>
+    <li><strong>Write the compliant fixture — the idiomatic thing a working author would really write, not a minimal stub — and confirm it stays GREEN.</strong> Without this half the rule is a nuisance in waiting, and the first author it wrongly stops reaches for the annotation the gate is supposed to have made inert.</li>
+    <li><strong>Delete the rule's body and confirm the violating fixture goes green again.</strong> A rule whose removal nothing notices was not enforcing anything, and this is the cheapest possible way to find that out.</li>
+  </ol>
+  <p><strong>The trap that survives all five is the fixture that stops standing for the tree.</strong> A pair frozen against an idiom the codebase has since left keeps passing forever while the rule underneath it matches nothing — the block-test stays red for the wrong reason, or the derivation it runs over silently returns the empty set. Two habits close it. Where the check reads a shape the source itself declares, <em>derive</em> the subject from the live source instead of transcribing it. And assert the derivation is non-empty and names what you expect, because &ldquo;reports no problems&rdquo; is satisfied by a checker that read nothing at all.</p>
+
+  <h3><span class="t">18.3</span>Register it, so the pair cannot go missing quietly</h3>
+  <p>A discipline that lives only in prose decays at the speed of the tree. So the check is recorded where a machine reads it: the law it holds, the port, the home that runs it, and where its two halves are. The record is then resolved rather than believed — a fixture tree that was deleted, or a wall whose declaration was removed while its row survived, is red instead of absent. Keep the record in one place and derive from it; a second table stating the same fact is a second table to go stale.</p>
+  <p><strong>Two shapes, and the difference is only where the pair lives.</strong> A check about syntax or placement points at two trees on disk. A check about <em>values</em> — is every case of the sealed set actually registered, does every registered entry answer for a case (<a class="x" href="#enforced-constraints">G12</a>) — has no tree to point at: its pair is two inputs to one checker, the real registry for the allow half and a deliberately thinned one for the block half. That row still names both halves, by file and by the exact title of each case, and the record <em>resolves</em> each one rather than reading it: the title must still be declared in live code, not merely mentioned and not left behind in the comment a deleting author wrote, it must not be switched off, and the two halves must be two different cases rather than one named twice. A search that only asks whether the title appears somewhere accepts all four of those, which is why registering the pair and resolving it are different acts. Anything less turns the shape difference into an exemption, and the next value check ships with no block half at all — which is the same defect as a missing fixture tree, wearing a shape the register could not see.</p>
+
+  <h3><span class="t">18.4</span>The day the rule is wrong</h3>
+  <p>It will happen: a check rejects code that is genuinely fine. The remedy is bounded, and it is never the annotation.</p>
+  <ol>
+    <li><strong>Put the wrongly-rejected code into the allow half first.</strong> The disagreement is now a red test instead of an argument, and it stays red until someone fixes it.</li>
+    <li><strong>Narrow the rule until the allow half is green and the block half is still red.</strong> If no narrowing does both, the invariant itself is stated wrongly — fix the invariant, then the rule.</li>
+    <li><strong>A widening ships its own new pair.</strong> When a rule grows to cover a shape it did not reach before, the new reach gets its own violating and compliant halves rather than riding the existing files, or the widening is untested by construction and the gate has grown a claim nothing measures.</li>
+  </ol>
+  <p>What you may not do is switch it off from inside the tree. A file-level suppression is itself a reported violation, watched by a block-test of its own, so the only route to weaker enforcement is a diff in the gate's own configuration — which a reviewer sees, and which is the entire point: the cost of lowering a wall is paid in public. And if a rule truly cannot be fixed, delete it and move the law's row down the ladder to say so honestly. A check that everyone routes around is worse than no check, because it still reads as enforcement.</p>
+</section>
+
       <div class="foot">
         <p>Two kinds of tool, plus a thin fixed spine. One stream to replay. A handful of invariants to enforce.</p>
         <p style="margin-top:24px;color:var(--text-faint)">Drop this contract onto any language, framework, or platform — the spine does not move.</p>

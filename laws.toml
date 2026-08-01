@@ -48,6 +48,25 @@
 # "lint-owned" is DERIVED from the eslint config source and the konsist rule
 # list — never from a token in this file, which a forger would simply edit.
 #
+# THE SHAPE DIFFERENCE IS WHERE THE PAIR LIVES, NEVER WHETHER THERE IS ONE, and
+# for one landing this file said otherwise: the in-checker branch required
+# `violating` and `compliant` EMPTY and demanded nothing in their place, so a
+# value check could claim the shape, ship no block-test at all, and pass the
+# fixture assertion. So an in-checker row names `blockTest` and `allowTest`
+# instead, each `<path>::<exact test title>`, and the checker RESOLVES both
+# rather than reading them: the runner must be one that would open the file, the
+# file must still declare a case under that title in LIVE code, that declaration
+# must not be switched off, and the two halves must be two different cases. A
+# renamed case is red; a deleted one is red even with the deleting author's
+# comment left behind; a case turned off with `it.skip` or `@Ignore` is red,
+# because a disabled check denies nothing; and one site named twice is red,
+# because that is a row declaring one half while spelling two. The two field
+# pairs are mutually exclusive and each shape is refused the other's, so no row
+# can be read two ways — an in-checker row that also names a tree is reported,
+# and so is an on-disk row that names a test site. Both shapes are also refused a
+# pair that is one thing named twice, from the same checker, so neither branch
+# is held to a bar the other is not.
+#
 # SCOPE, DECLARED: this registry holds G-LAWS and nothing else. The reference
 # lint that enforces the public citation namespace (test/laws/citations.ts) is
 # a citation check, not a G-law — the ratified decisions record refuses a
@@ -438,16 +457,16 @@ port = "typescript"
 id = "C13"
 home = "vitest"
 pair = "in-checker"
-violating = ""
-compliant = ""
+blockTest = "examples/typescript/test/gate/gate.test.ts::DENIES a registry with a verb pulled out of it"
+allowTest = "examples/typescript/test/gate/gate.test.ts::ALLOWS the shipped registry — every declared verb is registered and signs"
 
 [[laws.checks]]
 port = "kotlin"
 id = "C13"
 home = "junit-reflection"
 pair = "in-checker"
-violating = ""
-compliant = ""
+blockTest = "examples/kotlin/src/test/kotlin/adr/app/TotalityTest.kt::C13 BLOCK-TEST - a registry with a verb pulled out is DENIED"
+allowTest = "examples/kotlin/src/test/kotlin/adr/app/TotalityTest.kt::C13 - every ToolResult case has a registry entry, and every entry has a case"
 
 [[laws]]
 id = "G13"

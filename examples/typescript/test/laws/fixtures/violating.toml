@@ -1,4 +1,4 @@
-# BLOCK-TEST for the registry check. Fifteen deliberate violations, one per law:
+# BLOCK-TEST for the registry check. Twenty-seven deliberate violations, one per law:
 #   G1  a law with NO enforcement layer             (the first bar)
 #   G2  a denying-check law whose pointer is GONE   (the un-resolved-string trap)
 #   G3  a denying-check law that names no check     (the second bar)
@@ -15,8 +15,36 @@
 #   G15 an edge whose file no longer DECLARES the token the row names
 #   G16 an edge pointer that resolves to nothing, and an edge naming a port the
 #       registry does not cover
+#   G17 a value check whose in-checker pair NAMES NO BLOCK-TEST, and one naming a
+#       case the file does not declare
+#   G18 a value-check site pointing at a file that is not there, and one that is
+#       not <path>::<title> at all
+#   G19 an on-disk row wearing a test site — the row nobody can say they read
+#   G20 an in-checker row wearing a fixture tree — the same defect, mirrored
+#   G21 a case that survives ONLY in the comment its deleting author left behind
+#   G22 a pair that is ONE input named twice — in-checker and on-disk, one each
+#   G23 a case switched off with `it.skip`, and one with `@Ignore`
+#   G24 a case switched off with `xit`, and one with `@Disabled`
+#   G25 a case that is only `it.todo`, and a backticked fun carrying no `@Test`
+#   G26 a case inside a SUITE that is switched off, and a title that occurs only
+#       as an argument in live code — quoted, but not a declaration
+#   G27 a block-test the runner would never execute: a path outside vitest's
+#       include shape, and one under its exclude list
+#   G28 a `pair` nobody can read — a PROTOTYPE key and an ordinary typo
 # G9 is the control: it holds the same duplicated id on BOTH ports and must not
 # be reported. A registry check that accepts this file is not a check.
+#
+# G17-G28 are the block half of "the shape difference is where the pair lives,
+# never whether there is one". Before them the in-checker branch asked for two
+# EMPTY fields and nothing else, so a value check could ship no block-test at all
+# and this file's own G4 row was the only thing the branch could ever report. The
+# two SHAPE-CONFUSION rows, G19 and G20, are the mirror pair: each field set is
+# refused the other's, in both directions, so neither can be the untested one.
+# G21 and G23-G26 are the block half of RESOLUTION rather than search: a quoted
+# substring is satisfied by a deleted case, a disabled case and a title in any
+# role at all, and each of those is spelled here separately because a matcher
+# that catches `it.skip` need not catch `xit`. G22 is the block half of "a pair
+# is two things", on BOTH shapes from one checker.
 #
 # G10-G14 are the block half of THE FLOOR RULE, and they are five laws rather
 # than one because the rule is a JOINT with four ways to come apart: the machine
@@ -77,8 +105,8 @@ port = "typescript"
 id = "C2"
 home = "eslint"
 pair = "in-checker"
-violating = ""
-compliant = ""
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
 
 [[laws.checks]]
 port = "kotlin"
@@ -343,6 +371,282 @@ home = "konsist"
 pair = "on-disk"
 violating = "fixtures/violating/C1"
 compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G17"
+name = "a-value-pair-that-names-no-block-test"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One half is an empty string and the other names a case nobody wrote — the escape the in-checker branch left open."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = ""
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a case nobody ever wrote"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G18"
+name = "a-value-site-that-resolves-to-nothing"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One site names a file that is not there; the other is not a site at all, only a path."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/GONE/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G19"
+name = "an-on-disk-row-wearing-a-test-site"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It names two trees and a test site, so no reader can say which pair the check actually ships."
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = ""
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G20"
+name = "an-in-checker-row-wearing-a-fixture-tree"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It names its two test sites and a tree as well, so the tree is a pointer nobody resolves."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+violating = "fixtures/violating/C13"
+compliant = ""
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G21"
+name = "a-case-that-only-its-comment-remembers"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The case is gone and the note saying which case used to be here survived it — the bypass a quoted substring search cannot see."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/COMMENTED.test.ts::a case only a comment remembers"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/COMMENTED.kt::a case only the comment remembers"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G22"
+name = "a-pair-that-is-one-thing-named-twice"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One row names its block half and its allow half identically; the other names one tree for both. Each is a check shipping one half, spelled as two."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/violating/C1"
+
+[[laws]]
+id = "G23"
+name = "a-case-switched-off-with-skip"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The title is declared and the runner will not run it — the shape an appendix on fix-never-disable may least afford to accept."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/SKIP.test.ts::a case that is switched off"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/IGNORED.kt::a case switched off with Ignore"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G24"
+name = "a-case-switched-off-the-other-spellings"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "A matcher that catches one spelling need not catch the next, so `xit` and `@Disabled` are their own row."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/XIT.test.ts::a case switched off with an x"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/DISABLED.kt::a case switched off with Disabled"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G25"
+name = "a-case-that-was-never-a-case"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One is a plan the runner reports and never executes; the other is a backticked function no framework will ever call."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/TODO.test.ts::a case that is only a plan"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/NOTEST.kt::a helper that carries no Test annotation"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G26"
+name = "a-suite-switched-off-and-a-mere-mention"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One case is live inside a suite that is not; the other title is quoted in live code and declares nothing — the case that makes DECLARATION POSITION non-vacuous."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/DESCSKIP.test.ts::a case inside a suite that is switched off"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/MENTION.kt::a case nobody declares, only mentions"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G27"
+name = "a-block-test-the-runner-never-opens"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One path is outside the runner's include shape and the other sits under its exclude list, so both cases exist and neither ever runs."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/notatest.ts::a case in a file the runner never opens"
+allowTest = ".tsbuild/fixtures/site/live.test.ts::a case compiled into the build output"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G28"
+name = "a-pair-shape-nobody-can-read"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One names a key off Object's own prototype and the other is an ordinary typo; both must be REPORTED rather than crash the reader or fall through it."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "toString"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "on-dsik"
 
 [[laws]]
 id = "G16"

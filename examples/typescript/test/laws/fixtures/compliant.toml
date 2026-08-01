@@ -5,6 +5,16 @@
 # rung with resolving edge evidence on BOTH ports, so the floor rule has a
 # positive half and not only the five block halves next door. Every field
 # spelled the way laws.toml spells it.
+#
+# THE VALUE CHECKS NAME THEIR TWO TEST SITES, in every spelling a real author
+# would write: a double-quoted TypeScript title, a BACKTICKED one, a
+# single-quoted one whose title carries a double quote — which is the exact
+# declaration biome's own `quoteStyle` produces for such a title, and which the
+# first cut of this checker wrongly REJECTED — and a backticked Kotlin function
+# name carrying `@Test`. Every one sits inside an ordinary `describe`, so the
+# suite-is-switched-off rule is proven not to trip on the ordinary shape. An
+# allow half covering one spelling would leave the others unmeasured, and a
+# checker is as narrow as its positive half lets it be.
 
 vocabulary = ["configuration-time", "denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
 
@@ -43,16 +53,16 @@ port = "typescript"
 id = "C13"
 home = "vitest"
 pair = "in-checker"
-violating = ""
-compliant = ""
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
 
 [[laws.checks]]
 port = "kotlin"
 id = "C13"
 home = "junit-reflection"
 pair = "in-checker"
-violating = ""
-compliant = ""
+blockTest = "fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
 
 [[laws]]
 id = "G3"
@@ -93,3 +103,26 @@ name = "an-un-denied-law"
 layers = ["discipline"]
 headline = "Discipline."
 note = "No machine holds it, and it names no check."
+
+[[laws]]
+id = "G5"
+name = "a-value-law-whose-title-carries-a-quote"
+layers = ["behavioral"]
+headline = "Behavioral."
+note = "A second value check, whose block half is titled the way the formatter writes a title containing a quote."
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/live.test.ts::DENIES a registry with \"confirmSeal\" pulled out of it"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
