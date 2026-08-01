@@ -166,10 +166,24 @@ vocabulary; you cannot have both.
 
 The cost is real and this ADR previously hid it: **the book's claim that a new feature touches "four
 sites inside one folder and zero sites outside" is false under this answer, and must be deleted — but
-only once this ADR is accepted.** Under the current single-module layout the claim holds for verbs (with
-the one exception the book now lists itself: a novel effect kind adds a compiler-named branch in the
-root's sink), so the deletion is queued behind the decision, not owed today. Under the module DAG, some
-of the sites move into the shared core, and the claim as written stops being true.
+only once this ADR is accepted.**
+
+**Performed.** This ADR was accepted, the module DAG landed, and the deletion is done: the slogan is
+gone from the book and from both port READMEs, replaced by the three-row measured table
+`docs/DECISIONS.md:122` schedules. What was measured, stated without softening the verdict above:
+
+* the block's own code is **not** scattered. `adr.gate.GateTest`'s blast-radius census derives every
+  verb's transport cases from the parse tree and proves that the only live files naming one are that
+  block's own `Contract.kt`, `Tools.kt` and `Fold.kt` — for all twelve verbs, with a checked-in
+  violating/compliant fixture pair behind it;
+* and those sites nonetheless span **two directories and two Gradle modules** —
+  `block/<X>/src/main/kotlin/adr/blocks/<X>/` and `spine/src/main/kotlin/adr/blocks/<X>/` — which is
+  precisely why this ADR ordered the slogan deleted. "One folder" was only ever true of the gate's
+  NORMALISED path, and that normalisation is deliberately lossy about the module.
+
+The separate out-of-folder append the book used to list for a novel effect kind is gone too, on its
+own terms rather than by rewording, because `docs/DECISIONS.md:64-69` made effect handlers
+registrable per block.
 
 That cost is smaller than it looks, for a reason the book already argues elsewhere. Adding a case to a
 sealed set makes the compiler name every place that must handle it — §6.10's own words, "the type system

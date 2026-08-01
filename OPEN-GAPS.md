@@ -11,7 +11,7 @@ Status legend: `open` · `decided` · `done`
 ## A1 · §6.8 unsigns UI tools, and that guts the differentiator — `done`
 
 **Landed in full (book + both ports).** §6.8's axis is decision-vs-ephemeral; a presentation verb
-folds *and signs* through the same four appends as a domain verb in both ports (the GateTest asserts
+folds *and signs* through the same site set as a domain verb in both ports (the GateTest asserts
 the registration shapes are identical); ephemeral view-state stays in one file per block, visible only
 to its own projection (check C12). The record below is the original case, kept for its reasoning.
 

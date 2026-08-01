@@ -922,30 +922,222 @@ class GateTest {
     }
 
     /**
-     * 16.1: a new verb touches FOUR appends, three files, one folder — and the
-     * same four whether it is a domain verb or a presentation verb.
+     * ROW 1 OF THE BLAST-RADIUS TABLE, AS A DENYING FUNCTION over any tree.
      *
-     * 6.8's carve-out ("a UI tool folds, does not sign") is what 6.8 deletes, and
-     * this is the assertion that keeps it deleted: the presentation block has the
-     * same file set and declares its verbs with the same constructors as a domain
-     * block. There is no cheaper UI path, because there is no UI path.
+     * Written over `List<GateFile>` rather than over `live`, for the reason [verify]
+     * gives one screen up: the SAME code that measures the tree it describes can then
+     * be pointed at a deliberately violating fixture and at a compliant one. §15.2's
+     * bar is that a rule nobody has watched reject something is not a rule, and the
+     * predecessor of this census is what that bar is about — see the test below.
+     *
+     * THE CLAIM, per transport case: the live files that NAME it are EXACTLY the
+     * owning block's `Contract.kt`, `Fold.kt` and `Tools.kt`. Three files, one block
+     * folder, zero production sites outside it. A site that escaped — a root branch, a
+     * sibling reach, a spine special case — joins that set and the equality names it.
+     *
+     * DERIVED, NEVER ENUMERATED. A spelled-out case list would make this file an edit
+     * per verb — a fourth site for the append it is pricing — and the census would then
+     * be reporting its own maintenance. So the cases come off Konsist's parse tree
+     * (direct parents of the block's own two sealed unions) and the anti-vacuity guards
+     * are shape guards instead of a list: every block declares at least one case, the
+     * `Result` and `Command` halves carry the SAME names (a verb is a PAIR — sites 1
+     * and 2), and no two blocks share a case name, which is what makes a NAME census
+     * exact rather than approximate.
+     *
+     * SITE 3 IS COUNTED THROUGH THE RESOLVER, NOT THROUGH THE TEXT. The number of
+     * classified `Verb` rows in the block's table must equal the number of cases — and
+     * "classified `Verb` row" is resolved by [GateFacts.spellingsOf] from the file's own
+     * imports and typealiases, never matched as the literal string `Verb.Reversible`.
+     * The difference is a false positive on a compliant tree: `import
+     * adr.spine.pure.Verb.Reversible` and then `Reversible(` is the same table written
+     * one keystroke differently, and a spelling-keyed clause rejects it. This one does
+     * not, and the compliant fixture is authored in exactly that idiom so the ACCEPT is
+     * measured rather than argued.
+     *
+     * UNIFORMITY IS THE SAME CLAUSE, not a second one. §6.8's deleted carve-out ("a UI
+     * tool folds, does not sign") would show up here as the presentation block getting a
+     * smaller site set or an unsigned table; it gets neither, because every block goes
+     * through the same loop.
      */
-    @Test
-    fun `BLAST RADIUS - a new verb touches FOUR appends, three files, one folder`() {
-        val perBlock = live.mapNotNull { f -> f.block?.let { it to f } }.groupBy({ it.first }, { it.second })
-        listOf("triage", "escalation", "console", "artifact", "analysis", "inbox").forEach { block ->
-            val names = perBlock.getValue(block).map { it.fileName }.toSet()
-            assertTrue(
-                names.containsAll(
-                    setOf("Contract.kt", "Slice.kt", "Tools.kt", "Fold.kt", "Project.kt", "Register.kt"),
-                ),
-                "$block is missing one of the six block files: $names",
+    private fun rowOneViolations(files: List<GateFile>, verbPackage: String): List<Violation> {
+        val trees = GateTrees()
+        val facts = GateFacts()
+        val problems = mutableListOf<Violation>()
+        val owedFiles = listOf("Contract.kt", "Fold.kt", "Tools.kt")
+
+        val complete = files.mapNotNull { it.block }.distinct().sorted().filter { block ->
+            val present = files.filter { it.block == block }.map { it.fileName }.toSet()
+            val missing = owedFiles.filterNot { it in present }
+            if (missing.isEmpty()) {
+                true
+            } else {
+                problems += Violation("blocks/$block/", "row 1 names three files, and $missing are absent")
+                false
+            }
+        }
+        if (complete.isEmpty()) {
+            problems += Violation("blocks/", "the block derivation walked to nothing — this census is vacuous")
+            return problems
+        }
+
+        fun casesOf(block: String, union: String): Set<String> =
+            files.single { it.path == "blocks/$block/Contract.kt" }
+                .file.classes(includeNested = true)
+                .filter { cls -> cls.parents(indirectParents = false).any { it.name == union } }
+                .map { it.name }
+                .toSet()
+
+        val verbCases = complete.associateWith { block ->
+            val cap = block.replaceFirstChar { it.uppercaseChar() }
+            val results = casesOf(block, "${cap}Result")
+            val commands = casesOf(block, "${cap}Command")
+            val contract = "blocks/$block/Contract.kt"
+            if (results.isEmpty()) {
+                problems += Violation(contract, "$block declares no ToolResult case — the derivation broke")
+            }
+            if (results != commands) {
+                problems += Violation(
+                    contract,
+                    "$block: a verb is a PAIR of cases; the Result and Command halves disagree — " +
+                        "Result ${results.sorted()}, Command ${commands.sorted()}",
+                )
+            }
+            results
+        }
+
+        val everyCase = verbCases.values.flatten()
+        val shared = everyCase.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.sorted()
+        if (shared.isNotEmpty()) {
+            problems += Violation(
+                "blocks/*/Contract.kt",
+                "two blocks share the case name(s) $shared, so a NAME census stops being exact",
             )
         }
 
-        val console = live.single { it.path == "blocks/console/Tools.kt" }
-        val triage = live.single { it.path == "blocks/triage/Tools.kt" }
-        assertTrue(console.codeText.contains("Verb.Reversible(") && triage.codeText.contains("Verb.Reversible("))
-        assertTrue(console.codeText.contains("sign ="), "a presentation verb SIGNS, exactly like a domain verb")
+        verbCases.forEach { (block, cases) ->
+            cases.sorted().forEach { case ->
+                val touched = files.filter { trees.mentions(it.codeText, case) }.map { it.path }.toSet()
+                val owed = owedFiles.map { "blocks/$block/$it" }.toSet()
+                if (touched != owed) {
+                    problems += Violation(
+                        "blocks/$block/Contract.kt",
+                        "$case: THREE FILES, ONE FOLDER is the row-1 claim, and this verb breaks it — " +
+                            "it is named in ${touched.sorted()}",
+                    )
+                }
+            }
+
+            // Site 3: one CLASSIFIED, signed row per case — counted over every spelling
+            // this file itself binds `adr.spine.pure.Verb`'s two classifications to.
+            val tools = files.single { it.path == "blocks/$block/Tools.kt" }
+            val rows = setOf("Reversible", "Irreversible").sumOf { classification ->
+                facts.spellingsOf(tools, verbPackage, "Verb", classification)
+                    .sumOf { trees.constructions(tools.codeText, it) }
+            }
+            if (rows != cases.size) {
+                problems += Violation(
+                    tools.path,
+                    "$block declares ${cases.size} transport case(s) and holds $rows classified " +
+                        "`Verb` row(s) — site 3 is one classified row per verb",
+                )
+            }
+            if (!trees.mentions(tools.codeText, "sign")) {
+                problems += Violation(
+                    tools.path,
+                    "$block's verbs must SIGN — there is no cheaper presentation path",
+                )
+            }
+        }
+        return problems
+    }
+
+    /**
+     * ROW 1 OF THE BLAST-RADIUS TABLE, MEASURED — the row `docs/DECISIONS.md:122`
+     * schedules: a verb whose effects reuse effect kinds that already exist.
+     *
+     * THIS TEST USED TO LIE, and the lie is worth recording because it is the exact
+     * shape §15.2 warns about. Its name said "FOUR appends, three files, one folder";
+     * its body asserted that each block owns the six block files and that console's
+     * `Tools.kt` contains the substrings `Verb.Reversible(` and `sign =`. It counted no
+     * appends and checked no containment — a vacuous instrument wearing the name of the
+     * result it did not measure, in the one file whose job is to deny exactly that.
+     *
+     * WHAT IT MEASURES NOW: [rowOneViolations], on the live tree, on a violating
+     * fixture and on a compliant one — plus the MODULE clause, which is live-only
+     * because a fixture tree has no Gradle modules to be read from.
+     *
+     * THE MODULE CLAUSE is why `docs/DECISIONS.md:122` schedules this row at all. The
+     * three files are ONE FOLDER and TWO MODULES: `Contract.kt` is read from `:spine`,
+     * because Kotlin seals a hierarchy within one module and a block's transport
+     * therefore has to be authored in the shared core, while `Tools.kt` and `Fold.kt`
+     * are read from the block's own `:block:<x>`. The retired slogan was never wrong
+     * about the FOLDER — this census measures it and it holds — it was wrong about the
+     * compilation unit, and the honest replacement is the split, asserted. `GateFile.root`
+     * is what makes it assertable: normalisation deliberately throws the module away,
+     * and this is one of the two places that keeps it.
+     */
+    @Test
+    fun `BLAST RADIUS - a verb reusing effect kinds costs three files, one folder, TWO modules`() {
+        val trees = GateTrees()
+
+        // TIE-BACK, and the anti-vacuity guard on the resolver: the package the census
+        // resolves `Verb` out of is really the package the spine declares it in. A
+        // resolver aimed at a package nobody uses resolves nothing and counts zero.
+        val verbHome = live.single { f -> f.file.classes(includeNested = true).any { it.name == "Verb" } }
+        assertEquals("spine/pure/Verb.kt", verbHome.path, "the verb union moved; the census is aimed at a ghost")
+        assertEquals(VERB_PACKAGE, verbHome.packageName, "the verb union changed package")
+
+        assertEquals(
+            emptyList(),
+            rowOneViolations(live, VERB_PACKAGE).map { "${it.path} — ${it.message}" },
+            "row 1 of the blast-radius table is false on the tree it describes",
+        )
+
+        // ── THE MODULE SPLIT — one folder, two Gradle modules ────────────────
+        live.mapNotNull { it.block }.distinct().sorted().forEach { block ->
+            assertEquals(
+                trees.SPINE_ROOT,
+                live.single { it.path == "blocks/$block/Contract.kt" }.root,
+                "$block's transport left :spine, so Kotlin's sealed rule is being broken or bypassed",
+            )
+            listOf("Fold.kt", "Tools.kt").forEach { name ->
+                assertEquals(
+                    trees.pureRoot(block),
+                    live.single { it.path == "blocks/$block/$name" }.root,
+                    "$block/$name is not read from its own :block:$block module",
+                )
+            }
+        }
+
+        // ── BLOCK-TEST — the violating fixture, by its SPECIFIC message ──────
+        // One block, two case pairs, and a Verb table that lost a row. Both other
+        // clauses are deliberately satisfied there, so this equality is the one
+        // clause under test rather than "something went wrong".
+        assertEquals(
+            listOf(
+                "blocks/ledger/Tools.kt — ledger declares 2 transport case(s) and holds 1 classified " +
+                    "`Verb` row(s) — site 3 is one classified row per verb",
+            ),
+            rowOneViolations(trees.fixtureTree("violating", BLAST_FIXTURE), VERB_PACKAGE)
+                .map { "${it.path} — ${it.message}" },
+            "BLOCK-TEST: the violating fixture was ACCEPTED, or rejected for the wrong reason",
+        )
+
+        // ── ALLOW-TEST — the same block, respelled, must be silent ───────────
+        // Its two rows are written through a STAR import and through an ALIASED
+        // NESTED import: the two rebindings that defeat a text-matching clause.
+        assertEquals(
+            emptyList(),
+            rowOneViolations(trees.fixtureTree("compliant", BLAST_FIXTURE), VERB_PACKAGE)
+                .map { "${it.path} — ${it.message}" },
+            "ALLOW-TEST: a compliant block, written in a legal spelling, was rejected (§15.2)",
+        )
     }
 }
+
+/** The package the spine declares the verb union in. The census resolves against it
+ *  and GateTest ties it back to the file that really holds `Verb`. */
+private const val VERB_PACKAGE = "adr.spine.pure"
+
+/** The fixture pair the blast-radius census is proven against, in both polarities. */
+private const val BLAST_FIXTURE = "BLAST-RADIUS"

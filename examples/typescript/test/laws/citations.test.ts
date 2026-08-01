@@ -210,7 +210,22 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // +2 (712 -> 714): D40's injected context bounds — the amended comment in
   // triage's projection (which previously stated the OPPOSITE of the ratified
   // decision) and the digest probe both cite what they hold.
-  "examples/kotlin": 714,
+  // +2 (714 -> 716), and it is a NET: three files moved, measured one at a time
+  // by running this module's own census over each file alone, never derived by
+  // arithmetic.
+  //   +2 examples/kotlin/README.md — the three-row measured blast-radius table
+  //      cites ADR-001 §1.3 Q1 (the honest headline, and the passage that
+  //      pre-authorised deleting the old slogan) and ADR-001 §5 (the module pair
+  //      a new block declares), where the prose it replaces cited only G11/G12.
+  //   +2 gate/GateTest.kt — the row-1 census KDoc cites §15.2, the vacuous-check
+  //      bar the test it replaces was failing, and §6.8, the carve-out its
+  //      uniformity clause keeps deleted.
+  //   -2 app/Wire.kt — its 2026-07-30 receipt is CLOSED, and closing it drops the
+  //      three-site enumeration that pointed at the prose now rewritten. A
+  //      deletion, and deliberate: the sites it named no longer say what it said
+  //      they said, so a pointer at them is worse than none.
+  // The blast-radius fixture pair adds ZERO here: fixtures carry no citations.
+  "examples/kotlin": 716,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -253,6 +268,11 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // step-record.ts moved by zero for the reason given on the Kotlin pin above.
   // +2 (468 -> 470): D40's TS half — the BoundaryDeps bounds field and the
   // digest probe that proves a silent bound change is caught.
+  // UNMOVED at 470 through the blast-radius landing, and the zero is a measured
+  // net rather than an untouched root: README.md went 26 -> 28 (its three-row
+  // table cites ADR-001 §1.3 Q1, and 6.8 became §6.8) while src/app/wire.ts went
+  // 17 -> 15 (its 2026-07-30 receipt is CLOSED, dropping the enumeration of the
+  // three prose sites it used to quote). Both halves measured per file.
   "examples/typescript": 470,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
@@ -315,7 +335,15 @@ const FILE_PIN: Record<string, number> = {
   // blocks/app roster moves.
   // +1 (195 -> 196): `spine/pure/Version.kt`. One source file, the spine version
   // marker, which is why the 37-file spine roster moves to 38 in the same diff.
-  "examples/kotlin": 196,
+  // +6 (196 -> 202): the blast-radius census's own fixture PAIR — three files per
+  // polarity under `src/test/fixtures/konsist/{violating,compliant}/BLAST-RADIUS/`
+  // (`Contract.kt`, `Fold.kt`, `Tools.kt` for one synthetic block). Three per side
+  // is the floor, not padding: row 1's claim is an exact THREE-FILE set, so a pair
+  // with fewer files could not state the claim it has to reject. No source file
+  // was added; the census rides `gate/GateTest.kt` and `gate/Rules.kt`, which
+  // already existed, so neither the 38-file spine roster nor the 49-file
+  // blocks/app roster moves.
+  "examples/kotlin": 202,
   // +19 (163 -> 182): the workspace wall, which is nineteen COUNTED non-source
   // files and not one line of new prose. Eight `package.json` and eight
   // `tsconfig.json` (the spine, the six blocks, the composition root), plus
@@ -636,7 +664,10 @@ describe("cross-references agree in BOTH coordinates", () => {
     // -4 + 18 = +14. Both halves are asserted below: `numbered` falls by four
     // and `prose` rises by eighteen, so a mistake in either direction shows up
     // in a bucket and not only in the total.
-    expect(refs.anchors).toBe(715);
+    // 715 -> 713: the blast-radius rewrite deletes two cross-references that
+    // pointed at the novel-effect exception it retires; deleting is as
+    // deliberate as adding.
+    expect(refs.anchors).toBe(713);
     // 18 in the book — the seventeen section ids plus `the-dependency-rule`, the
     // in-section note anchor §7 owns; `nav` sits before the first section and
     // carries no number — plus the worked example's own seven (00–06) in
@@ -666,7 +697,8 @@ describe("cross-references agree in BOTH coordinates", () => {
       // the hard swaps, 17.1 on cross-session budgets). Each existed to qualify
       // what an implementation ships; none of the four claims is architecture,
       // and each destination still states its own rule in its own section.
-      numbered: 242,
+      // 242 -> 240: the two blast-radius deletions above were numbered labels.
+      numbered: 240,
       worded: 4,
       law: 53,
       // 316 -> 334: the worked example's §06, eighteen prose-labelled links —

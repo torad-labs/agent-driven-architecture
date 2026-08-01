@@ -140,7 +140,12 @@ describe("wiki/index.html states architecture, never evidence about a port", () 
     // 23 before the move, 16 after. Every one of the sixteen survivors is
     // outside §17.4 and predates it; this pin exists so a relapse cannot be
     // paid for by deleting a port-fact from some other section.
-    expect(hits(book, PORT_FACT)).toBe(16);
+    // 16 -> 18: the blast-radius rewrite adds two, both DEFLECTIONS — "how a
+    // port counts that edit is a fact about the port, and each reference port's
+    // README states it" — the same pointing-away idiom the survivors use. The
+    // census counts mentions, not violations; what it exists to catch is the
+    // count moving WITHOUT a reason beside it.
+    expect(hits(book, PORT_FACT)).toBe(18);
   });
 
   it("the evidence-verdict census is pinned EXACTLY, region and whole book", () => {

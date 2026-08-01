@@ -308,8 +308,9 @@ val gateAnalysisClasspath: FileCollection = files(
     // MEASURED WIDENING, recorded so it is not silently forgotten: this configuration
     // also carries konsist, junit-jupiter, kotlin-test-junit5 and coroutines-test, none
     // of which the old spelling carried. A fixture could therefore type-resolve a
-    // TEST-ONLY symbol and still compile. Measured today across all 52 files under
-    // `src/test/fixtures`: ZERO name any of them
+    // TEST-ONLY symbol and still compile. Re-measured today across all 68 files under
+    // `src/test/fixtures` — the blast-radius census's own pair is the newest six, and
+    // the stated total had drifted from 52 before them: ZERO name any of them
     // (`grep -rE 'import (com\.lemonappdev|org\.junit|kotlin\.test|kotlinx\.coroutines\.test)'`
     // over that tree returns nothing). Re-run that grep before adding a fixture.
     configurations.named("testRuntimeClasspath"),
