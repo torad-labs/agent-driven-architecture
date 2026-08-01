@@ -269,7 +269,15 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // value-check paragraph when the register learned to RESOLVE a site rather
   // than read it — one paragraph is one line, and it already carried G12. No
   // citation was removed.
-  wiki: 124,
+  // +3 (124 -> 127): §17.6's nomenclature table gains the architecture-level
+  // names the reference ports declare, and THREE of the four new rows cite a
+  // law on their one line — the fold's returned shape (G4/G9), an effect's
+  // class (G6/G16) and the block-owned effect table (G11/G12). The fold-arm row
+  // cites §6.5 and §12.4 in the table's own bare spelling, which prose does not
+  // read, so it credits nothing and is absent above by measurement. The two
+  // EDITED rows already carried their citation and moved by zero. No citation
+  // was removed.
+  wiki: 127,
   // NEWLY PINNED, and the reason is this landing: `root` is where a file that
   // is in the corpus but under none of the four ROOT_KEYS lands, and until now
   // that was three files nobody counted. The release documents live there, so
