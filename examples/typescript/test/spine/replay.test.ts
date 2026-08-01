@@ -20,7 +20,7 @@ import { RecordingSink } from "../../src/spine/boundary/in-memory";
 import { authority, Signature } from "../../src/spine/pure/actor";
 import type { StepRecord, StepRecordV1 } from "../../src/spine/pure/step-record";
 import { GENESIS_SCHEMA_VERSION, SCHEMA_VERSION, upcastV1 } from "../../src/spine/pure/step-record";
-import { collectPerform, refold } from "../../src/spine/replay/replay";
+import { collectPerform, refold, stateAtStep } from "../../src/spine/replay/replay";
 import { fakeWorld, harness, POLICY_TIER } from "../harness";
 import { must } from "../support/must";
 
@@ -39,6 +39,55 @@ function driveFullSession(h: ReturnType<typeof harness>): void {
   step(agent, { tool: "requestSeal", input: {} });
   step(human, { tool: "confirmSeal", input: {} });
 }
+
+// ── THE SCRUB CURSOR, PROVEN BY EXERCISE ─────────────────────────────────
+// docs/DECISIONS.md:117-118 ratifies the cursor "proving the scrub story BY
+// EXERCISE", and the doc comment over `stateAtStep` promises exactly what is
+// below — "BOTH ends are asserted, at an interior k and at the right edge, in
+// test/spine/replay.test.ts". A review found the promise false in both ports
+// and the tool called by nothing at all: a mutation making it ignore `k` and
+// fold the WHOLE timeline left the full gate green, 434/434. A scrub bar wired
+// to that would show the end state at every position on the drag.
+describe("stateAtStep — the scrub prefix, at both ends and in between", () => {
+  it("re-folds ONLY the prefix: an INTERIOR k stops where the cursor is", () => {
+    const h = harness({ start: 1000, step: 7 });
+    driveFullSession(h);
+    const records = h.app.bus.records();
+    const at = (k: number) =>
+      stateAtStep(h.app.initial, records, h.app.dispatchers, h.app.licences, k);
+
+    // THE MUTATION THAT SURVIVED: `k` ignored, whole timeline folded. Every
+    // interior position must differ from the end state, or the cursor is a
+    // no-op wearing a parameter.
+    const whole = at(records.length);
+    for (let k = 1; k < records.length; k += 1) {
+      expect(at(k).state, `k=${k} must not already be the end state`).not.toEqual(whole.state);
+      // and it must equal the re-fold of exactly that many records — the
+      // independent derivation, not this function talking to itself.
+      expect(at(k).state).toEqual(
+        refold(h.app.initial, records.slice(0, k), h.app.dispatchers, h.app.licences).state,
+      );
+    }
+  });
+
+  it("CLAMPS BY SLICING, never by throwing — below zero and past the end", () => {
+    const h = harness({ start: 1000, step: 7 });
+    driveFullSession(h);
+    const records = h.app.bus.records();
+    const at = (k: number) =>
+      stateAtStep(h.app.initial, records, h.app.dispatchers, h.app.licences, k);
+
+    // LEFT EDGE: the initial state, and no effect re-derived.
+    expect(at(0).state).toEqual(h.app.initial);
+    expect(at(-5).state).toEqual(h.app.initial);
+    expect(at(0).effects).toEqual([]);
+    // RIGHT EDGE: the whole timeline, and past it is still the whole timeline.
+    const whole = refold(h.app.initial, records, h.app.dispatchers, h.app.licences);
+    expect(at(records.length).state).toEqual(whole.state);
+    expect(at(records.length + 99).state).toEqual(whole.state);
+    expect(at(records.length).effects).toEqual(whole.effects);
+  });
+});
 
 describe("replay — a live run against its re-fold (G9)", () => {
   it("re-folds ONLY the committed bytes to the same state and the same effect sequence", () => {

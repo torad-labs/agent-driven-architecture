@@ -93,6 +93,55 @@ class ReplayTest {
         )
     }
 
+    // ── THE SCRUB CURSOR, PROVEN BY EXERCISE ─────────────────────────────
+    // docs/DECISIONS.md:117-118 ratifies the cursor "proving the scrub story BY
+    // EXERCISE", and stateAtStep's own KDoc promises exactly what is below. A
+    // review found the promise false in both ports and the tool called by
+    // nothing at all: a mutation making it ignore `k` and fold the WHOLE
+    // timeline left `./gradlew check --rerun-tasks` fully green. A scrub bar
+    // wired to that would show the end state at every position on the drag.
+    @Test
+    fun `the scrub cursor re-folds ONLY the prefix, at an interior k`() {
+        val app = Wiring().wireApp(
+            Env(world = World(), authority = RunAuthority(), clock = MovingClock(start = 1000, step = 7)),
+        )
+        Driver().driveCanonicalSession(app, RunAuthority())
+        val replay = Replay(Assembly()::fold, app.admission)
+        val records = app.bus.records()
+        val whole = replay.refold(app.initial, records)
+
+        for (k in 1 until records.size) {
+            val cut = replay.stateAtStep(app.initial, records, k)
+            assertTrue(
+                cut.state != whole.state,
+                "k=$k is already the end state — the cursor ignored its bound",
+            )
+            assertEquals(
+                replay.refold(app.initial, records.take(k)).state,
+                cut.state,
+                "k=$k must equal the re-fold of exactly that many records",
+            )
+        }
+    }
+
+    @Test
+    fun `the scrub cursor CLAMPS BY SLICING, never by throwing`() {
+        val app = Wiring().wireApp(
+            Env(world = World(), authority = RunAuthority(), clock = MovingClock(start = 1000, step = 7)),
+        )
+        Driver().driveCanonicalSession(app, RunAuthority())
+        val replay = Replay(Assembly()::fold, app.admission)
+        val records = app.bus.records()
+        val whole = replay.refold(app.initial, records)
+
+        assertEquals(app.initial, replay.stateAtStep(app.initial, records, 0).state)
+        assertEquals(app.initial, replay.stateAtStep(app.initial, records, -5).state)
+        assertEquals(emptyList(), replay.stateAtStep(app.initial, records, 0).effects)
+        assertEquals(whole.state, replay.stateAtStep(app.initial, records, records.size).state)
+        assertEquals(whole.state, replay.stateAtStep(app.initial, records, records.size + 99).state)
+        assertEquals(whole.effects, replay.stateAtStep(app.initial, records, records.size).effects)
+    }
+
     @Test
     fun `PerformMode REPLAY collects the descriptors and fires NOTHING`() {
         val world = World()
