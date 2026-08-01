@@ -249,7 +249,7 @@ export function bookSections(book: string): Set<string> {
 //   2. PHANTOM LABEL — a number-form label that is not a section the page it
 //      LANDS IN declares. The href may resolve perfectly; the visible text still
 //      names a section nobody can find. Scoped per page rather than to one
-//      union, because the worked example numbers its own sections 00–05 and
+//      union, because the worked example numbers its own sections 00–06 and
 //      those are not the book's.
 //   3. NUMBERED DISAGREEMENT — the label's head is not the section number of the
 //      id it points at. The id→number map credits an IN-SECTION anchor
@@ -271,7 +271,7 @@ export function bookSections(book: string): Set<string> {
 // index.html`) makes no claim about a section, so its label is counted and never
 // adjudicated. This is load-bearing rather than cautious: the seven seam pages
 // head their parts `▸`, `A`…`E`, which are not digits, so their token sets are
-// EMPTY, and the worked example's own nav runs 00–07 over a page numbered 00–05.
+// EMPTY, and the worked example's own nav runs 00–07 over a page numbered 00–06.
 // Routing whole-file nav links through the phantom rule manufactures sixty-plus
 // false positives against markup that is correct.
 //
@@ -463,7 +463,7 @@ export function crossRefProblems(pages: readonly CorpusFile[]): CrossRefReport {
 
   const parsed = new Map<string, Parsed>();
   // PER PAGE, not one union. `wiki/example/index.html` numbers its own sections
-  // 00–05, a namespace of its own that has nothing to do with the book's; a
+  // 00–06, a namespace of its own that has nothing to do with the book's; a
   // shared token set would let a label naming one page's section pass while
   // pointing at the other's.
   const tokensOf = new Map<string, ReadonlySet<string>>();

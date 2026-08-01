@@ -270,6 +270,26 @@ and fed back on re-fold, never re-queried.
 
 ---
 
+## The adoption ladder (17.4), rung by rung — what this port exercises
+
+17.4 states the ladder as architecture and deliberately makes no claim about any codebase: which
+rungs a port has actually climbed is the port's own claim to make, in the one place a build can
+settle it. This is that claim. Read it with the section immediately below, which is its other half —
+this table is what is **exercised**, that one is what is still **specified but unproven**, and
+together they are the whole answer. Every row names the file that goes red when the claim stops
+being true.
+
+| Rung | In this port | Goes red in |
+|---|---|---|
+| **Core** | **Exercised.** A live run under a moving clock re-derives from its own committed bytes — the same state, the same effect sequence, the same keys, the same timestamps, and the same context digest the model was shown. `REPLAY` mode collects every descriptor and fires nothing, and the harness is proven non-vacuous by a divergent re-fold that must be detected. | `test/spine/replay.test.ts` · `test/spine/context.test.ts` |
+| **+ Safety** | **Exercised**, on two layers. The gate refuses a self-confirm and a confirm with no pending request *before* the fold, so the refusal commits as a `ToolResult` and re-folds; an unattended agent and a human host both confirm through the same mechanism; a product `ConfirmPolicy` can refuse even a different principal; and an `Actor` smuggled through a tool's raw input never reaches it. Since the effect classes landed (C16/C17), refusal is also a property of the timeline: an `Irreversible` effect no `Irreversible` verb earned is refused at its own key and substituted — identically live, on `REPLAY`, on `RECOVERY`, and from a snapshot resume. | `test/spine/gate.test.ts` · `test/spine/admission.test.ts` |
+| **+ Concurrency** | **Exercised.** Preemption asserted on a virtual clock against a *measured* control run — the interrupt is handled at t = 100 where the book's own 12.3 drain loop does not see it until t = 10 000 — plus both `InputPolicy` branches, per-source dedupe with ack-after-commit, a dedupe scope that survives a restart, the drain defer, the bounded-cancel timeout that revokes an abandoned turn, and a turn that throws without killing the consumer. | `test/spine/mailbox.test.ts` |
+| **+ Cognition** | **Exercised.** Two tiers holding no handle to one another, the typed degrade (`Fresh` / `LastKnown` / `Empty`, with `Empty` a different fact from stale), a replay check that tampers with the committed record by swapping *only* the variant and requires the golden trace to go red, and a recalled "authorization" that cannot buy an irreversible act even with a request already pending. | `test/spine/relay.test.ts` |
+| **+ Inputs** | **Partly**, and the gap is the modality, not the seam. Off-bus input is staged in order, captured on the record and fed back from it on re-fold rather than re-queried. But all three adapters — `blocks/analysis`, `blocks/artifact`, `blocks/escalation` — resolve in-process text; no image, audio or document modality is exercised anywhere in this port. | `src/blocks/*/adapter.ts` (all three) |
+| **+ Enforcement** | **Exercised**, on two layers rather than one. Seventeen denying checks, each with one block-test and one allow-test over real fixtures, wired into `npm test` — the same entry point `.github/workflows/ci.yml` runs on every push and pull request, with no warning tier and no baseline file. Under the lint layer sits the workspace wall: `npm run typecheck:wall` builds the package graph with `tsc -b --force`, and a cross-block or block-to-root import is a *resolution* error (TS6059/TS6307/TS2307) rather than a lint message — measured row by row at the top of this file, including the one route the wall cannot close. | `test/gate/gate.test.ts` · `npm run typecheck:wall` |
+
+---
+
 ## Deliberate scope limits — specified but unproven
 
 16.4 licenses stopping early, and that stays true. These rungs are built so the *reference* exercises
@@ -279,6 +299,7 @@ here rather than left to imply a parity that does not exist:
 | | why |
 |---|---|
 | **Cross-session global ordering** | 5.2 puts causal consistency across independent streams out of scope. The two-tier test proves *separate* buses; it proves nothing about ordering between them. |
+| **Replay tooling beyond a re-fold** | an interactive scrubber UI, a fork-from-step and an interactive diff are drawn in 14.1; none is built. What *is* built is the re-fold itself, the prefix re-fold at step `k` a scrubber would sit on (`refoldFrom`), the effect-sequence comparison and the per-step context-digest check — the machinery such a UI would call, with no UI over it. |
 | **A distributed or sharded bus, bespoke persistence/retention, multi-tenant isolation** | 8.5 names these as swaps. The contracts exist; no adapter does. |
 | **Where a snapshot is stored, compaction, retention (14.1/16.2)** | product policy. The snapshot *mechanism* left this row: `spine/replay` ships the memoized fold prefix, tagged with the reducer version, the timeline offset it covers, and the mark of the record it stops at. `test/spine/replay.test.ts` proves a snapshot-seeded resume equals what the live boundary and live sink produced, and that a snapshot resumed under a reducer version the caller is not folding with — or over a tail whose boundary the log does not confirm — is refused rather than folded. Two logs whose boundary records are byte-identical stay indistinguishable to that seam; the file says so. What a product still owns is where a snapshot *lives*, and how far below one it may compact. |
 | **CI** | `.github/workflows/ci.yml` runs `npm test` (and the Kotlin suite) on every push and pull request — the same entry point a developer runs locally, no CI-only rule set. |

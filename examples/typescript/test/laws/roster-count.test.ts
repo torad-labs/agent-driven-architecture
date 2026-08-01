@@ -138,15 +138,29 @@ describe("the roster count is coherent across every shipped file", () => {
     // The block half, on the SHIPPED corpus rather than a synthetic string: ask
     // the same function what it would say if the roster had moved to 18. Every
     // file that states the count today must be reported, or this check is
-    // reading nothing. Six sites state it: both READMEs, the root README, the
-    // book, the shipped example page, and the two gate rosters' own prose.
+    // reading nothing. Fifteen sites state it, measured; the named ones below
+    // are the load-bearing spread — the two ports' documents, the root README,
+    // the shipped example page, and each port's own gate declaration.
+    //
+    // `wiki/index.html` LEFT THIS LIST, and the reason is the point rather than
+    // an exemption. The book stated "Seventeen denying checks per port" only
+    // because §17.4 carried an evidence column about the accompanying code; the
+    // evidence move (docs/DECISIONS.md:142) took that column out, so the book no
+    // longer makes a claim about the roster and there is nothing left there for
+    // this probe to break. Keeping the needle would have forced a port-fact to
+    // live in the book purely to satisfy a test — the inversion the decoupling
+    // rule (docs/DECISIONS.md:147) exists to stop. The roster below is NOT
+    // weaker for it: the two checkers' OWN declarations are named in its place,
+    // and unlike a paragraph of prose neither can be deleted without deleting
+    // the gate it configures.
     const said = staleCounts(corpus, N + 1);
     expect(said.length).toBeGreaterThanOrEqual(6);
     for (const needle of [
       "README.md",
       "examples/typescript/README.md",
       "examples/kotlin/README.md",
-      "wiki/index.html",
+      "examples/typescript/eslint.config.js",
+      "examples/kotlin/src/test/kotlin/adr/gate/GateTest.kt",
       "wiki/example/07-replay-and-advanced.html",
     ]) {
       expect(

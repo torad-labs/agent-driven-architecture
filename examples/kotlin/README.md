@@ -354,6 +354,26 @@ and the irreversible act is still `Refused`.
 
 ---
 
+## The adoption ladder (17.4), rung by rung — what this port exercises
+
+17.4 states the ladder as architecture and deliberately makes no claim about any codebase: which
+rungs a port has actually climbed is the port's own claim to make, in the one place a build can
+settle it. This is that claim. Read it with the section immediately below, which is its other half —
+this table is what is **exercised**, that one is what is still **specified but unproven**, and
+together they are the whole answer. Every row names the file that goes red when the claim stops
+being true.
+
+| Rung | In this port | Goes red in |
+|---|---|---|
+| **Core** | **Exercised.** A live run under a moving clock re-derives from its own committed bytes — the same state and every effect, keys and timestamps included, plus the context digest the model was shown. `PerformMode.REPLAY` collects the descriptors and fires nothing, and the harness is proven non-vacuous: a deliberately divergent re-fold must be *detected*. | `adr/spine/ReplayTest.kt` · `adr/spine/ContextTest.kt` |
+| **+ Safety** | **Exercised**, on two layers. The gate refuses a self-confirm and a confirm with no pending request *before* the fold, so the refusal commits as a `ToolResult` and re-folds without re-running the authorization check; an unattended agent and a human host both promote through the same mechanism, differing only in `Authority`; the product's own `ConfirmPolicy` can deny even an otherwise-different authority; and a forged actor in the tool input never reaches the irreversible effect. Since the effect classes landed (C16/C17), refusal is also a property of the timeline: an `Irreversible` effect no `Irreversible` verb earned is refused at its own key and substituted — identically live, on `REPLAY`, on `RECOVERY`, and from a snapshot resume. | `adr/spine/GateTest.kt` · `adr/spine/AdmissionTest.kt` |
+| **+ Concurrency** | **Exercised.** Preemption asserted on a virtual clock against a *measured* control run — the same turn timed first with no interrupt, ten seconds of virtual time, and the interrupt then required to be handled long before it — plus both input policies, dedupe with ack-after-commit, a dedupe scope that survives a restart, the drain defer and its seal, the bounded-cancel timeout that revokes an abandoned turn, and a turn that throws without killing the consumer. | `adr/spine/MailboxTest.kt` |
+| **+ Cognition** | **Exercised.** Two tiers holding no handle to one another, the typed degrade (`Fresh` / `LastKnown` / `Empty`, with `Empty` a different fact from stale, and a slow relay with no prior read staging `Empty` rather than stalling), a replay check that swaps *only* the variant on the committed record and requires the golden trace to fail, and recalled text that cannot buy an irreversible act even with a request already pending. | `adr/spine/RelayTest.kt` |
+| **+ Inputs** | **Partly**, and the gap is the modality, not the seam. Off-bus input is staged in order, captured on the record and fed back from it on re-fold rather than re-queried. But the three adapter modules that ship source — `block/analysis/adapter`, `block/artifact/adapter`, `block/escalation/adapter`, three of the six `settings.gradle.kts` declares — resolve in-process text; no image, audio or document modality is exercised anywhere in this port. | the three `adapter/` modules |
+| **+ Enforcement** | **Exercised**, on two layers rather than one. Seventeen denying checks across three mechanisms, each with a checked-in block-test and allow-test, all under `./gradlew check` — the same entry point `.github/workflows/ci.yml` runs on every push and pull request, with no warning tier, no baseline file and no `ignoreFailures` on any task that defends the live tree. Under the check layer sits the module DAG: fourteen Gradle modules declared in `settings.gradle.kts`, `adapter` its own module rather than a file-naming convention, and the ban on an I/O library entering a pure block enforced by the block's convention plugin at *configuration* time — before a single source file is compiled. | `adr/gate/GateTest.kt` · `settings.gradle.kts` |
+
+---
+
 ## Deliberate scope limits — specified but unproven
 
 16.4 licenses stopping early, and that stays true. These rungs are built so the *reference* exercises
@@ -363,6 +383,7 @@ here rather than left to imply a parity that does not exist:
 | | why |
 |---|---|
 | **Cross-session global ordering** | 5.2 puts causal consistency across independent streams out of scope. The two-tier test proves *separate* buses; it proves nothing about ordering between them. |
+| **Replay tooling beyond a re-fold** | an interactive scrubber UI, a fork-from-step and an interactive diff are drawn in 14.1; none is built. What *is* built is the re-fold itself, the prefix re-fold at step `k` a scrubber would sit on (`Replay.refoldFrom`), the effect-sequence comparison and the per-step context-digest check — the machinery such a UI would call, with no UI over it. |
 | **A distributed or sharded bus, bespoke persistence/retention, multi-tenant isolation** | 8.5 names these as swaps. The contracts exist; no adapter does. |
 | **Where a snapshot is stored, compaction, retention (14.1/16.2)** | product policy. The snapshot *mechanism* left this row: `spine/replay` ships the memoized fold prefix, tagged with the reducer version, the timeline offset it covers, and the mark of the record it stops at. `ReplayTest` proves a snapshot-seeded resume equals what the live run produced, and that a snapshot resumed under a reducer version the caller is not folding with — or over a tail whose boundary the log does not confirm — is refused rather than folded. Two logs whose boundary records are byte-identical stay indistinguishable to that seam; the file says so. What a product still owns is where a snapshot *lives*, and how far below one it may compact. |
 | **The per-tenant budget (G6)** | `spine/ports/authorization` is its named home and its verdict already rides the committed record; no port ships a tenant budget, because no port has tenants. |
