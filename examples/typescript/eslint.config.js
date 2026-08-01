@@ -97,8 +97,12 @@ const EXTERNAL = "(?!@adr/)[^.].*"; //                       any client library,
  *  node — a surface or a tool — into anything but domain types.
  *  §1.3 is that sentence as an ALLOW-LIST, so anything not listed is forbidden.
  *
- *  SUNSET — v0.3.0, marked 2026-07-30. The workspace wall ships in this release
- *  and this check is deleted in the next one. MEASURED, so the deletion is a
+ *  SUNSET — `spine-2`, marked 2026-07-30. The workspace wall ships at `spine-1`
+ *  and this check is deleted at the next spine revision. THE TRIGGER IS NAMED IN
+ *  THE ONE IDENTIFIER THIS REPOSITORY CAN PRODUCE: a review found this schedule
+ *  written as a semantic version nine times over, and the release check accepts
+ *  only `spine-<n>` headings — so the promised deletion could never fire, and a
+ *  sunset whose trigger cannot occur is a comment, not a plan. MEASURED, so the deletion is a
  *  decision and not a surprise: of the NINETEEN allow-list sites in this file
  *  the package boundary subsumes ZERO. Ten are INTRA-SPINE-TIER (`spine/pure`
  *  may not import `spine/ports`) and the spine is one package, so no package
@@ -117,9 +121,10 @@ const EXTERNAL = "(?!@adr/)[^.].*"; //                       any client library,
  *  helper), and the catch-all. `app` has no allow-list, which is what makes it
  *  the composition root.
  *
- *  The version is written `v0.3.0` with its prefix on purpose: an unprefixed
+ *  (The old spelling carried a `v` prefix on purpose: an unprefixed
  *  three-component numeral on a comment line is read by the citation lint's
- *  STRICT position as a book section, and reported as a phantom one. */
+ *  STRICT position as a book section and reported as a phantom one. The
+ *  `spine-<n>` identifier has no such collision.) */
 const only = (where, ...allowed) => ({
   regex: `^(?!(?:${allowed.join("|")})$)`,
   message: `[C1] ${where}`,
@@ -133,7 +138,7 @@ const only = (where, ...allowed) => ({
 // by reading a sibling's slice off the one folded State as a VALUE, or by
 // dispatching a verb the sibling's arm folds.
 //
-// SUNSET — v0.3.0, marked 2026-07-30, AND THE ONE ROUTE THE WALL LEAVES OPEN.
+// SUNSET — `spine-2`, marked 2026-07-30, AND THE ONE ROUTE THE WALL LEAVES OPEN.
 // Five cross-block routes were measured against a standing workspace, `tsc -b`
 // exit code and error code each recorded in this port's README:
 //   · `../escalation/fold`             — denied, TS6059 + TS6307 (rootDir)
@@ -338,7 +343,7 @@ const C8_IMPORT = [{ regex: "^node:", message: "[C8] a pure file may not import 
 // Kotlin port it catches something C1 structurally cannot: Kotlin forces every
 // sealed-hierarchy variant into one package, which C1 has to permit.)
 //
-// SUNSET — v0.3.0, marked 2026-07-30. The wall gives this check a partner and not
+// SUNSET — `spine-2`, marked 2026-07-30. The wall gives this check a partner and not
 // a replacement: `@adr/app` publishes no exports at all, so the spine naming the
 // composition root by package name is TS2307, but the spine naming a BLOCK by
 // package name resolves exactly as the app's own import does. The third pattern

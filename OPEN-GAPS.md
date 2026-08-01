@@ -306,6 +306,42 @@ assignable; then narrow C7's claim to construction, which is what it actually en
 
 ---
 
+## A8 · ADR-001's API freeze is specified but not wired — `open`
+
+**What the ADR says is landed, and is not.** ADR-001 §4's plugin table has `adr.kotlin.library` —
+applied by every module — wiring `explicitApi()` and the binary-compatibility-validator, with `.api`
+dumps checked by `apiCheck` in CI, and §4 goes on to state that "a public declaration beyond the
+frozen set fails `apiCheck`". The module DAG landed; this half did not. Measured: no `.api` dump
+exists in the tree, and `explicitApi()` appears in no convention plugin, so nothing fails when a
+module publishes a new public declaration.
+
+**Why it matters and why it is not a blocker.** The measured floor (4·4·5·6·7·6) and the frozen set
+(6·5·5·8·9·8) are already written into ADR-001, so the item is fully specified — what is missing is
+the wiring, not the decision. Nothing about the DAG's *dependency* walls depends on it: those are
+enforced at configuration time and are separately red-green proven. What is unprotected is
+accidental API GROWTH inside a module that already exists.
+
+**Direction.** Wire `explicitApi()` and the validator into `adr.kotlin.library`, dump the current
+`.api` files, and check that the dumped counts match the frozen set the ADR already names. Until
+then the ADR's §4 rows read as landed when they are specified — the honesty half of this entry.
+
+---
+
+## A9 · The TypeScript gate's verdict was load-dependent — `done`
+
+Recorded because the class matters more than the instance. Six gate cases shell out to `tsc`, `npm`
+or the demo runner, and they ran under vitest's DEFAULT 5000 ms per-test timeout, so on a contended
+machine the gate went RED on byte-identical, pristine source with an error naming nothing about the
+code. `scripts/wall.mjs` opens with "a gate whose verdict depends on whether it was previously
+exercised is not a gate"; the same objection applies to a verdict that depends on host load, and a
+gate that fails at random is the fastest route to the re-run culture §15.2 is written against.
+
+Closed by an explicit 60s `testTimeout`/`hookTimeout`. The general rule this leaves behind: **any
+gate case that spawns a subprocess owns its own timeout**, because the default was chosen for unit
+tests and a compile is not one.
+
+---
+
 ## Not in this file
 
 F1–F13 (the verified review findings) are handled by the remediation pass and tracked there. This file

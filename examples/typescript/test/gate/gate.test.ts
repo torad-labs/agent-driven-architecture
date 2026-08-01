@@ -422,7 +422,7 @@ describe("the workspace wall covers every package", () => {
     // references and the cross-block import RESOLVED — with the whole gate
     // green, because composite/rootDir were both still intact. The reference
     // list was the one part of the wall carrying no instrument, and it is the
-    // part C1/C2's sunset (v0.3.0) hands the whole job to.
+    // part C1/C2's sunset (`spine-2`) hands the whole job to.
     for (const dir of declared.filter((d) => d.startsWith("src/blocks/"))) {
       const cfg = JSON.parse(readFileSync(join(ROOT, dir, "tsconfig.json"), "utf8")) as {
         readonly references?: readonly { readonly path: string }[];
@@ -500,7 +500,7 @@ describe("the workspace wall covers every package", () => {
     const notes = blocks.map((dir) => must(manifest(dir)["//sunset"]));
     expect(new Set(notes).size, notes.join("\n")).toBe(1);
     for (const note of notes) {
-      expect(note).toContain("v0.3.0");
+      expect(note).toContain("spine-2");
       expect(note).toContain("C1, C2 and C15");
     }
   });

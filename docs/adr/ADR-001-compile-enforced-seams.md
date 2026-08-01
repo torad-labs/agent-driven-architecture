@@ -373,7 +373,7 @@ build code, not a review comment.
 
 | plugin | applied by | wires and enforces |
 |---|---|---|
-| `adr.kotlin.library` | every module | Kotlin JVM, `explicitApi()`, jvmTarget 21, binary-compatibility-validator (`.api` dump wired into `check`) |
+| `adr.kotlin.library` | every module | Kotlin JVM, jvmTarget 21 — **plus, SPECIFIED BUT NOT YET WIRED:** `explicitApi()` and the binary-compatibility-validator (`.api` dump into `check`), see OPEN-GAPS |
 | `adr.spine` | `:spine` only | asserts it is the only module declaring the boundary, bus or fold; forbids IO libraries on the classpath |
 | `adr.block` | `:block:<x>` | auto-adds `implementation(project(":spine"))`; **rejects every other project dependency**, including the block's own adapter; forbids IO libraries on the classpath |
 | `adr.block.adapter` | `:block:<x>:adapter` | auto-adds `implementation(project(":spine"))` and a dependency on its parent `:block:<x>`; **rejects every other project dependency**; IO libraries **allowed**; asserts no module but `:app` depends on it |
@@ -429,7 +429,7 @@ triage · console · inbox · escalation · artifact · analysis. The frozen `.a
 than that floor: the formula above adds the types the slice and view reach, which `:app` never names but
 Kotlin's `explicitApi` forces public (`TicketRow` and `Priority` for triage — marking them `internal`
 does not compile). Measured against the live tree, the frozen sets are **6 · 5 · 5 · 8 · 9 · 8**. A
-public declaration beyond the frozen set fails `apiCheck` in CI, and `internal` on everything else makes
+public declaration beyond the frozen set *will* fail `apiCheck` in CI once the validator is wired (it is not, today — the counts below are the specification that wiring must satisfy), and `internal` on everything else makes
 that automatic. This still replaces what
 the review measured — **14 to 20 public declarations per block and zero uses of `internal`
 repository-wide** — but by shrinking the surface to a measured floor rather than to one symbol.
