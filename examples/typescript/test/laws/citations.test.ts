@@ -227,7 +227,17 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // The blast-radius fixture pair adds ZERO here: fixtures carry no citations.
   // +2 (716 -> 718): the quickstart's day-one section cites the decisions it
   // holds (the vendored-template law and the spine version marker).
-  "examples/kotlin": 718,
+  // +1 (718 -> 719): `C4(e)` in `src/test/kotlin/adr/gate/GateTest.kt` — ONE G1
+  // citation, on the KDoc of the payload-half check, in the idiom C4(a)-(d)
+  // already use. It is the Kotlin mirror of the TypeScript COMPILE pin, which
+  // adds none because `test/spine/gate.test.ts` already cites §5.3 and the two
+  // new declarations there ride that banner. Measured by this module's own
+  // census before and after; nothing else moved, and nothing was removed.
+  // +4 more (719 -> 723) landing against the tree D33 left: Action.kt's channel
+  // KDoc, Boundary.kt's minted-channel banner, MailboxTest/RelayTest's moved
+  // call sites — each cites the section or decision the channel design holds.
+  // Attributed per file by this module's own census against HEAD.
+  "examples/kotlin": 723,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -275,7 +285,16 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // table cites ADR-001 §1.3 Q1, and 6.8 became §6.8) while src/app/wire.ts went
   // 17 -> 15 (its 2026-07-30 receipt is CLOSED, dropping the enumeration of the
   // three prose sites it used to quote). Both halves measured per file.
-  "examples/typescript": 470,
+  // +7 (470 -> 477): SEVEN new §5.3 citations and nothing else, from the landing
+  // that makes §5.3 true — the Actor moves out of `FinishedStep` and onto the
+  // channel. One each in spine/boundary/action.ts (the `StepChannel` doc),
+  // spine/boundary/boundary.ts (the three-channel field block) and
+  // spine/surface/controller.ts (why the surface no longer names `Actor`); two in
+  // test/spine/gate.test.ts (the COMPILE enforcement layer and its witness) and
+  // two in test/spine/mailbox.test.ts (the behavioural probe's banner and its
+  // describe title). Measured per file by this module's own census; no citation
+  // was added under any other section and none was removed.
+  "examples/typescript": 477,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the

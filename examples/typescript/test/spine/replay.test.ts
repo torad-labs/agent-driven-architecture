@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
 import { effectSink } from "../../src/app/wire";
 import type { SetPriorityResult, SetPriorityResultV1 } from "../../src/blocks/triage/contract";
 import { PRE_V2_REASON, upcastSetPriority } from "../../src/blocks/triage/tools";
+import type { StepChannel } from "../../src/spine/boundary/action";
 import { RecordingSink } from "../../src/spine/boundary/in-memory";
 import { authority, Signature } from "../../src/spine/pure/actor";
 import type { StepRecord, StepRecordV1 } from "../../src/spine/pure/step-record";
@@ -24,17 +25,19 @@ import { fakeWorld, harness, POLICY_TIER } from "../harness";
 import { must } from "../support/must";
 
 function driveFullSession(h: ReturnType<typeof harness>): void {
-  const step = (by: "Agent" | "Human", ...actions: { tool: string; input: unknown }[]): void =>
-    void h.app.boundary.onStepFinish({ by, staged: [], actions });
+  const step = (channel: StepChannel, ...actions: { tool: string; input: unknown }[]): void =>
+    void channel.submit({ staged: [], actions });
+  const agent = h.app.boundary.agent;
+  const human = h.app.boundary.human;
 
-  step("Agent", { tool: "setPriority", input: { ticket: "4118", level: "High" } });
-  step("Agent", { tool: "requestEscalation", input: { ticket: "4118" } });
-  step("Agent", { tool: "confirmEscalation", input: { ticket: "4118" } }); // self → refused
+  step(agent, { tool: "setPriority", input: { ticket: "4118", level: "High" } });
+  step(agent, { tool: "requestEscalation", input: { ticket: "4118" } });
+  step(agent, { tool: "confirmEscalation", input: { ticket: "4118" } }); // self → refused
   h.actAs("Agent", POLICY_TIER);
-  step("Agent", { tool: "confirmEscalation", input: { ticket: "4118" } }); // other → granted
-  step("Agent", { tool: "recordFinding", input: { text: "first" } });
-  step("Agent", { tool: "requestSeal", input: {} });
-  step("Human", { tool: "confirmSeal", input: {} });
+  step(agent, { tool: "confirmEscalation", input: { ticket: "4118" } }); // other → granted
+  step(agent, { tool: "recordFinding", input: { text: "first" } });
+  step(agent, { tool: "requestSeal", input: {} });
+  step(human, { tool: "confirmSeal", input: {} });
 }
 
 describe("replay — a live run against its re-fold (G9)", () => {
@@ -253,8 +256,7 @@ describe("schema evolution — an old-shape log replays only through its upcaste
 
   it("a LIVE step commits the envelope, at the one site that mints a record", () => {
     const h = harness({ start: 1000, step: 7 });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });

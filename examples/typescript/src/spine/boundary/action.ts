@@ -19,9 +19,9 @@
 //    That is 6.10's "close what you own; guard what you do not" put in the right
 //    place, and it is what makes the compile-time edit list total.
 
-import type { Actor, Signature } from "../pure/actor";
+import type { Signature } from "../pure/actor";
 import type { CommandBase, SpineCommand } from "../pure/command";
-import type { CommandId, ToolName } from "../pure/ids";
+import type { CommandId, StepIndex, ToolName } from "../pure/ids";
 import type { StagedInput } from "../pure/staged";
 import type { Action } from "../pure/step-record";
 import type { ToolResultBase } from "../pure/tool-result";
@@ -30,15 +30,48 @@ import type { Ctx, Verb } from "../pure/verb";
 
 export type { Action } from "../pure/step-record";
 
-/** One finished step, from EITHER path. The agent loop supplies `by = "Agent"`;
- *  the surface controller supplies `by = "Human"`. Both send ACTIONS — never
- *  results — so both resolve through the one map below, and 3.2's "a person
- *  tapping a control and the agent calling a tool resolve to the identical
- *  Command" is true rather than aspirational. */
+/** One finished step, from EITHER path. Both send ACTIONS — never results — so
+ *  both resolve through the one map below, and 3.2's "a person tapping a control
+ *  and the agent calling a tool resolve to the identical Command" is true rather
+ *  than aspirational.
+ *
+ *  IT CARRIES NO `Actor`, AND THAT ABSENCE IS THE INVARIANT. `by` used to be a
+ *  field here, which made WHO ACTED a claim the payload made about itself: the
+ *  boundary fed it verbatim to `authorityOf(step.by, session)`, so anything that
+ *  could reach this seam chose its own attribution AND its own principal. That is
+ *  the class `Signature` closed one layer down (spine/pure/actor), and it is
+ *  closed here the same way — by making the value UNREPRESENTABLE rather than
+ *  merely unused.
+ *
+ *  NO NAME-KEYED RULE COULD HAVE DONE IT IN THIS PORT. `Actor` is a string-literal
+ *  union, so `by: "Spine"` is a bare literal in an object literal: no import, no
+ *  identifier, nothing for a rule keyed on a name to see — and a hoisted
+ *  `const b = "Spine"` or an `as Actor` assertion evades a rule keyed on the
+ *  literal too. Deleting the field is what a lint could not reach. */
 export interface FinishedStep {
-  readonly by: Actor;
   readonly staged: readonly StagedInput[];
   readonly actions: readonly Action[];
+}
+
+/** THE ACTOR RIDES THE CHANNEL, not the payload — one channel per `Actor` value,
+ *  each minted by the boundary and handed to exactly one owner at wiring: the
+ *  surface controller gets `human`, the agent loop and every turn get `agent`,
+ *  and the serial consumer's own authored steps get `spine`.
+ *
+ *  This is what §5.3's "decided by where it entered, never by what it asks for"
+ *  costs to make TRUE. A holder stamps what its channel stamps and nothing else,
+ *  so the agent path can no longer claim `Human`, and `spine:consumer` — the one
+ *  principal in the reference wiring with no credential behind it, minted to mean
+ *  "no model chose this" — is reachable only from the consumer that owns it.
+ *
+ *  NAMED RESIDUE, because "unforgeable" would be a lie: the composition root
+ *  constructs the boundary and therefore holds all three channels, exactly as it
+ *  holds the authorization seam that decides what each Actor resolves to. That is
+ *  the residue `spine/boundary` already has for `Signature` — the minting folder
+ *  can mint. What is closed is every holder that is NOT the root: a tool, a fold
+ *  arm, a turn, the surface, the agent loop. */
+export interface StepChannel {
+  submit(step: FinishedStep): StepIndex;
 }
 
 export type Registry<S> = ReadonlyMap<ToolName, Verb<S>>;

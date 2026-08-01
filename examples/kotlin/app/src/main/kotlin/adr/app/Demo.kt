@@ -126,7 +126,7 @@ class Demo(private val out: Narrator) {
             app = fast,
             env = Env(world = fastWorld, verbs = FAST_TIER, relayRead = relayStore, mailbox = mailbox),
             runner = TurnRunner { _, ctx ->
-                ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
+                ctx.submit(FinishedStep(ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
             },
         )
         checkNotNull(consumer)
@@ -162,7 +162,6 @@ class Demo(private val out: Narrator) {
                 runner = TurnRunner { message, ctx ->
                     ctx.submit(
                         FinishedStep(
-                            Actor.Agent,
                             ctx.staged,
                             listOf(Action(RECORD_FINDING, RawInput("text" to "step 1 of ${message.source.value}"))),
                         ),
@@ -171,7 +170,6 @@ class Demo(private val out: Narrator) {
                     delay(300)
                     ctx.submit(
                         FinishedStep(
-                            Actor.Agent,
                             ctx.staged,
                             listOf(Action(RECORD_FINDING, RawInput("text" to "step 2 of ${message.source.value}"))),
                         ),

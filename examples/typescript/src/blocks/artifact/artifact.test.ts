@@ -10,8 +10,7 @@ import { harness, POLICY_TIER } from "../../../test/harness";
 import { must } from "../../../test/support/must";
 
 function record(h: ReturnType<typeof harness>, ...texts: string[]): void {
-  h.app.boundary.onStepFinish({
-    by: "Agent",
+  h.app.boundary.agent.submit({
     staged: [],
     actions: texts.map((text) => ({ tool: "recordFinding", input: { text } })),
   });
@@ -21,8 +20,7 @@ describe("blocks/artifact — a folded slice, delivered once at seal (G16)", () 
   it("lines fold; the seal delivers EXACTLY ONE irreversible effect", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "first", "second");
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "requestSeal", input: {} }],
     });
@@ -40,8 +38,7 @@ describe("blocks/artifact — a folded slice, delivered once at seal (G16)", () 
   it("the content re-folds from committed bytes — 2.2 made true", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "first", "second");
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "requestSeal", input: {} }],
     });
@@ -57,13 +54,11 @@ describe("blocks/artifact — a folded slice, delivered once at seal (G16)", () 
   it("a self-confirmed seal is refused — session-end is gated exactly as 14.3 says", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "only");
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "requestSeal", input: {} }],
     });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "confirmSeal", input: {} }],
     });
@@ -76,8 +71,7 @@ describe("blocks/artifact — a folded slice, delivered once at seal (G16)", () 
 
     // a different principal on the same stream may seal it (G6)
     h.actAs("Agent", POLICY_TIER);
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "confirmSeal", input: {} }],
     });
@@ -87,8 +81,7 @@ describe("blocks/artifact — a folded slice, delivered once at seal (G16)", () 
   it("a sealed artifact refuses further lines, per item", () => {
     const h = harness({ start: 1000, step: 7 });
     record(h, "only");
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "requestSeal", input: {} }],
     });

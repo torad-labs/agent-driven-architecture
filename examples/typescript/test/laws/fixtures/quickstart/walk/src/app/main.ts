@@ -16,8 +16,8 @@ const app = wireApp({ clock: movingClock(1000, 10), sink: performed });
 
 // A HUMAN action and an AGENT action are the same signed Command on one stream.
 app.controller.onAction({ tool: "addNote", input: { text: "the refund never arrived" } });
-app.boundary.onStepFinish({
-  by: "Agent",
+// The CHANNEL decides the actor — the step carries no `by` field to forge.
+app.boundary.agent.submit({
   staged: [],
   actions: [{ tool: "addNote", input: { text: "escalated to on-call" } }],
 });

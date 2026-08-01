@@ -43,16 +43,21 @@
 //
 // DISPATCHER CONFINEMENT. The consumer mints the turn's only channel into the
 // system (`submit`) and calls the boundary itself. Both are synchronous and both
-// run on the consumer's own single-threaded context, so `onStepFinish` is serial
-// by construction and two folds cannot interleave. Kotlin gets the same property
+// run on the consumer's own single-threaded context, so the commit is serial by
+// construction and two folds cannot interleave. Kotlin gets the same property
 // from a single-threaded dispatcher the consumer owns. This one is structural
 // rather than gate-checkable, and it is labelled as such.
+//
+// ACTOR CONFINEMENT is a different claim, and a checkable one. The turn's channel
+// forwards to the boundary's AGENT channel; the consumer's own authored steps go
+// to its SPINE channel; and a `FinishedStep` carries no Actor at all, so neither
+// can be redirected by its payload.
 
-import type { Action, FinishedStep } from "../boundary/action";
+import type { Action, FinishedStep, StepChannel } from "../boundary/action";
 import type { Mailbox } from "../ports/mailbox";
 import type { RelayRead } from "../ports/relay";
 import type { Scheduler } from "../ports/scheduler";
-import type { SourceKey, SourceName, StepIndex } from "../pure/ids";
+import type { SourceKey, SourceName } from "../pure/ids";
 import type {
   DrainMessage,
   InputMessage,
@@ -75,11 +80,23 @@ import {
   turnThrew,
 } from "../pure/turn";
 
-/** The boundary, seen through the three lines the consumer actually needs.
+/** The boundary, seen through the two channels the consumer actually needs.
  *  Declared here rather than imported, exactly as `spine/surface/controller`
- *  declares its own seam — the consumer never names the `Boundary` class. */
+ *  declares its own seam — the consumer never names the `Boundary` class.
+ *
+ *  TWO CHANNELS, AND THE SPLIT IS THE POINT. The consumer authors steps of its
+ *  own — a conflation, a fault, a blown deadline, a drain's seal request — and
+ *  those are `spine`. It also mints the ONE channel a turn has into the system,
+ *  and that is `agent`. Both used to be the same `onStepFinish` with the Actor
+ *  riding the payload, so a turn calling `ctx.submit` chose which of the two it
+ *  was: it could raise the drain's irreversible seal as `Spine` and confirm it as
+ *  `Agent` one step later, and the gate — which compares PRINCIPALS — correctly
+ *  saw two different ones and fired the delivery. The turn now holds `agent` and
+ *  only `agent`, so that sequence is one principal confirming its own request,
+ *  which is the self-confirm this gate has always refused. */
 export interface StepSeam {
-  onStepFinish(step: FinishedStep): StepIndex;
+  readonly agent: StepChannel;
+  readonly spine: StepChannel;
 }
 
 /** What a turn is handed. Three fields, and each one is a rule:
@@ -367,7 +384,7 @@ export class SerialConsumer {
     // SPINE-AUTHORED, exactly like `emit` below: the drain's finalization is the
     // consumer's own decision, not a model turn. Kotlin's `emitActions` is one
     // literal serving both paths, so stamping this one keeps the ports identical.
-    if (actions.length > 0) this.deps.seam.onStepFinish({ by: "Spine", staged: [], actions });
+    if (actions.length > 0) this.deps.seam.spine.submit({ staged: [], actions });
     this.deps.mailbox.ack(message);
     this.stop();
   }
@@ -402,10 +419,13 @@ export class SerialConsumer {
       signal: abort.signal,
       // THE ONE CHANNEL, AND IT IS REVOCABLE. This closure is the only route a
       // turn has into the system; `revoke()` flips a one-way latch inside it.
+      // It forwards to the AGENT channel and to no other, which is the second
+      // thing the closure confines: not only WHEN a turn may submit, but as WHOM.
+      // The step it hands over has no Actor field to overrule this line.
       submit: (step: FinishedStep): void => {
         if (revoked) return;
         steps += 1;
-        this.deps.seam.onStepFinish(step);
+        this.deps.seam.agent.submit(step);
       },
     };
     const settled = this.deps.turn
@@ -557,7 +577,7 @@ export class SerialConsumer {
   private emit(event: ConsumerEvent): void {
     const actions = this.deps.report(event);
     if (actions.length === 0) return;
-    this.deps.seam.onStepFinish({ by: "Spine", staged: [], actions });
+    this.deps.seam.spine.submit({ staged: [], actions });
   }
 
   private flush(slot: Conflating): void {

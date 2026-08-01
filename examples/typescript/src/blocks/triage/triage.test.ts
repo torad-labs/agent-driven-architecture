@@ -58,8 +58,7 @@ describe("blocks/triage — the arm reads state before it decides (§12.4)", () 
 
   it("end to end: a rejected item never touches the session banner", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "9999", level: "High" } }],
     });
@@ -71,8 +70,7 @@ describe("blocks/triage — the arm reads state before it decides (§12.4)", () 
     expect(h.app.boundary.state.spine.run.kind).toBe("Idle");
     expect(h.app.controller.view.banner).toBe("ok");
     // the next good item is unaffected — no sticky session state
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "Urgent" } }],
     });

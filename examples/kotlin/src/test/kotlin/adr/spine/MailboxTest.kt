@@ -25,8 +25,10 @@ import adr.app.World
 import adr.app.Env
 import adr.app.Wiring
 import adr.blocks.artifact.CONFIRM_SEAL
+import adr.blocks.artifact.REQUEST_SEAL
 import adr.blocks.artifact.RECORD_FINDING
 import adr.blocks.artifact.SealStatus
+import adr.contract.ToolResult
 import adr.contract.InboxResult.DropReason
 import adr.contract.TriageResult.Priority
 import adr.blocks.triage.SET_PRIORITY
@@ -88,7 +90,7 @@ private class Msgs {
         tool: ToolName,
         vararg fields: Pair<String, String>,
         staged: List<StagedInput> = emptyList(),
-    ) = FinishedStep(Actor.Agent, staged, listOf(Action(tool, RawInput(*fields))))
+    ) = FinishedStep(staged, listOf(Action(tool, RawInput(*fields))))
 }
 
 /**
@@ -499,6 +501,47 @@ class MailboxTest {
         )
         assertTrue(h.consumer.isStopped, "…then it stopped")
         assertTrue(h.mailbox.unacked().isEmpty())
+    }
+
+    // ── 7a · §5.3 · A TURN STAMPS WHAT ITS CHANNEL STAMPS ──────────────────
+    //
+    // THE ROUTE THIS CLOSES WAS MEASURED OPEN, on the tree that shipped the consumer
+    // stamp (docs/DECISIONS.md:76) and on the tree before it. A turn holds `ctx.submit`
+    // — the one channel a model-driven turn has — and used to put the Actor in the
+    // payload, so from that single channel it could raise the irreversible seal under
+    // one Actor and confirm it under another. All three orderings reached Sealed with
+    // one delivery: Spine-request/Agent-confirm, Human-request/Agent-confirm and
+    // Agent-request/Human-confirm. The gate was correct throughout — it compares
+    // PRINCIPALS, and the payload was choosing which principal to ask about.
+    //
+    // A FinishedStep no longer carries the value and `ctx.submit` forwards to the
+    // boundary's AGENT channel, so the three orderings collapse into the one thing a
+    // turn can say — and that is the self-confirm this gate always refused. The other
+    // two orderings are no longer expressible, which is the point, and the COMPILER is
+    // what says so.
+    @Test
+    fun `a turn that requests AND confirms the seal is refused - one channel, one principal`() = runTest {
+        val h = Barge(
+            runner = TurnRunner { _, ctx ->
+                ctx.submit(Msgs().stepOf(REQUEST_SEAL, staged = ctx.staged))
+                ctx.submit(Msgs().stepOf(CONFIRM_SEAL))
+            },
+        )
+        val job = launch { h.consumer.run() }
+        h.mailbox.post(Msgs().inputOf(TICKETS, "k1", "reading"))
+        advanceTimeBy(10)
+        h.mailbox.post(Message.Drain(OPERATOR, "shutting down"))
+        job.join()
+
+        // MEASURED BEFORE: SealStatus.Sealed(by = agent-run-7f) and one delivery.
+        val refused = assertIs<ToolResult.Refused>(
+            h.app.bus.records().single { it.actions.any { a -> a.tool == CONFIRM_SEAL } }.results.last(),
+        )
+        assertTrue(refused.reason.startsWith("self-confirm"), "got: ${refused.reason}")
+        assertTrue(
+            h.world.deliveries.isEmpty(),
+            "the irreversible delivery must NOT fire: ${h.world.deliveries}",
+        )
     }
 
     // ── 7b · 14.3 · what the drain's SPINE-authored seal MEANS at the gate ──

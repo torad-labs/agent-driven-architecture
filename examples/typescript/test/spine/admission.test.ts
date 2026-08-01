@@ -139,7 +139,7 @@ function rig(): Rig {
     licences: licencesOf(registry.values()),
     initial,
     actAs,
-    step: (...actions) => void boundary.onStepFinish({ by: "Agent", staged: [], actions }),
+    step: (...actions) => void boundary.agent.submit({ staged: [], actions }),
   };
 }
 

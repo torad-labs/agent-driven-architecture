@@ -61,7 +61,6 @@ const finding = (text: string): Action => ({ tool: "recordFinding", input: { tex
 const recallThenAct: TurnRunner = {
   run: (message, ctx: TurnContext): Promise<void> => {
     ctx.submit({
-      by: "Agent",
       staged: ctx.staged,
       actions: [RECALL, finding(message.kind === "Input" ? message.staged.body : "interrupted")],
     });
@@ -271,8 +270,7 @@ describe("11.4 — a second tier is OPTIONAL, and it plugs in without editing th
     expect(fast.registry.has("publishAnalysis")).toBe(false);
 
     // the DEEP tier concludes — an ordinary verb, an ordinary effect descriptor
-    deep.boundary.onStepFinish({
-      by: "Agent",
+    deep.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "publishAnalysis", input: { text: "root cause: expired card token" } }],
     });
@@ -333,8 +331,7 @@ describe("10.2 / 11.3 — recalled content is untrusted and buys the model nothi
 
   it("a recalled 'authorization' cannot reach an irreversible effect", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [POISON],
       actions: [RECALL, { tool: "confirmEscalation", input: { ticket: "4118" } }],
     });
@@ -359,13 +356,11 @@ describe("10.2 / 11.3 — recalled content is untrusted and buys the model nothi
 
   it("and it does not help even when a request IS pending — the gate keys on Authority", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "requestEscalation", input: { ticket: "4118" } }],
     });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [POISON],
       actions: [{ tool: "confirmEscalation", input: { ticket: "4118" } }],
     });

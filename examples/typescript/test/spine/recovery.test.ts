@@ -15,14 +15,12 @@ import { fakeWorld, harness, POLICY_TIER } from "../harness";
 import { must } from "../support/must";
 
 function driveToAPage(h: ReturnType<typeof harness>): void {
-  h.app.boundary.onStepFinish({
-    by: "Agent",
+  h.app.boundary.agent.submit({
     staged: [],
     actions: [{ tool: "requestEscalation", input: { ticket: "4118" } }],
   });
   h.actAs("Agent", POLICY_TIER);
-  h.app.boundary.onStepFinish({
-    by: "Agent",
+  h.app.boundary.agent.submit({
     staged: [],
     actions: [{ tool: "confirmEscalation", input: { ticket: "4118" } }],
   });
@@ -31,8 +29,7 @@ function driveToAPage(h: ReturnType<typeof harness>): void {
 describe("G9 — `now` rides the committed record", () => {
   it("every timestamp round-trips through the bus under a MOVING clock", () => {
     const h = harness({ start: 1000, step: 7 });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
@@ -80,8 +77,7 @@ describe("G9 — RECOVERY re-drives a timeline exactly once", () => {
 
   it("the key is (committed step, index within step) — it cannot be minted by the fold", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [
         { tool: "setPriority", input: { ticket: "4118", level: "High" } },

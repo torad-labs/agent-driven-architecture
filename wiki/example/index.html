@@ -307,7 +307,7 @@ sealed Effect(at: Timestamp) { LogDecision(...) | PageOncall(...) | Diag(note) }
 
 // ───────── What the boundary is handed, and what it commits (seam 02) ─────────
 data Action       = { tool: ToolName, input: RawInput }   // an OPEN name — the one open input in the system
-data FinishedStep = { by: Actor, staged: [StagedInput], actions: [Action] }
+data FinishedStep = { staged: [StagedInput], actions: [Action] }   // NO actor: the CHANNEL carries it
 data StepRecord   = { schemaVersion: SchemaVersion,   // 14.7 — which shape the rest is in
                       now: Timestamp, sig: Signature, staged: [StagedInput],
                       actions:  [Action],        // what was ASKED
@@ -333,12 +333,13 @@ gate(r, sig, state, registry, authz) -&gt; ToolResult =        // the irreversib
         _               -&gt; authz.mayConfirm(sig, r, state) ? r : Refused(r.tool, "authority may not confirm")
 
 // ───────── The boundary adapter · the ONE impure seam (seam 02) ─────────
-boundary.onStepFinish(step: FinishedStep):
+boundary.&lt;channel&gt;(step: FinishedStep):                  // human | agent | spine
+  by      = the channel's own Actor                        // (0) NOT a field of the step
   now     = clock.now()                                    // (1) the ONLY clock read in the system (G9)
   ctx     = Ctx(state, projectContext(state, step.staged, bounds)) // (2) the third pure projection
   results = step.actions.map(a -&gt; resolveAction(registry, a, ctx))   // (3) the ONE name → ToolResult map
-  sig     = Signature(by = step.by,                        // (4) the stamp — WHO, and under whose permission
-                      authority = authz.authorityOf(step.by, session))
+  sig     = Signature(by = by,                             // (4) the stamp — WHO, and under whose permission
+                      authority = authz.authorityOf(by, session))
   gated   = results.map(r -&gt; gate(r, sig, state, registry, authz))   // (5) PRE-FOLD, so the verdict commits
   (s, fx) = fold(state, gated, now, sig)                   // (6) pure call — decide
   index   = append(bus, StepRecord {                       // (7) COMMIT the step, not the pair
@@ -370,7 +371,7 @@ project(state) -&gt; ConsoleView:
 render(view: ConsoleView):
   for row in view.rows: drawRow(row)            // no `if` over data, no computed flag
 onAction(a: Action) -&gt;                          // one sink — the SAME entry the agent loop uses
-  boundary.onStepFinish(FinishedStep(by = Human, staged = null, actions = [a]))
+  boundary.human(FinishedStep(staged = null, actions = [a]))  // the CHANNEL says Human
 
 // ───────── The ports · interfaces the core owns (seam 05) ─────────
 PORT Clock         { now() -&gt; Timestamp }                              // read once per step, at (1)

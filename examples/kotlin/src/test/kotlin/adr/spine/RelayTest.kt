@@ -83,7 +83,7 @@ private class Tier(
     verbs: List<BlockRegistration<State>>? = null,
     val mailbox: InMemoryMailbox = InMemoryMailbox(),
     runner: TurnRunner = TurnRunner { _, ctx ->
-        ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
+        ctx.submit(FinishedStep(ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
     },
 ) {
     private val env = Env(
@@ -198,7 +198,7 @@ class RelayTest {
             verbs = FAST_TIER,
             runner = TurnRunner { _, ctx ->
                 startedAt += currentTime
-                ctx.submit(FinishedStep(Actor.Agent, ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
+                ctx.submit(FinishedStep(ctx.staged, listOf(Action(RECALL_ANALYSIS, RawInput()))))
             },
         )
         val job = launch { tier.consumer.run() }

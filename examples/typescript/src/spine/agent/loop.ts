@@ -78,9 +78,11 @@ export async function runTurn<S>(opts: RunTurn<S>): Promise<{ steps: number; tex
     stopWhen: stepCountIs(8),
     prompt: opts.prompt,
     // THE BOUNDARY SEAM. Actions in — the model's raw input, unresolved.
+    // THE AGENT CHANNEL, and it is the only one this path can reach: the step it
+    // builds carries no Actor field, so nothing that drove these tool calls can
+    // promote itself to `Human` or to the consumer's `Spine`.
     onStepFinish: ({ toolCalls }) =>
-      void opts.boundary.onStepFinish({
-        by: "Agent",
+      void opts.boundary.agent.submit({
         staged,
         actions: toolCalls.map((call) => ({ tool: call.toolName, input: call.input })),
       }),

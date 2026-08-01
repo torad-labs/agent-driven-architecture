@@ -57,7 +57,7 @@
       <div class="slots">
         <div class="slot"><div class="k">The seam</div><div class="v">The membrane between the pure core and the impure world. Its job: turn a finished step — a list of open <code>Action</code>s — into <em>resolved, gated, committed, signed, performed</em> reality, in a fixed order.</div></div>
         <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> the <a class="x" href="01-state-and-fold.html">fold</a> and <code>State</code> decide what is true; the registry's verbs and <code>projectContext</code> are pure and are called from here. <strong>Outer:</strong> the clock, the id source, the append-only bus, the authorization seam, the effect sinks. The boundary is the one thing that touches both.</div></div>
-        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> a <code>FinishedStep</code> — an <code>Actor</code>, the staged input, and a list of <code>Action</code>s: open <code>(name, rawInput)</code> pairs. <strong>Out:</strong> one <code>StepRecord</code> to the bus, and <code>KeyedEffect</code>s performed on the world. <strong>Forbidden:</strong> the fold never receives the clock, an id, or a live sink; a verb never performs an effect; nothing upstream of the stamp may name an <code>Actor</code>.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> a <code>FinishedStep</code> — the staged input and a list of <code>Action</code>s: open <code>(name, rawInput)</code> pairs. It arrives on one of the boundary's three submission channels, and who acted is the channel's answer, never the step's. <strong>Out:</strong> one <code>StepRecord</code> to the bus, and <code>KeyedEffect</code>s performed on the world. <strong>Forbidden:</strong> the fold never receives the clock, an id, or a live sink; a verb never performs an effect; nothing upstream of the stamp may name an <code>Actor</code>.</div></div>
         <div class="slot"><div class="k">Direction</div><div class="v">Source dependency points <em>inward</em> — the boundary names the fold; the fold names nothing out here. Control flows <em>outward</em> — the boundary drives the world only after the fold has decided and the bus has accepted.</div></div>
         <div class="slot"><div class="k">The inversion</div><div class="v">The fold returns <code>Effect</code> <em>descriptors</em> (plain data, unkeyed); the boundary is the adapter that keys them from the committed index and knows how to <code>perform</code> them. The core reaches the world through data it returns, never through a reference to a sink it holds.</div></div>
         <div class="slot"><div class="k">Why it exists</div><div class="v">To confine <em>all</em> impurity — clock, identity, the stamp, authority, commit, effects — to one auditable place, so everything else is pure and a live session re-derives exactly from its own committed bytes.</div></div>
@@ -68,15 +68,16 @@
 
     <section id="what" class="rv">
       <div class="sec-head"><span class="num">A</span><h2>What it is</h2></div>
-      <p>When a step finishes, the runtime hands the boundary one thing: a <code class="i">FinishedStep</code> — who acted, what was staged for the turn, and a list of <code class="i">Action</code>s. An <code class="i">Action</code> is deliberately weak: a tool <em>name</em> and a raw input, both open, both possibly nonsense. It is the only open input in the system, and this is the seam that closes it. The boundary turns that into reality, in a fixed order, and this is the whole of it:</p>
+      <p>When a step finishes, the runtime hands the boundary one thing: a <code class="i">FinishedStep</code> — what was staged for the turn, and a list of <code class="i">Action</code>s. It does <em>not</em> say who acted: that is decided by which of the boundary's three channels the step arrived on, and a caller holds one. An <code class="i">Action</code> is deliberately weak: a tool <em>name</em> and a raw input, both open, both possibly nonsense. It is the only open input in the system, and this is the seam that closes it. The boundary turns that into reality, in a fixed order, and this is the whole of it:</p>
 
       <div class="code"><div class="bar"><span class="path">the one impure seam — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
-<pre><code class="language-plaintext">boundary.onStepFinish(step: FinishedStep):
+<pre><code class="language-plaintext">boundary.&lt;channel&gt;(step: FinishedStep):                  // human | agent | spine
+  by      = the channel's own Actor                        // (0) NOT a field of the step
   now     = clock.now()                                    // (1) the ONLY clock read in the system (G9)
   ctx     = Ctx(state, projectContext(state, step.staged, bounds)) // (2) the third pure projection
   results = step.actions.map(a -&gt; resolveAction(registry, a, ctx))   // (3) the ONE name → ToolResult map
-  sig     = Signature(by = step.by,                        // (4) the stamp — WHO, and under whose permission
-                      authority = authz.authorityOf(step.by, session))
+  sig     = Signature(by = by,                             // (4) the stamp — WHO, and under whose permission
+                      authority = authz.authorityOf(by, session))
   gated   = results.map(r -&gt; gate(r, sig, state, registry, authz))   // (5) PRE-FOLD, so the verdict commits
   (s, fx) = fold(state, gated, now, sig)                   // (6) pure call — decide
   index   = append(bus, StepRecord {                       // (7) COMMIT the step, not the pair
@@ -187,7 +188,7 @@ sealed Command(tool: ToolName, sig: Signature, id: CmdId) {  // the parent decla
 <pre><code class="language-plaintext">test "commit precedes perform, and the effect key comes from the committed index":
   clock = FakeClock(t0); ids = FakeIds([c1]); sink = RecordingSink()
   authz = ScriptedAuthority(Agent -&gt; "agent-run-7f")
-  boundary.onStepFinish(FinishedStep(by = Agent, staged = [],
+  boundary.agent(FinishedStep(staged = [],
     actions = [ Action("setPriority", { ticket: 4118, level: "High" }) ]))
   assert sink.log == [
     Append(StepRecord(schemaVersion = 2,                            // the envelope (14.7)

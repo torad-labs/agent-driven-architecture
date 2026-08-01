@@ -20,7 +20,6 @@ package adr.spine.agent
 import adr.spine.boundary.FinishedStep
 import adr.spine.boundary.Submit
 import adr.spine.pure.Action
-import adr.spine.pure.Actor
 import adr.spine.pure.Context
 import adr.spine.pure.Ctx
 import adr.spine.pure.RawInput
@@ -96,7 +95,10 @@ class AgentLoop<S>(
         step.toolCalls
             .takeIf { it.isNotEmpty() }
             ?.map { Action(ToolName(it.toolName), RawInput(it.input)) }
-            ?.let { submit(FinishedStep(by = Actor.Agent, staged = stagedOf(), actions = it)) }
+            // THE AGENT CHANNEL, and it is the only one this path can reach: the step
+            // it builds carries no Actor, so nothing that drove these tool calls can
+            // promote itself to Human or to the consumer's Spine.
+            ?.let { submit(FinishedStep(staged = stagedOf(), actions = it)) }
     },
 ) {
     /**

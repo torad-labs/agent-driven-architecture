@@ -51,8 +51,7 @@ import { must } from "../support/must";
 describe("G1 — the minted stamp is frozen", () => {
   it("the stamp on a committed record cannot be relabelled in place", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "recallAnalysis", input: { recall: "x", publishedAt: 1 } }],
     });

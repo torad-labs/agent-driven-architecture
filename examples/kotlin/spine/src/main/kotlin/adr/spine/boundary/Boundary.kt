@@ -16,9 +16,14 @@
 //    results were produced in step 3, before the signature existed. G1's
 //    two-unreconciled-actor-values problem cannot recur, because there is only one
 //    value and it is created after the tool has returned.
+//
+// AND NOTHING UPSTREAM OF STEP 4 CAN CHOOSE IT EITHER. `by` is a parameter of the
+// CHANNEL a caller was handed, never a property of the step it submits, so the value
+// fed to `authorityOf` is decided in this file and nowhere else.
 
 package adr.spine.boundary
 
+import adr.spine.pure.Actor
 import adr.spine.pure.Admission
 import adr.spine.pure.Context
 import adr.spine.pure.ContextBounds
@@ -98,7 +103,26 @@ class Boundary<S>(
     fun context(staged: List<StagedInput> = emptyList()): Context =
         projectContext(state, staged, contextBounds)
 
-    fun onStepFinish(step: FinishedStep) {
+    /**
+     * THE THREE CHANNELS, AND THEY ARE THE WHOLE PUBLIC STEP SURFACE. There is no
+     * `onStepFinish` any more, because one entry taking the Actor as an argument is
+     * one entry that lets its caller pick a principal — and `authorityOf` is asked
+     * about exactly that value.
+     *
+     * Each is handed to one owner at wiring, and the Actor it stamps is fixed HERE,
+     * in the only folder allowed to mint a `Signature` at all. §5.3's "decided by
+     * where it entered, never by what it asks for" stops being a convention and
+     * becomes the shape of a type: the payload has no property to ask with.
+     */
+    val human: Submit = Submit { commit(Actor.Human, it) }
+    val agent: Submit = Submit { commit(Actor.Agent, it) }
+    val spine: Submit = Submit { commit(Actor.Spine, it) }
+
+    /**
+     * PRIVATE, and that is the closure. `by` is a parameter of the CHANNEL and never
+     * of the payload, so the only values it takes are the three above.
+     */
+    private fun commit(by: Actor, step: FinishedStep) {
         // 1 — the ONLY clock read in the system (G9).
         val now = clock.now()
 
@@ -109,7 +133,9 @@ class Boundary<S>(
         val results = step.actions.map { actions.resolve(it, ctx) }
 
         // 4 — stamp WHO acted and resolve UNDER WHOSE PERMISSION, together, once (G1, G6).
-        val sig = Signature(by = step.by, authority = authority.authorityOf(step.by, session))
+        //     `by` came from the CHANNEL, not from `step`, so no caller decides which
+        //     principal the authority resolver is asked about.
+        val sig = Signature(by = by, authority = authority.authorityOf(by, session))
 
         // 5 — the gate, PRE-FOLD, keyed on the authority (G1/G6).
         val gated = results.map { irreversibility.check(it, sig, state) }

@@ -24,8 +24,7 @@ describe("the boundary — the one impure seam", () => {
       realPerform(keyed, mode);
     };
 
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
@@ -35,16 +34,14 @@ describe("the boundary — the one impure seam", () => {
 
   it("keys every effect from the COMMITTED step index and its position in the step", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [
         { tool: "setPriority", input: { ticket: "4118", level: "High" } },
         { tool: "noSuchTool", input: {} },
       ],
     });
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "Urgent" } }],
     });
@@ -59,8 +56,7 @@ describe("the boundary — the one impure seam", () => {
   it("commits the STEP — `now`, the stamp, the actions, the post-gate results and the context (G9)", () => {
     const h = harness({ start: 1000, step: 7 });
     const before = h.app.boundary.state;
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [perceived("inbox", "customer wrote in", "inbox-1")],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });
@@ -90,8 +86,7 @@ describe("the boundary — the one impure seam", () => {
 
   it("stamps `sig` AFTER every tool has returned — nothing upstream can forge it", () => {
     const h = harness();
-    h.app.boundary.onStepFinish({
-      by: "Agent",
+    h.app.boundary.agent.submit({
       staged: [],
       actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
     });

@@ -703,7 +703,7 @@ flowchart LR
   <div class="note steel"><span class="lab">WHAT THE STREAM BELONGS TO</span><p>&ldquo;Exactly one stream&rdquo; is scoped to a <strong>unit of work</strong> — one bus and one <a class="x" href="#concurrency-barge-in">serial consumer</a> per session, not one global stream for the whole deployment. Sessions are independent: they need no global order and a server agent runs many concurrently, each with its own bus. The tiers do not violate &ldquo;one serial consumer&rdquo; because a <a class="x" href="#tiered-cognition">deep tier never writes the fast tier's bus</a> — it publishes to the relay, and its conclusion enters the fast stream only as a fast-tier-issued <code class="i">Command</code> after recall and fold. Cross-session global ordering and causal consistency across independent streams are out of scope for this reference; if your product needs them, they are a layer above the per-session guarantee, not a property it provides.</p></div>
 
   <h3><span class="t">5.3</span>The stamp is applied at the boundary — never forged</h3>
-  <p>The one <code class="i">Signature</code> a step carries is <strong>minted in exactly one place</strong>: the <a class="x" href="#stateless-reducer-agent">boundary adapter</a>. It is not a parameter the agent can fill, and it is not a value the surface can choose. <em>Which</em> of the three <code class="i">Actor</code> values rides that one signature is a second question with a different answer: it is fixed by the path the step arrived on. The surface emits one intent per handler and the boundary stamps <code class="i">Human</code>; the agent's folded tool result is stamped <code class="i">Agent</code>; and a step the <a class="x" href="#concurrency-barge-in">serial consumer</a> authors on nobody's behalf — a conflation, a fault, a blown cancel deadline — is stamped <code class="i">Spine</code>. No path can mint another's identity — the surface cannot forge <code class="i">Actor.Agent</code>, the agent path cannot forge <code class="i">Actor.Human</code>, and neither of them can claim <code class="i">Actor.Spine</code>: which value a step carries is decided by where it entered, never by what it asks for. This is a load-bearing invariant, enforced by the <a class="x" href="#enforced-constraints">gate</a> (the <em>actor-stamped-at-boundary</em> guarantee), not a convention you are trusted to honor.</p>
+  <p>The one <code class="i">Signature</code> a step carries is <strong>minted in exactly one place</strong>: the <a class="x" href="#stateless-reducer-agent">boundary adapter</a>. It is not a parameter the agent can fill, and it is not a value the surface can choose. <em>Which</em> of the three <code class="i">Actor</code> values rides that one signature is a second question with a different answer: it is fixed by the path the step arrived on. The surface emits one intent per handler and the boundary stamps <code class="i">Human</code>; the agent's folded tool result is stamped <code class="i">Agent</code>; and a step the <a class="x" href="#concurrency-barge-in">serial consumer</a> authors on nobody's behalf — a conflation, a fault, a blown cancel deadline — is stamped <code class="i">Spine</code>. No path can mint another's identity — the surface cannot forge <code class="i">Actor.Agent</code>, the agent path cannot forge <code class="i">Actor.Human</code>, and neither of them can claim <code class="i">Actor.Spine</code>: which value a step carries is decided by where it entered, never by what it asks for. <strong>That is held by the shape of the seam, not by a check and not by a convention:</strong> a <code class="i">FinishedStep</code> carries no <code class="i">Actor</code> at all. The boundary mints one submission channel per value and hands each to exactly one owner, so a caller stamps whatever its channel stamps and has no field to ask with — and the compiler, not a reviewer, is what refuses the other spelling. Be precise about what that does <em>not</em> cover: the composition root builds the boundary, so it holds all three channels, exactly as it holds the authorization seam that decides which principal each value resolves to. A root is the trusted core in any capability system. Everything that is not the root — a tool, a fold arm, a turn, the surface, the agent loop — is closed. The <a class="x" href="#enforced-constraints">constraint table</a> records this as the <em>actor-stamped-at-boundary</em> guarantee and names the layer holding each half; the gate is not one of them, because the gate compares Authorities and never reads <code class="i">sig.by</code> at all.</p>
 
   <p><strong>Unstamped is not strong enough — an <code class="i">Actor</code> must be <em>unrepresentable</em> upstream of the boundary.</strong> "Only the boundary stamps it" is a rule about who writes a field; it says nothing about who may <em>declare</em> one. If a tool payload can carry a field of type <code class="i">Actor</code> at all, then a tool body can populate it, a fold arm can read it, and the system now holds two actor values per step — the boundary's stamp and the tool's copy — with nothing reconciling them. The boundary folds before it signs, so its stamp is causally incapable of correcting the copy. Close it by construction instead: <strong>no <code class="i">ToolResult</code> variant and no field of the read-only context has an <code class="i">Actor</code>-typed member, and none may gain one.</strong> A tool asking "who is asking?" is asking a question that has no answer yet — the answer is minted after it returns. The <a class="x" href="#enforced-constraints">gate</a> enforces this as a declaration rule, not a usage rule (<a class="x" href="#enforced-constraints">G1</a>): the type is import-denied in tool-facing code, so the forgery fails the one build command — a gate denial, to be precise about the layer, not a type error, and the suppression lock (<a class="x" href="#enforced-constraints">15.2</a>) is what keeps that denial un-silenceable from inside the tree. Downstream of the boundary the picture is different and safe — a folded slice may of course <em>hold</em> an actor value, because the fold arm copied it from the one signature the boundary minted. Two adjacent doors are closed for the same reason: the stamp has <em>exactly one production site</em> — both a copy of an existing stamp and a fresh value of the same shape would be a second one, and each port shuts those routes by its own means (<a class="x" href="#enforced-constraints">15.3</a> names them, and names the residue the type shape alone leaves open), and a fold arm cannot construct signed transport at all — a <code class="i">Command</code> stashed into a slice without crossing the bus would render as a decision no gate ever saw, so the one-production-site rule covers <code class="i">Command</code> construction alongside <code class="i">ToolResult</code>.</p>
 
@@ -862,7 +862,10 @@ classDiagram
     +observe() State
   }
   class Boundary {
-    +onStepFinish(results) void
+    +human Channel
+    +agent Channel
+    +spine Channel
+    -commit(by, step) void
     -mintId() Id
     -stampActor() Actor
     -perform(effects) void
@@ -1391,7 +1394,8 @@ flowchart LR
 │   ├── boundary/             #   THE ONE IMPURE SEAM
 │   │   ├── action            #     Action + the name-&gt;ToolResult map + the name-&gt;Command map (6.8)
 │   │   ├── gate              #     the PRE-FOLD irreversibility + authorization gate (14.3)
-│   │   └── boundary          #     onStepFinish: the ordered steps — resolve, stamp, gate, fold, commit, perform
+│   │   └── boundary          #     one channel per Actor; each commits the ordered steps —
+│   │                        #     resolve, stamp, gate, fold, commit, perform
 │   ├── concurrency/consumer  #   the SERIAL CONSUMER: the select, the two Input policies, bounded cancel (12.3)
 │   ├── agent/loop            #   the only SPINE file that names the agent-loop runtime (G3)
 │   ├── surface/controller    #   the ONE controller: one ViewModel stream + one onAction(Action) (G8)
@@ -1981,7 +1985,7 @@ flowchart TB
 inFlight = null
 
 // A turn reaches the system through ONE channel the consumer mints for it:
-//     submit(step) -> boundary.onStepFinish(step)   // gate -> fold -> commit -> perform
+//     submit(step) -> boundary.agent(step)      // the AGENT channel; gate -> fold -> commit
 // abandon() REVOKES that channel. An abandoned turn can no longer fold anything.
 
 // Per source, a CLOSED CHOICE — never a boolean. Default: DurableQueue (12.2).
@@ -2096,7 +2100,7 @@ sequenceDiagram
     CT--&gt;&gt;AG: text summary + signal hits
     AG-&gt;&gt;DT: record (tool returns payload)
     DT--&gt;&gt;AG: payload (mutates nothing)
-    AG--&gt;&gt;B: onStepFinish(step.actions)
+    AG--&gt;&gt;B: agent(step.actions)
     B-&gt;&gt;B: resolve actions to ToolResults · stamp Signature · gate
     B-&gt;&gt;RD: fold(state, results, now, sig)
     RD--&gt;&gt;B: newState + Effect.Recorded
@@ -2167,11 +2171,17 @@ arm(slice, r: SetPriorityResult, now, sig) -> (Slice, [Effect], [Notice]):
   // into the boundary's (State, [Effect]) contract.
 
 // 5 — THE BOUNDARY CALL  (the ONE place: clock, resolve, stamp, gate, fold, COMMIT, perform)
-onStepFinish(step):                        // step = { by: Actor, staged, actions: [Action] }
+// PUBLIC: one channel per Actor value. `human`, `agent` and `spine` each close over
+// their own value and call the PRIVATE commit below. The step carries no Actor, so a
+// caller stamps what its channel stamps — 5.3's invariant, as a type.
+human(step) = commit(Actor.Human, step);  agent(step) = commit(Actor.Agent, step)
+spine(step) = commit(Actor.Spine, step)
+
+commit(by, step):                          // step = { staged, actions: [Action] } — NO actor
   now     = clock.read()                                      // the ONE clock read in the system
   ctx     = Ctx(state, projectContext(state, step.staged, bounds))  // the third pure projection (6.11)
   results = step.actions.map { resolve(registry, it, ctx) }   // the name -> ToolResult map (6.8)
-  sig     = Signature(by = step.by, authority = authz.authorityOf(step.by, session))
+  sig     = Signature(by = by, authority = authz.authorityOf(by, session))
   gated   = results.map { gate(it, sig, state, registry, authz) }        // PRE-FOLD (14.3)
   (next, effects) = fold(state, gated, now, sig)              // the pure decision
   index   = append(StepRecord{ schemaVersion, now, sig,      // 14.7: the envelope rides the record
@@ -2184,7 +2194,7 @@ onStepFinish(step):                        // step = { by: Actor, staged, action
     perform(KeyedEffect(EffectKey(index, i), fx), LIVE)       // the key comes from the COMMITTED index</code></pre>
   </div>
 
-  <p>Read top to bottom and the seams the earlier sections taught in isolation are now visible as one flow: the tool returns raw inputs and cannot so much as <em>name</em> an actor (§5.3), the fold reads current state before it decides and emits its effect only on the success branch (§6.5), it derives <code class="k">supersedes</code> from its own state rather than trusting the tool (§4 division-of-labour), the effect is data not an action (§6 / §14.2), the actor and the authority are stamped exactly once (§5), and the append <em>returns</em> the index every effect key is built from — which is why <code class="k">perform</code> cannot run before the commit, structurally rather than by convention (§14.6). A human tap differs only in the value of <code class="k">step.by</code> at the top; every other byte of the committed record is identical.</p>
+  <p>Read top to bottom and the seams the earlier sections taught in isolation are now visible as one flow: the tool returns raw inputs and cannot so much as <em>name</em> an actor (§5.3), the fold reads current state before it decides and emits its effect only on the success branch (§6.5), it derives <code class="k">supersedes</code> from its own state rather than trusting the tool (§4 division-of-labour), the effect is data not an action (§6 / §14.2), the actor and the authority are stamped exactly once (§5), and the append <em>returns</em> the index every effect key is built from — which is why <code class="k">perform</code> cannot run before the commit, structurally rather than by convention (§14.6). A human tap differs only in which of the boundary's three channels it entered on at the top; every other byte of the committed record is identical.</p>
 </section>
 <section id="replay-and-recovery" class="rv">
   <div class="sec-head"><span class="num">14</span><h2>Replay, safety, and recovery</h2></div>
@@ -2401,7 +2411,7 @@ stateDiagram-v2
 EffectKey   = { step: StepIndex, index: Int }  // constructible ONLY at the boundary / in replay
 KeyedEffect = { key: EffectKey, effect: Effect }
 
-onStepFinish(step):
+commit(by, step):                              // reached through one of the three channels
   now     = clock.read()
   ...     // resolve -> stamp -> gate  (13.2 shows the full order)
   (newState, effects) = fold(currentState, gatedResults, now, sig)
@@ -2458,7 +2468,7 @@ onStepFinish(step):
     <table>
       <thead><tr><th>Id</th><th>Invariant</th><th>What it guarantees</th><th>Held today by</th></tr></thead>
       <tbody>
-        <tr><td class="r">G1</td><td>actor-stamped-at-boundary</td><td>Every <code>Command</code> carries its <code>Actor</code> <em>and</em> the <code>Authority</code> it was admitted under, paired on one <code>Signature</code>. Both are stamped only at the boundary and neither can be forged upstream — an <code>Actor</code> is <strong>unrepresentable</strong> before that point, not merely unstamped: no tool result and no field of the read-only context may declare one (<a class="x" href="#signed-command-bus">5.3</a>). The Actor answers <em>who acted</em>; the Authority answers <em>under whose permission</em>; the irreversible gate keys on the Authority, never on the Actor.</td><td><strong>Denying checks + behavior.</strong> One denying check holds the declaration rule (no Actor/Authority/Signature upstream); a second holds one production site for signed transport; the Kotlin stamp additionally ships without a <code>copy()</code> constructor, and the TypeScript one is a nominal class whose constructor only the boundary folder may name. Neither type shape closes the forge on its own — a generic helper launders any brand — so the TypeScript stamp is also frozen when minted, and a Command carrying a stamp other than the one its own step minted is refused at the boundary by identity. That the boundary <em>stamps correctly</em> is behavioral (the boundary tests).</td></tr>
+        <tr><td class="r">G1</td><td>actor-stamped-at-boundary</td><td>Every <code>Command</code> carries its <code>Actor</code> <em>and</em> the <code>Authority</code> it was admitted under, paired on one <code>Signature</code>. Both are stamped only at the boundary and neither can be forged upstream — an <code>Actor</code> is <strong>unrepresentable</strong> before that point, not merely unstamped: no tool result and no field of the read-only context may declare one (<a class="x" href="#signed-command-bus">5.3</a>). The Actor answers <em>who acted</em>; the Authority answers <em>under whose permission</em>; the irreversible gate keys on the Authority, never on the Actor.</td><td><strong>Denying checks + behavior.</strong> One denying check holds the declaration rule (no Actor/Authority/Signature upstream); a second holds one production site for signed transport; the Kotlin stamp additionally ships without a <code>copy()</code> constructor, and the TypeScript one is a nominal class whose constructor only the boundary folder may name. Neither type shape closes the forge on its own — a generic helper launders any brand — so the TypeScript stamp is also frozen when minted, and a Command carrying a stamp other than the one its own step minted is refused at the boundary by identity. WHICH <code>Actor</code> rides that stamp is no longer a claim the payload makes: a finished step carries none, and the boundary publishes one submission channel per value, so a caller stamps what its channel stamps. That the boundary <em>stamps correctly</em> is behavioral (the boundary tests); that a caller cannot ask for a different value is the shape of the step type, and the gate was never the layer that held it — it compares Authorities and never reads <code>sig.by</code>.</td></tr>
         <tr><td class="r">G2</td><td>tool-reads-context-only</td><td>A tool may read the agent context but never write to it. Results flow out as a returned payload, folded at the boundary.</td><td><strong>Denying check.</strong> The inner and middle rings import no I/O, await nothing, read no ambient environment. Neither language has an effect type, so purity is not a shape a signature can carry.</td></tr>
         <tr><td class="r">G3</td><td>loop-is-declaration</td><td>The agent loop is configuration only, no control flow, no business logic in the loop body or its lifecycle side-methods.</td><td><strong>Denying check.</strong> The loop fails the build at its first decision point. No type says a function body branches, so the absence of control flow is not declarable.</td></tr>
         <tr><td class="r">G4</td><td>domain-imports-nothing-foreign</td><td>The pure domain core imports no framework, transport, UI, or platform types. I/O lives only at the named edges.</td><td><strong>Denying check.</strong> §1.3's import table as an allow-list, and the rung above it is out of reach for a reason worth stating. A module declares what it may depend on, so an edge can refuse a foreign module — but where a package manager hoists one copy of every dependency to a single root, a bare third-party name resolves from inside any module that root reaches, declared there or not. One reference port draws that edge and the other cannot, so the allow-list is where this law is held.</td></tr>
@@ -2766,11 +2776,12 @@ fold(state, results, now, sig) -> (State, [Effect]):     // total; NO else arm (
       Unhandled         -> (state.withNotice(Rejected(now, r.tool, r.note)),  [Effect.Diag(r.note,   at = now)])
       Refused           -> (state.withNotice(Refused (now, r.tool, r.reason)),[Effect.Diag(r.reason, at = now)])
 
-boundary.onStepFinish(step):                   // the one impure seam; step carries ACTIONS, not results
+boundary.&lt;channel&gt;(step):                      // one impure seam, three channels; step carries
+  by      = the channel's own Actor            // ACTIONS, not results, and NO actor of its own
   now     = clock.read()
   ctx     = Ctx(state, projectContext(state, step.staged, bounds))  // the third projection (6.11)
   results = step.actions.map { resolve(registry, it, ctx) }      // name -> ToolResult (6.8)
-  sig     = Signature(step.by, authz.authorityOf(step.by, session))
+  sig     = Signature(by, authz.authorityOf(by, session))
   gated   = results.map { gate(it, sig, state, registry, authz) }         // PRE-FOLD (14.3)
   (s, fx) = fold(state, gated, now, sig)
   index   = append(StepRecord{ schemaVersion, now, sig, step.staged, step.actions,
