@@ -69,7 +69,14 @@ const ROOTS = ["examples", "wiki", ".github"] as const;
  *  SIXTEEN retired ids (A1, A2, A3x2, A4, A5x2, A6, F1x2, F4x3, F11, F13x2)
  *  because archiving them is what it is for, so admitting it would force either
  *  a path exemption that defeats the census or the deletion of the archive.
- *  Its counted claims are owned by the count-coherence check instead. */
+ *  Its counted claims are owned by the count-coherence check instead.
+ *
+ *  One consequence of the docs/ exclusion, stated so nobody re-derives it
+ *  wrong (a commit note once did): an ADR's own INTERNAL `§N` cross-references
+ *  are UNCHECKED here — not judged against the book, not judged against
+ *  anything. The qualified-reference rule guards how OTHER documents cite an
+ *  ADR; how an ADR cites itself is review's, by the same decision that keeps
+ *  the ratified record able to spell its own retired ids. */
 const EXTRA = ["laws.toml", "README.md", "CHANGELOG.md", "RELEASE-RITUAL.md"] as const;
 const SKIPPED = [
   ".git",
