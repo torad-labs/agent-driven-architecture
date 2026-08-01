@@ -279,6 +279,33 @@ signatures.
   so no block's predicate under-claims its own verbs. The general derive-`owns` hardening above is
   what remains genuinely open — the class of bug is still writable, this instance is not.
 
+## A7 · Signed transport can be copied, not only constructed — `open · named on both ports`
+
+**The rule both ports ship is a CONSTRUCTION rule, and copying is not construction.** Kotlin's C7
+has always named its half of this (`cmd.copy(…)` on a received command, `Rules.kt`); the TypeScript
+half is the object spread, `{ ...received }`, which carries the `outcome` key without writing it and
+so passes a selector keyed on the property. Measured on the live tree: the spread produces no
+message. The TypeScript comment previously claimed the opposite — that `outcome` being a required
+member meant no literal could be spelled without the key — which is true of a literal and false of a
+spread; that sentence is corrected, and this row is where the residue now lives.
+
+**Why it is not closed by widening the rule.** Denying `SpreadElement` inside an `ObjectExpression`
+in the pure buckets would redden legitimate code — `slice.ts:withPriority` spreads its own slice —
+and a rule that fires on idiomatic code is the nuisance §15.2 warns about, which authors turn off.
+The honest options are a type-level brand on the transport (the move D2 used for `Signature`) or a
+runtime identity check at the boundary; both are real work, neither is a comment.
+
+**What is NOT at risk, and why this is `open` rather than a blocker.** The stamp cannot be forged
+this way in either port: `Signature` is a class in TypeScript and a non-data class in Kotlin, so a
+copied Command or ToolResult carries its ORIGINAL signature, and the boundary's authority check
+still keys on that. What a copy buys is a transport whose payload was edited after signing — which
+replay detects, because the re-fold of the committed bytes disagrees with what was performed.
+
+**Direction.** Brand the transport types the way `Signature` is branded, so a copy is not
+assignable; then narrow C7's claim to construction, which is what it actually enforces.
+
+---
+
 ## Not in this file
 
 F1–F13 (the verified review findings) are handled by the remediation pass and tracked there. This file

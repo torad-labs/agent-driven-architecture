@@ -301,7 +301,9 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // §15.2, and the widened violating fixture cites G3 twice more.
   // +3 more (481 -> 484): the per-file denial map's rationale cites G1/G9/G12 —
   // the three clauses the review proved were deletable in silence.
-  "examples/typescript": 484,
+  // +1 (484 -> 485): C7's corrected NAMED RESIDUE paragraph cites §15.2 (why the
+  // spread is recorded rather than half-closed by a nuisance rule).
+  "examples/typescript": 485,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the

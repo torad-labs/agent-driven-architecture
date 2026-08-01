@@ -254,7 +254,9 @@ val CHECKS: List<Check> = listOf(
     // on a received command is a mint this text-level rule cannot see. The stamp
     // itself cannot be forged that way — Signature is not a data class — so a
     // copied Command carries its original sig; closing the rest structurally is
-    // ADR-001 §6.6's witness token.
+    // ADR-001 §6.6's witness token. The TypeScript port carries the SAME residue
+    // in its own spelling — an object spread, `{ ...received }` — and both are
+    // recorded together in OPEN-GAPS.md, under the signed-transport-copy row.
     Check("C7", "signed transport is constructed only in a tool and at the boundary") { files ->
         val variants = GateFacts().transportVariants(files)
         val allowed = { file: GateFile ->
@@ -393,10 +395,20 @@ val CHECKS: List<Check> = listOf(
     // written scope is what SOUND is judged against, and this one's is narrower than
     // the class. Resolved per file from its own imports and typealiases: the
     // union-qualified, aliased, typealiased, nested-class-imported and fully-qualified
-    // spellings, each counted on its own. NOT resolved: a WILDCARD import
-    // (`import adr.contract.*`), which puts every leaf in scope under a bare name this
-    // check cannot enumerate — an adversarial reviewer landed exactly that and the gate
-    // stayed green, on the third round of the same class after aliases and typealiases.
+    // spellings, each counted on its own. NOT resolved: the NESTED-STAR import
+    // (`import adr.contract.EscalationEffect.*`), which puts every leaf of ONE union in
+    // scope under a bare name this check cannot enumerate — on the third round of the
+    // same class after aliases and typealiases.
+    //
+    // NAME THE RIGHT SPELLING. This paragraph previously blamed the FLAT wildcard
+    // (`import adr.contract.*`), and a later review measured that claim false: the flat
+    // form IS resolved and reds the build. The form that actually walks past C17 is the
+    // nested star, and only from inside the union's OWN block — from anywhere else C2
+    // (no cross-block symbol import) catches it first. Both measured on the live tree:
+    // flat wildcard in triage/Project.kt -> C17 FAILED; nested star in
+    // escalation/Project.kt -> BUILD SUCCESSFUL. A residue paragraph naming a spelling
+    // the check does catch is worse than none: it sends the next author looking in the
+    // wrong place.
     //
     // WHY THAT RESIDUE IS NOT CLOSED HERE, AND WHERE IT IS. Konsist models
     // DECLARATIONS, not resolved expressions (Tree.kt's banner), so this check is a text
@@ -631,6 +643,13 @@ internal class GateFacts {
             if (path == fullyQualified) names += (alias ?: case)
             if (path == "$pkg.$union") unions += (alias ?: union)
             if (path == "$pkg.*") unions += union
+            // THE NESTED STAR, `import adr.contract.EscalationEffect.*`, which brings
+            // every leaf of one union into scope under its BARE name. A review measured
+            // this walking straight past C17 from inside the union's own block, where no
+            // other rule catches it; the flat wildcard above was already resolved, so
+            // the residue paragraph blamed the wrong form. Adding the bare case name is
+            // fail-CLOSED, exactly as the other spellings are.
+            if (path == "$pkg.$union.*") names += case
         }
         names += unions.map { "$it.$case" }
         file.typeAliases.forEach { (alias, right) ->
