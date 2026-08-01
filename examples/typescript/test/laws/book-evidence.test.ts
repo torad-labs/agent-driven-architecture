@@ -145,11 +145,13 @@ describe("wiki/index.html states architecture, never evidence about a port", () 
     // README states it" — the same pointing-away idiom the survivors use. The
     // census counts mentions, not violations; what it exists to catch is the
     // count moving WITHOUT a reason beside it.
-    // 18 -> 19: Fig 12.1's corrected caption says "both reference ports
-    // implement exactly that", which is the same DEFLECTION idiom the other
-    // survivors use — the figure now points at the ports rather than teaching a
-    // policy neither of them has.
-    expect(hits(book, PORT_FACT)).toBe(19);
+    // Back to 18. A first attempt at Fig 12.1 fixed the figure by describing
+    // what the demos do ("both reference ports implement exactly that"), which
+    // ADDS a port-fact to a document that must carry none: the book is the
+    // platform-generic specification and the two trees are demos judged against
+    // it, never the reverse. The figure now states the architecture's own
+    // conflation policy (§12.2) and names no implementation.
+    expect(hits(book, PORT_FACT)).toBe(18);
   });
 
   it("the evidence-verdict census is pinned EXACTLY, region and whole book", () => {

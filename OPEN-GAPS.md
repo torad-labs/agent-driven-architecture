@@ -342,6 +342,46 @@ tests and a compile is not one.
 
 ---
 
+## A10 · Neither demo draws the purity boundary the way the architecture specifies — `open`
+
+**Direction of this entry, stated because it is the whole point.** The book is the
+platform-generic specification; `examples/typescript` and `examples/kotlin` are demos showing how
+it could be done on two stacks. A divergence between them is therefore a finding against the DEMO,
+never an overclaim by the book, and it is closed by fixing a demo or by recording its gap here —
+never by narrowing an architectural law to one platform.
+
+**What the architecture specifies.** §4.6: a block is one folder holding TWO build units, and "the
+pair is unconditional — a block with no seam to the outside declares the leaf and leaves it empty".
+§7.8: "the purity boundary is drawn inside each block by the unit split, **not by a rule reading
+file names**", because the block's own unit permits the spine and nothing else, so there is no I/O
+for its pure tier to reach. §4.7 and §15.3's G10/G11 notes say the same. That is a coherent law and
+it is what makes package-by-feature safe: the boundary is held by the build, and the folder names
+are a legend for it rather than the thing itself.
+
+**Where each demo falls short, measured.**
+- The **TypeScript** demo ships ONE workspace package per block, so `adapter.ts` sits in the same
+  build unit as `fold.ts`. Its `exports` map and `tsconfig` references cannot separate them, and
+  the purity line is held instead by an eslint per-file rule keyed on the FILENAME — precisely the
+  mechanism §7.8 says the architecture does not use. The pair is not unconditional here; it does
+  not exist.
+- The **Kotlin** demo does ship the pair, and its convention plugin bans I/O libraries from the
+  pure module's classpath at configuration time — the specified mechanism, genuinely held. But its
+  file-level rules (C8's import ban, C1's allow-list) still key on file names inside the module, so
+  even here the unit split is not carrying the whole boundary on its own.
+
+**Why this is `open` and not a blocker.** Both demos DO keep I/O out of a block's pure tier — the
+guarantee holds in each, by different means. What neither fully demonstrates is the architecture's
+stated MECHANISM for it. A reader who takes the book's law and looks to a demo for the shape will
+find it in Kotlin and will not find it in TypeScript.
+
+**Direction.** Split each TypeScript block into two workspace packages (`@adr/block-x` and
+`@adr/block-x-adapter`), so the pure package's dependency list can omit every client library and
+the boundary is held by resolution rather than by a filename rule. That is the change that makes
+the TypeScript demo demonstrate the law it is shipped to demonstrate. Until then this row is what
+an honest reader is owed.
+
+---
+
 ## Not in this file
 
 F1–F13 (the verified review findings) are handled by the remediation pass and tracked there. This file
