@@ -254,7 +254,7 @@ val CHECKS: List<Check> = listOf(
     // on a received command is a mint this text-level rule cannot see. The stamp
     // itself cannot be forged that way — Signature is not a data class — so a
     // copied Command carries its original sig; closing the rest structurally is
-    // ADR-001 §6.6's witness token. The TypeScript port carries the SAME residue
+    // ADR-001 §6's witness token. The TypeScript port carries the SAME residue
     // in its own spelling — an object spread, `{ ...received }` — and both are
     // recorded together in OPEN-GAPS.md, under the signed-transport-copy row.
     Check("C7", "signed transport is constructed only in a tool and at the boundary") { files ->

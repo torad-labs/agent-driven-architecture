@@ -25,6 +25,7 @@ import { describe, expect, it } from "vitest";
 import { CHECKS } from "../../eslint.config.js";
 import {
   ANCHOR,
+  adrSections,
   BARE,
   bookSections,
   CID,
@@ -127,7 +128,18 @@ const lawIds = new Set(
   ),
 );
 
-const live = citationProblems(liveCorpus, sections, lawIds);
+/** Every OTHER normative document that owns a `§` namespace. Read off disk
+ *  rather than enumerated: a second ADR joins by existing. */
+const adrDocs = new Map(
+  readdirSync(join(REPO, "docs", "adr"))
+    .filter((f) => f.endsWith(".md"))
+    .map((f) => [
+      /^(ADR-\d+)/.exec(f)?.[1] ?? f,
+      adrSections(readFileSync(join(REPO, "docs", "adr", f), "utf8")) as ReadonlySet<string>,
+    ]),
+);
+
+const live = citationProblems(liveCorpus, sections, lawIds, adrDocs);
 
 /** Measured on the landed tree and pinned EXACTLY, the roster-pin idiom: any
  *  movement — up or down — is a deliberate one-line diff. A floor over a
