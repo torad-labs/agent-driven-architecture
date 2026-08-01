@@ -109,6 +109,9 @@ class ReplayTest {
         val replay = Replay(Assembly()::fold, app.admission)
         val records = app.bus.records()
         val whole = replay.refold(app.initial, records)
+        // The canonical session performs several effects, so an interior cursor
+        // must differ from the whole timeline on BOTH halves.
+        assertTrue(whole.effects.size > 1, "the fixture must discriminate on effects")
 
         for (k in 1 until records.size) {
             val cut = replay.stateAtStep(app.initial, records, k)
@@ -120,6 +123,15 @@ class ReplayTest {
                 replay.refold(app.initial, records.take(k)).state,
                 cut.state,
                 "k=$k must equal the re-fold of exactly that many records",
+            )
+            // AND THE EFFECTS HALF, which the KDoc promises in as many words: a
+            // scrub that shows state and hides the page it had already sent is a
+            // lie of omission. The first landing asserted state only, so
+            // suppressing every interior effect left the gate green.
+            assertEquals(
+                replay.refold(app.initial, records.take(k)).effects,
+                cut.effects,
+                "k=$k must re-derive exactly the effects that prefix produced",
             )
         }
     }
