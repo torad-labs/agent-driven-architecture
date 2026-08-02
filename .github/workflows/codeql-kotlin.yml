@@ -1,0 +1,67 @@
+# ---
+# MANAGED FILE — do not edit here.
+# Source: torad-labs/github-operator templates/codeql-kotlin.yml
+# Synced by `operator sync`; local edits are overwritten on the next sync.
+# ---
+# CodeQL for repos containing Kotlin or Java.
+#
+# Default setup CANNOT scan these repos' JVM code. It runs `autobuild`, autobuild
+# fails on a multi-module Gradle project, and GitHub then SILENTLY REMOVES
+# java-kotlin from the configured language list. The result is the worst kind of
+# green: code scanning reports success on every run while never looking at the
+# Kotlin at all. torad had 70 .kt files unscanned that way, agent-driven-
+# architecture 199 — and the check was passing the whole time.
+#
+# `build-mode: none` is buildless extraction, added for java-kotlin in CodeQL
+# 2.16. It analyses source without compiling, so no Gradle invocation, no
+# toolchain setup and no cache is involved. Less precise than a built database —
+# it cannot resolve every dependency type — but the alternative here is zero
+# coverage, and a partial scan that RUNS beats a complete one that is silently
+# skipped.
+#
+# Repos with a working `build-mode: manual` codeql.yml (aisdk-kotlin, splice) are
+# deliberately NOT given this file: a real build produces the better database.
+name: codeql-kotlin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Offset from the hour: a fleet-wide scan at :00 collides with every other
+    # scheduled job in the org.
+    - cron: '37 4 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-kotlin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (java-kotlin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      security-events: write # upload the SARIF results
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@0499de31b99561a6d14a36a5f662c2a54f91beee # v3.30.5
+        with:
+          languages: java-kotlin
+          # See the header: autobuild fails here and default setup responds by
+          # dropping the language entirely.
+          build-mode: none
+          queries: security-extended
+
+      - name: Analyze
+        uses: github/codeql-action/analyze@0499de31b99561a6d14a36a5f662c2a54f91beee # v3.30.5
+        with:
+          category: /language:java-kotlin
