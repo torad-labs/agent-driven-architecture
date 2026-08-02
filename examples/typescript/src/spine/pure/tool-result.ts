@@ -55,3 +55,48 @@ export function refused(tool: ToolName, reason: string): Refused {
 export function isSpineResult(r: ToolResultBase): r is SpineResult {
   return r.outcome !== "ok";
 }
+
+// ── WHICH RESULTS ARE MINE? — the block's half of the same question ─────────
+// The root dispatches an "ok" result by asking each block whether it owns it,
+// and TypeScript has no sealed sub-hierarchy to ask instead: the answer is a
+// type predicate, which the compiler TRUSTS rather than verifies. A predicate
+// whose body enumerated tool names by hand was therefore a fifth authoring site
+// with no watcher on it — leave it stale after adding a verb and `tsc` exits 0,
+// the lint exits 0, and the result reaches the root's unclaimed arm at run time.
+//
+// The predicate is now DERIVED from a table instead of written, and the table is
+// a mapped type over the block's OWN result union. That does not make the
+// predicate verified — nothing in this language can — but it makes the stale
+// half UNWRITABLE: the claim and the union are one edit.
+
+/** What a BLOCK contributes. The spine's own two cases are the only others, and
+ *  the spine folds those itself, so every case a block declares is an "ok" one. */
+export type OwnedResult = ToolResultBase & { readonly outcome: "ok" };
+
+/**
+ * THE CLAIM, as a table the compiler keeps EXACT IN BOTH DIRECTIONS.
+ *
+ * `Record<R["tool"], true>` is a mapped type over the block's own union's
+ * discriminant, so a FRESH object literal written against it cannot drift:
+ * omitting a case the union declares is a missing property, and naming one it
+ * does not declare is an excess property. Freshness is what buys the second
+ * half — an excess key is only an error on a literal at the call site, which is
+ * why `claims` takes the table as an argument rather than reading a `const`
+ * declared beside it.
+ */
+export type ToolClaim<R extends OwnedResult> = Readonly<Record<R["tool"], true>>;
+
+/**
+ * Derive a block's `owns` from its claim table.
+ *
+ * The returned predicate is a function of the two discriminants and NOTHING
+ * else — `outcome`, because the spine's own arm folds `unhandled` and `refused`
+ * before any block is asked, and `tool`, because 6.8 makes the tool name the
+ * discriminant of the result, the key of the registry and the name of the
+ * Command. A block that had to look at a payload field to recognise its own
+ * result would be saying the discriminant is not one.
+ */
+export function claims<R extends OwnedResult>(table: ToolClaim<R>): (r: ToolResultBase) => r is R {
+  const owned: ReadonlySet<ToolName> = new Set(Object.keys(table));
+  return (r: ToolResultBase): r is R => r.outcome === "ok" && owned.has(r.tool);
+}

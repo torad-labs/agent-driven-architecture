@@ -8,6 +8,7 @@ import type { CommandBase } from "@adr/spine/pure/command";
 import type { EffectBase } from "@adr/spine/pure/effect";
 import type { TicketId } from "@adr/spine/pure/ids";
 import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import { claims } from "@adr/spine/pure/tool-result";
 
 // ── ToolResult cases ────────────────────────────────────────────────────────
 export interface RequestEscalationResult extends ToolResultBase {
@@ -52,6 +53,13 @@ export interface PageOncall extends EffectBase {
 
 export type EscalationEffect = PageOncall;
 
-export function isEscalationResult(r: ToolResultBase): r is EscalationResult {
-  return r.outcome === "ok" && (r.tool === "requestEscalation" || r.tool === "confirmEscalation");
-}
+/** WHICH RESULTS THIS BLOCK'S ARM FOLDS, derived rather than written. The table
+ *  is a mapped type over the union above (`spine/pure/tool-result`), so a case
+ *  added there and a case claimed here are ONE edit: omit it and the property is
+ *  missing, name a tool the union does not declare and the property is excess.
+ *  The under-claiming predicate this used to be — green build, stale clause,
+ *  fall-through at run time — is not writable in this form. */
+export const isEscalationResult = claims<EscalationResult>({
+  requestEscalation: true,
+  confirmEscalation: true,
+});

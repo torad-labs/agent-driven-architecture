@@ -11,11 +11,21 @@
 // source tree, applies a shipped patch fixture, runs the real compiler, and
 // requires a non-zero exit naming EVERY consumer and nothing outside the block.
 //
-// TWO FIXTURES RIDE IT:
+// FOUR FIXTURES RIDE IT:
 //
 //   extra-ticket-status   a fifth STATE VARIANT   → 3 sites, all in blocks/escalation/
 //   novel-effect-kind     a second EFFECT KIND    → 2 sites: the owning block's
 //                         handler table, and the GATE's own totality ledger
+//   owns-under-claim      a block's `owns` DROPS a case its union declares
+//   owns-over-claim       a block's `owns` ADDS a case its union does not
+//
+// The last two are the pair that closes the one authoring site this port used to
+// leave unguarded. `owns` is derived from a claim table that is a mapped type
+// over the block's own result union, so the two ways a predicate could drift are
+// a missing property and an excess one — each proven must-fail here, each inside
+// the block's own folder. They are the COMPILER's half; the half no type can
+// state (that the union still matches the verbs the block REGISTERS) is the
+// ownership census in test/app/totality.test.ts.
 //
 // THE MEASUREMENT PROGRAM IS THE GATE'S OWN PROGRAM, and that is the whole of
 // this harness's second revision. It used to compile `include: ["src"]` with
@@ -76,7 +86,12 @@ interface Patch {
 }
 
 /** The fixture roster, and the claim each one earns. */
-const FIXTURES = ["extra-ticket-status", "novel-effect-kind"] as const;
+const FIXTURES = [
+  "extra-ticket-status",
+  "novel-effect-kind",
+  "owns-under-claim",
+  "owns-over-claim",
+] as const;
 
 const patchOf = (name: string): Patch =>
   JSON.parse(readFileSync(join(HERE, "fixtures", name, "patch.json"), "utf8")) as Patch;

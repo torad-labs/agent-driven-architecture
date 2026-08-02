@@ -13,6 +13,7 @@ import type { CommandBase } from "@adr/spine/pure/command";
 import type { EffectBase } from "@adr/spine/pure/effect";
 import type { TicketId } from "@adr/spine/pure/ids";
 import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import { claims } from "@adr/spine/pure/tool-result";
 
 export type Priority = "Low" | "Normal" | "High" | "Urgent";
 
@@ -90,8 +91,13 @@ export interface LogDecision extends EffectBase {
 
 export type TriageEffect = LogDecision;
 
-/** Which results this block's arm folds. The root dispatches on this, so a new
- *  VERB costs nothing at the root — only a new BLOCK does (16.1). */
-export function isTriageResult(r: ToolResultBase): r is TriageResult {
-  return r.outcome === "ok" && r.tool === "setPriority";
-}
+/** WHICH RESULTS THIS BLOCK'S ARM FOLDS, derived rather than written. The table
+ *  is a mapped type over the union above (`spine/pure/tool-result`), so a case
+ *  added there and a case claimed here are ONE edit: omit it and the property is
+ *  missing, name a tool the union does not declare and the property is excess.
+ *  The under-claiming predicate this used to be — green build, stale clause,
+ *  fall-through at run time — is not writable in this form.
+ *
+ *  The root still dispatches on this, so a new VERB costs nothing there; only a
+ *  new BLOCK does (16.1). */
+export const isTriageResult = claims<TriageResult>({ setPriority: true });

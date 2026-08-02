@@ -10,6 +10,8 @@
 // discriminant, which is what stops the runtime checkers beneath them going
 // vacuous — the exact failure C7's derivation shipped.
 
+import { readdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { MockLanguageModelV3 } from "ai/test";
 import { describe, expect, it } from "vitest";
 import { fold } from "../../src/app/assemble";
@@ -24,7 +26,13 @@ import {
   offlinePorts,
   wireApp,
 } from "../../src/app/wire";
+import { analysis } from "../../src/blocks/analysis/register";
+import { artifact } from "../../src/blocks/artifact/register";
+import { consoleBlock } from "../../src/blocks/console/register";
 import type { PageOncall } from "../../src/blocks/escalation/register";
+import { escalation } from "../../src/blocks/escalation/register";
+import { inbox } from "../../src/blocks/inbox/register";
+import { triage } from "../../src/blocks/triage/register";
 import { runTurn } from "../../src/spine/agent/loop";
 import { signResult } from "../../src/spine/boundary/action";
 import { handlerSink, movingClock } from "../../src/spine/boundary/in-memory";
@@ -33,8 +41,10 @@ import type { Handlers } from "../../src/spine/pure/effect";
 import { admit, ORPHAN_EFFECT } from "../../src/spine/pure/effect";
 import type { Timestamp } from "../../src/spine/pure/ids";
 import { keyedEffect } from "../../src/spine/pure/keyed-effect";
+import type { ToolResultBase } from "../../src/spine/pure/tool-result";
 import { refused } from "../../src/spine/pure/tool-result";
-import { handlerGaps } from "../gate/totality";
+import type { BlockOwnership } from "../gate/totality";
+import { handlerGaps, ownershipGaps, UNREGISTERED_TOOL } from "../gate/totality";
 import { AGENT_RUN, harness } from "../harness";
 import { must } from "../support/must";
 
@@ -169,6 +179,99 @@ describe("an unclaimed result folds observably instead of crashing (§6.5)", () 
     expect(notices[0]).toMatchObject({ kind: "Rejected", tool: "resolveTicket" });
     // no block slice advanced
     expect(out.state.triage).toEqual(state.triage);
+  });
+});
+
+// ── THE HARDENING OVER THAT FLOOR — `owns` is derived, and watched ────────
+// The floor above keeps an unclaimed result from crashing. It does not stop one
+// EXISTING: `owns` was a hand-kept clause, and a verb added without it left the
+// build green and the result unclaimed.
+//
+// TWO LAYERS CLOSE THAT, and neither is the other's spare. THE COMPILER holds
+// the union half: each predicate is now derived from a claim table that is a
+// mapped type over its own block's result union (`spine/pure/tool-result`), so a
+// case declared and a case claimed are one edit — proven must-fail in both
+// directions by the `owns-under-claim` and `owns-over-claim` fixtures in
+// test/gate/exhaustiveness.test.ts. THIS CHECK holds the half no type can: that
+// the union a block claims is still the set of verbs it REGISTERS. Between the
+// two there is nowhere left for the stale half to live.
+//
+// The census is the root's own allowlist beside the six published predicates,
+// and it is cross-checked against the block folders on disk — a seventh block
+// joins by existing, rather than by being remembered here.
+const BLOCKS_DIR = join(dirname(new URL(import.meta.url).pathname), "..", "..", "src", "blocks");
+
+type Owns = (r: ToolResultBase) => boolean;
+
+const OWNS: ReadonlyMap<string, Owns> = new Map<string, Owns>([
+  [triage.name, triage.owns],
+  [escalation.name, escalation.owns],
+  [consoleBlock.name, consoleBlock.owns],
+  [artifact.name, artifact.owns],
+  [analysis.name, analysis.owns],
+  [inbox.name, inbox.owns],
+]);
+
+const liveOwnership: readonly BlockOwnership[] = ALL_BLOCKS.map((registration) => ({
+  block: registration.block,
+  tools: registration.verbs.map((verb) => verb.name),
+  owns: must(OWNS.get(registration.block)),
+}));
+
+/** One block's predicate replaced, everything else the shipped census. The
+ *  block-halves below are INPUTS to the same checker the allow-half runs. */
+const withOwns = (block: string, owns: Owns): readonly BlockOwnership[] =>
+  liveOwnership.map((entry) => (entry.block === block ? { ...entry, owns } : entry));
+
+describe("ownership totality — a block claims exactly the verbs it registers", () => {
+  it("the census reads every block on disk, and the whole verb vocabulary", () => {
+    // A census that had quietly stopped reading the tree would report silence,
+    // which is the vacuous-check failure this repository has shipped before.
+    const onDisk = readdirSync(BLOCKS_DIR).sort();
+    expect(liveOwnership.map((b) => b.block).sort()).toEqual(onDisk);
+    expect([...OWNS.keys()].sort()).toEqual(onDisk);
+    // …and the vocabulary is this file's OWN compile-time ledger, derived rather
+    // than pinned a second time, so a verb costs no new out-of-folder site here.
+    expect(liveOwnership.flatMap((b) => b.tools).sort()).toEqual(Object.keys(EXPECTED).sort());
+  });
+
+  it("ALLOWS the shipped blocks — every `owns` matches its own registration", () => {
+    expect(ownershipGaps(liveOwnership)).toEqual([]);
+  });
+
+  it("DENIES a block whose `owns` UNDER-CLAIMS its own verb table", () => {
+    const stale = withOwns("console", (r) => r.outcome === "ok" && r.tool === "focusTicket");
+    expect(ownershipGaps(stale)).toEqual([
+      '"console" registers "setPanel" but its `owns` does not claim it',
+    ]);
+  });
+
+  it("DENIES a block that claims a verb a SIBLING registers", () => {
+    const greedy = withOwns(
+      "inbox",
+      (r) => inbox.owns(r) || (r.outcome === "ok" && r.tool === "setPriority"),
+    );
+    expect(ownershipGaps(greedy)).toEqual([
+      '"inbox" claims "setPriority" but registers no verb of that name',
+    ]);
+  });
+
+  it("DENIES a block that claims a name NOTHING in the system registers", () => {
+    const phantom = withOwns(
+      "triage",
+      (r) => triage.owns(r) || (r.outcome === "ok" && r.tool === UNREGISTERED_TOOL),
+    );
+    expect(ownershipGaps(phantom)).toEqual([
+      `"triage" claims "${UNREGISTERED_TOOL}" but registers no verb of that name`,
+    ]);
+  });
+
+  it("DENIES a predicate blind to `outcome` — the spine's two cases are never a block's", () => {
+    const blind = withOwns("triage", (r) => r.tool === "setPriority");
+    expect(ownershipGaps(blind)).toEqual([
+      '"triage" claims a result whose outcome is "unhandled" — the spine\'s own arm folds those, never a block',
+      '"triage" claims a result whose outcome is "refused" — the spine\'s own arm folds those, never a block',
+    ]);
   });
 });
 

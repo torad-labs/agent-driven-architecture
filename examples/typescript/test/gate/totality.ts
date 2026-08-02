@@ -17,7 +17,7 @@
 
 import { Signature } from "../../src/spine/pure/actor";
 import type { CommandBase } from "../../src/spine/pure/command";
-import type { ToolResultBase } from "../../src/spine/pure/tool-result";
+import type { ResultOutcome, ToolResultBase } from "../../src/spine/pure/tool-result";
 import type { Verb } from "../../src/spine/pure/verb";
 
 /** The shape C13 needs; `Registry<S>` satisfies it. */
@@ -78,4 +78,82 @@ export function handlerGaps(
     .filter((kind) => !declared.includes(kind))
     .map((kind) => `"${kind}" has a registered handler but is not a declared Effect kind`);
   return [...gaps, ...orphans];
+}
+
+// ── OWNERSHIP TOTALITY — the same question one seam EARLIER ───────────
+// The two checkers above ask whether the ROOT's tables are total. This one asks
+// whether each BLOCK's answer to "is this result mine?" still matches the verbs
+// that block registers, and it is the third totality question because the root
+// dispatches on that answer: `foldOk` walks the blocks asking `owns(r)`, and a
+// result no block claims reaches the unclaimed arm instead of a fold.
+//
+// IT IS A BEHAVIOURAL PROBE, NEVER A READ OF SOURCE. The predicate is EXERCISED
+// over the whole live vocabulary and the set it accepts is compared with the set
+// its block registers. Enumerating spellings has been defeated repeatedly in
+// this tree — an alias, a wildcard import, a computed key — and every one of
+// those defeats a reader. None of them survives being called.
+//
+// The predicate is probed on the TWO DISCRIMINANTS AND NOTHING ELSE, which is
+// itself part of the rule rather than a convenience: 6.8 makes the tool name the
+// discriminant of the result, the key of the registry and the name of the
+// Command, so a block that needed a payload field to recognise its own result
+// would be saying the discriminant is not one.
+//
+// Exported so the SAME function runs over the shipped blocks and over a census
+// with one block's predicate deliberately moved — one checker, two inputs, the
+// shape §15.2 requires of a check whose subject is VALUES.
+//
+// NAMED RESIDUE, because a probe is only as wide as its candidate set. The
+// vocabulary is the union of what the blocks THEMSELVES register, plus one
+// sentinel — so a predicate claiming a name that has vanished from every table
+// at once is visible to this checker only through that sentinel. That case is
+// not left uncovered, it is covered ONE SEAM OVER: a name a block can claim is
+// a name in that block's own union, `registryGaps` above refuses a declared
+// case with no registered verb, and the caller derives its declared set from
+// the app union's own discriminant. The two checkers close it together; neither
+// closes it alone, and this comment is here so that is a stated composition
+// rather than a gap a reader has to find.
+
+/** One block's answer to "which results are mine?", as data: the tool names its
+ *  own registration carries, and the predicate the root dispatches on. */
+export interface BlockOwnership {
+  readonly block: string;
+  readonly tools: readonly string[];
+  readonly owns: (r: ToolResultBase) => boolean;
+}
+
+/** A tool name no block registers. The probe carries it so that a predicate
+ *  claiming a name NOTHING in the system produces is caught — an over-claim
+ *  against the live vocabulary alone would miss it, because the vocabulary is
+ *  where the check gets its candidates from. */
+export const UNREGISTERED_TOOL = "unregisteredProbeTool";
+
+/** The spine's own two outcomes. A block never claims one: `foldOne` sends both
+ *  to the spine's arm before any block is asked. */
+const SPINE_OUTCOMES = ["unhandled", "refused"] as const;
+
+const probe = (outcome: ResultOutcome, tool: string): ToolResultBase => ({ outcome, tool });
+
+/** Every way a block's `owns` can have drifted from the verbs it registers.
+ *  Empty means each block claims exactly its own table and nothing else. */
+export function ownershipGaps(blocks: readonly BlockOwnership[]): readonly string[] {
+  const vocabulary = [...new Set([...blocks.flatMap((b) => b.tools), UNREGISTERED_TOOL])].sort();
+  return blocks.flatMap((b) => {
+    const registered = new Set(b.tools);
+    const claimed = vocabulary.filter((tool) => b.owns(probe("ok", tool)));
+    const under = [...registered]
+      .filter((tool) => !claimed.includes(tool))
+      .sort()
+      .map((tool) => `"${b.block}" registers "${tool}" but its \`owns\` does not claim it`);
+    const over = claimed
+      .filter((tool) => !registered.has(tool))
+      .map((tool) => `"${b.block}" claims "${tool}" but registers no verb of that name`);
+    const spine = SPINE_OUTCOMES.filter((outcome) =>
+      vocabulary.some((tool) => b.owns(probe(outcome, tool))),
+    ).map(
+      (outcome) =>
+        `"${b.block}" claims a result whose outcome is "${outcome}" — the spine's own arm folds those, never a block`,
+    );
+    return [...under, ...over, ...spine];
+  });
 }

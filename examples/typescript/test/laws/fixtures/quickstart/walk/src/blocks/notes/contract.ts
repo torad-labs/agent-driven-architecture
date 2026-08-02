@@ -6,6 +6,7 @@
 import type { CommandBase } from "@adr/spine/pure/command";
 import type { EffectBase } from "@adr/spine/pure/effect";
 import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import { claims } from "@adr/spine/pure/tool-result";
 
 /** APPEND 1 — the ToolResult case. */
 export interface AddNoteResult extends ToolResultBase {
@@ -36,9 +37,10 @@ export interface NoteLogged extends EffectBase {
 
 export type NotesEffect = NoteLogged;
 
-/** THE FIFTH EDIT TypeScript needs and its compiler will not check for you: a
- *  hand-kept predicate. Leave it stale and the build stays green while the verb
- *  falls through at run time. Kotlin has no equivalent hole. */
-export function isNotesResult(r: ToolResultBase): r is NotesResult {
-  return r.outcome === "ok" && r.tool === "addNote";
-}
+/** THE FIFTH EDIT TypeScript needs, and the one place its declared type is a
+ *  claim the compiler TRUSTS rather than verifies — which is why the claim is
+ *  DERIVED rather than written. The table's type is a mapped type over
+ *  `NotesResult`, so declaring a case above and claiming it here are ONE edit:
+ *  omit it and the property is missing, name a tool the union does not declare
+ *  and the property is excess. Kotlin has no equivalent site at all. */
+export const isNotesResult = claims<NotesResult>({ addNote: true });

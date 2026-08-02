@@ -243,10 +243,11 @@ leak entirely needs an unbounded join, which §12.3 itself calls exactly a hang.
 
 ---
 
-## A6 · TypeScript block dispatch trusts a predicate it cannot verify — `crash fixed · hardening open`
+## A6 · TypeScript block dispatch trusts a predicate it cannot verify — `done`
 
 **Found during independent verification of the A3–A5 pass, not by review.** Reproduced, fixed, and
-regression-tested; one half remains.
+regression-tested; the hardening that was the remaining half has since landed and is recorded at the
+foot of this entry. The record below is the original case, kept for its reasoning.
 
 `foldOk` dispatches by asking each block `owns(r)`. Those are hand-written type predicates
 (`isTriageResult` returns `r.outcome === "ok" && r.tool === "setPriority"`), and **TypeScript trusts a
@@ -268,16 +269,65 @@ Note the gate caught the first attempt at this fix: constructing the marker insi
 `[C7] a ToolResult may only be produced by a verb body or by the boundary`. That was correct — the
 fold does not mint transport — so the arm moved into the spine. The enforcement worked on its author.
 
-**Still open (the hardening).** `owns` should be *derived* from each block's verb table rather than
-hand-written, so it cannot go stale at all: `VerbSpec.name` is typed `R["tool"]`, so the table is
-already bound to the result variant at compile time, which would make adding a verb and updating the
-predicate the same edit. Attempted and reverted — the six blocks have different verb-function
-signatures.
+**LANDED (the hardening) — and the seam is not the one the first attempt reached for.** The reverted
+attempt tried to derive `owns` by CALLING each block's verb-table function, and died on the fact that
+the six take different arguments (`()`, `(read)`, `(tier)`). That is a real obstacle and it has not
+been re-attempted: the six verb-table signatures are untouched. The seam that IS uniform is the
+block's own **result union**, and it was one level away the whole time.
+
+`owns` is now derived rather than written. `spine/pure/tool-result.ts` publishes
+
+```ts
+export type ToolClaim<R extends OwnedResult> = Readonly<Record<R["tool"], true>>;
+export function claims<R extends OwnedResult>(table: ToolClaim<R>): (r: ToolResultBase) => r is R;
+```
+
+and each block writes `export const isConsoleResult = claims<ConsoleResult>({ focusTicket: true,
+setPanel: true });`. Because the parameter type is a mapped type over the block's own union and the
+argument is a fresh object literal, the table is **exact in both directions**: a declared case the
+table omits is a missing property, and a name the union does not declare is an excess property.
+Adding a result case and claiming it are therefore ONE edit — the first does not compile without the
+second, which is what "cannot go stale" needed to mean.
+
+**Proved, not asserted, in four places.**
+
+- *Compile-time, both directions.* `test/gate/fixtures/owns-under-claim/` drops a declared case from
+  the console block's table; `test/gate/fixtures/owns-over-claim/` adds an undeclared one to the
+  inbox block's. Each rides the existing `test/gate/exhaustiveness.test.ts` harness — real `tsc` over
+  a package farm — and asserts `errors: 1`, `perFile` 1, and `outOfFolder: []`. Measured on the
+  landed tree: `TS2345` (missing `setPanel`) and `TS2353` (excess `setPriority`), each in the block's
+  own `contract.ts` and nowhere else.
+- *Compile-time, on the ADOPTER TEMPLATE, which is a block folder like any other.* The quickstart
+  walk materialises a second copy of the template, appends a second verb at its four other declared
+  sites and deliberately omits the claim entry, and runs the template's own `npm run typecheck`. It
+  fails, with `TS2345` in `src/blocks/notes/contract.ts` and in no other file. Before the derivation
+  that exact mutation was FULLY GREEN — which is why the template is covered rather than assumed.
+- *Run-time, the half no type can state.* A block's claim being exact over its own union says nothing
+  about whether that union still matches the verbs the block REGISTERS. `ownershipGaps` in
+  `test/gate/totality.ts` exercises every published `owns` over the whole live vocabulary — plus a
+  name nothing registers — and compares the set each predicate accepts with the tool names on that
+  block's own registration. It is a behavioural probe rather than a read of source, so an alias, a
+  wildcard import or a computed key defeats none of it. Its allow-half and four block-halves are in
+  `test/app/totality.test.ts`; the census is cross-checked against the block folders on disk, so a
+  seventh block joins by existing.
+- *That the claim is DERIVED AT ALL, in every block folder on disk.* `undrivedOwns` in
+  `test/laws/roster-count.test.ts` reads every `<block>/contract.ts` under both block roots — the
+  port's own and the adopter template's — and denies any that does not derive its claim, OR that
+  declares a narrowing predicate of the form `(…): r is …` by hand. It denies the FORM rather than a
+  list of names, so renaming the predicate does not escape it; its violating half is a four-input
+  synthetic pair including exactly that renamed bypass.
+- *The floor is untouched.* `unclaimedArm` and its regression test still stand. What changed is that
+  reaching them by forgetting the predicate is no longer writable.
+
+**What is NOT closed, stated rather than implied.** `r is ConsoleResult` is still a claim TypeScript
+trusts. An author who bypasses `claims`, hand-writes a predicate AND edits `undrivedOwns` to stop
+watching is back at the original shape, and no type in this language can stop that. Kotlin needs none
+of these layers; `when (r) { is TriageResult -> }` is a compiler-verified check, and that asymmetry is
+the finding this entry has always carried.
 
 - ~~**`isAnalysisResult` is narrower than the analysis verb table.**~~ **Resolved by relocation:**
   `noteDrop`/`noteFault` now live in the inbox block's own contract, claimed by the inbox's `owns`,
-  so no block's predicate under-claims its own verbs. The general derive-`owns` hardening above is
-  what remains genuinely open — the class of bug is still writable, this instance is not.
+  so no block's predicate under-claims its own verbs.
 
 ## A7 · Signed transport can be copied, not only constructed — `open · named on both ports`
 

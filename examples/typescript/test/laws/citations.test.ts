@@ -327,7 +327,13 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // the three clauses the review proved were deletable in silence.
   // +1 (484 -> 485): C7's corrected NAMED RESIDUE paragraph cites §15.2 (why the
   // spread is recorded rather than half-closed by a nuisance rule).
-  "examples/typescript": 485,
+  // +3 (485 -> 488): the derived-`owns` hardening. `spine/pure/tool-result.ts`'s
+  // new banner cites 6.8 for why a block recognises its own result by the
+  // discriminant alone; `test/gate/totality.ts`'s ownership checker cites the
+  // same section for the same reason and §15.2 for the two-inputs-to-one-checker
+  // shape it is built in. The triage predicate's 16.1 sentence is REWRITTEN, not
+  // dropped, so it neither adds nor removes a credit. No citation was deleted.
+  "examples/typescript": 488,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the
@@ -451,7 +457,13 @@ const FILE_PIN: Record<string, number> = {
   // the 36-file spine roster to 37. The release check's own module, its test and
   // its eighteen fixture files are ABSENT from this count on purpose:
   // `examples/typescript/test/laws` is this census's one path-scoped exclusion.
-  "examples/typescript": 204,
+  // +2 (204 -> 206): the derived-`owns` hardening's must-fail PAIR —
+  // `test/gate/fixtures/owns-under-claim/patch.json` and
+  // `test/gate/fixtures/owns-over-claim/patch.json`, one per direction the claim
+  // table can drift. No source file was added: the derivation rides
+  // `src/spine/pure/tool-result.ts`, which already declared the base the six
+  // predicates narrow from, so the 37-file spine roster does not move.
+  "examples/typescript": 206,
   wiki: 10,
   // NEWLY PINNED alongside the resolvable bucket above, and +2 in the same
   // breath: CHANGELOG.md and RELEASE-RITUAL.md join laws.toml, README.md and

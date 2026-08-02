@@ -27,7 +27,7 @@
 // checker necessarily SPELLS the stale counts it denies, so scanning its own
 // source would make it deny itself.
 
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CHECKS } from "../../eslint.config.js";
@@ -353,5 +353,168 @@ describe("the spine roster count is coherent across every shipped document", () 
         SPINE_KT,
       ),
     ).toEqual([]);
+  });
+});
+
+// ── THE SAME FAILURE ONE MORE LAYER OVER: A STALE FORM, NOT A NUMBER ──────
+//
+// The two bands above deny a count the tree has stopped earning. This one denies
+// a SHAPE the tree has stopped earning, and it lives here rather than in a new
+// file because this is already the owner that walks examples/, wiki/, .github/,
+// README.md and OPEN-GAPS.md looking for statements the tree no longer supports.
+// A new file would have moved the citation census's per-root FILE pin for a
+// check that needed no new home.
+//
+// WHAT IT HOLDS. A block's `owns` predicate is DERIVED — `claims<XResult>({…})`
+// over a table whose type is a mapped type on the block's own result union — so
+// a case declared and a case claimed are ONE edit. That is a compiler property
+// and it is proven must-fail in both directions by the two
+// `test/gate/fixtures/owns-*-claim/` fixtures. But the compiler only holds it for
+// a predicate that USES the helper. Hand-write `(r: ToolResultBase): r is
+// XResult { … }` again and the whole property is gone SILENTLY: measured,
+// `tsc --noEmit` exits 0 and the ownership census in test/app/totality.test.ts
+// passes too, for as long as the hand-written body happens to be correct today.
+// Nothing else in either port can see that bypass.
+//
+// SO IT DENIES THE FORM, NOT THE NAME. A rule keyed on `isXResult` would be an
+// enumeration, and enumerations have been defeated in this tree by an alias, a
+// wildcard import and a computed key. The second pattern below matches ANY
+// user-defined type-guard signature, so renaming the predicate `ownsAnArtifact`
+// and aliasing it back to the conventional name does not escape it — that exact
+// bypass is one of the four inputs the DENY half runs, and it was measured to
+// pass `tsc` and the census before this check existed.
+//
+// SCOPED BY BLOCK ROOT, which is what keeps it clean without a suppression. The
+// spine's own `isSpineResult` is a legitimate hand-written predicate over a union
+// no block owns; it is out of scope BY CONSTRUCTION rather than by exemption,
+// because the spine is not a block root. Both roots are read: the port's own
+// blocks, and the adopter template's — a template is a block folder like any
+// other, and it is the one copy an adopter clones.
+//
+// AND THE PROSE THAT LANDING FALSIFIED. Deriving the claim made three shipped
+// sentences false in the present tense, two of them inside the same paragraph as
+// a sentence the landing rewrote. They are pinned below, ORDERED AFTER the
+// premise test on purpose: a tree that reverted the derivation must fail on the
+// premise — which names the file — rather than policing prose for a property the
+// tree no longer earns.
+
+/** A DERIVED claim: the helper applied to the block's own result union. */
+const DERIVED_OWNS = /export const is\w+Result = claims</;
+
+/** ANY user-defined type guard, whatever it is called AND however it is
+ *  declared. This is the FORM denial: it names no predicate, no result type,
+ *  and — after a review shipped an ARROW type guard straight past a version
+ *  that required the `function` keyword — no declaration syntax either. The
+ *  shape is the return-type annotation itself, `): x is T`, which every
+ *  spelling of a user-defined guard must carry; measured false-positive-free
+ *  over all live block contracts. */
+const HAND_WRITTEN_PREDICATE = /\)\s*:\s*\w+\s+is\s+\w+/;
+
+/** Every directory this repository treats as a block root. The contracts are
+ *  READ OFF DISK rather than listed, so a seventh block joins by existing. */
+const BLOCK_ROOTS = [
+  "examples/typescript/src/blocks",
+  "examples/typescript/test/laws/fixtures/quickstart/walk/src/blocks",
+] as const;
+
+const blockContracts = BLOCK_ROOTS.flatMap((root) =>
+  readdirSync(join(REPO, root))
+    .map((block) => join(REPO, root, block, "contract.ts"))
+    .filter((full) => existsSync(full))
+    .map((full) => ({ path: full.slice(REPO.length + 1), text: readFileSync(full, "utf8") })),
+);
+
+/** Every block contract whose ownership claim is not derived — because it does
+ *  not use the helper, or because it hand-writes a narrowing predicate anyway. */
+export function undrivedOwns(
+  files: readonly { readonly path: string; readonly text: string }[],
+): readonly string[] {
+  return files
+    .filter((f) => !DERIVED_OWNS.test(f.text) || HAND_WRITTEN_PREDICATE.test(f.text))
+    .map((f) => f.path);
+}
+
+/** Sentences the derived-`owns` landing made false in the present tense, each a
+ *  literal from the document it was removed from. A revert that puts one back is
+ *  a shipped document contradicting its own tree — the failure this file exists
+ *  for, in the one shape a count band cannot see. */
+const STALE_OWNS_PROSE: readonly { readonly path: string; readonly needle: string }[] = [
+  {
+    path: "examples/typescript/README.md",
+    needle: "hand-kept `is<X>Result` predicate that TypeScript will not check for you",
+  },
+  {
+    path: "wiki/example/06-blocks-and-root.html",
+    needle: "where the union is hand-written there is a fifth, unguarded edit (below)",
+  },
+  {
+    path: "wiki/example/06-blocks-and-root.html",
+    needle: "The one site the compiler does not name — a real hole, in one of the two ports",
+  },
+];
+
+describe("every block derives its ownership claim, and no document says otherwise", () => {
+  it("reads every block contract on disk, and every one derives its claim", () => {
+    // ANTI-VACUITY FIRST. A readdir that had stopped finding contracts would
+    // make the assertion under it pass by measuring air — which is exactly how a
+    // check in this tree once stayed green over nothing.
+    expect(blockContracts.length).toBeGreaterThanOrEqual(7);
+    expect(undrivedOwns(blockContracts)).toEqual([]);
+  });
+
+  it("DENIES a hand-written predicate — including one RENAMED and correct", () => {
+    // The violating half D5 requires, in this file's own in-checker idiom: one
+    // checker, several inputs. The third input is the bypass no name list
+    // catches — a CORRECT predicate under an unconventional name, aliased back
+    // to the conventional one. Measured: it passes `tsc --noEmit` and the
+    // ownership census, and is caught by nothing else in either port.
+    expect(
+      undrivedOwns([
+        { path: "a/contract.ts", text: "export const isAResult = claims<AResult>({ x: true });" },
+        {
+          path: "b/contract.ts",
+          text: 'export function isBResult(r: T): r is BResult {\n  return r.tool === "x";\n}',
+        },
+        {
+          path: "c/contract.ts",
+          text:
+            'export function ownsAC(r: T): r is CResult {\n  return r.tool === "x";\n}\n' +
+            "export const isCResult = ownsAC;",
+        },
+        { path: "d/contract.ts", text: "export type DResult = never;" },
+        {
+          // THE ARROW SPELLING — a review shipped exactly this past a pattern
+          // that required the `function` keyword. Same guard, second syntax.
+          path: "f/contract.ts",
+          text:
+            "export const isFResult = claims<FResult>({ x: true });\n" +
+            'export const ownsF = (r: T): r is FResult => r.tool === "x";',
+        },
+      ]),
+    ).toEqual(["b/contract.ts", "c/contract.ts", "d/contract.ts", "f/contract.ts"]);
+    // …and the input that ISOLATES the form denial from the name requirement: a
+    // contract that DOES derive its claim under the conventional name and hand-
+    // writes a narrowing predicate anyway. Only the second pattern sees it. That
+    // is what keeps the pair non-redundant rather than one dead regex beside a
+    // live one — measured: deleting `HAND_WRITTEN_PREDICATE` turns THIS
+    // assertion red and leaves the one above green, and deleting `DERIVED_OWNS`
+    // does the opposite by letting `d` (no predicate at all) through.
+    expect(
+      undrivedOwns([
+        {
+          path: "e/contract.ts",
+          text:
+            "export const isEResult = claims<EResult>({ x: true });\n" +
+            'export function ownsE(r: T): r is EResult {\n  return r.tool === "x";\n}',
+        },
+      ]),
+    ).toEqual(["e/contract.ts"]);
+  });
+
+  it("so NO shipped document may still say that site has no guard", () => {
+    const said = STALE_OWNS_PROSE.filter(({ path, needle }) =>
+      readFileSync(join(REPO, path), "utf8").includes(needle),
+    ).map(({ path, needle }) => `${path}  still states: "${needle}"`);
+    expect(said).toEqual([]);
   });
 });

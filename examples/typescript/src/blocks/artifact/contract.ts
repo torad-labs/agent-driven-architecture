@@ -11,6 +11,7 @@
 import type { CommandBase } from "@adr/spine/pure/command";
 import type { EffectBase } from "@adr/spine/pure/effect";
 import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import { claims } from "@adr/spine/pure/tool-result";
 import type { ArtifactLine } from "./slice";
 
 // ── ToolResult cases ────────────────────────────────────────────────────────
@@ -66,9 +67,14 @@ export interface DeliverArtifact extends EffectBase {
 
 export type ArtifactEffect = DeliverArtifact;
 
-export function isArtifactResult(r: ToolResultBase): r is ArtifactResult {
-  return (
-    r.outcome === "ok" &&
-    (r.tool === "recordFinding" || r.tool === "requestSeal" || r.tool === "confirmSeal")
-  );
-}
+/** WHICH RESULTS THIS BLOCK'S ARM FOLDS, derived rather than written. The table
+ *  is a mapped type over the union above (`spine/pure/tool-result`), so a case
+ *  added there and a case claimed here are ONE edit: omit it and the property is
+ *  missing, name a tool the union does not declare and the property is excess.
+ *  The under-claiming predicate this used to be — green build, stale clause,
+ *  fall-through at run time — is not writable in this form. */
+export const isArtifactResult = claims<ArtifactResult>({
+  recordFinding: true,
+  requestSeal: true,
+  confirmSeal: true,
+});
