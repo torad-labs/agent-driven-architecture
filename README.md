@@ -2,7 +2,7 @@
 
 **An opinionated, platform-agnostic architecture for software where the agent — not the human — is the primary operator.**
 
-When an autonomous agent drives an application instead of a person, the usual assumptions invert: the UI becomes a passive surface, and *every* action — whether a human tap or an agent tool-call — must be indistinguishable downstream. This repository is a short book about how to make that safe, testable, and replayable, plus a complete worked example that builds the whole thing one seam at a time.
+When an autonomous agent drives an application instead of a person, the usual assumptions invert: the UI becomes a passive surface, and *every* action — whether a human tap or an agent tool-call — must be indistinguishable downstream. This repository is a short book about how to make that safe, testable, and replayable, plus a complete worked example that builds the whole thing one seam at a time, plus two functional reference ports whose every architectural claim is enforced by a test.
 
 It is delivered the way Robert C. Martin's *Clean Architecture* teaches boundaries: a defined set of layers, a fixed nomenclature, a small set of invariants, and a single running example traced across every seam — *what each seam is, what crosses it, why it exists, and what breaks the moment you violate it.*
 
@@ -17,7 +17,7 @@ A human action and an agent action are the **same signed `Command`** on **one ap
 - **One impure seam.** A single *boundary adapter* mints identity, reads the clock, stamps the actor and the authority it acted under, commits the step, and only then performs its effects. Everything else — tools, the reducer, the view projection — is pure.
 - **A feature is a folder.** Each block owns its contract, its slice of state, its tools, its fold arm and its projection; you plug it in by naming it at one composition root and pull it out by deleting the folder. Nothing outside a block may name a symbol inside it.
 
-The payoff is measured on the ports, not asserted: a new verb is **four appended declarations** (TypeScript needs a fifth — a narrowing claim, derived from a table its compiler keeps exhaustive over the same union); a new state variant is one append plus **three sites the compiler names for you**. Where each append lands is a fact about a port, not about the architecture, Each port states its own measured counts — for a verb, for an effect kind and for a whole block — beside the command that recounts them, in its own README. A session re-folds from its committed bytes alone, a human override is free (it is the same command with a different actor), and a single bad inference cannot fire an irreversible effect.
+The payoff is measured on the ports, not asserted: a new verb is **four appended declarations** (TypeScript needs a fifth — a narrowing claim, derived from a table its compiler keeps exhaustive over the same union); a new state variant is one append plus **three sites the compiler names for you**. Where each append lands is a fact about a port, not about the architecture. Each port states its own measured counts — for a verb, for an effect kind and for a whole block — beside the command that recounts them, in its own README. A session re-folds from its committed bytes alone, a human override is free (it is the same command with a different actor), and a single bad inference cannot fire an irreversible effect.
 
 ---
 
@@ -25,11 +25,54 @@ The payoff is measured on the ports, not asserted: a new verb is **four appended
 
 | | |
 |---|---|
-| **The book** — [`wiki/index.html`](wiki/index.html) | The complete reference: the inversion, the signed command bus, the stateless-reducer agent, ports and adapters, the vendored-but-swappable spine, tiered cognition, concurrency and barge-in, replay and recovery, and the enforced invariants (G1–G16), with a fixed nomenclature — and an honest per-law map of which layer enforces each one today. |
+| **The book** — [`wiki/index.html`](wiki/index.html) | The complete reference: the inversion, the signed command bus, the stateless-reducer agent, ports and adapters, the vendored-but-swappable spine, tiered cognition, concurrency and barge-in, replay and recovery, effect classes, and the enforced invariants (G1–G16), with a fixed nomenclature — and an honest per-law map of which layer enforces each one today. The book is **platform-generic**: it names no language, framework, or tool. |
 | **The worked example** — [`wiki/example/`](wiki/example/index.html) | One running application — a support-ticket triage console — traced through every seam, Clean-Architecture style. An overview plus seven seam chapters, each running the same eight-slot template and ending in a "what breaks" anti-example. |
-| **The reference implementations** — [`examples/`](examples/) | Two *functional, compiling* ports of that same example, mirroring one tree: [`examples/typescript`](examples/typescript) on the Vercel AI SDK (v6) and [`examples/kotlin`](examples/kotlin) on the `aisdk-kotlin` runtime. Each builds and its tests pass — the pure core; a *live* run re-folded from its committed bytes alone, state and the full effect sequence with every timestamp intact; the irreversible-action gate sitting before the fold and comparing the confirming authority against the requesting one, so a self-confirm is refused and the refusal is itself committed; a barge-in mailbox whose consumer preempts a running turn — cancelled, joined under a deadline, then folded — and a second tier the fast loop reaches only through a recall tool that degrades to a *typed* last-known when the relay is slow, both proven on a virtual clock; and seventeen architecture checks that **deny**, each with a paired block-test and allow-test — sixteen over checked-in violating/compliant fixtures, the value-level registry check running one checker over the shipped registry and a deliberately thinned one — run by `npm test` and `./gradlew check`, and by CI on every push. |
+| **The reference implementations** — [`examples/`](examples/) | Two *functional, compiling* ports of that same example, mirroring one tree: [`examples/typescript`](examples/typescript) on the Vercel AI SDK (v6) and [`examples/kotlin`](examples/kotlin) on the `aisdk-kotlin` runtime. They are demos, judged against the book — never the reverse. |
 
 The book and the example share one program: the `Command` built in the boundary chapter is the one folded in the state chapter and replayed in the last — the same identifiers throughout.
+
+---
+
+## What the reference ports actually prove
+
+Each port builds and its tests pass, and the tests are not smoke checks — they perform the architecture's claims:
+
+- **The pure core** folds a command stream to state with zero I/O.
+- **A live run re-folds from its committed bytes alone** — state *and* the full effect sequence, every timestamp intact — so replay is proven, not promised.
+- **The irreversible-action gate** sits before the fold and compares the confirming authority against the requesting one, so a self-confirm is refused and *the refusal is itself committed*.
+- **Effect classes.** Every effect is `Routine` or `Irreversible`, and the refusal is a **property of the timeline**: admission is a pure rule applied in the *shared re-derivation*, so the live run, replay, and recovery agree by construction rather than by three code paths kept in step. A single bad inference cannot fire an irreversible effect on any of the three.
+- **A barge-in mailbox** whose consumer preempts a running turn — cancelled, joined under a deadline, then folded — with a conflation policy that is observable, never silent.
+- **A second cognitive tier** the fast loop reaches only through a recall tool that degrades to a *typed* last-known when the relay is slow — both proven on a virtual clock.
+- **A scrub cursor** that re-folds any prefix of the timeline, proven by exercise at both ends and in between — state *and* effects.
+
+---
+
+## How it's enforced — and how that's proven
+
+The architecture's central bet is that its invariants are held by **machine enforcement**, not by discipline. The first draft of the reference shipped *zero* checks — `Date.now()` inside a tool body and an `fs` import in the domain file both compiled clean. That is the failure this repository exists to prevent, and here is the machinery that prevents it.
+
+**Sixteen portable laws.** `laws.toml` at the repo root is the single source of truth for the invariants **G1–G16** — the dependency rule, one production site for signed transport, an `Actor` unrepresentable upstream of the boundary, a pure fold that cannot key an effect, closed matches with no catch-all, the effect-class admission rule, and the rest. The book's §15.3 enforcement table — including the normative *guarantee* column that says what each law means — is **generated from `laws.toml` and asserted byte-for-byte**, so the book and the registry cannot drift, and a guarantee cannot be quietly reworded.
+
+**Seventeen denying checks (C1–C17).** Each one **denies** — `npm test` and `./gradlew check` exit non-zero on a violation — and each ships **both a block-test and an allow-test**: a checked-in violating fixture it must reject *and* an idiomatic compliant one it must accept, so a rule cannot drift into a nuisance authors turn off. The block-test asserts a **per-file denial map**, so no clause of a multi-clause check can be deleted in silence. There is no warning tier and no baseline file.
+
+**Two structural walls, where a rule reading file names is not enough.**
+
+- **The purity boundary is drawn by the unit split, not by a filename rule.** Each block is *two build units* — a pure package and an adapter leaf — so a pure file reaching its own block's impure unit is a **resolution error from the real compiler**, not a lint message. The TypeScript port is a **14-package workspace** (`@adr/spine`, six blocks × a pure package plus an adapter package, and `@adr/app`); the Kotlin port is a **14-module Gradle build** whose convention plugins refuse a forbidden edge at configuration time, before a line compiles. Blocks with no seam to the outside declare the leaf and leave it empty — the pair is unconditional.
+- **A frozen public API (Kotlin).** ADR-001 §4's API freeze is wired: every module commits a `.api` dump, `apiCheck` rides `check`, and a public declaration the dump does not carry fails the build. The freeze cannot be hollowed out — the validator's own exemption switches are denied, so silencing it for one class is itself a violation.
+
+**Signed transport cannot be copied into the fold.** A signed `ToolResult` or `Command` may be *constructed* only in a verb body or at the boundary — that is one production site — and in the TypeScript port a copy of one (an object spread) is denied by the **type**, not by a lint rule: the transport carries a private brand no literal or spread can forge. The Kotlin residue (`copy()` on a data class) is tracked with a tripwire that reddens if it is ever closed silently.
+
+**Proven by mutation, not by assertion.** A gate that is green because it reads nothing is worse than no gate. Every wall in this repository was red-green proven: the mutation it is meant to catch was *run*, and the check was watched to fail on it. The reference ports each carry a small library of these — a forged spread, a hidden effect, a scrub cursor that ignores its bound, a lambda decision the type-aware rule can't see — kept as permanent negative cases.
+
+`npm test` and `./gradlew check` run all of this, and CI runs both on every push and pull request.
+
+---
+
+## How it was hardened
+
+The reference ports and the book were put through **two rounds of adversarial review**, each with six independent lenses (runtime semantics, gate integrity, document consistency, wall evasions, port parity, the adopter's path, and the build plumbing itself), and every finding re-run by two independent refuters that killed anything they could not reproduce. **Thirty-three findings survived and were all closed** — including a gate that deleted the evidence of its own violation, a gate that stopped running on a warm build, and a gate that could not see the code it guarded. The second round pointed its sharpest lens at the first round's own fixes, and caught two claims that outran what had landed.
+
+What remains genuinely open — a Kotlin transport-copy residue, an unwired `explicitApi()` half of the API freeze — is recorded in [`OPEN-GAPS.md`](OPEN-GAPS.md), each with measured evidence and a direction, and each with a mechanical tripwire so it cannot be forgotten or closed in silence. The book states no invariant its enforcement does not actually hold.
 
 ---
 
@@ -40,17 +83,12 @@ These are self-contained HTML documents (dark theme, diagrams, syntax-highlighte
 - **GitHub Pages**: <https://torad-labs.github.io/agent-driven-architecture/> — the root redirects to the book; the worked example is at `…/wiki/example/`.
 - **Locally**: clone the repo and open `wiki/index.html` in any browser. No build step, no dependencies — the only external resources are a web font, a syntax highlighter, and a diagram renderer loaded from a CDN, and each degrades gracefully offline.
 
-**Day one, if you would rather build than read.** Each port carries a step list that was walked end
-to end, and the two lists are held to different strengths — say which, because a single sentence
-covering both would overclaim one of them: the TypeScript list is re-executed end to end by the
-TypeScript gate, and the Kotlin list's every path, command, count and walked fact is resolved against
-the live tree by that same gate. A working one-verb app, from an empty repository, in about an hour.
-Pick yours —
+Suggested path: read the book's first chapters for the mental model and the line between what you write, what you vendor, and what you depend on, then walk the worked example `01 → 07` to see every seam made concrete, then return to the book's advanced sections as the problems they name come up.
+
+**Day one, if you would rather build than read.** Each port carries a step list that was walked end to end, and the two lists are held to different strengths — say which, because a single sentence covering both would overclaim one of them: the TypeScript list is re-executed end to end by the TypeScript gate, and the Kotlin list's every path, command, count and walked fact is resolved against the live tree by that same gate. A working one-verb app, from an empty repository, in about an hour. Pick yours —
 [`examples/typescript/README.md#day-one-a-working-one-verb-app`](examples/typescript/README.md#day-one-a-working-one-verb-app)
 or [`examples/kotlin/README.md#day-one-a-working-one-verb-app`](examples/kotlin/README.md#day-one-a-working-one-verb-app).
 The spine is a vendored template and nothing is published on any registry, so day one is a copy.
-
-Suggested path: read the book's first chapters for the mental model and the line between what you write, what you vendor, and what you depend on, then walk the worked example `01 → 07` to see every seam made concrete, then return to the book's advanced sections as the problems they name come up.
 
 ---
 
@@ -65,7 +103,7 @@ The architecture sits **on top of a generic agent-loop runtime** — any runtime
 ```
 .
 ├── wiki/                     ← the HTML "pages": the book + the worked example
-│   ├── index.html            ← the book (the reference)
+│   ├── index.html            ← the book (the reference — platform-generic)
 │   └── example/              ← the worked example
 │       ├── index.html        ← overview: the rings, the law, a Clean-Architecture mapping, the typical scenario
 │       ├── 01-state-and-fold.html … 07-replay-and-advanced.html
@@ -74,6 +112,11 @@ The architecture sits **on top of a generic agent-loop runtime** — any runtime
 ├── examples/                 ← functional reference implementations (runnable code)
 │   ├── typescript/           ← on the Vercel AI SDK (v6):  npm install && npm test
 │   └── kotlin/               ← on aisdk-kotlin (Maven Central):  ./gradlew check
+├── laws.toml                 ← the single source of truth for the sixteen invariants (G1–G16)
+├── docs/
+│   ├── DECISIONS.md          ← the ratified architecture-decision record
+│   └── adr/                  ← ADR-001: the compile-enforced seams
+├── OPEN-GAPS.md              ← what remains open, by decision — each with evidence and a tripwire
 ├── index.html                ← redirect → wiki/index.html (so the GitHub Pages root works)
 ├── README.md
 ├── LICENSE                   ← CC BY 4.0 (the writing)
@@ -97,10 +140,12 @@ src/
 │   ├── agent/loop            ← the only file that imports the agent-loop runtime
 │   ├── surface/controller    ← one ViewModel stream + one onAction(Action)
 │   └── replay/replay         ← refold · stateAtStep · collectPerform · contextDivergence
-├── blocks/                   ← THE LEAVES — one folder per feature, TWO build units each; `register` is
-│   │                           the one public symbol, and `adapter/` is a unit rather than a file, so a
-│   │                           block's pure half has no route to its impure one. The pair is
-│   │                           unconditional: a block with no seam declares the leaf and leaves it empty
+├── blocks/                   ← THE LEAVES — one folder per feature, and TWO build units each: a pure
+│   │                           unit and an adapter leaf, so a block's pure half has no route to its
+│   │                           impure one and the purity boundary is held by resolution rather than by
+│   │                           a rule reading file names. `register` is the one public symbol. The pair
+│   │                           is unconditional: a block with no seam declares the leaf and leaves it
+│   │                           empty. (TypeScript: a 14-package workspace. Kotlin: a 14-module build.)
 │   ├── triage/               ← contract · slice · tools · fold · project · register + adapter/ (empty)
 │   ├── escalation/           ← … + port · adapter/  (the block's frozen contract, and its one client)
 │   ├── console/              ← … + view-state       (presentation: folds AND signs, like any block)

@@ -404,7 +404,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // 35 -> 46: laws.toml's sixteen new `guarantee` fields carry the book's own
   // third-column sentences, which cite sections and G-laws as the book does.
   // The guarantee cell was the one cell of §15.3 with no mechanical owner.
-  root: 46,
+  // 46 -> 49: the root README's expanded enforcement section cites the book's
+  // §15.3 table, §8.2's capability contract and ADR-001 §4's API freeze — three
+  // sections it now points a reader at by name, each resolving to a real head.
+  root: 49,
   // NEWLY PINNED for the identical reason and in the same breath: `.github` was
   // a DECLARED root key with no pin, so the loop below — which iterates the PIN
   // map, never the live buckets — skipped it by construction. Measured: one
