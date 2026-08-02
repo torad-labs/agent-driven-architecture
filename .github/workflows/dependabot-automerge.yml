@@ -1,0 +1,135 @@
+# ---
+# MANAGED FILE — do not edit here.
+# Source: torad-labs/github-operator templates/dependabot-automerge.yml
+# Synced by `operator sync`; local edits are overwritten on the next sync.
+# ---
+# Auto-merge green Dependabot PRs (patch/minor; majors wait for a human).
+#
+# This is the CONSUMING half of the Dependabot standard. The operator distributed
+# .github/dependabot.yml — which OPENS PRs — on 2026-07-31 without this, and by
+# the next day 17 of 18 repos had no way to merge what Dependabot opened: 27
+# fully-green PRs sat untouched across the fleet. Opening PRs nobody merges is
+# worse than not opening them.
+#
+# SELF-CONTAINED on purpose. The reusable-workflow version of this cannot be used
+# by the public repos (splice, aisdk-kotlin, gateward, agent-driven-architecture)
+# — a public caller may only call a PUBLIC reusable workflow, and referencing a
+# private one poisons every fork with an unresolvable `uses:` that is raised at
+# queue time, before any `if:` can suppress it. Inlining is what makes this one
+# standard instead of two.
+#
+# SAFETY: `gh pr merge --auto` only ENABLES auto-merge; GitHub merges after the
+# base branch's required checks pass. On a repo with NO required checks that is
+# effectively an immediate merge — which is why the operator asserts branch
+# protection fleet-wide and the org ruleset supplies gates that apply everywhere.
+name: automerge
+
+on: pull_request
+
+permissions: {}
+
+concurrency:
+  group: dependabot-automerge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  # Anything the repo owner opens. Auto-merge only ARMS here — GitHub still
+  # waits for required checks — so this cannot merge anything red. Added
+  # 2026-08-01: covering only Dependabot left the owner's own green PRs sitting
+  # untouched (aisdk-kotlin #26 was CLEAN for hours with nothing to merge it).
+  # Auto-merge is for AUTOMATED pull requests only.
+  #
+  # This job used to arm auto-merge for any non-draft OWNER/MEMBER PR, which was
+  # written to un-strand green PRs and instead merged splice#75 — a real
+  # fix — before its review had landed and before the work was finished. Human
+  # PRs get reviewed; that is the entire point of opening one.
+  #
+  # "Automated" is deliberately narrow and matched two ways, because the author
+  # alone is not sufficient: a sync PR opened with a personal token carries a
+  # HUMAN login even though nothing about it is human. So:
+  #   * any Bot author (dependabot, renovate, the operator App), or
+  #   * the operator's own template-sync branch, whoever opened it.
+  # Anything else — a feature, a fix, a bugfix, a refactor — is not eligible,
+  # regardless of who wrote it or how green it is.
+  automated:
+    # Four ways to qualify as automated, because "a bot opened it" is not the
+    # only shape automation takes:
+    #
+    #   Bot author            dependabot, renovate, anything acting as an App
+    #   operator/* branch     the operator's own remediation PRs — a gitleaks
+    #                         allowlist fix or a fleet repair is automation work
+    #                         even when the token opening it belongs to a human,
+    #                         which is precisely the case this originally missed
+    #   the sync branch       the established name, kept so PRs already open
+    #                         under it are not stranded
+    #   `automated` label     explicit opt-in, and the only way a human PR can
+    #                         qualify. Applying it is a deliberate act; if the
+    #                         label does not exist in a repo the condition simply
+    #                         never matches, so this degrades to no-op rather
+    #                         than to an error.
+    #
+    # What still does NOT qualify: an ordinary feature, fix or bugfix branch,
+    # regardless of author or how green it is. splice#75 merged before its review
+    # landed because the old condition was `author_association`, which said who
+    # opened a PR and nothing about what it contained.
+    if: >-
+      github.event.pull_request.draft == false &&
+      (
+        github.event.pull_request.user.type == 'Bot' ||
+        startsWith(github.event.pull_request.head.ref, 'operator/') ||
+        github.event.pull_request.head.ref == 'chore/sync-workflow-templates' ||
+        contains(github.event.pull_request.labels.*.name, 'automated')
+      ) &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Arm auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          gh pr merge --auto --squash "$PR_URL"
+          echo "Auto-merge armed; GitHub merges once required checks pass." >> "$GITHUB_STEP_SUMMARY"
+
+  automerge:
+    # Gate on the ACTOR, not the branch name: a branch called
+    # `dependabot/anything` can be pushed by anyone, and this job holds
+    # contents: write.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # gh pr merge --auto
+      pull-requests: write
+    steps:
+      - uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        id: meta
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for patch and minor updates
+        # Majors are excluded deliberately: a grouped bump resolves to the highest
+        # semver change in the group, so a "stuck" green Dependabot PR is usually
+        # a major waiting for a decision, not a broken gate.
+        if: steps.meta.outputs.update-type != 'version-update:semver-major'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+        run: |
+          set -euo pipefail
+          gh pr merge --auto --squash "$PR_URL"
+          echo "Auto-merge armed (${UPDATE_TYPE}); GitHub merges once required checks pass." \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Explain why a major was left alone
+        if: steps.meta.outputs.update-type == 'version-update:semver-major'
+        env:
+          UPDATE_TYPE: ${{ steps.meta.outputs.update-type }}
+        run: |
+          echo "Left for a human: ${UPDATE_TYPE} is a major update." >> "$GITHUB_STEP_SUMMARY"
