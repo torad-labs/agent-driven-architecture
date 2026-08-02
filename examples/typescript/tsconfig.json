@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.base.json",
-  "//extends": "The shared options moved to tsconfig.base.json so the eight package tsconfigs inherit exactly what this program uses. This config stays the WHOLE-TREE program - src, test and the gate itself, no rootDir, no references - which is what `tsc --noEmit` checks and what eslint's project service resolves a test file against. The eight package programs are the WALL and run after it, as one `tsc -b` over tsconfig.wall.json.",
+  "//extends": "The shared options moved to tsconfig.base.json so the fourteen package tsconfigs inherit exactly what this program uses. This config stays the WHOLE-TREE program - src, test and the gate itself, no rootDir, no references - which is what `tsc --noEmit` checks and what eslint's project service resolves a test file against. The fourteen package programs are the WALL and run after it, as one `tsc -b` over tsconfig.wall.json.",
   "compilerOptions": { "noEmit": true },
   "//allowJs": "eslint.config.js IS the gate (§15.2). test/gate/gate.test.ts imports it so the block-tests and allow-tests run the SHIPPED rule objects rather than a copy — there is no second implementation to drift.",
   "include": ["src", "test", "eslint.config.js"],

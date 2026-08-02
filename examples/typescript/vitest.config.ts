@@ -15,8 +15,10 @@
 // The harness deletes it; an ABANDONED run does not, and vitest would then
 // EXECUTE the duplicates against a program that only resolves from the real root.
 //
-// Defence in depth, not a replacement: `exclude: ["**/*.test.ts"]` in the eight
-// package tsconfigs is what stops such a file being compiled in the first place,
+// Defence in depth, not a replacement: `exclude: ["**/*.test.ts"]` in every one
+// of the fourteen package tsconfigs that declares inputs is what stops such a
+// file being compiled in the first place — the three declared-empty adapter
+// leaves carry no `exclude` because `files: []` admits nothing to begin with —
 // and scripts/wall.mjs prunes `.tsbuild` on every run so nothing accumulates.
 
 import { defineConfig } from "vitest/config";

@@ -12,7 +12,7 @@ import { input, interrupt, isInput } from "@adr/spine/pure/mailbox";
 import { perceived } from "@adr/spine/pure/staged";
 import { refold } from "@adr/spine/replay/replay";
 import { MockLanguageModelV3 } from "ai/test";
-import { liveRelay } from "../blocks/analysis/adapter";
+import { liveRelay } from "../blocks/analysis/adapter/adapter";
 import { project } from "./assemble";
 import { initialState } from "./contract";
 import type { Narrator } from "./narrator";

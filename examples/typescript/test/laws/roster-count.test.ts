@@ -356,6 +356,305 @@ describe("the spine roster count is coherent across every shipped document", () 
   });
 });
 
+// ── THE SAME FAILURE A THIRD TIME: THE WORKSPACE PACKAGE ROSTER ───────────
+//
+// The two bands above close "a roster moved and the prose kept the old number"
+// for the check roster and for the spine roster. This one closes it for the
+// WORKSPACE roster, and it exists because that failure happened AGAIN — inside
+// the landing that gave every TypeScript block its second build unit. That
+// landing swept the package-count sentences by hand and reported all of them
+// reconciled; it had missed one, and the reason is mechanical rather than
+// careless: in `examples/typescript/vitest.config.ts` the sentence WRAPS, so the
+// number sits at the end of one comment line and its noun at the start of the
+// next, and no `grep` for the two words together can match across that break.
+//
+// So this band FLATTENS every file before it reads it — a newline plus the
+// comment marker that continues the sentence collapses to a single space. That
+// is the one step without which this check is silent over the very site it was
+// written for, which is why it is a corpus-preparation step and not an
+// afterthought inside the matcher.
+//
+// THE SIZE IS DERIVED, never re-typed: the `workspaces` globs in the port's own
+// `package.json`, expanded against the tree exactly as `test/gate/gate.test.ts`
+// expands them — splitting on the star wherever it falls, because the glob that
+// names every block's second build unit carries its star in the middle. A second
+// hand-list would be a second thing to keep true, and a stale second copy is the
+// defect this whole file exists to deny.
+//
+// THE BAND IS SIX, not the ±3 the two bands above use, and that is MEASURED
+// rather than chosen for symmetry. The move this check exists to catch was eight
+// -> fourteen, and eight is OUTSIDE fourteen ± 3: a ±3 band here reports nothing
+// at all, which would have shipped a check vacuous over its own motivating site.
+// Six is wide enough to contain the pre-landing eight and still narrow enough to
+// leave every per-thing count in the tree alone — the "one package" sentences
+// both ports write, and the "two packages" a block now genuinely is, all sit far
+// below the floor.
+
+/** The port whose workspace roster this band reads. */
+const TS_PORT = join(REPO, "examples", "typescript");
+
+/** THE ONE MEASURED SOURCE for this band, derived from the globs themselves. */
+const N_PACKAGES = (
+  JSON.parse(readFileSync(join(TS_PORT, "package.json"), "utf8")) as {
+    readonly workspaces: readonly string[];
+  }
+).workspaces.flatMap((glob) => {
+  const star = glob.indexOf("*");
+  if (star < 0) return [glob];
+  const head = glob.slice(0, star - 1);
+  const tail = glob.slice(star + 1);
+  return readdirSync(join(TS_PORT, head), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => `${head}/${entry.name}${tail}`);
+}).length;
+
+/**
+ * A COUNT STATEMENT ABOUT THE WORKSPACE ROSTER: a number — spelled or in digits
+ * — then at most one adjectival word, then `package`/`packages`. Same anatomy as
+ * `COUNT` above, with one deliberate difference: the adjective slot is ANY word
+ * rather than a list of the ones this tree happens to write today ("private",
+ * "workspace", "npm"). An enumerated slot is a spelling, and a spelling is what
+ * the next author's adjective defeats.
+ *
+ * `<n> packages per <thing>` is excluded by the trailing lookahead, because a
+ * RATIO is not a roster size. Today every per-thing count in the tree sits below
+ * the band anyway; the lookahead denies the FORM so the rule does not silently
+ * depend on that arithmetic staying true.
+ */
+const PACKAGE_COUNT = new RegExp(
+  `\\b(${WORDS.join("|")}|\\d{1,3})\\b(?:</strong>|</em>|</b>|&nbsp;|[-\\s])+(?:[a-z]+ )?packages?\\b(?!\\s+per\\b)`,
+  "gi",
+);
+
+/** A newline and whatever comment marker continues the sentence across it. */
+const CONTINUATION = /\n\s*(?:\/\/|\*|#)?\s*/g;
+
+type Scanned = {
+  readonly path: string;
+  readonly text: string;
+  readonly lineAt: (index: number) => number;
+};
+
+/** Flatten a file for matching, keeping a map back to its ORIGINAL lines so a
+ *  report still names a line a reader can open. */
+function flatten(path: string, source: string): Scanned {
+  const segments: { at: number; src: number }[] = [];
+  let text = "";
+  let last = 0;
+  for (const match of source.matchAll(CONTINUATION)) {
+    segments.push({ at: text.length, src: last });
+    text += `${source.slice(last, match.index)} `;
+    last = match.index + match[0].length;
+  }
+  segments.push({ at: text.length, src: last });
+  text += source.slice(last);
+  const lineAt = (index: number): number => {
+    let seg = { at: 0, src: 0 };
+    for (const candidate of segments) if (candidate.at <= index) seg = candidate;
+    return source.slice(0, seg.src + (index - seg.at)).split("\n").length;
+  };
+  return { path, text, lineAt };
+}
+
+/** Its own list rather than a share of `EXEMPT` above: widening that one would
+ *  quietly weaken the two bands already using it, and a loosened pin is a
+ *  defect even when the loosening is convenient. */
+const PACKAGE_EXEMPT: readonly { readonly path: string; readonly why: string }[] = [
+  {
+    path: "examples/typescript/test/laws/roster-count.test.ts",
+    why: "the checker's own source quotes the stale spellings it denies — the same reason the band above exempts it",
+  },
+  {
+    path: "examples/typescript/test/laws/citations.test.ts",
+    why: "its dated, append-only delta notes narrate PAST rosters: the two at :280 and :434 were written when the roster really was eight, and editing history to satisfy a band is the opposite of the record they keep",
+  },
+];
+
+/** `.json` and `.mjs` are in scope here and are not in the band above's, and
+ *  that is measured rather than tidy: the port's manifest, two of its tsconfigs
+ *  and the wall script all state this roster, so a scope that skipped them would
+ *  be reading half the corpus. */
+const PACKAGE_EXTENSIONS = new Set([
+  ".ts",
+  ".kt",
+  ".kts",
+  ".js",
+  ".mjs",
+  ".md",
+  ".html",
+  ".toml",
+  ".yml",
+  ".json",
+]);
+
+/** Every package-roster statement in the corpus that disagrees with the derived
+ *  roster. Same band discipline as `staleCounts`. */
+export function stalePackageCounts(corpus: readonly Scanned[], n: number): string[] {
+  const problems: string[] = [];
+  for (const file of corpus) {
+    if (PACKAGE_EXEMPT.some((e) => e.path === file.path)) continue;
+    for (const match of file.text.matchAll(PACKAGE_COUNT)) {
+      const said = numberOf(String(match[1]));
+      if (!Number.isFinite(said) || said === n) continue;
+      if (said < n - 6 || said > n + 6) continue;
+      problems.push(
+        `${file.path}:${file.lineAt(match.index)}  says ${said} packages; the roster is ${n}`,
+      );
+    }
+  }
+  return problems;
+}
+
+const packageCorpus = [
+  ...["examples", "wiki", ".github"].flatMap((root) =>
+    walk(join(REPO, root), [], PACKAGE_EXTENSIONS),
+  ),
+  ...["README.md", "OPEN-GAPS.md", "laws.toml"].map((name) => join(REPO, name)),
+].map((full) => flatten(full.slice(REPO.length + 1), readFileSync(full, "utf8")));
+
+describe("the workspace package roster is coherent across every shipped file", () => {
+  it("derives the roster from the globs, and the corpus is not empty", () => {
+    // Anti-vacuity, the same shape both bands above carry: a roster read as
+    // zero, or an empty corpus, would make every assertion below pass over air.
+    expect(N_PACKAGES).toBe(14);
+    expect(packageCorpus.length).toBeGreaterThanOrEqual(250);
+  });
+
+  it("no shipped file states a stale package roster count", () => {
+    expect(stalePackageCounts(packageCorpus, N_PACKAGES)).toEqual([]);
+  });
+
+  it("DENIES the pre-landing spelling — the band is not vacuous", () => {
+    // The block half over the SHIPPED corpus, the idiom both bands above use:
+    // ask the same function what it would report if the roster were still the
+    // eight it was before every block grew its second build unit. That is the
+    // move this band exists for, and the needles are where the tree states the
+    // roster — the port's manifest, both of its shared tsconfigs, its README,
+    // the wall script, the gate that pins the roster itself, and the gap record
+    // that tracked the split. Named rather than counted: at eight the band also
+    // legitimately reaches the "two packages" a block genuinely is, so a bare
+    // total would be brittle in a way the needles are not.
+    const said = stalePackageCounts(packageCorpus, 8);
+    expect(said.length).toBeGreaterThanOrEqual(10);
+    for (const needle of [
+      "examples/typescript/package.json",
+      "examples/typescript/tsconfig.json",
+      "examples/typescript/tsconfig.base.json",
+      "examples/typescript/README.md",
+      "examples/typescript/scripts/wall.mjs",
+      "examples/typescript/test/gate/gate.test.ts",
+      "OPEN-GAPS.md",
+    ]) {
+      expect(
+        said.filter((s) => s.startsWith(`${needle}:`)),
+        needle,
+      ).not.toEqual([]);
+    }
+  });
+
+  it("ALLOWS a ratio and a wrapped TRUE count — the guards that keep it usable", () => {
+    // Three real shapes, all in band. A count of packages PER something is a
+    // ratio and not a roster size, even when its number would otherwise land
+    // inside the window — that is the trailing lookahead, and without it the
+    // first line here reddens. A TRUE count that WRAPS must stay silent, which
+    // is what shows the flattening joins lines to read them rather than to
+    // redden them. And the roster's own number is never a problem, spelled or
+    // in digits.
+    expect(
+      stalePackageCounts(
+        [
+          flatten("x.md", "A tree shipping twelve packages per port is still one roster."),
+          flatten("y.ts", "// the fourteen\n// package tsconfigs inherit the base options"),
+          flatten("z.md", "Fourteen private packages, none of them published."),
+        ],
+        N_PACKAGES,
+      ),
+    ).toEqual([]);
+  });
+});
+
+// ── THE BLAST-RADIUS TABLE, DERIVED RATHER THAN TYPED ─────────────────────
+//
+// `examples/typescript/README.md` promises, in its own words, that "both
+// recounts are now reproducible from one command". This turns that promise into
+// a gate, and it is here because the landing that rewrote that table left TWO
+// numbers behind inside it: a row whose line-number cell was advanced by one
+// when the file it describes had moved by two, and a summary sentence still
+// stating the pair the table held BEFORE its last three rows were rewritten.
+// Both sat a few lines from edits the same diff did make, which is the whole
+// argument for reading them off the tree instead of off a careful author.
+//
+// SCOPE, stated so a later reader does not read it as an omission. This pins the
+// ONE number-class in that document with a mechanical source. Three of the six
+// rows describe files whose edit sites the README's own `grep` prints exactly,
+// and those three are checked cell for cell. The other three carry deliberate
+// exclusions and an en-dash range no command reproduces, so their cells stay
+// prose and only the COLUMN TOTALS they feed are checked. Making the whole
+// README self-checking would be a new invariant owing its own enforcement layer
+// under D5 (docs/DECISIONS.md:37), and it is a different item.
+
+/** The README's own recount command, as code. */
+const RECOUNT = /Inbox|inbox|noteDrop|noteFault/;
+
+const recount = (rel: string): readonly string[] =>
+  readFileSync(join(TS_PORT, rel), "utf8")
+    .split("\n")
+    .flatMap((line, i) => (RECOUNT.test(line) ? [String(i + 1)] : []));
+
+/** One row of the blast-radius table: file, edit sites, declared sites, lines. */
+const TABLE_ROW = /^\|\s*`([^`]+)`\s*\|\s*(\d+)\s*\|\s*(\d+)[^|]*\|([^|]*)\|\s*$/gm;
+
+describe("the README's blast-radius table is derived, not typed", () => {
+  const readme = readFileSync(join(TS_PORT, "README.md"), "utf8");
+  const rows = [...readme.matchAll(TABLE_ROW)].map((m) => ({
+    file: String(m[1]),
+    sites: Number(m[2]),
+    declared: Number(m[3]),
+    lines: String(m[4]).trim(),
+  }));
+
+  it("found the table, and it is the six-row one", () => {
+    // Anti-vacuity: every assertion below is silent over an empty parse.
+    expect(rows.map((r) => r.file)).toEqual([
+      "src/app/contract.ts",
+      "src/app/assemble.ts",
+      "src/app/wire.ts",
+      "src/app/package.json",
+      "src/app/tsconfig.json",
+      "tsconfig.wall.json",
+    ]);
+  });
+
+  it("states ONE pair of totals — the table and both sentences agree", () => {
+    const sites = rows.reduce((n, r) => n + r.sites, 0);
+    const declared = rows.reduce((n, r) => n + r.declared, 0);
+    const cost =
+      /\*\*Root cost: (\d+) edit sites across \d+ files, (\d+) of them declared sites\.\*\*/.exec(
+        readme,
+      );
+    const difference = /\*\*The difference between (\d+) and (\d+) is/.exec(readme);
+    expect(cost, "the root-cost sentence is present").not.toBeNull();
+    expect(difference, "the difference sentence is present").not.toBeNull();
+    expect([Number(cost?.[1]), Number(cost?.[2])], "root cost vs the table").toEqual([
+      sites,
+      declared,
+    ]);
+    expect(
+      [Number(difference?.[1]), Number(difference?.[2])],
+      "the difference sentence vs the table",
+    ).toEqual([sites, declared]);
+  });
+
+  it("the three mechanical rows print what the README's own command prints", () => {
+    for (const rel of ["src/app/package.json", "src/app/tsconfig.json", "tsconfig.wall.json"]) {
+      const row = rows.find((r) => r.file === rel);
+      const measured = recount(rel);
+      expect(row?.lines, `${rel} — the lines cell`).toBe(measured.join(", "));
+      expect(row?.sites, `${rel} — the edit-site count`).toBe(measured.length);
+    }
+  });
+});
+
 // ── THE SAME FAILURE ONE MORE LAYER OVER: A STALE FORM, NOT A NUMBER ──────
 //
 // The two bands above deny a count the tree has stopped earning. This one denies

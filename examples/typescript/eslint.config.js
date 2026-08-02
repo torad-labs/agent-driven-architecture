@@ -107,10 +107,16 @@ const EXTERNAL = "(?!@adr/)[^.].*"; //                       any client library,
  *  the package boundary subsumes ZERO. Ten are INTRA-SPINE-TIER (`spine/pure`
  *  may not import `spine/ports`) and the spine is one package, so no package
  *  edge exists to express them. Eight are INTRA-BLOCK PER-FILE (only `tools.ts`
- *  gets the schema DSL, only `adapter.ts` gets a client library, only a
+ *  gets the schema DSL, only the ADAPTER LEAF gets a client library, only a
  *  `*.test.ts` resident gets the shared rig) and npm cannot scope a dependency
  *  below package granularity — the same limitation the Kotlin port names for
- *  Gradle. One is the catch-all, which the wall does subsume in part. What the
+ *  Gradle. The adapter clause is the one that moved: the leaf is now its own
+ *  package, so WHERE the client library may live is a manifest fact and the pure
+ *  unit's dependency list omits it. What did NOT move is who can RESOLVE one —
+ *  npm hoists a single copy to the one root store, so a bare third-party name
+ *  still resolves from any file the root reaches, and this line is what denies
+ *  it. That is the same measurement test/laws/edges.test.ts pins as a negative
+ *  wall, and it is why the site count is still eight. One is the catch-all, which the wall does subsume in part. What the
  *  wall adds is a SECOND, earlier layer on the cross-package fragment; what it
  *  cannot do is carry this table. Deleting this check on schedule therefore
  *  means moving those eighteen sites onto a layer that does not exist yet, and
@@ -165,6 +171,18 @@ const C2 = [
 // against, §2.2's `Escalating(requestedBy)`), and a fold arm legitimately
 // receives the boundary's Signature. What may never happen is a ToolResult
 // variant with an Actor-typed member — which is what these files declare.
+// C2, RE-ANCHORED ONE LEVEL DEEPER for the adapter leaf. Same three routes, not
+// a relaxation: the `../` that means "a sibling block" from a block file means
+// "my own block" from inside the leaf, so the sibling is one segment further
+// out. `../../escalation/fold`, `../../../blocks/…` and the package name are all
+// still denied, and what the leaf gains is exactly its own block — the one edge
+// its package manifest and its `tsconfig` both declare.
+const C2_ADAPTER = [
+  { regex: "^\\.\\./\\.\\./(?!\\.\\./)", message: "[C2] an adapter leaf may not import a sibling block — blocks talk through the one folded State" },
+  { regex: "^\\.\\./\\.\\./\\.\\./blocks/", message: "[C2] an adapter leaf may not reach another block by path — blocks talk through the one folded State" },
+  { regex: "^@adr/block-", message: "[C2] an adapter leaf may not import a sibling block by package name either — the workspace links every package into one node_modules, so the sibling's published entry resolves and only this rule denies it" },
+];
+
 const C4 = [
   {
     regex: ".",
@@ -789,6 +807,15 @@ const blockImports = (allowed, extra = []) => [
 
 const BLOCK_ALLOWED = [SIBLING, BLOCK_PURE];
 
+// An adapter leaf is its own package, one level BELOW the block folder, so every
+// relative spelling shifts by one `../`: from inside `blocks/<X>/adapter/`,
+// `../port` is this leaf's OWN block and `../../<sibling>/` is a sibling. The
+// leaf may name its own block because the module graph already grants it that
+// edge — `tsconfig` references the block, npm declares `@adr/block-<x>`, and the
+// reach is redirected to that project's declarations exactly as the composition
+// root's is.
+const OWN_BLOCK = "\\.\\./[a-z0-9-]+"; //                     ../port  (from inside blocks/X/adapter/)
+
 // A block's isolation test now lives IN the block folder — residency is what
 // makes the block's internals visible to it and to nothing else, since the
 // package publishes only its registration. It is a RESIDENT rather than part of
@@ -964,11 +991,17 @@ export const gate = [
   // blocks/<X>/port — the block's private frozen contract.
   bucket(["**/src/blocks/*/port.ts"], { imports: blockImports(BLOCK_ALLOWED), syntax: [...C3, ...C7_LITERAL, ...C10, ...C11], globals: [...C3_GLOBALS, ...C8_GLOBALS] }),
 
-  // blocks/<X>/adapter — the ONLY impure file in a block; it may hold a client.
-  bucket(["**/src/blocks/*/adapter.ts"], {
+  // blocks/<X>/adapter/ — THE BLOCK'S IMPURE BUILD UNIT, its own package. The
+  // pure unit next door neither lists this folder nor references this project,
+  // so a pure file naming what lives here is TS6307 before it is a lint message:
+  // the purity boundary is drawn by the module graph, not by a rule reading file
+  // names. What stays here is the half an edge cannot express — an edge permits a
+  // WHOLE module, so it cannot say WHICH spine tier the leaf may name, and it
+  // cannot deny the sibling's published entry that npm's one store resolves.
+  bucket(["**/src/blocks/*/adapter/*.ts"], {
     imports: [
-      only("an adapter may import its own port, `spine/pure` and its own client library", SIBLING, BLOCK_PURE, EXTERNAL),
-      ...C2,
+      only("an adapter leaf may import its own block, `spine/pure` and its own client library", SIBLING, OWN_BLOCK, BLOCK_PURE, EXTERNAL),
+      ...C2_ADAPTER,
       ...C5_MINT,
       ...C5_TYPE,
       ...C6,

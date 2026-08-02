@@ -30,7 +30,7 @@
 // which is precisely the fact the third probe measures.
 //
 // THE COMPILER OPTIONS ARE READ, NOT RESTATED. `tsconfig.base.json` is the file
-// the eight package programs inherit, so the probe runs under the resolver the
+// the fourteen package programs inherit, so the probe runs under the resolver the
 // wall really uses; `moduleResolution` is asserted below, because a probe that
 // silently fell back to a different resolution algorithm would be measuring
 // nothing at all.
@@ -49,6 +49,11 @@ const PROBES = join(ROOT, "test", "gate", "fixtures", "edges");
 /** The three probe files, named once so the cleanup below cannot fall behind
  *  the set the tests drive. */
 const PROBE_NAMES = ["cross-block-deep", "cross-block-published", "foreign-library"] as const;
+
+/** The PURITY-EDGE pair, driven by the second harness below rather than by the
+ *  flat one above: a project boundary is invisible to a single-program compile,
+ *  so this pair only means anything under `tsc -b`. */
+const WALL_PROBES = ["pure-reaches-impure", "impure-reaches-its-port"] as const;
 
 /** Where a probe is planted: a block package that is NOT the one it reaches
  *  into. A file outside every package would still resolve the same specifiers,
@@ -81,6 +86,12 @@ const PACKAGES: Readonly<Record<string, string>> = {
   "block-escalation": "../../src/blocks/escalation",
   "block-inbox": "../../src/blocks/inbox",
   "block-triage": "../../src/blocks/triage",
+  "block-analysis-adapter": "../../src/blocks/analysis/adapter",
+  "block-artifact-adapter": "../../src/blocks/artifact/adapter",
+  "block-console-adapter": "../../src/blocks/console/adapter",
+  "block-escalation-adapter": "../../src/blocks/escalation/adapter",
+  "block-inbox-adapter": "../../src/blocks/inbox/adapter",
+  "block-triage-adapter": "../../src/blocks/triage/adapter",
 };
 
 function build(probe: string): string {
@@ -132,6 +143,9 @@ afterAll(() => {
   for (const probe of PROBE_NAMES) {
     rmSync(join(WORK, `edge-${probe}`), { recursive: true, force: true });
   }
+  for (const probe of WALL_PROBES) {
+    rmSync(join(WORK, `wall-${probe}`), { recursive: true, force: true });
+  }
 });
 
 describe("the configuration-time rung, measured rather than reasoned about", () => {
@@ -171,5 +185,90 @@ describe("the configuration-time rung, measured rather than reasoned about", () 
       expect(law?.layers, id).not.toContain(EDGE_LAYER);
       expect(law?.edges, id).toEqual([]);
     }
+  });
+});
+
+// ── THE PURITY EDGE, measured the only way it CAN be ──────────────────────
+//
+// §7.8 says the purity boundary inside a block is drawn by the unit
+// split and NOT by a rule reading file names. On this port that claim is about
+// two `tsconfig` projects, and a project boundary is invisible to the flat
+// program the harness above compiles: every file resolves every other one there,
+// which is exactly why `tsc --noEmit -p <dir>` cannot measure this. So this
+// harness runs the WALL — `tsc -b --force tsconfig.wall.json` over a copy of the
+// tree — which is the same build `npm run typecheck:wall` runs.
+//
+// THE PAIR, and the control is load-bearing for the same reason it is above:
+//   pure-reaches-impure       a pure file names its own block's adapter unit
+//                             → REFUSED, TS6307
+//   impure-reaches-its-port   the leaf names its own block's port
+//                             → RESOLVES, exit 0
+// Without the second, the first is satisfied by any compiler failure at all —
+// a bad copy, a missing base config, a broken symlink.
+//
+// MEASURED BEFORE THE SPLIT, so the delta is a number and not a story: with the
+// adapter inside the block's one package, the same reach passed `tsc --noEmit`,
+// passed `tsc -b`, passed eslint and passed biome. The whole gate was green over
+// a pure fold arm calling its block's live client. It is TS6307 now.
+//
+// `tsc -b` is a BUILD, so the copy gets its own `.tsbuild` under `.work/` and the
+// directory is removed in `afterAll` with the probes above. Measured: a TS6307
+// failure emits nothing beside the source — the rootDir-violating emission
+// scripts/wall.mjs sweeps is a different failure — so this harness leaves no
+// dropping for that sweep or for the gate's no-committed-emission walk to find.
+
+/** The wall harness's own copy: `src`, the base options every package extends,
+ *  and the solution file the wall builds. The `@adr` farm points at the COPY for
+ *  the same reason it does above — without it every package specifier would
+ *  resolve back into the real tree and the probe would measure a directory
+ *  nobody edited. */
+function buildWall(probe: string, host: string): string {
+  const dir = join(WORK, `wall-${probe}`);
+  rmSync(dir, { recursive: true, force: true });
+  mkdirSync(join(dir, "node_modules", "@adr"), { recursive: true });
+  cpSync(join(ROOT, "src"), join(dir, "src"), {
+    recursive: true,
+    filter: (from) => !from.includes("/.work"),
+  });
+  cpSync(join(ROOT, "tsconfig.base.json"), join(dir, "tsconfig.base.json"));
+  cpSync(join(ROOT, "tsconfig.wall.json"), join(dir, "tsconfig.wall.json"));
+  for (const [pkg, target] of Object.entries(PACKAGES)) {
+    symlinkSync(target, join(dir, "node_modules", "@adr", pkg), "dir");
+  }
+  const source = readFileSync(join(PROBES, `${probe}.ts`), "utf8");
+  expect(source, probe).toContain("import");
+  writeFileSync(join(dir, host, "probe.ts"), source);
+  return dir;
+}
+
+function buildSolution(dir: string): { code: number; output: string } {
+  try {
+    const output = execFileSync(
+      join(ROOT, "node_modules", ".bin", "tsc"),
+      ["-b", "--force", "tsconfig.wall.json"],
+      { encoding: "utf8", cwd: dir },
+    );
+    return { code: 0, output };
+  } catch (e) {
+    const err = e as { status?: number; stdout?: string; stderr?: string };
+    return { code: err.status ?? 1, output: `${err.stdout ?? ""}${err.stderr ?? ""}` };
+  }
+}
+
+const PURE_HOST = join("src", "blocks", "escalation");
+const LEAF_HOST = join("src", "blocks", "escalation", "adapter");
+
+describe("the purity boundary is the unit split, measured by the real compiler", () => {
+  it("REFUSES a pure file reaching its own block's impure unit — and RESOLVES the leaf reaching its own block's port", () => {
+    const refused = buildSolution(buildWall("pure-reaches-impure", PURE_HOST));
+    expect(refused.code).not.toBe(0);
+    expect(refused.output).toContain("TS6307");
+    // the message names the FOLDER, which is what makes this the unit split
+    // rather than an unrelated compile failure
+    expect(refused.output).toContain("adapter/adapter.ts");
+
+    const resolved = buildSolution(buildWall("impure-reaches-its-port", LEAF_HOST));
+    expect(resolved.output).toBe("");
+    expect(resolved.code).toBe(0);
   });
 });

@@ -97,12 +97,15 @@ src/
 │   ├── agent/loop            ← the only file that imports the agent-loop runtime
 │   ├── surface/controller    ← one ViewModel stream + one onAction(Action)
 │   └── replay/replay         ← refold · stateAtStep · collectPerform · contextDivergence
-├── blocks/                   ← THE LEAVES — one folder per feature; `register` is the one public symbol
-│   ├── triage/               ← contract · slice · tools · fold · project · register
-│   ├── escalation/           ← … + port · adapter   (the block's frozen contract, and its one client)
+├── blocks/                   ← THE LEAVES — one folder per feature, TWO build units each; `register` is
+│   │                           the one public symbol, and `adapter/` is a unit rather than a file, so a
+│   │                           block's pure half has no route to its impure one. The pair is
+│   │                           unconditional: a block with no seam declares the leaf and leaves it empty
+│   ├── triage/               ← contract · slice · tools · fold · project · register + adapter/ (empty)
+│   ├── escalation/           ← … + port · adapter/  (the block's frozen contract, and its one client)
 │   ├── console/              ← … + view-state       (presentation: folds AND signs, like any block)
-│   ├── artifact/             ← … + port · adapter   (the work product, as a folded slice)
-│   ├── analysis/             ← … + port · adapter   (the second tier: publish deep, recall fast)
+│   ├── artifact/             ← … + port · adapter/  (the work product, as a folded slice)
+│   ├── analysis/             ← … + port · adapter/  (the second tier: publish deep, recall fast)
 │   └── inbox/                ← …                    (the barge-in ledger: drops and faults, folded)
 └── app/                      ← THE ROOT — the only place that may name every block
     ├── contract              ← State (a product of slices) + the three closed unions

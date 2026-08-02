@@ -143,6 +143,12 @@ const PACKAGES: Readonly<Record<string, string>> = {
   "block-escalation": "../../src/blocks/escalation",
   "block-inbox": "../../src/blocks/inbox",
   "block-triage": "../../src/blocks/triage",
+  "block-analysis-adapter": "../../src/blocks/analysis/adapter",
+  "block-artifact-adapter": "../../src/blocks/artifact/adapter",
+  "block-console-adapter": "../../src/blocks/console/adapter",
+  "block-escalation-adapter": "../../src/blocks/escalation/adapter",
+  "block-inbox-adapter": "../../src/blocks/inbox/adapter",
+  "block-triage-adapter": "../../src/blocks/triage/adapter",
 };
 
 /** Copy the real tree into an in-project scratch dir (so `node_modules`

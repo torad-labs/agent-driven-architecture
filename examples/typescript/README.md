@@ -12,17 +12,27 @@ npm run demo        # a scripted model drives the real loop, end to end
 A check you have to invoke separately is not a gate, so `npm test` runs all three. The gate's own
 block-tests and allow-tests are vitest tests, so `npx vitest run` on its own exercises them too.
 
-`npm install` once before anything else: the tree is an **npm workspace** of eight private packages, and
-the wall below is nothing without the links `install` creates.
+`npm install` once before anything else: the tree is an **npm workspace** of fourteen private packages —
+the spine, a *pair* per block, and the composition root — and the wall below is nothing without the links
+`install` creates.
 
 ---
 
 ## The workspace wall — what is a resolution error, and what is still a lint message
 
-Every block is a package (`@adr/block-<x>`), the spine is a package (`@adr/spine`), the composition root
-is a package (`@adr/app`), and none of them is published. Each has a `tsconfig` with `composite: true`,
-which roots the project at the package folder, and a `references` list naming the only project it may
-see. `npm run typecheck:wall` builds that graph with `tsc -b --force`.
+Every block is **two** packages, both inside the block's own folder: its pure unit `@adr/block-<x>` and
+its adapter leaf `@adr/block-<x>-adapter`. The spine is a package (`@adr/spine`), the composition root is a
+package (`@adr/app`), and none of them is published. Each has a `tsconfig` with `composite: true`, which
+roots the project at the package folder, and a `references` list naming the only projects it may see.
+`npm run typecheck:wall` builds that graph with `tsc -b --force`.
+
+The pair is **unconditional**, which is §4.6's wording taken literally: three of the six blocks own no live
+client today and still ship a leaf, declared and empty. A declared-empty project is spelled `"files": []` by
+convention rather than by enforcement — **measured** on TS 6, a `references` list (which every leaf carries)
+suppresses the empty-input diagnostic for either spelling, so `include: []` builds just as clean, and the two
+differ only where references are absent, symmetrically: `include: []` is `TS18003` and `files: []` is
+`TS18002`. That `references` list still states what the unit may depend on, which is the declaration the leaf
+exists to carry.
 
 Measured against the standing workspace, one probe file per row, `tsc -b` exit code recorded:
 
@@ -33,24 +43,59 @@ Measured against the standing workspace, one probe file per row, `tsc -b` exit c
 | `@adr/block-escalation/fold` | 2 | **denied** — TS2307: the sibling's `exports` map publishes no such subpath |
 | `@adr/block-escalation/adapter` | 2 | **denied** — TS2307, for the same reason: `./adapter` is NOT published either |
 | `@adr/block-escalation` | 2 | **denied** — TS2307: a block package has no `.` export, only `./register` |
-| `@adr/app` | 2 | **denied** — TS2307: the root publishes no exports at all |
+| `@adr/block-escalation-adapter` | 2 | **denied** — TS2307: an adapter leaf's `exports` map is `{}`, so no specifier reaches it |
+| `@adr/app` | 2 | **denied** — TS2307: the root's `exports` map is `{}` too |
 | `../../spine/pure/ids` | 0 | resolves — a relative reach into a **referenced** project is redirected to its declarations; `references` is the permission list, and check C1 is what keeps the block on `@adr/spine/pure` |
 | `@adr/spine/boundary/boundary` | 0 | resolves — an `exports` map cannot vary by consumer, so tier permission stays check C1's job |
 | `@adr/block-escalation/register` | 0 | resolves — **the one cross-block route the wall cannot close** |
 
-That last row is the honest limit and it is why the hand-rolled import checks are marked for sunset in
-`v0.3.0` rather than deleted now. npm links every workspace package into the single root `node_modules`,
+That last row is the honest limit and it is why the hand-rolled import checks are marked for sunset at
+`spine-2` rather than deleted now. npm links every workspace package into the single root `node_modules`,
 and neither an `exports` map nor a `tsconfig` reference can make a package's *published* entry visible to
 one consumer and invisible to another. Check C2 is what denies it, and the release that deletes C2 owes
 that route a replacement layer. The same measurement is why C1 survives: of its nineteen allow-list sites
 the package boundary subsumes none — ten are intra-spine-tier and the spine is one package, eight are
-intra-block per-file and npm cannot scope a dependency below package granularity.
+intra-block per-file and npm cannot scope a dependency below package granularity. The unit split moved
+*where* a client library may be declared, not *who* can resolve one; the second half is the hoisted root
+store, and C1 is what denies it.
 
-A block publishes **exactly one** subpath, `./register`. The composition root still binds each block's
-live client, and it does so by reaching `../blocks/<x>/adapter` **relatively** — legal because `app`
-references every block, so the reach is redirected to that project's declarations rather than resolved
-through its `exports` map. Publishing an `./adapter` subpath instead would have widened the row above
-from one bare route to two.
+`{}` rather than a missing field, and the difference is the wall rather than a formality. **Measured:** a
+manifest with *no* `exports` key does not deny a subpath at all — it falls back to directory resolution, so
+`@adr/block-escalation-adapter/adapter` and `@adr/app/contract` both resolved clean from inside a sibling
+block. The empty map is `TS2307` for every specifier.
+
+A block's pure unit publishes **exactly one** subpath, `./register`; its leaf publishes none. The
+composition root still binds each block's live client, and it does so by reaching
+`../blocks/<x>/adapter/adapter` **relatively** — legal because `app` references both halves of every pair,
+so the reach is redirected to that project's declarations rather than resolved through an `exports` map.
+Publishing a subpath for the leaf instead would have widened the row above from one bare route to two.
+
+### The purity edge — a block's own two units
+
+§7.8 says the boundary between a block's pure tier and its impure one is drawn by the unit split and *not*
+by a rule reading file names. On this port that is these four rows, measured the same way:
+
+| probe | exit | verdict |
+| --- | --- | --- |
+| from `blocks/escalation` (the pure unit), `./adapter/adapter` | 2 | **denied** — TS6307: the pure project neither lists that folder nor references the project that does |
+| from `blocks/escalation/adapter` (the leaf), `../port` | 0 | resolves — a relative reach into a **referenced** project, the same mechanism the root uses to reach the leaf |
+| from the leaf, `../../artifact/fold` | 2 | **denied** — TS6059 + TS6307: a sibling block, one segment further out than it is from a block file |
+| from the leaf, `../../../app/contract` | 2 | **denied** — TS6059 + TS6307, same mechanism |
+
+The first row is the one that moved. Before the split, `fold.ts` importing and *calling* `./adapter`
+passed `tsc --noEmit`, passed the wall, passed `eslint` and passed `biome` — check C1's own allow-list
+listed `./<sibling>` and an adapter was a sibling file. That reach is a resolution error now, and
+`test/laws/edges.test.ts` builds the wall over a copy to keep it one, with its control beside it.
+
+**What the split does not buy, stated because the row above is easy to over-read.** A *third-party* client
+library still resolves from a pure file: npm hoists one copy of every dependency to the single root store,
+and no `exports` map, `tsconfig` reference or `paths` mapping can unsee it (measured — a catch-all `paths`
+entry falls back to node resolution). What the pure unit's manifest can do, and now does, is **omit** it,
+while the leaf's manifest is the one that MAY declare one — the split bought a HOME for a client, not a
+client. No demo block needs real IO, so none declares a third-party library today; the point is that
+when one does, the pure unit cannot be where it lands. So the *declaration site* is the graph's and the *denial* is still check C1's — the
+same asymmetry `test/laws/edges.test.ts` pins as a permanent negative wall, and the reason the
+foreign-import law keeps the lower rung in `laws.toml`.
 
 A block's test lives **in the block folder**, which is what makes the block's internals visible to it and
 to nothing outside: the package publishes only `./register`, so no bare specifier reaches `fold.ts` at
@@ -77,12 +122,12 @@ src/
 │   ├── surface/            ONE ViewModel stream + ONE onAction sink — nothing else public
 │   ├── concurrency/        the BARGE-IN loop (12) and the relay's read side: consumer · in-memory
 │   └── replay/             refold · stateAtStep · collectPerform · contextDivergence
-├── blocks/                 THE LEAVES — one folder per feature; only `register` is public
-│   ├── triage/             contract · slice · tools · fold · project · register
-│   ├── escalation/         … + port · adapter   (the block's private frozen contract, and its client)
+├── blocks/                 THE LEAVES — one folder per feature, TWO build units each; only `register` is public
+│   ├── triage/             contract · slice · tools · fold · project · register + adapter/ (declared, empty)
+│   ├── escalation/         … + port · adapter/  (the block's private frozen contract, and its client's own unit)
 │   ├── console/            … + view-state       (PRESENTATION — folds AND signs, identically to a domain block)
-│   ├── artifact/           … + port · adapter   (the work product, a folded slice)
-│   ├── analysis/           … + port · adapter   (the TIERING rung (11): recall + publish)
+│   ├── artifact/           … + port · adapter/  (the work product, a folded slice)
+│   ├── analysis/           … + port · adapter/  (the TIERING rung (11): recall + publish)
 │   └── inbox/              the BARGE-IN ledger (12): conflation, duplicate and fault counters
 └── app/                    THE ROOT — the only place that may name every block
     ├── contract            the closed sets: State (a product of slices) + the three unions
@@ -95,8 +140,10 @@ Dependency direction is readable before you open a file. The rule is the book's,
 wording: **an import may point inward toward the core, or it is the composition root; it may never
 point outward from the core, sideways between adapters, or from a passive node — a surface or a
 tool — into anything but domain types.** On this tree that reads: leaves and trunk point inward,
-only the root spans. Inside a block the same boundary is drawn again by file name — `contract · slice · tools ·
-fold · project` are pure, `adapter` is the rim, and `view-state` is the ephemeral-only exception.
+only the root spans. Inside a block the same boundary is drawn again by the UNIT SPLIT — `contract · slice ·
+tools · fold · project` are the pure unit, `adapter/` is the rim and is its own package, and `view-state` is
+the ephemeral-only exception. The folder names are a legend for the build graph rather than the thing
+itself: what stops the pure unit reaching the rim is that it does not reference it.
 
 Every import rule above is machine-enforced (`npm run lint`, check C1), and the cross-package half of it
 twice over: `npm run typecheck:wall` gets there first, as a resolution error rather than a lint message.
@@ -307,13 +354,16 @@ equality** — an absence proved by naming what is present, not by counting noth
 
 ### Row 3 — a whole new block
 
-Measured against `inbox`, the minimal block in the tree: no port, no adapter, no effect.
+Measured against `inbox`, the minimal block in the tree: no port, no live client, no effect.
 
-**New files: 8**, all under `src/blocks/<X>/` — `contract.ts`, `fold.ts`, `project.ts`, `register.ts`,
-`slice.ts`, `tools.ts`, plus the package's own `package.json` and `tsconfig.json`, which are what make
-the folder a wall rather than a convention.
+**New files: 10**, all under `src/blocks/<X>/` — `contract.ts`, `fold.ts`, `project.ts`, `register.ts`,
+`slice.ts`, `tools.ts`, plus the pure unit's own `package.json` and `tsconfig.json`, plus the adapter
+leaf's `adapter/package.json` and `adapter/tsconfig.json`. The four manifests are what make the folder two
+walls rather than a convention, and the leaf's two are not optional: §4.6's pair is unconditional, so a
+block with no seam pays them and leaves the leaf empty. That is the honest cost of the mechanism, counted
+rather than waved at.
 
-**Root cost: 18 edit sites across 6 files, 14 of them declared sites.** Recount it with:
+**Root cost: 21 edit sites across 6 files, 17 of them declared sites.** Recount it with:
 
 ```
 cd examples/typescript && grep -nE 'Inbox|inbox|noteDrop|noteFault' \
@@ -326,11 +376,11 @@ cd examples/typescript && grep -nE 'Inbox|inbox|noteDrop|noteFault' \
 | `src/app/contract.ts` | 7 | 5 — the `ToolResult` member, the `Command` member, the `State` field, the `AppView` field, the `initialState` entry | 41, 42, 69, 78, 102, 111, 128 |
 | `src/app/assemble.ts` | 4 | 3 — the `foldOk` branch, the view row, the context lines | 23, 117–118, 162, 183 |
 | `src/app/wire.ts` | 4 | 3 — the `register()` line in each of the three tiers | 68, 259, 269, 275 |
-| `src/app/package.json` | 1 | 1 — the workspace dependency | 12 |
-| `src/app/tsconfig.json` | 1 | 1 — the project reference | 33 |
-| `tsconfig.wall.json` | 1 | 1 — the solution reference, without which the package has no wall | 22 |
+| `src/app/package.json` | 2 | 2 — the workspace dependency, once per unit | 14, 20 |
+| `src/app/tsconfig.json` | 2 | 2 — the project reference, once per unit | 45, 48 |
+| `tsconfig.wall.json` | 2 | 2 — the solution reference, without which the unit has no wall | 34, 37 |
 
-**The difference between 18 and 14 is four `import` lines, and they are these four:**
+**The difference between 21 and 17 is four `import` lines, and they are these four:**
 `src/app/contract.ts:41` and `:42`, `src/app/assemble.ts:23`, and `src/app/wire.ts:68`.
 
 **What the command prints that the table does not count, named so the two recounts land in the same
@@ -339,19 +389,20 @@ consumer bridge are excluded** — `src/app/wire.ts:350`, `:357`, `:362`, `:366`
 is mapped to a `noteDrop`/`noteFault` Action. That mapping exists because `inbox` is the block the
 barge-in consumer happens to report into; it is role-specific wiring, not generic per-block cost, and
 a new block gets none of it. **Put them back and `src/app/wire.ts` reads 8 edit sites and the total is
-22 / 14** — that is the honest other number, and both recounts are now reproducible from one command.
+25 / 17** — that is the honest other number, and both recounts are now reproducible from one command.
 `src/app/demo.ts` is excluded because it is the runnable demo rather than wiring, and its one hit is an
 unrelated `"inbox"` source name; `src/spine/pure/staged.ts` names the English word in a comment.
 
-The **root** `package.json` costs nothing — `src/blocks/*` is globbed — and `package-lock.json` is
+The **root** `package.json` costs nothing — both `src/blocks/*` and `src/blocks/*/adapter` are globbed —
+and `package-lock.json` is
 regenerated by `npm install` rather than authored. Every union membership is written out by hand,
 which is the whole TypeScript/Kotlin delta on this row: Kotlin's sealed hierarchies close themselves
 and pay instead by authoring the block's transport inside `:spine`.
 
 **Seven gate ledgers move, and they are the receipt** for a new block carrying two verbs. Four are
-structural: `test/gate/gate.test.ts`'s eight-package equality, `test/gate/anchors.test.ts`'s per-block
-file roster, `test/gate/exhaustiveness.test.ts`'s package farm, and `test/laws/edges.test.ts`'s package
-map. Two more are the verb ledgers row 1 already names: `test/app/totality.test.ts`'s verb map and
+structural: `test/gate/gate.test.ts`'s fourteen-package equality, `test/gate/anchors.test.ts`'s per-block
+file roster *and* its per-leaf one, `test/gate/exhaustiveness.test.ts`'s package farm, and
+`test/laws/edges.test.ts`'s package map. Two more are the verb ledgers row 1 already names: `test/app/totality.test.ts`'s verb map and
 `test/gate/gate.test.ts`'s `declared` list. The seventh is a BLOCK ledger rather than a verb one and
 was added with the derived-`owns` hardening: `test/app/totality.test.ts`'s `OWNS` map, one entry per
 block, which the ownership census reads — a block present on disk but missing from it fails the file
@@ -413,8 +464,9 @@ below is for YOUR new repository. None of this port's roster pins, anchor roster
 travel with the copy; they exist because this tree is the reference.
 
 **1 — the workspace.** `npm init -y`, then make the manifest `"private": true`, `"type": "module"`,
-and give it `"workspaces": ["src/spine", "src/blocks/*", "src/app"]`. The workspace list is what
-turns `npm install` into the linking step that makes `@adr/spine` resolvable at all.
+and give it `"workspaces": ["src/spine", "src/blocks/*", "src/blocks/*/adapter", "src/app"]`. The
+workspace list is what turns `npm install` into the linking step that makes `@adr/spine` resolvable at
+all; the third entry is there because a block is two packages, which step 4 walks through.
 
 Give it a `"scripts"` table in the same edit, because step 6 issues exactly these three and an
 earlier version of this list never provisioned them:
@@ -462,10 +514,12 @@ src/spine/agent/` and the first two become unnecessary — that tree typechecks 
 installed. Your copy is then 38 entries rather than 39, and you have given up the loop, not deferred
 it.
 
-**4 — register one verb.** A feature is a folder. Create `src/blocks/<x>/` with a `package.json`
-whose only `exports` subpath is `./register`, and write the six files this port's
+**4 — register one verb.** A feature is a folder holding TWO packages. Create `src/blocks/<x>/` with a
+`package.json` whose only `exports` subpath is `./register`, and write the six files this port's
 `src/blocks/console/` shows you: `contract.ts`, `slice.ts`, `tools.ts`, `fold.ts`, `project.ts`,
-`register.ts`. Four of the edits are the verb itself — the `ToolResult` case and the `Command` case
+`register.ts`. Then create `src/blocks/<x>/adapter/` with a `package.json` of its own, `"exports": {}`
+and a dependency on the block — that is the leaf your live client will live in, and you declare it now
+even if you have nothing to put in it, which is what `src/blocks/console/adapter/` shows you. Four of the edits are the verb itself — the `ToolResult` case and the `Command` case
 in `contract.ts`, the `Verb` entry in `tools.ts`, the arm branch in `fold.ts` — and the fifth is the
 `is<X>Result` claim entry: write it as `claims<XResult>({ … })`, a table the compiler keeps exhaustive
 over the block's own result union, so declaring a case and claiming it are one edit rather than two
@@ -567,7 +621,7 @@ being true.
 | **+ Safety** | **Exercised**, on two layers. The gate refuses a self-confirm and a confirm with no pending request *before* the fold, so the refusal commits as a `ToolResult` and re-folds; an unattended agent and a human host both confirm through the same mechanism; a product `ConfirmPolicy` can refuse even a different principal; and an `Actor` smuggled through a tool's raw input never reaches it. Since the effect classes landed (C16/C17), refusal is also a property of the timeline: an `Irreversible` effect no `Irreversible` verb earned is refused at its own key and substituted — identically live, on `REPLAY`, on `RECOVERY`, and from a snapshot resume. | `test/spine/gate.test.ts` · `test/spine/admission.test.ts` |
 | **+ Concurrency** | **Exercised.** Preemption asserted on a virtual clock against a *measured* control run — the interrupt is handled at t = 100 where the book's own 12.3 drain loop does not see it until t = 10 000 — plus both `InputPolicy` branches, per-source dedupe with ack-after-commit, a dedupe scope that survives a restart, the drain defer, the bounded-cancel timeout that revokes an abandoned turn, and a turn that throws without killing the consumer. | `test/spine/mailbox.test.ts` |
 | **+ Cognition** | **Exercised.** Two tiers holding no handle to one another, the typed degrade (`Fresh` / `LastKnown` / `Empty`, with `Empty` a different fact from stale), a replay check that tampers with the committed record by swapping *only* the variant and requires the golden trace to go red, and a recalled "authorization" that cannot buy an irreversible act even with a request already pending. | `test/spine/relay.test.ts` |
-| **+ Inputs** | **Partly**, and the gap is the modality, not the seam. Off-bus input is staged in order, captured on the record and fed back from it on re-fold rather than re-queried. But all three adapters — `blocks/analysis`, `blocks/artifact`, `blocks/escalation` — resolve in-process text; no image, audio or document modality is exercised anywhere in this port. | `src/blocks/*/adapter.ts` (all three) |
+| **+ Inputs** | **Partly**, and the gap is the modality, not the seam. Off-bus input is staged in order, captured on the record and fed back from it on re-fold rather than re-queried. But all three adapters — `blocks/analysis`, `blocks/artifact`, `blocks/escalation` — resolve in-process text; no image, audio or document modality is exercised anywhere in this port. | `src/blocks/*/adapter/adapter.ts` (all three) |
 | **+ Enforcement** | **Exercised**, on two layers rather than one. Seventeen denying checks, each with one block-test and one allow-test over real fixtures, wired into `npm test` — the same entry point `.github/workflows/ci.yml` runs on every push and pull request, with no warning tier and no baseline file. Under the lint layer sits the workspace wall: `npm run typecheck:wall` builds the package graph with `tsc -b --force`, and a cross-block or block-to-root import is a *resolution* error (TS6059/TS6307/TS2307) rather than a lint message — measured row by row at the top of this file, including the one route the wall cannot close. | `test/gate/gate.test.ts` · `npm run typecheck:wall` |
 
 ---
