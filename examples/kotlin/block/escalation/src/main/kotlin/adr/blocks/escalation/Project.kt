@@ -23,7 +23,7 @@ data class EscalationRow(
 
 data class EscalationView(val rows: List<EscalationRow>)
 
-class EscalationProjection {
+internal class EscalationProjection {
 
     fun view(slice: EscalationSlice): EscalationView = EscalationView(
         rows = slice.status.values.map { status ->

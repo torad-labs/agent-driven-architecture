@@ -17,7 +17,7 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
-class AnalysisArm {
+internal class AnalysisArm {
 
     fun arm(
         slice: AnalysisSlice,

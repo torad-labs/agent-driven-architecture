@@ -356,24 +356,51 @@ assignable; then narrow C7's claim to construction, which is what it actually en
 
 ---
 
-## A8 · ADR-001's API freeze is specified but not wired — `open`
+## A8 · ADR-001's API freeze — the wall is wired, `explicitApi()` is measured and still out — `open`
 
-**What the ADR says is landed, and is not.** ADR-001 §4's plugin table has `adr.kotlin.library` —
-applied by every module — wiring `explicitApi()` and the binary-compatibility-validator, with `.api`
-dumps checked by `apiCheck` in CI, and §4 goes on to state that "a public declaration beyond the
-frozen set fails `apiCheck`". The module DAG landed; this half did not. Measured: no `.api` dump
-exists in the tree, and `explicitApi()` appears in no convention plugin, so nothing fails when a
-module publishes a new public declaration.
+**The enforcing half is landed.** `adr.kotlin.library` applies the binary-compatibility-validator, so
+each of the fourteen modules commits `<module>/api/<name>.api` and `apiCheck` runs inside
+`./gradlew check`. What ADR-001 §4 states — "a public declaration beyond the frozen set fails
+`apiCheck`" — is now true of this tree in both directions: adding one public declaration to a block
+turns `check` red naming the added line, and it goes green again only after `./gradlew apiDump` is
+re-run and the new dump is read. The guard that made it fit ADR-001 §3's DAG is recorded in the plugin:
+the validator configures `allprojects` from wherever it is applied, `:block:<x>:adapter` is the one
+module nested inside another, and applying it twice in one subtree fails configuration.
 
-**Why it matters and why it is not a blocker.** The measured floor (4·4·5·6·7·6) and the frozen set
-(6·5·5·8·9·8) are already written into ADR-001, so the item is fully specified — what is missing is
-the wiring, not the decision. Nothing about the DAG's *dependency* walls depends on it: those are
-enforced at configuration time and are separately red-green proven. What is unprotected is
-accidental API GROWTH inside a module that already exists.
+**Why the guard is not trusted, measured rather than argued.** `adr.root` asserts four things about
+every one of the fourteen modules — the `apiCheck` task exists, `check` depends on it, nothing has
+switched it off, and it still has actions to run. The third and fourth are there because review
+proved the first two insufficient: two lines in one block's build script (`enabled = false` plus a new
+public declaration) left `./gradlew check`, the TypeScript suite and the Kotlin law scan ALL GREEN
+with the declaration absent from the committed dump. Every switch is now denied by FORM rather than by
+name — `enabled = false`, `onlyIf { false }`, `setOnlyIf`, the reason-string overload, a later flip
+through `taskGraph.whenReady`, and an emptied action list were each measured red. The declared limit
+is equally measured: rewriting the task's body (a `doFirst` that aborts it) or hand-editing a
+committed dump is green, and no assertion inside a build can adjudicate its own build script.
 
-**Direction.** Wire `explicitApi()` and the validator into `adr.kotlin.library`, dump the current
-`.api` files, and check that the dumped counts match the frozen set the ADR already names. Until
-then the ADR's §4 rows read as landed when they are specified — the honesty half of this entry.
+**The measurement, reported rather than re-frozen.** ADR-001 predicted 6·5·5·8·9·8. Measured after
+narrowing the 27 block declarations no module outside their block names, the dumps carry
+**8·8·5·8·8·8** — three exact, three off, and ADR-001 §4 now records why: two symbols the prediction
+counted are declared in `:spine` under the sealed rule and cannot appear in a block's own dump, and
+the ROOT project's gate harness is a second cross-module consumer the `:app`-only derivation missed,
+naming six block symbols `internal` cannot hide. `examples/typescript/test/laws/freeze.test.ts`
+re-derives the series from the committed dumps and re-reads the deltas out of the ADR's prose, so that
+arithmetic cannot rot again without turning a gate red.
+
+**What is still open, with its cost measured.** `explicitApi()` is still not wired, and it is not the
+wiring change this entry used to call it. Turning it on was run end to end against this tree, in
+warning mode, on the tree that ships: it costs **485 visibility diagnostics and 27 explicit return
+types across 81 of this port's 87 main sources** — 536 across 87 before the 27 narrowings above, which
+is why an earlier draft of this entry quoted the pre-narrowing figure for the post-narrowing tree. It
+compiles, and both gates stay green, so the objection is the size and the editorial reach, not the
+risk.
+
+**Direction.** Land `explicitApi()` as its own mechanical item, in one deterministic sweep rather
+than by hand: the compiler's own explicit-API diagnostics name the insertion point of every one of
+the 485 modifiers, and only the 27 return types need a type written. Nothing about the freeze waits
+on it — `apiCheck` already denies API growth — so what it buys is that a declaration's visibility is
+stated in the source rather than inferred, which is the half of ADR-001 §4's row that still reads as
+specified.
 
 ---
 

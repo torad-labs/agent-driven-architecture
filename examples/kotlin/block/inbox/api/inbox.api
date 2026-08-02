@@ -1,0 +1,50 @@
+public final class adr/blocks/inbox/InboxBlock : adr/spine/pure/Block {
+	public fun <init> ()V
+	public fun arm-8pmiTL8 (Ladr/blocks/inbox/InboxSlice;Ladr/contract/InboxResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public synthetic fun arm-8pmiTL8 (Ljava/lang/Object;Ladr/contract/ToolResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public final fun contextLines (Ladr/blocks/inbox/InboxSlice;I)Ljava/util/List;
+	public static synthetic fun contextLines$default (Ladr/blocks/inbox/InboxBlock;Ladr/blocks/inbox/InboxSlice;IILjava/lang/Object;)Ljava/util/List;
+	public final fun register (Ladr/spine/pure/Lens;)Ladr/spine/pure/BlockRegistration;
+	public fun view (Ladr/blocks/inbox/InboxSlice;)Ladr/blocks/inbox/InboxView;
+	public synthetic fun view (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class adr/blocks/inbox/InboxSlice {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;Ljava/util/Map;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/Map;Ljava/util/Map;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/util/Map;Ljava/util/Map;Ljava/util/List;)Ladr/blocks/inbox/InboxSlice;
+	public static synthetic fun copy$default (Ladr/blocks/inbox/InboxSlice;Ljava/util/Map;Ljava/util/Map;Ljava/util/List;ILjava/lang/Object;)Ladr/blocks/inbox/InboxSlice;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getConflated ()Ljava/util/Map;
+	public final fun getDuplicates ()Ljava/util/Map;
+	public final fun getFaults ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun withDrop-rh9NDiU (Ljava/lang/String;Ladr/contract/InboxResult$DropReason;I)Ladr/blocks/inbox/InboxSlice;
+	public final fun withFault (Ljava/lang/String;)Ladr/blocks/inbox/InboxSlice;
+}
+
+public final class adr/blocks/inbox/InboxView {
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;Ljava/util/List;)Ladr/blocks/inbox/InboxView;
+	public static synthetic fun copy$default (Ladr/blocks/inbox/InboxView;Ljava/util/List;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ladr/blocks/inbox/InboxView;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getConflated ()Ljava/util/List;
+	public final fun getDuplicates ()Ljava/util/List;
+	public final fun getFaults ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/blocks/inbox/ToolsKt {
+	public static final fun getNOTE_DROP ()Ljava/lang/String;
+	public static final fun getNOTE_FAULT ()Ljava/lang/String;
+}
+

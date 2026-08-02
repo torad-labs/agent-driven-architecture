@@ -17,7 +17,7 @@ data class ArtifactView(
     val sealed: Boolean,
 )
 
-class ArtifactProjection {
+internal class ArtifactProjection {
 
     fun view(slice: ArtifactSlice): ArtifactView = when (val seal = slice.seal) {
         SealStatus.Draft -> ArtifactView(

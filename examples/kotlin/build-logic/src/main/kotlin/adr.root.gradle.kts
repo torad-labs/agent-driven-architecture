@@ -45,6 +45,125 @@ gradle.projectsEvaluated {
         }
     }
 
+    // (1b) AND EVERY ONE OF THEM IS UNDER §4's `.api` FREEZE. `adr.kotlin.library` applies
+    // the binary-compatibility-validator under an ancestor guard, because the validator
+    // configures `allprojects` from wherever it is applied and `:block:<x>:adapter` is the
+    // one module §3 nests inside another. That guard is the single place a module could
+    // silently lose its freeze, so the guard is not trusted. FOUR things can go wrong and
+    // they are four different failures, in increasing order of quietness:
+    //   (i)   the task is MISSING — loud, `apiDump` never wrote that module's dump either;
+    //   (ii)  the task exists but `check` does not depend on it — quiet, `./gradlew check`
+    //         is green and the freeze simply never runs;
+    //   (iii) the task exists, `check` depends on it, and it is switched OFF in that
+    //         module's own build script — ONE line, and the whole build stays green with
+    //         the freeze gone;
+    //   (iv)  the task exists, is enabled, runs — and has had its ACTION LIST emptied, so
+    //         it does nothing and reports success. The quietest of the four: the build log
+    //         still prints `> Task :block:<x>:apiCheck`.
+    // (iii) denies the FORM, not a spelling. Gradle skips a task when it is disabled OR when
+    // its `onlyIf` spec rejects it, so `enabled = false`, `onlyIf { false }`, `setOnlyIf`
+    // and the reason-string overload are ONE hole with two switches, read through one
+    // clause — all four measured red against a live public addition absent from the dump,
+    // and `enabled = false` alone was measured GREEN before this clause existed.
+    //
+    // WHERE THIS STOPS, measured rather than assumed. These clauses deny every way of
+    // SWITCHING the freeze off. They do not deny REPROGRAMMING it: a
+    // `doFirst { throw StopExecutionException() }` on `apiCheck` is green here, and so is a
+    // hand-edited `<module>/api/<name>.api`. Both are the same trust boundary — a build
+    // script and a generated-and-committed dump are inputs review reads, and no assertion
+    // inside the build they belong to can adjudicate them. Naming the boundary is the point;
+    // an assertion that pattern-matched action bodies would be the enumerated-spelling
+    // defeat this repo has already paid for.
+    //
+    // TWO QUASI-INTERNAL GRADLE CALLS are pinned here and recorded rather than hidden:
+    // `taskDependencies.getDependencies(null)`, and the `TaskInternal` cast that is the
+    // only way to read a task's `onlyIf` spec. Both hold on the Gradle version the wrapper
+    // pins (gradle/wrapper/gradle-wrapper.properties) and the validator version build-logic
+    // pins; a bump to either re-reads this block, exactly like the ancestor guard's.
+    modules.forEach { path ->
+        val module = rootProject.project(path)
+        val apiCheck = module.tasks.findByName("apiCheck")
+        check(apiCheck != null) {
+            "adr.root: $path has no apiCheck task — ADR-001 §4's `.api` freeze is not wired there."
+        }
+        val blocking = module.tasks.named("check").get()
+            .taskDependencies.getDependencies(null).map { it.name }
+        check("apiCheck" in blocking) {
+            "adr.root: $path's check does not depend on apiCheck, so the `.api` freeze never blocks."
+        }
+        val internals = apiCheck as org.gradle.api.internal.TaskInternal
+        check(apiCheck.enabled && internals.onlyIf.isSatisfiedBy(internals)) {
+            "adr.root: $path's apiCheck will not run — the `.api` freeze is silenced there."
+        }
+        check(apiCheck.actions.isNotEmpty()) {
+            "adr.root: $path's apiCheck has no actions — the `.api` freeze is silenced there."
+        }
+        // (1d) THE TASK RUNNING IS NOT THE FREEZE HOLDING. apiCheck can run green over a
+        // HOLLOWED validator: `ignoredClasses`/`ignoredPackages`/`nonPublicMarkers` each
+        // exempt a live public declaration from the dump, and `validationDisabled` turns
+        // the whole thing off while the task still succeeds — measured, a one-line
+        // `ignoredClasses.add(...)` in a block's build script left a public class absent
+        // from the committed dump with all three gates green. So the freeze must be held
+        // over the WHOLE public surface: the validator's extension, wherever it is
+        // configured for this module, must be in its DEFAULT state. Keyed on the FORM
+        // (every exemption set empty, validation on) rather than on a list of names, so a
+        // new exemption spelling is denied the day the plugin adds it.
+        val ext = generateSequence(module) { it.parent }
+            .mapNotNull { it.extensions.findByType(kotlinx.validation.ApiValidationExtension::class.java) }
+            .firstOrNull()
+        check(ext != null) {
+            "adr.root: $path resolves no ApiValidationExtension — the `.api` freeze cannot be verified there."
+        }
+        check(!ext.validationDisabled) {
+            "adr.root: $path has validationDisabled=true — the `.api` freeze is switched off there."
+        }
+        val exemptions = mapOf(
+            "ignoredClasses" to ext.ignoredClasses,
+            "ignoredPackages" to ext.ignoredPackages,
+            "ignoredProjects" to ext.ignoredProjects,
+            "nonPublicMarkers" to ext.nonPublicMarkers,
+        )
+        exemptions.forEach { (name, set) ->
+            check(set.isEmpty()) {
+                "adr.root: $path's validator declares $name=$set — the `.api` freeze exempts a live public declaration there."
+            }
+        }
+    }
+
+    // (1c) AND THE SAME DENIAL AGAIN AT EXECUTION TIME, because (1b)(iii) reads a state
+    // something later can still flip. MEASURED: a
+    // `gradle.taskGraph.whenReady { tasks.findByName("apiCheck")?.enabled = false }` in one
+    // block's build script runs AFTER `projectsEvaluated`, so it walked straight through
+    // (1b)(iii) — "> Task :block:console:apiCheck SKIPPED", BUILD SUCCESSFUL, and the public
+    // declaration absent from the committed dump. Reading the state once at configuration
+    // time closes two spellings and leaves the clock open, so the clock is closed here.
+    //
+    // THE DISCRIMINATOR IS PUBLIC `TaskState`, not a message string: Gradle marks a task it
+    // DECIDED not to run as skipped, and separately reports the two innocent reasons a task
+    // did no work — up-to-date and no-source. Silenced is the residue. That is what keeps an
+    // incremental re-run and the three source-less adapter modules green while a switched-off
+    // apiCheck is red, and it is why a `doLast` cannot do this job: a skipped task's own
+    // actions never run, so the proof has to sit outside the task.
+    //
+    // `afterTask` IS DEPRECATED ON THIS GRADLE and that cost is recorded, not hidden: it
+    // emits one compile warning in build-logic, and the build already declares itself
+    // incompatible with the next major from other call sites. It is kept because it is the
+    // only observation of what a task actually DID rather than of what it was configured to
+    // do, and because the non-deprecated route — a build service registered through
+    // `BuildEventsListenerRegistry` — trades a documented deprecation for a wholly internal
+    // service lookup and thirty lines. Re-read this at the version bump the wrapper pins.
+    gradle.taskGraph.afterTask(
+        Action<Task> {
+            val silenced = state.skipped && !state.upToDate && !state.noSource
+            if (name == "apiCheck" && silenced) {
+                error(
+                    "adr.root: ${project.path}'s apiCheck was skipped at execution — " +
+                        "the `.api` freeze is silenced there.",
+                )
+            }
+        },
+    )
+
     // (2) THE INVERSION, half one: :app depends on every adapter leaf.
     val adapters = modules.filter { it.endsWith(":adapter") }
     val appProjectEdges = configurations

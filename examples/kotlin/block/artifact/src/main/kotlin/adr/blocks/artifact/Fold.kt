@@ -13,7 +13,7 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
-class ArtifactArm {
+internal class ArtifactArm {
 
     fun arm(
         slice: ArtifactSlice,

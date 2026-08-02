@@ -20,7 +20,7 @@ data class AnalysisRow(val at: Long, val freshness: String, val text: String)
 
 data class AnalysisView(val recalls: List<AnalysisRow>, val published: List<String>)
 
-class AnalysisProjection {
+internal class AnalysisProjection {
 
     fun view(slice: AnalysisSlice): AnalysisView = AnalysisView(
         recalls = slice.notes.map { note ->

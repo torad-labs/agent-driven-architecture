@@ -10,6 +10,7 @@ hierarchies with **shared properties declared on the parent**, so every closed s
 ./gradlew test      # the suite alone (the Konsist rules ARE JUnit tests)
 ./gradlew detekt    # the type-aware checks alone (C3, C9, C14)
 ./gradlew build     # compile + check
+./gradlew apiDump   # regenerate the committed `.api` freeze after a deliberate surface change
 ./gradlew run       # a runnable, fully offline end-to-end demo — no keys, no network
 ```
 
@@ -280,6 +281,29 @@ check` runs it for you. See `gateExhaustiveBlockTest` below.
 
 ---
 
+## The `.api` freeze (ADR-001 §4)
+
+`adr.kotlin.library` applies the binary-compatibility-validator, so each of the fourteen modules
+commits its public ABI at `<module>/api/<name>.api`, and `apiCheck` — a dependency of `check` — fails
+the build when the live surface and the committed dump disagree. One added public declaration
+anywhere is a red build until `./gradlew apiDump` is run and the new dump is read and committed.
+
+It is deliberately **not** one of the seventeen checks below. Those are per-rule denials carrying a
+fixture pair each; this is a whole-module ABI comparison with no rule to write. What keeps it honest
+is `adr.root`, which asserts four things about every one of the fourteen modules: the module has an
+`apiCheck`, `check` depends on it, nothing has switched it off (`enabled = false` and `onlyIf { false }`
+are the same hole and are read through one clause), and it still has actions to run. Those assertions
+exist because the validator is applied under an ancestor guard — `:block:<x>:adapter` nests inside
+`:block:<x>`, and applying the validator twice inside one subtree fails configuration outright — and
+because a one-line silencing in any module's own build script was measured green before they landed.
+
+The frozen surfaces measure **8 · 8 · 5 · 8 · 8 · 8** declarations for triage · console · inbox ·
+escalation · artifact · analysis, after the 27 block declarations nothing outside a block names were
+narrowed to `internal`. ADR-001 §4 predicted 6 · 5 · 5 · 8 · 9 · 8 and now records, from this
+measurement, why three of the six differ.
+
+---
+
 ## The architecture gate (17 denying checks)
 
 15.1 stakes the architecture's answer to its own central problem on **machine enforcement**, and 15.4
@@ -415,7 +439,8 @@ copy; they exist because this tree is the reference.
 Gradle module, not a folder: it arrives with `spine/build.gradle.kts`, which applies the `adr.spine`
 convention plugin and declares three dependencies.
 
-*What you get:* the folder holds 45 entries — 44 `.kt` plus that build script. It carries its own
+*What you get:* the folder holds 46 entries — 44 `.kt` plus that build script, and
+`spine/api/spine.api`, the frozen public surface `apiCheck` holds the module to. It carries its own
 version marker at `spine/src/main/kotlin/adr/spine/pure/Version.kt`, which is what `CHANGELOG.md`
 entries key on; keep it.
 

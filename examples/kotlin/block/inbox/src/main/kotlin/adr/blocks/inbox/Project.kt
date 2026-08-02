@@ -21,7 +21,7 @@ data class InboxView(
     val faults: List<String>,
 )
 
-class InboxProjection {
+internal class InboxProjection {
 
     fun view(slice: InboxSlice): InboxView = InboxView(
         conflated = slice.conflated.map { (source, count) -> "${source.value}: $count conflated" },

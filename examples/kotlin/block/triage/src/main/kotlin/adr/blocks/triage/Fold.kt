@@ -28,7 +28,7 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
-class TriageArm {
+internal class TriageArm {
 
     fun arm(
         slice: TriageSlice,

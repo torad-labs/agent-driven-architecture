@@ -1,0 +1,9 @@
+public abstract interface class adr/blocks/analysis/AppendConclusion {
+	public abstract fun invoke-skJIsPY (JLjava/lang/String;)V
+}
+
+public final class adr/blocks/analysis/LiveRelayWriter : adr/blocks/analysis/AnalysisRelay {
+	public fun <init> (Ladr/blocks/analysis/AppendConclusion;)V
+	public fun publish-skJIsPY (JLjava/lang/String;)V
+}
+

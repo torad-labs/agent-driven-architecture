@@ -1,0 +1,5 @@
+public final class adr/blocks/escalation/LivePager : adr/blocks/escalation/OncallPort {
+	public fun <init> (Ljava/lang/String;Ladr/spine/pure/Emit;)V
+	public fun page-QZKOWK8 (Ljava/lang/String;)V
+}
+

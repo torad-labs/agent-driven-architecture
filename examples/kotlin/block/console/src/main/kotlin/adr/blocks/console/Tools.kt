@@ -17,11 +17,11 @@ import adr.spine.pure.Verb
 val FOCUS_TICKET = ToolName("focusTicket")
 val SET_PANEL = ToolName("setPanel")
 
-data class FocusInput(val ticket: TicketId)
+internal data class FocusInput(val ticket: TicketId)
 
-data class PanelInput(val panel: PanelId, val visible: Boolean)
+internal data class PanelInput(val panel: PanelId, val visible: Boolean)
 
-class ConsoleTools<S>(private val lens: Lens<S, ConsoleSlice>) {
+internal class ConsoleTools<S>(private val lens: Lens<S, ConsoleSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(

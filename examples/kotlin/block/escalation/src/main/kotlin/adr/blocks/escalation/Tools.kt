@@ -27,9 +27,9 @@ import adr.spine.pure.Verb
 val REQUEST_ESCALATION = ToolName("requestEscalation")
 val CONFIRM_ESCALATION = ToolName("confirmEscalation")
 
-data class TicketInput(val ticket: TicketId)
+internal data class TicketInput(val ticket: TicketId)
 
-class EscalationTools<S>(private val lens: Lens<S, EscalationSlice>) {
+internal class EscalationTools<S>(private val lens: Lens<S, EscalationSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(
