@@ -1,0 +1,28 @@
+# TENET: No static/global mocking in tests.
+# Rationale: mockkStatic/Object/Constructor re-instrument JVM classes globally.
+# Stale mocks leak between test classes, parallel execution shuffles them, rescanning is slow.
+# Build hand-rolled fakes instead — they're explicit and don't leak.
+id: tests-no-mockk-static
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "Static/global mocking leaks between tests and breaks parallelism. Write a hand-rolled fake."
+rule:
+  any:
+    - pattern: mockkStatic($$$A)
+    - pattern: mockkObject($$$A)
+    - pattern: mockkConstructor($$$A)
+    - pattern: unmockkStatic($$$A)
+    - pattern: unmockkObject($$$A)

@@ -1,0 +1,27 @@
+# TENET: No magic strings — use constants or enums.
+# Rationale: String literals scattered through code are hard to refactor.
+# Define constants for repeated strings, use discriminated unions for state.
+# NOTE: This catches common patterns; not all string literals are magic.
+id: no-magic-strings
+language: typescript
+severity: error
+message: "Consider extracting this string to a constant if used in multiple places."
+files:
+  - "**/*.ts"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+  - "**/*.d.ts"
+  - "**/constants.ts"
+  - "**/config.ts"
+rule:
+  kind: string
+  inside:
+    kind: binary_expression
+    stopBy: end
+    has:
+      # stopBy: the discriminant sits inside a member_expression (`e.kind === "x"`),
+      # never as a direct child of the comparison.
+      stopBy: end
+      kind: property_identifier
+      regex: "^(type|kind|status|action|event|mode)$"

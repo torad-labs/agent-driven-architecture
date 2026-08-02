@@ -1,0 +1,21 @@
+id: no-println-in-production
+valid:
+  - |
+    package good
+
+    fun report(logger: Logger) {
+        logger.info("structured message")
+    }
+  - |
+    package good
+
+    fun report(terminal: Terminal) {
+        terminal.println("cli output is fine via Terminal")
+    }
+invalid:
+  - |
+    package bad
+
+    fun report() {
+        println("bare println bypasses structured logging")
+    }

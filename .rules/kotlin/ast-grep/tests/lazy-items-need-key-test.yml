@@ -1,0 +1,7 @@
+id: lazy-items-need-key
+valid:
+  - |
+    fun L(rows: List<Row>) { list.items(rows, key = { it.id }) { Render(it) } }
+invalid:
+  - |
+    fun L(rows: List<Row>) { items(rows) { Render(it) } }

@@ -1,0 +1,4 @@
+{
+  "//why": "a phantom 8.6 in a data file, which carries no comment syntax at all",
+  "version": "2.5.5"
+}

@@ -1,0 +1,21 @@
+id: explicit-public-return-types
+snapshots:
+  ? |
+    export function missingType(a: number) {
+      return a;
+    }
+  : labels:
+    - source: |-
+        export function missingType(a: number) {
+          return a;
+        }
+      style: primary
+      start: 0
+      end: 54
+    - source: |-
+        function missingType(a: number) {
+          return a;
+        }
+      style: secondary
+      start: 7
+      end: 54

@@ -1,0 +1,16 @@
+{
+  "name": "@adr/spine",
+  "private": true,
+  "//private": "THE VENDORED TEMPLATE, packaged internally for the wall and never published. `private: true` with no publishConfig anywhere is what makes template-forever structural instead of a promise. No `version` field either: npm does not require one on a private workspace package, and release numbering belongs to the CHANGELOG decision rather than to this file.",
+  "type": "module",
+  "//exports": "One subpath pattern per tier, so a consumer names the tier it depends on and an unlisted path is a resolution error. WHICH tier a given folder may name is still the import table's job, because an exports map cannot vary by consumer: it cannot let the root see `boundary` while denying it to a block.",
+  "exports": {
+    "./pure/*": "./pure/*.ts",
+    "./ports/*": "./ports/*.ts",
+    "./boundary/*": "./boundary/*.ts",
+    "./agent/*": "./agent/*.ts",
+    "./surface/*": "./surface/*.ts",
+    "./concurrency/*": "./concurrency/*.ts",
+    "./replay/*": "./replay/*.ts"
+  }
+}

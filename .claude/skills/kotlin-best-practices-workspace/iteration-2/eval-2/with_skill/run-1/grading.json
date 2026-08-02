@@ -1,0 +1,61 @@
+{
+  "summary": {
+    "total": 10,
+    "passed": 10,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "expectations": [
+    {
+      "text": "`runCatching` around a suspend call swallows CancellationException.",
+      "passed": true,
+      "evidence": "Finding #5: \"runCatching around a suspend call captures CancellationException into Result.failure — so a cancelled latest() looks like a failed network call instead of propagating. The skill names this exactly ('Never wrap a suspend call in stdlib runCatching').\""
+    },
+    {
+      "text": "Empty `catch (e: Exception) {}` in stream() swallows cancellation.",
+      "passed": true,
+      "evidence": "Finding #3: \"catch (e: Exception) swallows CancellationException — the watchlist Flow cannot be cancelled... CancellationException is an Exception, so this catch eats it and the loop keeps going... the loop never stops — a leaked coroutine still polling the gateway.\""
+    },
+    {
+      "text": "Per-call `Json {}` instead of reusing one.",
+      "passed": true,
+      "evidence": "Finding #6: \"a fresh Json { ... } builder is allocated on every latest() invocation. Each Json {} discards the per-class serializer/descriptor cache... Hoist one reused Json to a top-level/object val (or inject it).\""
+    },
+    {
+      "text": "Returning cached/0.0 on failure masks the outage; 0.0 sentinel dangerous.",
+      "passed": true,
+      "evidence": "Finding #5: \"Returning a default on failure masks outages. On a real network error this returns the stale cached price, or 0.0 if the symbol was never cached. A 0.0 price silently flowing into a trading watchlist / alerts service is a correctness-and-money bug... the alerts service could fire on a fake zero.\""
+    },
+    {
+      "text": "`GlobalScope.launch` in prefetch().",
+      "passed": true,
+      "evidence": "Finding #4: \"GlobalScope.launch in prefetch() — orphaned, uncancellable, untestable work... GlobalScope work has no parent, is never cancelled, and outlives any caller.\""
+    },
+    {
+      "text": "Hardcoded `Dispatchers.IO` hurts testability (should be injected) -- NOT praising it.",
+      "passed": true,
+      "evidence": "Finding #8: \"Hardcoded Dispatchers.IO inside the class... Nondeterministic and untestable — runTest's virtual time can't drive it, and you can't substitute a test dispatcher. The skill requires injecting the dispatcher with a prod default. Fix: Constructor-inject private val io: CoroutineDispatcher = Dispatchers.IO.\" Treated as a defect, not praised."
+    },
+    {
+      "text": "`accumulated += chunk` + re-split as O(n^2) / re-emitting old lines (freeze symptom).",
+      "passed": true,
+      "evidence": "Finding #2: \"accumulated += chunk then for (line in accumulated.split('\\n'))... every loop re-splits and re-emits all prices seen since the stream opened... O(n²) re-scan + unbounded memory... += on a String accumulator inside the loop is the GC-pressure anti-pattern.\""
+    },
+    {
+      "text": "Bare `while (true)` with no delay/backoff.",
+      "passed": true,
+      "evidence": "Finding #1: \"stream() busy-loops with no delay, hammering the endpoint and starving the dispatcher... while (true) { http.get(...).bodyAsText(); ... } with no delay() and no backoff... a polling loop needs a paced delay() and, on error, jittered capped backoff — never a free-running while(true).\""
+    },
+    {
+      "text": "Frames the review EXPLICITLY at Tier 0 (states it's app/internal code, library tiers don't apply).",
+      "passed": true,
+      "evidence": "\"Tier classification: Internal app data-layer class (com.acme.trading.data)... No published API surface, no commonMain/expect/actual, no publishing block. → Tier 0 (Core) only. I am deliberately not raising ABI / explicitApi / multiplatform / publishing concerns; they don't apply here.\" Explicit Tier-0 clause stating library tiers do not apply."
+    },
+    {
+      "text": "Raises NO explicitApi/ABI/publishing concerns (no tier-confusion false positives).",
+      "passed": true,
+      "evidence": "explicitApi/ABI/multiplatform/publishing are mentioned only to explicitly EXCLUDE them as not applicable ('I am deliberately not raising ABI / explicitApi / multiplatform / publishing concerns'). No tier-confusion false positives raised."
+    }
+  ],
+  "grader_notes": "with_skill caught all 10 assertions including both discriminating checks. It explicitly classified the file as Tier 0 (internal app data-layer) and stated that ABI/explicitApi/multiplatform/publishing concerns do not apply — satisfying both the explicit tier-framing clause (#9) and the absence check (#10). Notably it is the only one of the two reviews to correctly diagnose the runCatching-swallows-cancellation defect (#1) AND to treat hardcoded Dispatchers.IO as an injectability/testability defect rather than praising it (#6). Findings are structured smell -> why -> fix -> how-detected per the skill format."
+}

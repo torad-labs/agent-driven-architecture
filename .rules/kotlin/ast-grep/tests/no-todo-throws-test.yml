@@ -1,0 +1,15 @@
+id: no-todo-throws
+valid:
+  - |
+    package good
+
+    fun implemented(): Int = 42
+invalid:
+  - |
+    package bad
+
+    fun notDone(): Int = TODO()
+  - |
+    package bad
+
+    fun notDoneEither(): Int = TODO("finish this")

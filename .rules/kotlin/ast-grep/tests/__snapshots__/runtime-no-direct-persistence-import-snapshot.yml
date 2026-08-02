@@ -1,0 +1,13 @@
+id: runtime-no-direct-persistence-import
+snapshots:
+  ? |
+    package bad
+
+    import ai.torad.fleet.persistence.SqliteStateRepo
+
+    class UsesPersistence
+  : labels:
+    - source: import ai.torad.fleet.persistence.SqliteStateRepo
+      style: primary
+      start: 13
+      end: 62

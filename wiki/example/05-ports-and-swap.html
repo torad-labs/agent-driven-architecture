@@ -48,16 +48,16 @@
     <header class="hero" style="padding-top:34px">
       <span class="kicker">Seam 05 · Ports and adapters</span>
       <h1>Ports and the <span class="em">swap</span>.</h1>
-      <p class="stand">Three interfaces the core <b>owns</b> and adapters implement outward — <code class="i">Runtime</code>, <code class="i">ModelProvider</code>, <code class="i">EventSource</code>. The port is declared inside, in the core's own vocabulary; the adapter is bound outside. That single inversion buys the headline move: the same core runs behind a <b>live</b> adapter or a <b>fake</b> one, so the whole session replays deterministically off-target. A test case is the application's first user.</p>
+      <p class="stand">Eight interfaces the core <b>owns</b> and adapters implement outward — <code class="i">Clock</code>, <code class="i">IdSource</code>, <code class="i">Bus</code>, <code class="i">Sink</code>, <code class="i">Authorization</code>, <code class="i">Runtime</code>, <code class="i">ModelProvider</code>, <code class="i">EventSource</code>. The port is declared inside, in the core's own vocabulary; the adapter is bound outside. That single inversion buys the headline move: the same core runs behind a <b>live</b> adapter or a <b>fake</b> one, so the whole session replays deterministically off-target. A test case is the application's first user.</p>
     </header>
 
     <section id="slots" class="rv">
       <div class="sec-head"><span class="num">▸</span><h2>The seam at a glance</h2></div>
       <p class="lede">The eight slots, the same shape as every other seam. Read these, then the deep-dive below.</p>
       <div class="slots">
-        <div class="slot"><div class="k">The seam</div><div class="v">A <strong>port</strong> — an interface stated in the core's own vocabulary. <code>Runtime</code> (dispatch a <code>Command</code>, observe a <code>Stream&lt;State&gt;</code>), <code>ModelProvider</code> (the model backend), <code>EventSource</code> (sensing — tickets in). The core declares them; adapters satisfy them.</div></div>
+        <div class="slot"><div class="k">The seam</div><div class="v">A <strong>port</strong> — an interface stated in the core's own vocabulary. Four the <a class="x" href="02-the-boundary.html">boundary</a> holds (<code>Clock</code>, <code>IdSource</code>, <code>Bus</code>, <code>Sink</code>), one the product owns (<code>Authorization</code>), and three that face outward (<code>Runtime</code> — the domain port, an <code>Action</code> in and a view out; <code>ModelProvider</code> — cognition; <code>EventSource</code> — sensing). The core declares them; adapters satisfy them. A file in the ports folder with a <em>body</em> is a gate failure.</div></div>
         <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> the core <em>declaring</em> the port — a naked interface, no implementation. <strong>Outer:</strong> an <em>adapter implementing</em> it — <code>HttpModel</code> talking to a backend, <code>TicketQueue</code> draining a queue, or their fakes. One port, many adapters.</div></div>
-        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> a <code>Command</code> via <code>dispatch</code>, a <code>RawEvent</code> via <code>EventSource</code>. <strong>Out:</strong> a <code>Stream&lt;State&gt;</code> via <code>observe</code>, a <code>StepResult</code> via <code>ModelProvider</code>. <strong>Forbidden:</strong> a live socket, a DB row, or a model handle crossing inward — only domain types pass the port.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> an <code>Action</code> from the surface, a <code>StagedInput</code> via <code>EventSource</code>, a <code>StepResult</code> back from <code>ModelProvider</code>. <strong>Out:</strong> a <code>StepRecord</code> to <code>Bus.append</code>, a <code>KeyedEffect</code> to <code>Sink.perform</code>, a <code>Signature</code> question to <code>Authorization</code>. <strong>Forbidden:</strong> a live socket, a DB row, or a model handle crossing inward — only domain types pass the port. And never a <code>Command</code> inward: only the boundary signs.</div></div>
         <div class="slot"><div class="k">Direction</div><div class="v">Source dependency points <em>inward</em>: the adapter depends on the core's port interface (DIP) — never the reverse. Control flows <em>outward</em> at runtime — calls travel out through the port to the backend and results return.</div></div>
         <div class="slot"><div class="k">The inversion</div><div class="v">The port is <em>declared inner, implemented outer</em>. The compile-time arrow (adapter → port) opposes the runtime arrow (core → backend). The polymorphic interface on the inner side is the hinge that lets the two run in opposite directions.</div></div>
         <div class="slot"><div class="k">Why it exists</div><div class="v">Substitutability. Because the core names only the port, any adapter that fits it is interchangeable — and a <em>fake</em> one makes the whole session replay off-target, with no backend, no socket, no clock of its own.</div></div>
@@ -67,17 +67,30 @@
     </section>
 
     <section id="what" class="rv">
-      <div class="sec-head"><span class="num">A</span><h2>What it is — three interfaces the core owns</h2></div>
-      <p>A <em>port</em> is not a class and not an adapter. It is an interface, declared in the inner ring, stated entirely in domain words — and nothing more. The core owns three of them, and each names a conversation the core needs to have with the world without ever naming <em>how</em> that conversation happens:</p>
+      <div class="sec-head"><span class="num">A</span><h2>What it is — eight interfaces the core owns</h2></div>
+      <p>A <em>port</em> is not a class and not an adapter. It is an interface, declared in the inner ring, stated entirely in domain words — and nothing more. The core owns eight of them, and each names a conversation the core needs to have with the world without ever naming <em>how</em> that conversation happens:</p>
 
-      <div class="code"><div class="bar"><span class="path">the ports — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
-<pre><code class="language-plaintext">PORT Runtime       { dispatch(Command); observe() -&gt; Stream&lt;State&gt; }   // the domain port
-PORT ModelProvider { step(prompt, tools) -&gt; StepResult }              // the model backend
-PORT EventSource   { events() -&gt; Stream&lt;RawEvent&gt; }                    // sensing (tickets in)</code></pre></div>
+      <div class="code"><div class="bar"><span class="path">the ports — verbatim from the assembled program; interfaces only, no bodies</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">// the four the boundary holds — every impure capability in the system
+PORT Clock         { now() -&gt; Timestamp }                       // the ONLY source of `now`
+PORT IdSource      { next() -&gt; CommandId }                      // the ONLY source of identity
+PORT Bus           { append(StepRecord) -&gt; StepIndex            // the timeline; returns the offset
+                     records() -&gt; [StepRecord] }
+PORT Sink          { perform(KeyedEffect, PerformMode) }        // effects out — keyed, never bare
 
-      <p>Read what is — and is not — in those three lines. <code class="i">Runtime</code> takes a <code class="i">Command</code> in and hands a <code class="i">Stream&lt;State&gt;</code> out: it is the <em>domain port</em>, the seam the surface and the sensing loop both push against. <code class="i">ModelProvider</code> takes a prompt and tools and returns a <code class="i">StepResult</code> — the model backend, reduced to one verb. <code class="i">EventSource</code> yields a <code class="i">Stream&lt;RawEvent&gt;</code> — sensing, the queue of tickets arriving. No URL. No socket. No SQL. No model handle. Each port speaks only the core's vocabulary; the protocol on the far side is the adapter's private business.</p>
+// the one the product owns (authorization, 14.3)
+PORT Authorization { authorityOf(Actor, Session) -&gt; Authority
+                     mayConfirm(Signature, ToolResult, State) -&gt; Bool }
 
-      <p>That is the discipline that makes the seam a seam: the interface lives <em>inside</em>, in the core's language, and the implementation lives <em>outside</em>. Clean Architecture calls these the <strong>gateway / repository interfaces</strong> and the <strong>Input / Output Ports</strong>; the mapping is close. <code class="i">dispatch</code> plays the Input Port (the world calls in), <code class="i">observe</code> the Output Port (the core pushes out), and <code class="i">ModelProvider</code> / <code class="i">EventSource</code> are gateway interfaces the core declares and adapters satisfy — though the reference bundles these into one <code class="i">DomainPort</code> — whose signature is <code class="i">onAction(Action)</code> plus an observed <code class="i">state: Observable&lt;State&gt;</code>, which this example renames <code class="i">Runtime.dispatch</code> / <code class="i">observe</code> for the running console (the <code class="i">Action</code> is what crosses the port; the boundary signs it into the <code class="i">Command</code>). Read this as Clean Architecture's gloss on a single seam.</p>
+// the three that face the outside world
+PORT Runtime       { onAction(Action)                           // the domain port — ONE door in
+                     observe() -&gt; Stream&lt;ConsoleView&gt; }         //               — ONE door out
+PORT ModelProvider { step(prompt, tools) -&gt; StepResult }        // cognition
+PORT EventSource   { events() -&gt; Stream&lt;RawEvent&gt; }             // sensing (tickets in)</code></pre></div>
+
+      <p>Read what is — and is not — in those lines. <code class="i">Clock</code> and <code class="i">IdSource</code> are one verb each, because time and identity are the two capabilities the pure core must never reach for itself. <code class="i">Bus.append</code> takes a whole <code class="i">StepRecord</code> and <em>returns</em> the committed offset — a return value the <a class="x" href="02-the-boundary.html">boundary</a> needs, because that offset is what every effect key is built from. <code class="i">Sink.perform</code> accepts a <code class="i">KeyedEffect</code> and nothing else, so an effect physically cannot cross this seam without its idempotency key. <code class="i">Authorization</code> answers <em>under whose permission</em> a stream is acting — the seam a product owns and this reference deliberately does not. <code class="i">Runtime</code> is the domain port: one door in, one door out, nothing else public. <code class="i">ModelProvider</code> reduces the reasoner to one verb. <code class="i">EventSource</code> hands in the observations the world produces. No URL. No socket. No SQL. No model handle. Each port speaks only the core's vocabulary; the protocol on the far side is the adapter's private business.</p>
+
+      <p>Notice which type is <em>absent</em> from every one of those signatures: <code class="i">Command</code>. Not even the domain port carries a signed command inward, because signing is the boundary's alone. What a driving adapter hands in is an <code class="i">Action</code> — an open <code class="i">(tool, input)</code> pair, the same shape whether a finger or a model produced it; the boundary resolves it into a <code class="i">ToolResult</code>, folds it, and mints the <code class="i">Command</code> on the way to the bus. That is the discipline that makes the seam a seam: the interface lives <em>inside</em>, in the core's language, and the implementation lives <em>outside</em>. Clean Architecture calls these the <strong>gateway / repository interfaces</strong> and the <strong>Input / Output Ports</strong>; the mapping is close. <code class="i">Runtime.onAction</code> plays the Input Port (the world calls in), <code class="i">Runtime.observe</code> the Output Port (the core pushes out), and the other seven are gateway interfaces the core declares and adapters satisfy. Read this as Clean Architecture's gloss on a single seam.</p>
 
       <div class="note steel">
         <span class="lab">One port, many adapters</span>
@@ -93,14 +106,14 @@ PORT EventSource   { events() -&gt; Stream&lt;RawEvent&gt; }                    
 
     <section id="crosses" class="rv">
       <div class="sec-head"><span class="num">B</span><h2>What crosses it — domain types only, both ways</h2></div>
-      <p>A port is a promise about <em>what crosses</em>, and the promise is narrow: only domain types. Inbound, a <code class="i">Command</code> arrives through <code class="i">dispatch</code> and a <code class="i">RawEvent</code> arrives through <code class="i">EventSource.events</code>. Outbound, a <code class="i">Stream&lt;State&gt;</code> leaves through <code class="i">observe</code> and a <code class="i">StepResult</code> leaves through <code class="i">ModelProvider.step</code>. Every one of those is plain data the core already understands. What may <em>not</em> cross is the whole reason the port exists:</p>
+      <p>A port is a promise about <em>what crosses</em>, and the promise is narrow: only domain types. Inbound, an <code class="i">Action</code> arrives at the boundary and a <code class="i">StagedInput</code> arrives through <code class="i">EventSource.poll</code>. Outbound, a <code class="i">StepRecord</code> goes to <code class="i">Bus.append</code>, a <code class="i">KeyedEffect</code> goes to <code class="i">Sink.perform</code>, and a turn goes out through <code class="i">ModelProvider</code>. Every one of those is plain data the core already understands. What may <em>not</em> cross is the whole reason the port exists:</p>
 
       <div class="note bad">
         <span class="lab">Forbidden inbound — a live handle masquerading as a domain type</span>
         <p>A live socket, an open DB row cursor, a raw model session handle — none of these may cross the port inward. The moment one does, the core holds a reference to a mechanism, the source dependency flips outward, and the fake adapter can no longer stand in for the live one because the core is reaching <em>through</em> the port at something only the live side has. The port stops being substitutable, which is the only property it was there to provide.</p>
       </div>
 
-      <p>So the rule is symmetric with every other seam on this site: <strong>data crosses, mechanism does not</strong>. The <code class="i">StepResult</code> that comes back from <code class="i">ModelProvider.step</code> is a value — tool calls and their <code class="i">ToolResult</code> payloads — not a live model object. The <code class="i">RawEvent</code> from <code class="i">EventSource</code> is a value normalized by the adapter, not the network packet itself. The port is the membrane that keeps the core's vocabulary clean of the backend's, in both directions, so either side can be replaced without the other noticing.</p>
+      <p>So the rule is symmetric with every other seam on this site: <strong>data crosses, mechanism does not</strong>. What comes back from <code class="i">ModelProvider</code> is a value, never a live model object — and note precisely <em>which</em> value: the model's tool calls arrive as <code class="i">Action</code>s, a name plus the raw input it emitted, <em>not</em> as <code class="i">ToolResult</code>s. Turning a request into a result is the boundary's job, through its one closed map, so a recorded result can never disagree with what was folded (seam 02). The <code class="i">StagedInput</code> from <code class="i">EventSource</code> is likewise a value normalized by the adapter, not the network packet itself. The port is the membrane that keeps the core's vocabulary clean of the backend's, in both directions, so either side can be replaced without the other noticing.</p>
 
       <figure>
         <div class="diagram"><pre class="mermaid">
@@ -108,12 +121,12 @@ flowchart LR
   subgraph DRIVE["driving adapters"]
     direction TB
     TQ["TicketQueue<br/>(live sensing)"]
-    TH["test harness<br/>(drives a Command)"]
+    TH["test harness<br/>(drives an Action)"]
   end
   subgraph CORE["the core — owns the ports"]
     direction TB
     PIN["PORT EventSource :: in"]
-    PDISP["PORT Runtime :: dispatch / observe"]
+    PDISP["the boundary :: onAction(Action)<br/>PORT Clock · IdSource · Bus · Sink"]
     FOLD["fold + State"]
     PMODEL["PORT ModelProvider :: out"]
   end
@@ -122,8 +135,8 @@ flowchart LR
     HM["HttpModel<br/>(live backend)"]
     SM["ScriptedModel<br/>(fake fixture)"]
   end
-  TQ -->|RawEvent| PIN
-  TH -->|Command| PDISP
+  TQ -->|StagedInput| PIN
+  TH -->|Action| PDISP
   PIN --> FOLD
   PDISP --> FOLD
   FOLD --> PMODEL
@@ -141,7 +154,7 @@ flowchart LR
   style HM fill:#101218,stroke:#f23a48,color:#ffd7da
   style SM fill:#101218,stroke:#7c8aa0,color:#cdd5e0
         </pre></div>
-        <figcaption><b>Figure 1.</b> The hexagon. The core sits in the middle and meets every adapter at a port. <b>Driving</b> adapters (the queue, a test harness) push <code>Command</code>s and <code>RawEvent</code>s in; <b>driven</b> adapters (<code>HttpModel</code> or its fake <code>ScriptedModel</code>) take <code>step</code> calls out. Same ports, swappable sides.</figcaption>
+        <figcaption><b>Figure 1.</b> The hexagon. The core sits in the middle and meets every adapter at a port. <b>Driving</b> adapters (the queue, a test harness) push <code>Action</code>s and <code>StagedInput</code>s in — never a signed <code>Command</code>; <b>driven</b> adapters (<code>HttpModel</code> or its fake <code>ScriptedModel</code>) take turn calls out. Same ports, swappable sides.</figcaption>
       </figure>
     </section>
 
@@ -178,7 +191,7 @@ flowchart LR
         <span class="lab">Collapsed — live and fake fused into one wired pair</span>
         <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">model = HttpModelWithScriptedFallback(env.url, env.fixtures)&nbsp;&nbsp;<span style="color:var(--accent)">// two adapters welded together</span><br>
         &nbsp;&nbsp;<span style="color:var(--accent)">// step() hits the network, then "verifies" against the fixture in the same call</span></p>
-        <p>This looks defensive, but it removes the swap. There is no <code class="i">env.live = false</code> path that binds <em>only</em> the fake — every run still touches the network, because the fake is soldered to the live adapter rather than standing in for it. <strong>The test that dies:</strong> <code class="i">replayTest</code>. It can no longer run, because there is no way to wire the core to fixtures alone — <code class="i">collectPerform(recorded, mode = REPLAY)</code> still reaches the backend, so &ldquo;fold the recording, assert the golden effects&rdquo; can never be performed off-target. The two-adapter weld deletes deterministic replay.</p>
+        <p>This looks defensive, but it removes the swap. There is no <code class="i">env.live = false</code> path that binds <em>only</em> the fake — every run still touches the network, because the fake is soldered to the live adapter rather than standing in for it. <strong>The test that dies:</strong> <code class="i">replayTest</code>. It can no longer run, because there is no way to wire the core to fixtures alone — <code class="i">collectPerform(records, sink, mode = REPLAY)</code> still reaches the backend, so &ldquo;re-fold the committed records and hold them against what the live run did&rdquo; can never be performed off-target. The two-adapter weld deletes deterministic replay.</p>
       </div>
 
       <p>Both failures share a shape with every other seam on this site: a capability that belongs to the <em>adapter</em> — knowing the URL, holding the socket, choosing the backend — leaked into the core, where it can be neither swapped nor replayed. The port exists precisely to make that leak impossible to write by accident, and to keep one wire, the composition root's, the only place a live-vs-fake choice is ever made.</p>
@@ -190,30 +203,36 @@ flowchart LR
 
       <div class="code"><div class="bar"><span class="path">the composition root — the one place the swap is decided (seam 06)</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">wireApp(env):
-  bus     = Bus()
-  store   = LogStore(env.path)
-  model   = env.live ? HttpModel(env.url) : ScriptedModel(env.fixtures)   // ← the swap
-  sensing = TicketQueue(env.queue)
-  runtime = Runtime(model, bus, store, boundary)
-  return App(runtime, sensing)</code></pre></div>
+  bus      = Bus()
+  ids      = SequentialIds()
+  clock    = env.live ? SystemClock() : FixedClock(env.t0)
+  authz    = env.live ? HostAuthority(env.session) : ScriptedAuthority(env.fixtures)
+  model    = env.live ? HttpModel(env.url) : ScriptedModel(env.fixtures)   // ← the swap
+  sink     = env.live ? LiveSinks(pager, store) : RecordingSink()
+  sensing  = TicketQueue(env.queue)
+  registry = register(triage) + register(escalation)
+           + register(console) + register(artifact)                        // one line per block
+  boundary = Boundary(clock, ids, bus, sink, authz, registry, fold, projectContext)
+  return App(boundary, sensing, model)</code></pre></div>
 
-      <p>One line, two worlds. With <code class="i">env.live = true</code> the core runs behind <code class="i">HttpModel</code> against a real backend. With <code class="i">env.live = false</code> the <em>same</em> core runs behind <code class="i">ScriptedModel</code> reading recorded fixtures — deterministic, off-target, no socket. Put the two wirings side by side and the symmetry is the whole lesson: only the adapter changes; the runtime, the fold, the bus, the ports are byte-for-byte identical.</p>
+      <p>One flag, two worlds. With <code class="i">env.live = true</code> the core runs behind <code class="i">HttpModel</code> against a real backend. With <code class="i">env.live = false</code> the <em>same</em> core runs behind <code class="i">ScriptedModel</code> reading recorded fixtures — deterministic, off-target, no socket. Put the two wirings side by side and the symmetry is the whole lesson: only the adapter changes; the boundary, the fold, the registry and the ports are byte-for-byte identical.</p>
 
       <div class="code"><div class="bar"><span class="path">live vs. fake — same core, one bound argument apart</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">// live: drive the real backend through the port
-liveModel = HttpModel(env.url)
-liveApp   = App(Runtime(liveModel, bus, store, boundary), TicketQueue(env.queue))
+liveApp = wireApp({ ...env, live: true })      // ModelProvider ← HttpModel
+                                               // Sink          ← LivePager, LiveDelivery
 
-// fake: drive a recording through the SAME port — the swap, made explicit
-fakeModel = ScriptedModel(env.fixtures)
-fakeApp   = App(Runtime(fakeModel, bus, store, boundary), TicketQueue(env.queue))
+// fake: drive a recording through the SAME ports — the swap, made explicit
+fakeApp = wireApp({ ...env, live: false })     // ModelProvider ← ScriptedModel
+                                               // Sink          ← recording adapters
 
-// the core cannot tell liveApp from fakeApp — it holds only ModelProvider
-assert liveApp.runtime.port == fakeApp.runtime.port    // both fit PORT ModelProvider</code></pre></div>
+// the core cannot tell liveApp from fakeApp — it holds only the interfaces
+assert liveApp.boundary.registry == fakeApp.boundary.registry   // same verbs, same gate
+assert liveApp.boundary.fold     == fakeApp.boundary.fold       // the same pure core</code></pre></div>
 
       <p>This is where the borrowed idea lands hardest. In Clean Architecture, the outermost ring is the tests, and a test case is treated as the <em>first user</em> of the application — it drives the system through the very same ports any other client would, substituting a fake for whatever the system would otherwise reach out to. The swap above <em>is</em> that idea, mechanized: bind <code class="i">ScriptedModel</code> and the test harness becomes a driving adapter on one side while recorded fixtures become a driven adapter on the other, and the real session runs between them with nothing real attached.</p>
 
-      <p>And so the seam delivers what every other page has pointed at: the <a class="x" href="07-replay-and-advanced.html">replay harness</a> can fold the recorded stream twice and assert determinism, because the fake adapter lets it run off-target. The whole session — sensing, stepping, folding, projecting — replays behind fakes that fit the same ports the live adapters fit. <strong>One port, two adapters; the core never notices the difference; the test drives it as its first user.</strong> That is the hexagonal swap, and it is the single most important idea this architecture borrows.</p>
+      <p>And so the seam delivers what every other page has pointed at: the <a class="x" href="07-replay-and-advanced.html">replay harness</a> can run a whole session and then re-derive it from its own committed records, because the fake adapters let the live half run off-target in the first place. The whole session — sensing, stepping, folding, projecting — replays behind fakes that fit the same ports the live adapters fit. <strong>One port, two adapters; the core never notices the difference; the test drives it as its first user.</strong> That is the hexagonal swap, and it is the single most important idea this architecture borrows.</p>
 
       <div class="pager">
         <a class="prev" href="04-projection-and-surface.html"><span class="d">← Seam 04</span>Projection and surface</a>

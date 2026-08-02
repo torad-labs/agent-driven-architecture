@@ -1,0 +1,9 @@
+id: main-no-hardcoded-dispatchers
+snapshots:
+  ? |
+    suspend fun f() = withContext(Dispatchers.IO) { g() }
+  : labels:
+    - source: Dispatchers.IO
+      style: primary
+      start: 30
+      end: 44

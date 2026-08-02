@@ -1,0 +1,19 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: No empty interfaces.
+# Rationale: Empty interfaces are equivalent to {} or unknown.
+# Use a type alias or add meaningful members.
+id: no-empty-interface-tsx
+language: tsx
+severity: error
+message: "Empty interface is equivalent to {}. Use a type alias or add members."
+files:
+  - "**/*.tsx"
+rule:
+  pattern: interface $NAME {}
+  not:
+    has:
+      kind: extends_type_clause

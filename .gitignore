@@ -3,3 +3,27 @@
 node_modules/
 .vscode/
 .idea/
+
+# the PreToolUse hook modules are imported to test them; the bytecode is not source
+__pycache__/
+*.pyc
+
+# transient per-agent worktrees created by workflow runs
+.claude/worktrees/
+
+# the G12 negative-compilation proof's scratch copy of the tree (deleted on
+# success). It sits at the port root rather than under test/ because the copy now
+# carries test/ itself, and `fs.cpSync` refuses to copy a directory into a
+# subdirectory of itself.
+examples/typescript/.work/
+
+# the TypeScript workspace wall's declaration output (npm run typecheck:wall).
+# The wall's RED path also emits beside the source; scripts/wall.mjs sweeps that,
+# deliberately rather than ignoring it — a tree in that state fails the NEXT run,
+# so hiding it from git would hide a state the tree must never be in.
+examples/typescript/.tsbuild/
+
+# >>> torad-managed (auto-generated; do not edit inside) >>>
+.torad.state.json
+.torad.lock
+# <<< torad-managed <<<

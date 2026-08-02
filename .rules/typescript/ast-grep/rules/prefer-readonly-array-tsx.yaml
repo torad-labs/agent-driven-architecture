@@ -1,0 +1,31 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: Prefer readonly arrays in function signatures.
+# Rationale: readonly T[] prevents accidental mutation of array parameters.
+# Makes function contracts clearer and enables better optimizations.
+id: prefer-readonly-array-tsx
+language: tsx
+severity: error
+message: "Use readonly T[] for array parameters to prevent mutation."
+files:
+  - "**/*.tsx"
+ignores:
+  - "**/test/**"
+rule:
+  # stopBy at each level. `has` reads DIRECT children, and a parameter's array type sits
+  # under a `type_annotation` — so `xs: string[]` was invisible and the rule never fired
+  # on any parameter in examples/typescript.
+  kind: formal_parameters
+  has:
+    kind: required_parameter
+    stopBy: end
+    has:
+      kind: array_type
+      stopBy: end
+      not:
+        inside:
+          kind: readonly_type
+          stopBy: end

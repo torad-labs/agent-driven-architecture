@@ -1,0 +1,20 @@
+{
+  "//": "THE IMPURE UNIT of block `console`, DECLARED AND EMPTY. The pair is unconditional: a block with no seam to the outside declares the leaf and leaves it empty, so the shape a reader learns from one block is the shape every block has. `files: []` is the canonical spelling of a declared-empty project, and it is CONVENTION here rather than enforcement: MEASURED on TS 6, the `references` list below — which every leaf carries — suppresses the empty-input diagnostic for EITHER spelling, so `include: []` builds just as clean. The two differ only where references are absent, and even there symmetrically: `include: []` is TS18003 and `files: []` is TS18002. That `references` list is also what states this unit's permitted dependencies, which is the declaration the leaf exists to carry.",
+  "//emptiness": "It is fail-closed rather than merely explained: drop a `.ts` file here and it is compiled with no `include` covering it, so the file is invisible to this project and any import of it is TS6307. Give it an `include` and the leaf is a live unit — which is exactly the edit a block growing its first seam makes.",
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "../../../../.tsbuild/block-console-adapter",
+    "tsBuildInfoFile": "../../../../.tsbuild/block-console-adapter.tsbuildinfo"
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "../../../spine"
+    },
+    {
+      "path": ".."
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "//": "THE ADOPTER TEMPLATE MUST NOT DRIFT FROM THE PORT. `compilerOptions` here is asserted to deep-equal examples/typescript/tsconfig.base.json in test/laws/quickstart.test.ts, so the walk typechecks the copied tier under exactly the contract this port compiles under. The vendored spine's own `src/spine/tsconfig.json` EXTENDS this file by the relative path `../../tsconfig.base.json`, so an adopter who copies the spine folder and does not create this file has copied a broken project - measured, not guessed.",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2023"
+    ],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "types": [
+      "node"
+    ],
+    "allowJs": true,
+    "resolveJsonModule": true
+  }
+}

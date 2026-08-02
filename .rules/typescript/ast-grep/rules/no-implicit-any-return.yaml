@@ -1,0 +1,25 @@
+# TENET: Exported functions must have explicit return types.
+# Rationale: Implicit return types leak implementation details.
+# Explicit types are self-documenting and catch refactoring errors.
+id: no-implicit-any-return
+language: typescript
+severity: error
+message: "Exported functions need explicit return types."
+files:
+  - "**/*.ts"
+ignores:
+  - "**/test/**"
+rule:
+  kind: export_statement
+  has:
+    kind: function_declaration
+    not:
+        # A TYPE PREDICATE (`r is AnalysisResult`) and an ASSERTION SIGNATURE
+        # (`asserts x is T`) are return types — they are just not `type_annotation`
+        # nodes. Without them this rule flagged all 7 type-guard exports in
+        # examples/typescript, every one of which is explicitly typed.
+      has:
+        any:
+          - kind: type_annotation
+          - kind: type_predicate_annotation
+          - kind: asserts_annotation

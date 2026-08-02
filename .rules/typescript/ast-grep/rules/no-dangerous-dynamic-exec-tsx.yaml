@@ -1,0 +1,20 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: No dynamic code execution.
+# Rationale: eval/new Function and concatenated shell commands erase the type and
+# shell boundaries. Use typed APIs, argument arrays, or explicit command builders.
+id: no-dangerous-dynamic-exec-tsx
+language: tsx
+severity: error
+message: "Avoid dynamic code execution; use typed APIs or argument arrays instead."
+files:
+  - "**/*.tsx"
+rule:
+  any:
+    - pattern: eval($$$ARGS)
+    - pattern: new Function($$$ARGS)
+    - pattern: exec($CMD + $REST)
+    - pattern: execSync($CMD + $REST)

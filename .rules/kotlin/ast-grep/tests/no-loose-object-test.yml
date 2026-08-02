@@ -1,0 +1,15 @@
+id: no-loose-object
+valid:
+  - |
+    package good
+
+    class UseCase {
+        fun run(): String = "ok"
+    }
+invalid:
+  - |
+    package bad
+
+    object UseCase {
+        fun run(): String = "bad"
+    }

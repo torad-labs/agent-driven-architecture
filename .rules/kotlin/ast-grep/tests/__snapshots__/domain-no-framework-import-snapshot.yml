@@ -1,0 +1,13 @@
+id: domain-no-framework-import
+snapshots:
+  ? |
+    package bad
+
+    import java.sql.Connection
+
+    class Bad(val connection: Connection)
+  : labels:
+    - source: import java.sql.Connection
+      style: primary
+      start: 13
+      end: 39

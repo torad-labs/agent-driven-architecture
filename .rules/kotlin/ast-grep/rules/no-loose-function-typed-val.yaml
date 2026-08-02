@@ -1,0 +1,56 @@
+id: no-loose-function-typed-val
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+#
+# THE HOLE THIS CLOSES. no-loose-top-level-fun matches `function_declaration`. A top-level
+# `val` holding a lambda is a `property_declaration`, so it is INVISIBLE to that rule:
+#
+#     val triageArm: (Int) -> Int = { x -> x + 1 }   // was legal, is a loose function
+#
+# Measured during the block-roles campaign: an auditor asked how the instrument could be
+# moved WITHOUT doing the work, and this was the answer — rewrite each banned `fun` as a
+# function-typed `val` and the primary count falls by five, the build stays green, and
+# no-loose-object / no-companion-objects both stay silent. Nothing is instantiated. It is
+# also the shape a Kotlin author reaches for first when a rule complains about `fun`,
+# so it would have been found by accident sooner or later.
+#
+# Same law as its three siblings — no function without an instantiation. A lambda in a
+# top-level `val` has no instance any more than the `fun` it replaced does.
+#
+# NOT matched, deliberately: a plain constant (`val n: Int = 5`), a getter property
+# (`val initial: Slice get() = ...`), and any function-typed property INSIDE a class or
+# object — `private val cb: (Int) -> Int = { ... }` is fine, because its host is what
+# supplies the instantiation. Constructor-injected callbacks stay legal.
+#
+# ALSO NOT matched, and this is the distinction the rule turns on: a SAM CONSTRUCTION.
+#
+#     val systemClock = Clock { System.currentTimeMillis() }   // legal — this IS the remedy
+#
+# There the lambda is an ARGUMENT that constructs a Clock; the value has an instantiation.
+# The first draft of this rule used `has: {kind: lambda_literal, stopBy: end}` and so fired
+# on any lambda anywhere in the initializer — it flagged all four SAM constructions in
+# test/fixtures/detekt/compliant/spine/boundary/AmbientCapability.kt and the `listOf(...)`
+# in test/kotlin/adr/gate/Rules.kt, i.e. it banned the exact shape it exists to encourage.
+# The lambda branch therefore has NO stopBy: the lambda must be the property's own
+# initializer, not something nested inside a call.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "no-loose-function-typed-val: a top-level val holding a lambda is a loose function with no instantiation — the same disease as no-loose-top-level-fun, wearing a property's clothes. Move it onto a constructed type."
+rule:
+  kind: property_declaration
+  inside:
+    kind: source_file
+  any:
+    - has: { kind: function_type, stopBy: end }
+    # NO stopBy here — see the SAM-construction note above. The lambda must be the
+    # property's own initializer, never one nested inside a constructor call.
+    - has: { kind: lambda_literal }

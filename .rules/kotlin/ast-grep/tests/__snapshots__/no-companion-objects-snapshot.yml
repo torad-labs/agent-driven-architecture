@@ -1,0 +1,50 @@
+id: no-companion-objects
+snapshots:
+  ? |
+    package bad
+
+    class Slice {
+        companion object Factory {
+            fun of(): Slice = Slice()
+        }
+    }
+  : labels:
+    - source: |-
+        companion object Factory {
+                fun of(): Slice = Slice()
+            }
+      style: primary
+      start: 31
+      end: 97
+  ? |
+    package bad
+
+    class Slice {
+        companion object {
+            fun of(tickets: List<Ticket>): Slice = Slice()
+        }
+    }
+  : labels:
+    - source: |-
+        companion object {
+                fun of(tickets: List<Ticket>): Slice = Slice()
+            }
+      style: primary
+      start: 31
+      end: 110
+  ? |
+    package bad
+
+    class Slice {
+        companion object {
+            val initial = Slice()
+        }
+    }
+  : labels:
+    - source: |-
+        companion object {
+                val initial = Slice()
+            }
+      style: primary
+      start: 31
+      end: 85

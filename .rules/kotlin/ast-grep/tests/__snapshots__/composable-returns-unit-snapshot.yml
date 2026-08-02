@@ -1,0 +1,21 @@
+id: composable-returns-unit
+snapshots:
+  ? |
+    @Composable fun chipColor(label: String): Color = Color.Red
+  : labels:
+    - source: '@Composable fun chipColor(label: String): Color = Color.Red'
+      style: primary
+      start: 0
+      end: 59
+    - source: '@Composable'
+      style: secondary
+      start: 0
+      end: 11
+    - source: '@Composable'
+      style: secondary
+      start: 0
+      end: 11
+    - source: Color
+      style: secondary
+      start: 42
+      end: 47

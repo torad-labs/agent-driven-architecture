@@ -1,0 +1,8 @@
+id: handler-requires-looper
+language: kotlin
+severity: hint
+promotion: suggest
+message: Handler() without a Looper is deprecated (API 30); pass Looper.getMainLooper().
+rule:
+  pattern: Handler()
+fix: Handler(Looper.getMainLooper())

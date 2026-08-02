@@ -1,0 +1,8 @@
+# REFERENCE ONLY: opt-in anti-return law for the handler-requires-looper
+# codemod template. It is intentionally outside the default rules/ LAW route.
+id: no-handler-without-looper
+language: kotlin
+severity: error
+message: Handler() without a Looper is deprecated. Run `torad codemod run handler-requires-looper`.
+rule:
+  pattern: Handler()

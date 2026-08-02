@@ -1,0 +1,20 @@
+id: backend-no-openclaw-jsmodule-binding
+snapshots:
+  ? |
+    package bad
+
+    @JsModule("openclaw/substrate")
+    external object OpenClaw
+  : labels:
+    - source: JsModule("openclaw/substrate")
+      style: primary
+      start: 14
+      end: 44
+    - source: JsModule
+      style: secondary
+      start: 14
+      end: 22
+    - source: openclaw/substrate
+      style: secondary
+      start: 24
+      end: 42

@@ -1,0 +1,75 @@
+id: no-deadline-less-recursive-self-poll
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: >-
+  no-deadline-less-recursive-self-poll: a function that reschedules itself (via setTimeout with a
+  callable reference, a lambda-wrapped setTimeout, or a delay-then-recurse Promise chain) with no
+  elapsed-time check anywhere in its body can poll forever if the condition it is waiting on never
+  becomes true (W7/F4 -- Dispatch.kt's waitForSettled polled while inFlight>1 with no bound; a
+  single wedged in-flight handler spun quiesce forever, the same wedge class as the deploy-2 canary
+  hang; AUDIT-W7-TENET-LAMBDA -- the lambda-wrapped setTimeout({ name() }, ms) idiom slipped this
+  same tenet undetected). Bound the recursion: capture a `Date.now() + TIMEOUT_MS` deadline before
+  the first poll and add a branch that force-settles once the deadline has passed, mirroring
+  Journal.kt's own LOCK_TIMEOUT_MS/Date.now() idiom (ClosedLoop.kt's waitFor/poll and
+  RealBackendUnderTest.kt's waitForFixtureResponse/tick use the same shape, the latter via
+  kotlin.js.Date().getTime()) -- one established pattern for "bound a self-poll," not a fresh one
+  invented per call site.
+rule:
+  all:
+    - any:
+        - pattern: |
+            fun $NAME() {
+              $$$BODY
+            }
+        - pattern: |
+            private fun $NAME() {
+              $$$BODY
+            }
+        - pattern: |
+            internal fun $NAME() {
+              $$$BODY
+            }
+        - pattern: |
+            protected fun $NAME() {
+              $$$BODY
+            }
+        - pattern: |
+            fun $NAME(): $RTYPE =
+              $$$BODY
+        - pattern: |
+            private fun $NAME(): $RTYPE =
+              $$$BODY
+        - pattern: |
+            internal fun $NAME(): $RTYPE =
+              $$$BODY
+        - pattern: |
+            protected fun $NAME(): $RTYPE =
+              $$$BODY
+    - has:
+        stopBy: end
+        any:
+          - pattern: js("setTimeout")(::$NAME, $$$REST)
+          - pattern: setTimeout(::$NAME, $$$REST)
+          - pattern: $DELAY.then { $NAME() }
+          - pattern: js("setTimeout")({ $NAME() }, $$$REST)
+          - pattern: setTimeout({ $NAME() }, $$$REST)
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: Date.now()
+            - pattern: Date().getTime()
+            - pattern: kotlin.js.Date().getTime()

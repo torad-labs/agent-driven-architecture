@@ -1,0 +1,29 @@
+# TENET: Public API functions should have explicit return types.
+# Rationale: Explicit return types on exports prevent accidental API changes
+# and make the contract clear to consumers. Inference is fine for internal code.
+id: explicit-public-return-types
+language: typescript
+severity: error
+message: "Exported functions should have explicit return types for API clarity."
+files:
+  - "**/*.ts"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+  - "**/*.d.ts"
+rule:
+  kind: export_statement
+  has:
+    kind: function_declaration
+    not:
+        # A TYPE PREDICATE (`r is AnalysisResult`) and an ASSERTION SIGNATURE
+        # (`asserts x is T`) are return types — they are just not `type_annotation`
+        # nodes. Without them this rule flagged all 7 type-guard exports in
+        # examples/typescript, every one of which is explicitly typed.
+      has:
+        any:
+          - kind: type_annotation
+          - kind: type_predicate_annotation
+          - kind: asserts_annotation
+        follows:
+          kind: formal_parameters

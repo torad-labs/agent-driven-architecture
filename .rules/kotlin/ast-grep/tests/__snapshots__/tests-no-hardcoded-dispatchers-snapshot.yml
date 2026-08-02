@@ -1,0 +1,9 @@
+id: tests-no-hardcoded-dispatchers
+snapshots:
+  ? |
+    class T { @Test fun t() = runTest { withContext(Dispatchers.IO) { subject.go() } } }
+  : labels:
+    - source: Dispatchers.IO
+      style: primary
+      start: 48
+      end: 62

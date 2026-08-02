@@ -1,0 +1,78 @@
+id: no-sendframe-then-without-catch
+valid:
+  # The fix itself: sendFrame(...).then{} chained onto its OWN .catch (SocketDuplex.kt's
+  # attachOverSocket doPoll, post-W5/F3).
+  - |
+    package good
+
+    fun poll(client: SeatdClient, payload: dynamic, pollIntervalMs: Int) {
+        client.sendFrame(payload).then { resp: dynamic ->
+            if (resp.ok == true) {
+                doSomething(resp)
+            }
+            null
+        }.catch { _: Throwable ->
+            stopPolling()
+            null
+        }
+    }
+  # The unsafeCast<Promise<Unit>>() bridge -- attach/Cli.kt's attachCliMain: the
+  # sendFrame(...).then{} chain is the tail expression of an outer lambda whose OWN chain
+  # carries the .catch (rejections propagate up via the returned value, not dropped).
+  - |
+    package good
+
+    fun attachCliMain(connectSeatd: ClientFactory): Promise<Unit> {
+        return connectSeatd(socketPath).then { client ->
+            client.sendFrame(authPayload).then { auth: dynamic ->
+                if (auth.ok != true) {
+                    return@then Promise.resolve(Unit)
+                }
+                attachOverSocket(client, seat).then { handle -> handle }
+            }.unsafeCast<Promise<Unit>>()
+        }.catch { error: Throwable ->
+            CliProcess.exitCode = 1
+        }.unsafeCast<Promise<Unit>>()
+    }
+  # AUDIT-W5-TENET-FENCE: SeatdWireChannel.kt's authenticate() (backend/host) -- a RECEIVERLESS
+  # sendFrame().then{} that is the function's RETURNED expression body. The returned promise carries
+  # its PRINCIPAL_DENIED rejection to the caller (SeatdClient.connect() closes the socket + fails the
+  # connection on it), so it needs NO trailing .catch -- a `.catch { throw it }` here is a semantic
+  # no-op that only broke type inference. The refined rule exempts returned expression bodies.
+  - |
+    package good
+
+    fun authenticate(token: String): Promise<Unit> =
+        sendFrame(buildJsonObject { put("token", token) }).then { response ->
+            val ok = response["ok"]?.jsonPrimitive?.booleanOrNull ?: false
+            if (!ok) throw SeatdClientError("PRINCIPAL_DENIED", "seatd authentication failed")
+        }.then { it }
+invalid:
+  # THE VERIFY CASE: SocketDuplex.kt's attachOverSocket doPoll, pre-W5/F3 -- a bare
+  # sendFrame(...).then{} statement with no trailing .catch. A transient rejection stopped the
+  # poll loop silently (the reschedule only happens inside the .then's success branch) and was
+  # itself an unhandled promise rejection (crashes Node by default).
+  - |
+    package bad
+
+    fun doPoll(client: SeatdClient, payload: dynamic, pollIntervalMs: Int) {
+        client.sendFrame(payload).then { resp: dynamic ->
+            if (resp.ok == true) {
+                doSomething(resp)
+            }
+            js("setTimeout")({ doPoll(client, payload, pollIntervalMs) }, pollIntervalMs)
+            null
+        }
+    }
+  # A fire-and-forget authenticate-SHAPED chain that is NOT returned (a discarded block statement) --
+  # proves the refined rule still catches the swallow even for this call shape, exempting only the
+  # RETURNED expression body above, not the statement form.
+  - |
+    package bad
+
+    fun login(token: String) {
+        sendFrame(buildJsonObject { put("token", token) }).then { response ->
+            val ok = response["ok"]?.jsonPrimitive?.booleanOrNull ?: false
+            if (!ok) throw SeatdClientError("PRINCIPAL_DENIED", "seatd authentication failed")
+        }.then { it }
+    }

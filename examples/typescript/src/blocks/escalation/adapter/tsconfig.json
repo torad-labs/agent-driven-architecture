@@ -1,0 +1,25 @@
+{
+  "//": "THE IMPURE UNIT of block `escalation` — the second half of the block's build-unit pair, inside the block's own folder. `composite` roots the project HERE, so the pure unit next door cannot reach in and this unit cannot reach out except through what it REFERENCES. The pure unit's own tsconfig does not reference this one and excludes this folder, which is what makes a pure file naming its own block's live IO a resolution error rather than a lint message.",
+  "//references": "`..` is this leaf's own block. A relative reach into a REFERENCED project is redirected to that project's declarations, so `../port` compiles here and nowhere the reference is absent — the same mechanism the composition root uses to reach this file.",
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "../../../../.tsbuild/block-escalation-adapter",
+    "tsBuildInfoFile": "../../../../.tsbuild/block-escalation-adapter.tsbuildinfo"
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../spine"
+    },
+    {
+      "path": ".."
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@adr/block-notes-adapter",
+  "private": true,
+  "type": "module",
+  "//": "THE ADOPTER'S LEAF, declared and empty — the shape step 4 instructs. `notes` has no seam to the outside, and the pair is unconditional, so the leaf is declared and left empty rather than skipped. `exports: {}` is what publishes nothing: an ABSENT map falls back to directory resolution and denies nothing at all.",
+  "exports": {},
+  "dependencies": {
+    "@adr/spine": "*",
+    "@adr/block-notes": "*"
+  }
+}

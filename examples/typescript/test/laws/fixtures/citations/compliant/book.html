@@ -1,0 +1,58 @@
+<!-- The COMPLIANT half: the same mini-book with both coordinates agreeing, plus
+     every near-miss the rule must stay silent about. Silence here is the claim —
+     a checker that reddened a prose label, a law range, an in-section anchor, a
+     whole-file table-of-contents link or an outbound URL would be the nuisance
+     15.2 warns about, and the first author to meet it would reach for a
+     suppression that is itself a gate failure. The prose here spells no markup,
+     for the same reason the violating half does not. -->
+<nav class="nav" id="nav">
+  <a href="#alpha"><span class="n">01</span><span>First</span></a>
+  <a href="#beta"><span class="n">02</span><span>Second</span></a>
+  <a href="#gamma"><span class="n">03</span><span>Third</span></a>
+  <a href="example/seam.html"><span class="n">07</span><span>The seam</span></a>
+</nav>
+
+<section id="alpha" class="rv">
+  <div class="sec-head"><span class="num">01</span><h2>First</h2></div>
+  <p class="lede">The padded head spelling resolves the same as the unpadded one:
+    <a class="x" href="#alpha">01</a> and <a class="x" href="#beta">2</a> both agree
+    with what they point at, and so does the marked spelling
+    <a class="x" href="#beta">§02</a>.</p>
+
+  <h3><span class="t">1.1</span>The labels that are English</h3>
+  <p>None of these is a claim a machine may adjudicate, and none of them may fire:
+    <a class="x" href="#gamma">G1–G16</a> is a range, <a class="x" href="#alpha">Fig
+    1.1</a> is a figure, <a class="x" href="#beta">the note this book keeps</a> is a
+    sentence, <a class="x" href="#alpha">§ mapping</a> carries the mark and no number,
+    and <a class="x" href="example/seam.html">seam 07 § E</a> names a page.</p>
+
+  <h3><span class="t">1.2</span>The links that leave</h3>
+  <p>An href that names no page of this corpus is not a broken path into it:
+    <a class="x" href="https://example.invalid/spec">the upstream spec</a>,
+    <a class="x" href="mailto:nobody@example.invalid">the maintainer</a> and
+    <a class="x" href="//example.invalid/mirror.html">the mirror</a> all name
+    somewhere else entirely.</p>
+</section>
+
+<section id="beta" class="rv">
+  <div class="sec-head"><span class="num">02</span><h2>Second</h2></div>
+  <p>A subsection label whose head is this section: <a class="x" href="#beta">2.1</a>.
+    A plural word form that is also this section:
+    <a class="x" href="#beta">sections 02 and beyond</a>. And the law label, landing
+    where the law is written down rather than here: <a class="x" href="#gamma">G4</a>
+    — asserted from OUTSIDE the target, or the target would carry the id merely by
+    carrying the link.</p>
+
+  <h3><span class="t">2.1</span>A note the sections own</h3>
+  <div class="note" id="beta-note"><p>An IN-SECTION anchor, not a section of its own.
+    A link to it says <a class="x" href="#beta-note">2</a>, and the id map has to
+    credit the note to its enclosing section or that reads as a defect.</p></div>
+</section>
+
+<section id="gamma" class="rv">
+  <div class="sec-head"><span class="num">03</span><h2>Third</h2></div>
+  <p>The word form, agreeing: <a class="x" href="#gamma">section 03</a>.</p>
+
+  <h3><span class="t">3.1</span>The table</h3>
+  <table><tr><td>G4</td><td>the law this section writes down</td></tr></table>
+</section>

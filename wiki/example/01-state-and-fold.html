@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Seam 01 · State and the fold — the pure core</title>
-<meta name="description" content="State and the fold: the discriminated-union entities at the centre and the pure reducer that turns recorded tool results into a new immutable state plus effect descriptors. The fold reads no clock, mints no id, performs no I/O — so the whole session replays by direct call." />
+<meta name="description" content="State and the fold: the sealed-union entities at the centre and the pure reducer that turns gated tool results into a new immutable state plus effect descriptors. Every arm reads current state before it decides; every effect push lives inside the success branch. The fold reads no clock, mints no id, keys no effect, performs no I/O — so the whole session replays." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="agentd.css" />
@@ -48,66 +48,105 @@
     <header class="hero" style="padding-top:34px">
       <span class="kicker">Seam 01 · The inner ring</span>
       <h1>State and the <span class="em">fold</span>.</h1>
-      <p class="stand">The centre of the diagram, and the seam everything else is built to protect. The <code class="i">State</code> is the enterprise truth — a discriminated union. The <b>fold</b> is the pure reducer <code class="i">fold(state, results, now)</code> that turns recorded tool results into a new immutable <code class="i">State</code> plus <code class="i">Effect</code> <b>descriptors</b>. It reads no clock, mints no id, performs no I/O — which is exactly why the whole session replays.</p>
+      <p class="stand">The centre of the diagram, and the seam everything else is built to protect. The <code class="i">State</code> is the enterprise truth — a product of slices, and every closed set inside it a sealed union. The <b>fold</b> is the pure reducer <code class="i">fold(state, results, now, sig)</code> that turns gated tool results into a new immutable <code class="i">State</code> plus <code class="i">Effect</code> <b>descriptors</b>. It reads no clock, mints no id, keys no effect, performs no I/O — which is exactly why the whole session replays.</p>
     </header>
 
     <section id="slots" class="rv">
       <div class="sec-head"><span class="num">▸</span><h2>The seam at a glance</h2></div>
       <p class="lede">The eight slots, the same shape as every other seam. Read these, then the deep-dive below. This page covers three tightly-bound seams — <code>State</code>, the fold, and <code>Effect</code> — with the <em>fold</em> as the primary one: <code>State</code> is its in and out, effects are what it emits.</p>
       <div class="slots">
-        <div class="slot"><div class="k">The seam</div><div class="v">The pure reducer <code>fold(state, results, now) -&gt; (newState, effects)</code> — the use-case layer. It folds recorded <code>ToolResult</code>s into a new immutable <code>State</code> and a list of <code>Effect</code> descriptors. Nothing else decides what is true.</div></div>
-        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> <code>State</code>, <code>Ticket</code>, <code>Priority</code> — the entities, the enterprise truth, a discriminated union. <strong>Through it:</strong> the fold reads the current <code>State</code> and the results, and produces the next <code>State</code>. The fold imports nothing foreign; the entities import nothing at all.</div></div>
-        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> the current <code>state</code>, a list of <code>ToolResult</code>, and <code>now</code> — a clock reading passed as an ordinary value. <strong>Out:</strong> a new immutable <code>State</code> and a list of <code>Effect</code> descriptors (plain data). <strong>Forbidden:</strong> the fold never reads a clock, never mints an id, never performs an effect, never does I/O. <code>now</code> is handed <em>in</em>; effects go <em>out</em> as data.</div></div>
-        <div class="slot"><div class="k">Direction</div><div class="v">Source dependency points <em>inward</em> — the fold names <code>State</code> and the entities, and nothing outer; the entities name nothing. Control flows <em>outward</em> — the fold returns <code>Effect</code> descriptors that the boundary will later perform.</div></div>
-        <div class="slot"><div class="k">The inversion</div><div class="v">The fold emits <code>Effect</code> <em>descriptors</em> — plain data — instead of performing the effect. That is the Output Port: the core reaches the world through data it returns, never through a sink it holds. The <a class="x" href="02-the-boundary.html">boundary</a> is the adapter that performs them.</div></div>
-        <div class="slot"><div class="k">Why it exists</div><div class="v">Purity. Because the fold is a pure function of <code>(state, results, now)</code>, the recorded command stream re-folds to a bit-identical state every time — the whole session <em>replays</em> — and the fold is tested by a direct call, with no doubles.</div></div>
-        <div class="slot"><div class="k">What breaks</div><div class="v">Let the fold read the clock or perform an effect and re-folding stops being deterministic. <code>replayTest</code>'s &ldquo;fold twice, assert identical&rdquo; becomes meaningless — folding now has side effects, and the second fold double-writes. You have not saved a line; you have deleted replay.</div></div>
-        <div class="slot"><div class="k">The test</div><div class="v">Assert <code>fold(s, results, t0) == fold(s, results, t0)</code> — pure, no doubles, no fakes. And assert that effects are <em>returned</em>, not performed: the fold's output is a tuple of data, and the world is untouched until the boundary runs it.</div></div>
+        <div class="slot"><div class="k">The seam</div><div class="v">The pure reducer <code>fold(state, results, now, sig) -&gt; (newState, effects)</code> — the use-case layer. It folds gated <code>ToolResult</code>s into a new immutable <code>State</code> and a list of <code>Effect</code> descriptors. Nothing else decides what is true.</div></div>
+        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> <code>State</code>, <code>Ticket</code>, <code>TicketStatus</code> — the entities, the enterprise truth; a product of slices with a sealed union at every closed set. <strong>Through it:</strong> the fold reads the current <code>State</code> and the results, and produces the next <code>State</code>. The fold imports nothing foreign; the entities import nothing at all.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> the current <code>state</code>, a list of <code>ToolResult</code> the boundary has already gated, <code>now</code> — a clock reading passed as an ordinary value — and <code>sig</code>, the stamp minted one line earlier. <strong>Out:</strong> a new immutable <code>State</code> and a list of <code>Effect</code> descriptors (plain data). <strong>Forbidden:</strong> the fold never reads a clock, never mints an id, never keys an effect, never performs one, never does I/O. <code>now</code> and <code>sig</code> are handed <em>in</em>; effects go <em>out</em> as data, unkeyed.</div></div>
+        <div class="slot"><div class="k">Direction</div><div class="v">Source dependency points <em>inward</em> — the fold names <code>State</code> and the entities, and nothing outer; the entities name nothing. Control flows <em>outward</em> — the fold returns <code>Effect</code> descriptors that the boundary will later key and perform.</div></div>
+        <div class="slot"><div class="k">The inversion</div><div class="v">The fold emits <code>Effect</code> <em>descriptors</em> — plain data — instead of performing the effect. That is the Output Port: the core reaches the world through data it returns, never through a sink it holds. The <a class="x" href="02-the-boundary.html">boundary</a> is the adapter that keys and performs them.</div></div>
+        <div class="slot"><div class="k">Why it exists</div><div class="v">Purity. Because the fold is a pure function of <code>(state, results, now, sig)</code>, the committed step records re-fold to a bit-identical state every time — the whole session <em>replays</em> — and the fold is tested by a direct call, with no doubles.</div></div>
+        <div class="slot"><div class="k">What breaks</div><div class="v">Let the fold read the clock or perform an effect and the re-fold stops matching the live run it is supposed to reproduce — <code>replayTest</code>'s live-vs-replay comparison goes red, and the second pass double-writes the world on its way there. You have not saved a line; you have deleted replay.</div></div>
+        <div class="slot"><div class="k">The test</div><div class="v">Call it and assert the values: the transition happened, the effect list is exactly the descriptors you expect, and the world is untouched. Then call it on a state the transition is <em>invalid</em> against and assert the opposite — no mutation, no effect, one <code>Notice.Rejected</code>, banner still <code>ok</code>.</div></div>
       </div>
     </section>
 
     <section id="what" class="rv">
       <div class="sec-head"><span class="num">A</span><h2>What it is</h2></div>
-      <p>At the centre of the rings sits the <code class="i">State</code> — the Clean-Architecture <em>Entities</em>: the enterprise truth, the data and rules that would still be true if there were no agent, no screen, no network. It is modelled as a <strong>discriminated union</strong>, not as a bag of flags, so that an illegal state cannot be named in the first place. A ticket is <code class="i">Open</code> or <code class="i">Escalating</code> or <code class="i">Escalated</code> or <code class="i">Resolved</code> — never two at once, never none.</p>
+      <p>At the centre of the rings sits the <code class="i">State</code> — the Clean-Architecture <em>Entities</em>: the enterprise truth, the data and rules that would still be true if there were no agent, no screen, no network. <code class="i">State</code> itself has exactly one shape, so it is a <strong>product</strong> of slices; but every <em>closed set inside</em> it is a <strong>sealed union</strong>, not a bag of flags, so that an illegal state cannot be named in the first place. A ticket is <code class="i">Open</code> or <code class="i">Escalating</code> or <code class="i">Escalated</code> or <code class="i">Resolved</code> — never two at once, never none.</p>
 
       <div class="code"><div class="bar"><span class="path">the entities — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
 <pre><code class="language-plaintext">enum Priority { Low, Normal, High, Urgent }
-sealed TicketStatus { Open | Escalating(by: Actor) | Escalated | Resolved }
+enum Actor    { Human, Agent, Spine }           // WHO acted — grows only at architecture revision
+value Authority(id: Text)                       // UNDER WHOSE permission — an opaque principal, not a variant set
+sealed TicketStatus(ticket: TicketId) {
+  Open | Escalating(requestedBy: Authority) | Escalated(confirmedBy: Authority) | Resolved
+}
 type  Ticket = { id: TicketId, body: Text, priority: Priority, status: TicketStatus }
-sealed State = Console { tickets: Map&lt;TicketId, Ticket&gt;, run: RunStatus }
-sealed RunStatus { Idle | Working(step) | Degraded(cause) | Error(fault) }</code></pre></div>
+sealed Notice(at: Timestamp, tool: ToolName, reason: Text) { Rejected | Refused }  // PER-ITEM
+sealed RunStatus { Idle | Working(step) | Degraded(cause) | Error(fault) }         // SESSION-GLOBAL, boundary-only
+type  State = { tickets: Map&lt;TicketId, Ticket&gt;,   // triage + escalation
+                focused: TicketId?,               // console — a folded presentation decision
+                panels:  Map&lt;PanelId, Bool&gt;,      // console
+                run:     RunStatus,               // spine — the boundary writes this, no arm does
+                notices: [Notice] }               // spine — one entry per rejection or refusal</code></pre></div>
 
-      <p>Around that truth runs the <strong>fold</strong> — the Clean-Architecture <em>Use-Case Interactor</em>, expressed as a pure reducer. When an agent step finishes, the recorded <code class="i">ToolResult</code> payloads are handed to the fold together with the current <code class="i">state</code> and a single clock reading, <code class="i">now</code>. The fold matches each result against the union and returns the next truth plus the effects that truth implies — and this is the whole of it:</p>
+      <p>Two of those declarations are doing more work than they look. <code class="i">TicketStatus</code> carries an <code class="i">Authority</code> on both of its live states: the ticket remembers <em>which principal asked</em> and, later, <em>which principal confirmed</em> — because &ldquo;a different actor than the one who requested&rdquo; is a comparison, and a comparison needs both sides recorded. And the split between <code class="i">Notice</code> and <code class="i">RunStatus</code> is the difference between <em>this item failed</em> and <em>this session is unwell</em>. One bad ticket writes a <code class="i">Notice</code>; only the boundary ever writes <code class="i">RunStatus</code>.</p>
+
+      <p>Around that truth runs the <strong>fold</strong> — the Clean-Architecture <em>Use-Case Interactor</em>, expressed as a pure reducer. When a step finishes, the gated <code class="i">ToolResult</code> payloads are handed to the fold together with the current <code class="i">state</code>, a single clock reading <code class="i">now</code>, and the <code class="i">sig</code> the boundary just stamped. The fold matches each result against the sealed set and returns the next truth plus the effects that truth implies — and this is the whole of it:</p>
 
       <div class="code"><div class="bar"><span class="path">the pure reducer — the use-case layer, verbatim</span><span class="lang">pseudocode</span></div>
-<pre><code class="language-plaintext">fold(state, results, now) -&gt; (State, [Effect]):
+<pre><code class="language-plaintext">fold(state, results, now, sig) -&gt; (State, [Effect]):
   for r in results:
     match r:
-      PrioritySet(ticket, level)      -&gt; ( state.withPriority(ticket, level), [ Effect.Log("priority", ticket, level, at = now) ] )
-      EscalationRequested(ticket, by) -&gt; ( state.withStatus(ticket, Escalating(by)), [] )                         // request: no irreversible effect
-      EscalationConfirmed(ticket, by)  -&gt; by == Human                                           // the gate: only a host confirm pages
-                                            ? ( state.withStatus(ticket, Escalated), [ Effect.PageOncall(ticket, at = now) ] )
-                                            : ( state, [ Effect.Diag("denied: agent self-confirm") ] )
-      else                            -&gt; ( state.withUnhandled(r), [ Effect.Diag(r) ] )</code></pre></div>
+      SetPriority(tool, ticket, level) -&gt;
+        state.tickets.has(ticket)
+          ? ( state.withPriority(ticket, level),
+              [ Effect.LogDecision(at = now, ticket, level, supersedes = state.priorityOf(ticket)) ] )
+          : ( state.withNotice(Notice.Rejected(now, tool, "unknown ticket")), [] )  // refused: no change, NO effect
+      RequestEscalation(tool, ticket) -&gt;
+        state.statusOf(ticket) is Open
+          ? ( state.withStatus(ticket, Escalating(requestedBy = sig.authority)),
+              [] )                              // a request commits no irreversible effect
+          : ( state.withNotice(Notice.Rejected(now, tool, "not open")), [] )
+      ConfirmEscalation(tool, ticket) -&gt;        // the gate already ran, at the boundary — step (5)
+        state.statusOf(ticket) is Escalating
+          ? ( state.withStatus(ticket, Escalated(confirmedBy = sig.authority)),
+              [ Effect.PageOncall(at = now, ticket) ] )
+          : ( state.withNotice(Notice.Rejected(now, tool, "no pending request")), [] )
+      FocusTicket(tool, ticket) -&gt;              // a PRESENTATION verb — folded like any other
+        state.tickets.has(ticket)
+          ? ( state.withFocus(ticket), [] )
+          : ( state.withNotice(Notice.Rejected(now, tool, "unknown ticket")), [] )
+      SetPanel(tool, panel, visible) -&gt;
+        ( state.withPanel(panel, visible), [] )
+      Refused(tool, reason) -&gt;                  // the gate's verdict, committed — so it re-folds
+        ( state.withNotice(Notice.Refused(now, tool, reason)), [ Effect.Diag(at = now, reason) ] )
+      Unhandled(tool, note) -&gt;
+        ( state.withNotice(Notice.Rejected(now, tool, note)), [ Effect.Diag(at = now, note) ] )</code></pre></div>
 
-      <p>Read the four arms as policy, not plumbing. <code class="i">PrioritySet</code> writes the new priority and asks for a log line stamped <code class="i">at = now</code>. <code class="i">EscalationRequested</code> moves the ticket to <code class="i">Escalating</code> and returns <em>no</em> effect — a request is reversible, so nothing irreversible may fire. Only <code class="i">EscalationConfirmed</code> returns <code class="i">Effect.PageOncall</code> — and only when it carries a separate authority (<code class="i">by == Human</code>); an agent-stamped confirm folds to a no-op <code class="i">Diag</code>. The page is irreversible, so it is named only after an explicit, separately-authorized confirm. The fold encodes the rule; the boundary later performs the consequence. Both clock-stamps — <code class="i">at = now</code> — use the value that was handed <em>in</em>; the fold never reaches for a clock of its own.</p>
+      <p>Read the arms as policy, not plumbing, and read them in pairs. <strong>Every arm asks the current state a question before it writes.</strong> <code class="i">SetPriority</code> writes the new priority and asks for a log line stamped <code class="i">at = now</code> — but only if the ticket exists; if it does not, the state is unchanged, the effect list is <em>empty</em>, and a <code class="i">Notice.Rejected</code> is folded against that one item. The refused branch cannot leak an effect, because there is no effect in it to leak. <code class="i">RequestEscalation</code> moves an open ticket to <code class="i">Escalating</code> and records <em>which authority asked</em>, returning no effect at all — a request is reversible, so nothing irreversible may fire. <code class="i">ConfirmEscalation</code> is the only arm that returns <code class="i">Effect.PageOncall</code>, and it fires only when the transition it is asking for is actually available: a confirm against a ticket with no pending request pages nobody. <code class="i">FocusTicket</code> and <code class="i">SetPanel</code> are presentation verbs and get no special treatment — same arm shape, same validation, same commit path. And the two spine arms, <code class="i">Refused</code> and <code class="i">Unhandled</code>, are how a denial becomes part of the record instead of an absence in it.</p>
+
+      <div class="note steel">
+        <span class="lab">No else arm — and that is the point</span>
+        <p>There is nothing to catch here, because there is nothing left uncaught. An open name — a tool the model invented, an input that failed to decode — never reaches the fold as a mystery; the <a class="x" href="02-the-boundary.html">boundary</a> resolves it to <code class="i">Unhandled</code> at the seam where the open name actually arrives, and the <a class="x" href="02-the-boundary.html">gate</a> resolves a denial to <code class="i">Refused</code> in the same place. By the time the fold runs, the set is genuinely closed, so the match can be total. That is what buys the compile-time edit list: add a fifth <code class="i">TicketStatus</code> and the build breaks at the fold arm, at the view projection and at the context projection — three named sites, not a silent fall-through into a catch-all.</p>
+      </div>
+
+      <p>The gate itself is not here, and that placement is deliberate. Whether a confirming authority is <em>allowed</em> to confirm is settled at the boundary, one line before the fold is called, and its verdict arrives as a <code class="i">Refused</code> result the fold simply folds. So the fold never asks who is acting, only what is true. Both clock-stamps — <code class="i">at = now</code> — use the value that was handed <em>in</em>; the fold never reaches for a clock of its own, and it never mints an identity for the effects it returns.</p>
 
       <figure>
         <div class="diagram"><pre class="mermaid">
 flowchart LR
-  RES["recorded results<br/>[ToolResult]"] --> F
+  RES["gated results<br/>[ToolResult]"] --> F
   ST["State (in)<br/>entities"] --> F
   NOW["now<br/>(a value, passed in)"] -. handed in .-> F
-  F["fold(state, results, now)"] --> SP["State' (out)<br/>new immutable truth"]
-  F --> FX["[Effect] descriptors<br/>(plain data, not performed)"]
+  SIG["sig: Signature<br/>(stamped at the boundary)"] -. handed in .-> F
+  F["fold(state, results, now, sig)"] --> SP["State' (out)<br/>new immutable truth"]
+  F --> FX["[Effect] descriptors<br/>(plain data, unkeyed, not performed)"]
   style F fill:#1a1012,stroke:#f23a48,color:#ffd7da
   style ST fill:#14161d,stroke:#f23a48,color:#e7e8ec
   style SP fill:#14161d,stroke:#f23a48,color:#e7e8ec
   style RES fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
   style FX fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
   style NOW fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
+  style SIG fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
         </pre></div>
-        <figcaption><b>Figure.</b> The fold and <code>State</code> sit in the red inner ring. <code>now</code> arrives as an ordinary value; results arrive recorded. Out come a new <code>State</code> and <code>Effect</code> descriptors — data, performed by no one here. This is Clean Architecture's <b>Entities + Interactor</b>.</figcaption>
+        <figcaption><b>Figure.</b> The fold and <code>State</code> sit in the red inner ring. <code>now</code> and <code>sig</code> arrive as ordinary values; results arrive already gated. Out come a new <code>State</code> and <code>Effect</code> descriptors — data, unkeyed, performed by no one here. This is Clean Architecture's <b>Entities + Interactor</b>.</figcaption>
       </figure>
     </section>
 
@@ -116,11 +155,13 @@ flowchart LR
       <p>The fold's output is a <strong>tuple</strong>: <code class="i">(newState, effects)</code>. The first element is the next enterprise truth — a fresh immutable <code class="i">State</code>, never a mutation of the old one. The second is a list of <code class="i">Effect</code> values, and these are the crossing that makes the whole architecture work:</p>
 
       <div class="code"><div class="bar"><span class="path">effect descriptors — plain data the fold returns</span><span class="lang">pseudocode</span></div>
-<pre><code class="language-plaintext">sealed Effect { Log(...) | PageOncall(...) | Diag(...) }</code></pre></div>
+<pre><code class="language-plaintext">sealed Effect(at: Timestamp) { LogDecision(...) | PageOncall(...) | Diag(note) }</code></pre></div>
 
-      <p><strong>An <code class="i">Effect</code> is a description of a thing to do, not the doing of it.</strong> <code class="i">Effect.PageOncall(ticket, at = now)</code> is a small value that <em>says</em> &ldquo;page on-call about this ticket&rdquo;; it does not open a connection, it does not ring a phone. The fold returns it and is finished. Later, at exactly one seam — the <a class="x" href="02-the-boundary.html">boundary adapter</a> — that value is matched and <code class="i">perform</code>ed against the world. This is the <strong>Output Port</strong> of Clean Architecture, realised as data: the inner ring reaches outward by <em>returning a description</em>, never by holding a reference to the sink that will act.</p>
+      <p><strong>An <code class="i">Effect</code> is a description of a thing to do, not the doing of it.</strong> <code class="i">Effect.PageOncall(at = now, ticket)</code> is a small value that <em>says</em> &ldquo;page on-call about this ticket&rdquo;; it does not open a connection, it does not ring a phone. The fold returns it and is finished. Later, at exactly one seam — the <a class="x" href="02-the-boundary.html">boundary adapter</a> — that value is matched and <code class="i">perform</code>ed against the world. This is the <strong>Output Port</strong> of Clean Architecture, realised as data: the inner ring reaches outward by <em>returning a description</em>, never by holding a reference to the sink that will act.</p>
 
-      <p>Why data and not an action? Because data can be recorded, compared, and replayed; an action cannot. An <code class="i">Effect.Log</code> in a golden file is a fact you can assert against. A call to <code class="i">logger.write(...)</code> buried inside the fold is a side effect you can only observe by spying. The architecture chooses the version you can hold still and look at — and that choice is the line between a session that replays and one that merely ran once.</p>
+      <p>Note what the parent declares, and what it conspicuously does not. It declares <code class="i">at</code>, so every effect in the system carries a timestamp <em>by construction</em> — you cannot forget one, because there is no variant that could be missing it. It declares <strong>no identity</strong>. An <code class="i">Effect</code> has no id, no key, no sequence number, and that absence is load-bearing: retry-safety at the far end depends on an idempotency key, and if the key were a field on <code class="i">Effect</code> then the fold would be the thing that mints it — and the fold has no committed position to mint it <em>from</em>. So the key is not here. The boundary wraps each returned effect in a <code class="i">KeyedEffect</code> derived from the committed step index, and the sink accepts nothing else. The fold cannot get the key wrong because it has no field to write it into.</p>
+
+      <p>Why data and not an action? Because data can be recorded, compared, and replayed; an action cannot. An <code class="i">Effect.LogDecision</code> in a golden file is a fact you can assert against. A call to <code class="i">logger.write(...)</code> buried inside the fold is a side effect you can only observe by spying. The architecture chooses the version you can hold still and look at — and that choice is the line between a session that replays and one that merely ran once.</p>
 
       <div class="note steel">
         <span class="lab">Returns out, never reaches out</span>
@@ -134,13 +175,13 @@ flowchart LR
 
       <p><strong>The entities are stable.</strong> <code class="i">State</code>, <code class="i">Ticket</code>, and <code class="i">Priority</code> are the highest-level, least-volatile policy in the system — the part that changes only when the business changes, never when a framework or a screen does. Clean Architecture puts exactly this at the centre and forbids it from depending on anything outer. The fold sits one ring out and depends only on it. Nothing here knows that tickets arrive over a queue or that effects end up on a pager; that knowledge lives in rings the fold cannot see.</p>
 
-      <p><strong><code class="i">now</code> is injected, not read.</strong> Time and identity are the two things most likely to make a program irreproducible, so neither is available to the fold. The clock is read once, far outside, and its value travels in as the ordinary argument <code class="i">now</code>; both clock-stamps in the body — <code class="i">at = now</code> — use that argument. The fold <em>cannot</em> reach for the wall clock because it was never handed the means to. Pass the same <code class="i">t0</code> twice and the two folds are indistinguishable, byte for byte.</p>
+      <p><strong><code class="i">now</code> is injected, not read.</strong> Time and identity are the two things most likely to make a program irreproducible, so neither is available to the fold. The clock is read once, far outside, and its value travels in as the ordinary argument <code class="i">now</code>; both clock-stamps in the body — <code class="i">at = now</code> — use that argument. The fold <em>cannot</em> reach for the wall clock because it was never handed the means to. The same goes for identity, twice over: it does not mint the <code class="i">CommandId</code>s (the boundary does, at commit) and it does not mint the effect keys (the boundary does, from the committed index). Pass the same <code class="i">t0</code> and <code class="i">sig</code> twice and the two folds are indistinguishable, byte for byte.</p>
 
-      <p><strong>The union makes illegal states unrepresentable.</strong> Because <code class="i">TicketStatus</code> is a <em>sealed</em> discriminated union, the <code class="i">match</code> in the fold is exhaustive: every arm is a real, reachable status, and a status that does not exist cannot be matched, constructed, or fallen into. There is no &ldquo;escalated <em>and</em> open&rdquo; to guard against, because the type cannot spell it. The fold's correctness is therefore a property the compiler checks, not a set of runtime <code class="i">if</code>s the reader must trust. Model the truth as a union and whole classes of bug stop being writable.</p>
+      <p><strong>The unions make illegal states unrepresentable — and illegal <em>matches</em> unwritable.</strong> Two closed sets are doing that work. <code class="i">TicketStatus</code> closes the truth: a ticket is exactly one status, so there is no &ldquo;escalated <em>and</em> open&rdquo; to guard against, because the type cannot spell it. <code class="i">ToolResult</code> closes the input: every case the fold could receive is declared, including the boundary's own <code class="i">Unhandled</code> and <code class="i">Refused</code>, so the <code class="i">match</code> is exhaustive with nothing left over and no <code class="i">else</code> to hide in. The fold's correctness is therefore a property the compiler checks, not a set of runtime <code class="i">if</code>s the reader must trust — and when the truth grows a case, the compiler hands you the edit list instead of letting a catch-all swallow it.</p>
 
       <div class="note">
         <span class="lab">The payoff, in one sentence</span>
-        <p>Stable entities + injected <code class="i">now</code> + an exhaustive union means the fold is a <em>mathematical function</em> of its arguments. Same inputs, same outputs, forever — which is precisely the precondition that lets the recorded stream of <a class="x" href="07-replay-and-advanced.html">seam 07</a> re-fold to a bit-identical <code class="i">State</code>. Purity is not a virtue the fold has; it is the mechanism replay is built on.</p>
+        <p>Stable entities + injected <code class="i">now</code> and <code class="i">sig</code> + an exhaustive match means the fold is a <em>mathematical function</em> of its arguments. Same inputs, same outputs, forever. That equality is not itself an interesting assertion — a pure function agrees with itself by definition — but it is precisely the precondition that lets <a class="x" href="07-replay-and-advanced.html">seam 07</a> do something that <em>is</em> interesting: take a live run, re-fold nothing but the bytes it committed, and demand back the same <code class="i">State</code> and the same effect sequence, timestamps included. Purity is not a virtue the fold has; it is the mechanism replay is built on.</p>
       </div>
     </section>
 
@@ -152,31 +193,49 @@ flowchart LR
         <span class="lab">Collapsed — the fold performs the effect and reads the clock</span>
         <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">fold(state, results) {&nbsp;&nbsp;<span style="color:var(--accent)">// note: no `now` argument</span><br>
         &nbsp;&nbsp;for r in results: match r {<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;PrioritySet(ticket, level) -&gt; {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;SetPriority(tool, ticket, level) -&gt; {<br>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;db.write(ticket, level); logger.log("priority", ticket, level, at = now())&nbsp;&nbsp;<span style="color:var(--accent)">// impure!</span><br>
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state = state.withPriority(ticket, level)<br>
         &nbsp;&nbsp;&nbsp;&nbsp;} } }<br>
         }</p>
-        <p>It looks shorter and it works on the happy path. But the fold now reads <code class="i">now()</code> and calls <code class="i">db.write</code> and <code class="i">logger.log</code>, so it is no longer a pure function of its arguments. <strong>The test that dies:</strong> <code class="i">replayTest</code>. Its core assertion — <em>fold the recorded stream twice, assert the two results are identical</em> — becomes meaningless, because the second fold reads a <em>different</em> <code class="i">now()</code> and re-hits <code class="i">db</code> and <code class="i">logger</code>, double-writing the row and re-logging the line. <code class="i">assert a.state == b.state</code> may even pass by luck while the world has been mutated twice behind its back. You have not saved a line of code; you have deleted replay, and with it every off-target test the architecture promised.</p>
+        <p>It looks shorter and it works on the happy path. But the fold now reads <code class="i">now()</code> and calls <code class="i">db.write</code> and <code class="i">logger.log</code>, so it is no longer a pure function of its arguments. <strong>The test that dies:</strong> <code class="i">replayTest</code>. Its assertion is <em>take a live run and re-fold only the bytes it committed; demand the same state and the same effect sequence</em> — and the re-fold now reads a <em>different</em> <code class="i">now()</code>, so every timestamp diverges from the run it is supposed to reproduce. Worse, it re-hits <code class="i">db</code> and <code class="i">logger</code> on the way, double-writing the row and re-logging the line: the harness that was meant to run off-target with no world at all now mutates the world every time you invoke it. You have not saved a line of code; you have deleted replay, and with it every off-target test the architecture promised.</p>
       </div>
 
-      <p>The failure has a single shape: a capability that belongs to the <a class="x" href="02-the-boundary.html">boundary</a> — reading the clock, touching a sink — leaked into the inner ring, where it can be neither passed in deterministically nor replayed. The seam exists precisely to make that leak impossible to write by accident: the fold's signature simply has nowhere to reach a clock from, and its return type carries effects out as data.</p>
+      <div class="note bad">
+        <span class="lab">Collapsed — the arm writes first and validates never</span>
+        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">SetPriority(tool, ticket, level) -&gt;<br>
+        &nbsp;&nbsp;( state.withPriority(ticket, level),&nbsp;&nbsp;<span style="color:var(--accent)">// never asks whether the ticket exists</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;[ Effect.LogDecision(at = now, ticket, level) ] )&nbsp;&nbsp;<span style="color:var(--accent)">// fires regardless</span></p>
+        <p>This one is quieter than the first and worse to live with, because nothing goes red. Set the priority of a ticket that does not exist and the map write is a no-op, so the folded <code class="i">State</code> is unchanged — but the effect fired and the <code class="i">Command</code> was committed. You are left with a clean-looking audit record for a mutation that never happened: the log says the priority changed, the state says it did not, and a re-fold agrees with the state, so replay is <em>green</em>. <strong>What dies is not a test, it is the record's meaning.</strong> The rule that prevents it is mechanical and has no exceptions — every arm reads current state before it decides, and every effect push lives inside the success branch — and its companion rule keeps the damage local: a rejection folds a per-item <code class="i">Notice.Rejected</code>, never <code class="i">RunStatus.Degraded</code>. Hijacking the session status for one bad ticket leaves the banner unwell for the rest of the session, because no later arm knows to clear it.</p>
+      </div>
+
+      <p>The failures share a shape: a capability or a decision that belongs somewhere else — reading the clock, touching a sink, waving through a transition the state does not permit — landed in an arm, where it can be neither passed in deterministically nor replayed nor confined to the item it concerns. The seam exists precisely to make those impossible to write by accident: the fold's signature has nowhere to reach a clock from, its return type carries effects out as data, and the arm's shape puts the effect inside the branch that earned it.</p>
     </section>
 
     <section id="test" class="rv">
       <div class="sec-head"><span class="num">E</span><h2>The test the seam makes possible</h2></div>
-      <p>Because the fold is pure, it is the easiest thing in the program to test: a direct call, no doubles, no fakes, no setup. Determinism is the assertion, and the assertion is one line:</p>
+      <p>Because the fold is pure, it is the easiest thing in the program to test: a direct call, no doubles, no fakes, no setup. What you assert is the <em>answer</em> — the values that came back — and, just as loudly, the answer on the path where the transition is refused:</p>
 
       <div class="code"><div class="bar"><span class="path">testing the pure reducer — direct call, no doubles</span><span class="lang">pseudocode</span></div>
-<pre><code class="language-plaintext">test "the fold is deterministic and returns effects, never performs them":
-  results = [ PrioritySet(ticket = 4118, level = High) ]
-  (a, fxA) = fold(initialState, results, now = t0)
-  (b, fxB) = fold(initialState, results, now = t0)
-  assert a == b                                            // same inputs -&gt; same State, every time
-  assert fxA == fxB == [ Effect.Log("priority", 4118, High, at = t0) ]   // effects are RETURNED, as data
-  assert world.untouched()                                // nothing performed: no db write, no page, no log</code></pre></div>
+<pre><code class="language-plaintext">sig = Signature(by = Agent, authority = "agent-run-7f")
 
-      <p>Two things are proven and neither needs a test double. First, <strong>determinism</strong>: <code class="i">fold(s, results, t0) == fold(s, results, t0)</code>, because the only source of time is the argument <code class="i">t0</code> and there is no hidden clock to diverge. Second, <strong>effects are returned, not performed</strong>: <code class="i">fxA</code> is a list of plain <code class="i">Effect</code> values you assert against directly, and the world is untouched — no page has fired, no row has been written — because the fold has no means to fire one. The <a class="x" href="02-the-boundary.html">boundary</a> alone will <code class="i">perform</code> these later.</p>
+test "the arm transitions, and returns its effect rather than performing it":
+  results = [ SetPriority(tool = setPriority, ticket = 4118, level = High) ]
+  (s, fx) = fold(oneOpenTicket(4118, priority = Normal), results, now = t0, sig)
+  assert s.tickets[4118].priority == High                   // the transition happened
+  assert fx == [ Effect.LogDecision(at = t0, 4118, High, supersedes = Normal) ]  // RETURNED, as data
+  assert world.untouched()                                  // nothing performed: no db write, no page
+
+test "a refused transition writes nothing, fires nothing, and stays local":
+  (s, fx) = fold(emptyState, results, now = t0, sig)        // ticket 4118 does not exist
+  assert s.tickets == {}                                    // no mutation …
+  assert fx        == []                                    // … and NO effect — the audit cannot lie
+  assert s.notices == [ Notice.Rejected(t0, setPriority, "unknown ticket") ]     // per item
+  assert s.run     == Idle                                  // the session is NOT degraded</code></pre></div>
+
+      <p>Three things are proven and none of them needs a test double. First, <strong>the arm decides by reading state</strong>: the same result folded against two different states produces two different answers, and the second one is a refusal. Second, <strong>effects are returned, not performed</strong> — <code class="i">fx</code> is a list of plain <code class="i">Effect</code> values you assert against directly, the world is untouched because the fold has no means to touch it, and on the refused path the list is <em>empty</em>, so there is no way for the record to claim a change that did not happen. Third, <strong>a failure is per-item</strong>: it lands in <code class="i">notices</code>, and <code class="i">run</code> is still <code class="i">Idle</code>, so one bad ticket does not leave the banner unwell for the rest of the session.</p>
+
+      <p>Notice what is <em>not</em> asserted here: that folding the same input twice gives the same answer. It does, but that is true of any pure function by definition and it catches nothing. The assertion that earns its keep lives at <a class="x" href="07-replay-and-advanced.html">seam 07</a>, where a <em>live</em> run is compared against a re-fold of its own committed bytes — an equality that can genuinely fail, and does the moment any of this page's discipline is broken.</p>
 
       <p>That is the asymmetry the architecture is built on, seen from the inside. The one impure object — the boundary — is tested with fakes and is kept small. Everything in the inner and middle rings — the fold here, the <a class="x" href="03-tools-and-context.html">tools</a>, the <a class="x" href="04-projection-and-surface.html">projection</a> — is pure, and is tested by direct call. <strong>State is the truth; the fold is the only thing allowed to change it; and because the fold is pure, the whole session of changes replays.</strong> Every later seam exists to keep that sentence true.</p>
 

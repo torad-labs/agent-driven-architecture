@@ -1,0 +1,13 @@
+id: no-retired-route-setters
+snapshots:
+  ? |
+    package bad
+
+    fun configure() {
+        setPasteEnqueuer(null)
+    }
+  : labels:
+    - source: setPasteEnqueuer
+      style: primary
+      start: 35
+      end: 51

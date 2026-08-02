@@ -1,0 +1,25 @@
+# TENET: Async functions should return Promise, not void.
+# Rationale: async void functions can't be awaited and errors are uncatchable.
+# Use async Promise<void> to enable proper error handling.
+id: no-async-void
+language: typescript
+severity: error
+message: "Async functions should return Promise<T>, not void. Errors in async void are uncatchable."
+files:
+  - "**/*.ts"
+ignores:
+  - "**/test/**"
+rule:
+  kind: function_declaration
+  all:
+    - regex: "\\basync\\b"
+    - has:
+        # The DIRECT return annotation, not any nested void: an unconstrained stopBy
+        # also matched `Promise<void>`, the correct form this rule steers people to.
+        kind: type_annotation
+        follows: { kind: formal_parameters }
+        has:
+          # `void` is a PREDEFINED_TYPE node, not a type_identifier — matching only
+          # type_identifier meant the rule never fired on its own stated target.
+          kind: predefined_type
+          regex: "^void$"

@@ -1,0 +1,28 @@
+id: no-reflection-in-production
+valid:
+  - |
+    package good
+
+    fun handle(x: Any) {
+        when (x) {
+            is String -> println("string")
+            else -> println("other")
+        }
+    }
+invalid:
+  - |
+    package bad
+
+    fun clazz(): Class<*> = String::class.java
+  - |
+    package bad
+
+    fun qualifiedName(): String? = String::class.qualifiedName
+  - |
+    package bad
+
+    fun runtimeClass(x: Any): Class<*> = x.javaClass
+  - |
+    package bad
+
+    fun load(name: String): Class<*> = Class.forName(name)

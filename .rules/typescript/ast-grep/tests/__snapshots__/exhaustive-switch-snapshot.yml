@@ -1,0 +1,35 @@
+id: exhaustive-switch
+snapshots:
+  ? |
+    function unguarded(r: R): string {
+      switch (r.tool) {
+        case "a": return "a";
+        default:
+          throw new Error("unhandled");
+      }
+    }
+  : labels:
+    - source: |-
+        switch (r.tool) {
+            case "a": return "a";
+            default:
+              throw new Error("unhandled");
+          }
+      style: primary
+      start: 37
+      end: 133
+    - source: |-
+        default:
+              throw new Error("unhandled");
+      style: secondary
+      start: 85
+      end: 129
+    - source: |-
+        {
+            case "a": return "a";
+            default:
+              throw new Error("unhandled");
+          }
+      style: secondary
+      start: 53
+      end: 133

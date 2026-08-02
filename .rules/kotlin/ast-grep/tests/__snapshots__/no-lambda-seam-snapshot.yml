@@ -1,0 +1,23 @@
+id: no-lambda-seam
+snapshots:
+  ? |
+    package bad
+
+    class Loop<S>(
+        private val stateOf: () -> S,
+        private val submit: (FinishedStep) -> Unit,
+    )
+  : labels:
+    - source: () -> S
+      style: primary
+      start: 53
+      end: 60
+  ? |
+    package bad
+
+    class Tools<S>(private val lens: (S) -> Slice)
+  : labels:
+    - source: (S) -> Slice
+      style: primary
+      start: 46
+      end: 58

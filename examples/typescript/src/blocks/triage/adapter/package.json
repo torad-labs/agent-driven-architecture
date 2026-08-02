@@ -1,0 +1,13 @@
+{
+  "name": "@adr/block-triage-adapter",
+  "private": true,
+  "//private": "Never published: the workspace is a vendored template, so every package in it is private, none carries a publishConfig, and none carries a version.",
+  "type": "module",
+  "//exports": "EMPTY, NOT ABSENT, and the difference is the wall. An adapter leaf publishes nothing, so the one open cross-block route stays at ONE published subpath per block instead of two. MEASURED: a manifest with no `exports` field at all does NOT deny a subpath — it falls back to directory resolution, and `@adr/block-triage-adapter/adapter` resolved clean from inside a sibling block. `{}` is TS2307 for every specifier. The composition root still reaches this unit, by the relative `../blocks/triage/adapter/adapter`, which resolves because the root REFERENCES this project and an exports map is not on that path.",
+  "exports": {},
+  "//dependencies": "THE PERMITTED-DEPENDENCY SET, and the whole point of the second unit: a client library belongs HERE and is absent from the pure package's list next door. `@adr/spine` for the transport vocabulary and `@adr/block-triage` for the port this unit implements — the two edges its tsconfig references, declared where npm can read them too.",
+  "dependencies": {
+    "@adr/spine": "*",
+    "@adr/block-triage": "*"
+  }
+}

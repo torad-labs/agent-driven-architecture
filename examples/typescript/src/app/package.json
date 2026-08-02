@@ -1,0 +1,23 @@
+{
+  "name": "@adr/app",
+  "private": true,
+  "type": "module",
+  "//dependencies": "BOTH HALVES of every block's pair. The root is the one package permitted to name an adapter leaf at all - it is what binds a port to a live client - and that permission is declared here rather than assumed.",
+  "//exports": "EMPTY, NOT ABSENT. The composition root is the one package nothing may import, and an absent map does not say so: MEASURED, with no `exports` field `@adr/app` was TS2307 as a BARE specifier while `@adr/app/contract` resolved clean from inside a block, because a manifest without the field falls back to directory resolution. `{}` denies every subpath. The root spans every package and is spanned by none.",
+  "exports": {},
+  "dependencies": {
+    "@adr/spine": "*",
+    "@adr/block-analysis": "*",
+    "@adr/block-artifact": "*",
+    "@adr/block-console": "*",
+    "@adr/block-escalation": "*",
+    "@adr/block-inbox": "*",
+    "@adr/block-triage": "*",
+    "@adr/block-analysis-adapter": "*",
+    "@adr/block-artifact-adapter": "*",
+    "@adr/block-console-adapter": "*",
+    "@adr/block-escalation-adapter": "*",
+    "@adr/block-inbox-adapter": "*",
+    "@adr/block-triage-adapter": "*"
+  }
+}

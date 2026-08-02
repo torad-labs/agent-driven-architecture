@@ -1,0 +1,6 @@
+{
+  "//": "The seal probe's project. It EXTENDS the shipped tsconfig for the reason the forge probe's does — a probe run under looser flags proves nothing — and `include: []` is required, or `extends` pulls in the whole tree through the base's include.",
+  "extends": "../../../../tsconfig.json",
+  "files": ["forged.ts", "legitimate.ts"],
+  "include": []
+}

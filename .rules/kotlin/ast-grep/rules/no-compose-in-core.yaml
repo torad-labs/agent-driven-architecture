@@ -1,0 +1,28 @@
+# TENET: No Compose in core/domain modules.
+# Rationale: Core and domain modules are pure Kotlin — no UI framework dependencies.
+# Compose imports break cross-platform builds and violate UI/domain separation.
+# Customize the file patterns to match your core module structure.
+id: no-compose-in-core
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/test/**"
+  - "**/*Test/**"
+  - "**/testFixtures/**"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "This module is pure Kotlin. Move Compose code to a UI/feature module."
+rule:
+  any:
+    - pattern: import androidx.compose.$$$REST
+    - pattern: import org.jetbrains.compose.$$$REST

@@ -1,0 +1,81 @@
+public final class adr/blocks/analysis/AnalysisBlock : adr/spine/pure/Block {
+	public fun <init> ()V
+	public fun arm-8pmiTL8 (Ladr/blocks/analysis/AnalysisSlice;Ladr/contract/AnalysisResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public synthetic fun arm-8pmiTL8 (Ljava/lang/Object;Ladr/contract/ToolResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public final fun contextLines (Ladr/blocks/analysis/AnalysisSlice;I)Ljava/util/List;
+	public static synthetic fun contextLines$default (Ladr/blocks/analysis/AnalysisBlock;Ladr/blocks/analysis/AnalysisSlice;IILjava/lang/Object;)Ljava/util/List;
+	public final fun performer (Ladr/blocks/analysis/AnalysisRelay;)Ladr/spine/pure/EffectPerformer;
+	public final fun register (Ladr/spine/pure/Lens;)Ladr/spine/pure/BlockRegistration;
+	public final fun registerDeep (Ladr/spine/pure/Lens;)Ladr/spine/pure/BlockRegistration;
+	public final fun registerFast (Ladr/spine/pure/Lens;)Ladr/spine/pure/BlockRegistration;
+	public fun view (Ladr/blocks/analysis/AnalysisSlice;)Ladr/blocks/analysis/AnalysisView;
+	public synthetic fun view (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class adr/blocks/analysis/AnalysisNote {
+	public synthetic fun <init> (JLadr/spine/pure/Recall;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2 ()Ladr/spine/pure/Recall;
+	public final fun copy-skJIsPY (JLadr/spine/pure/Recall;)Ladr/blocks/analysis/AnalysisNote;
+	public static synthetic fun copy-skJIsPY$default (Ladr/blocks/analysis/AnalysisNote;JLadr/spine/pure/Recall;ILjava/lang/Object;)Ladr/blocks/analysis/AnalysisNote;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAt-MLqvMck ()J
+	public final fun getRecall ()Ladr/spine/pure/Recall;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class adr/blocks/analysis/AnalysisRelay {
+	public abstract fun publish-skJIsPY (JLjava/lang/String;)V
+}
+
+public final class adr/blocks/analysis/AnalysisRow {
+	public fun <init> (JLjava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()J
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (JLjava/lang/String;Ljava/lang/String;)Ladr/blocks/analysis/AnalysisRow;
+	public static synthetic fun copy$default (Ladr/blocks/analysis/AnalysisRow;JLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/blocks/analysis/AnalysisRow;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAt ()J
+	public final fun getFreshness ()Ljava/lang/String;
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/blocks/analysis/AnalysisSlice {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;)Ladr/blocks/analysis/AnalysisSlice;
+	public static synthetic fun copy$default (Ladr/blocks/analysis/AnalysisSlice;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ladr/blocks/analysis/AnalysisSlice;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNotes ()Ljava/util/List;
+	public final fun getPublished ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun withNote (Ladr/blocks/analysis/AnalysisNote;)Ladr/blocks/analysis/AnalysisSlice;
+	public final fun withPublished (Ljava/lang/String;)Ladr/blocks/analysis/AnalysisSlice;
+}
+
+public final class adr/blocks/analysis/AnalysisView {
+	public fun <init> (Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;)Ladr/blocks/analysis/AnalysisView;
+	public static synthetic fun copy$default (Ladr/blocks/analysis/AnalysisView;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ladr/blocks/analysis/AnalysisView;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPublished ()Ljava/util/List;
+	public final fun getRecalls ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/blocks/analysis/ToolsKt {
+	public static final fun getPUBLISH_ANALYSIS ()Ljava/lang/String;
+	public static final fun getRECALL_ANALYSIS ()Ljava/lang/String;
+}
+

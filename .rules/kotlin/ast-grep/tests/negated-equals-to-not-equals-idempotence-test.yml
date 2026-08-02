@@ -1,0 +1,5 @@
+id: negated-equals-to-not-equals
+valid:
+  - "fun same(a: Int, b: Int): Boolean = a != b"
+invalid:
+  - "fun same(a: Int, b: Int): Boolean = !(a == b)"

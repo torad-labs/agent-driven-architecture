@@ -1,0 +1,9 @@
+id: no-runblocking-in-production
+snapshots:
+  ? |
+    fun f(): Int = runBlocking { g() }
+  : labels:
+    - source: runBlocking { g() }
+      style: primary
+      start: 15
+      end: 34

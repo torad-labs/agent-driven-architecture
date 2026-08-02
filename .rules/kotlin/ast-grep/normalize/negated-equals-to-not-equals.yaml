@@ -1,0 +1,11 @@
+# NORMALIZE: Prefer `a != b` over `!(a == b)`.
+# Rationale: Kotlin defines `!=` as exactly `!(equals())`, so this is a purely
+# syntactic, behavior-identical normalization — including for overloaded equals.
+id: negated-equals-to-not-equals
+language: kotlin
+severity: hint
+kind: astgrep-fix
+message: "Use `a != b` instead of `!(a == b)`."
+rule:
+  pattern: '!($A == $B)'
+fix: "$A != $B"

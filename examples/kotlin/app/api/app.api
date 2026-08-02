@@ -1,0 +1,205 @@
+public final class adr/app/App {
+	public fun <init> (Ladr/spine/boundary/Boundary;Ladr/spine/surface/Controller;Ljava/util/Map;Ladr/spine/ports/Bus;Ladr/spine/boundary/RecordingSink;Ljava/util/List;Ladr/app/State;Ladr/spine/ports/EventSource;Ljava/lang/String;)V
+	public final fun getAdmission ()Ladr/spine/pure/Admission;
+	public final fun getBoundary ()Ladr/spine/boundary/Boundary;
+	public final fun getBus ()Ladr/spine/ports/Bus;
+	public final fun getController ()Ladr/spine/surface/Controller;
+	public final fun getEvents ()Ladr/spine/ports/EventSource;
+	public final fun getInitial ()Ladr/app/State;
+	public final fun getLog ()Ljava/util/List;
+	public final fun getPerformed ()Ljava/util/List;
+	public final fun getReducerVersion ()Ljava/lang/String;
+	public final fun getRegistry ()Ljava/util/Map;
+	public final fun getSink ()Ladr/spine/boundary/RecordingSink;
+	public final fun getState ()Ladr/app/State;
+}
+
+public final class adr/app/AppSink : adr/spine/ports/Sink {
+	public fun <init> (Ladr/spine/pure/Performers;Ladr/app/DiagPerformer;)V
+	public fun perform (Ladr/spine/pure/KeyedEffect;Ladr/spine/pure/PerformMode;)V
+}
+
+public final class adr/app/AppView {
+	public fun <init> (Ladr/spine/pure/ViewModel;Ladr/blocks/triage/TriageView;Ladr/blocks/escalation/EscalationView;Ladr/blocks/console/ConsoleView;Ladr/blocks/artifact/ArtifactView;Ladr/blocks/analysis/AnalysisView;Ladr/blocks/inbox/InboxView;)V
+	public final fun component1 ()Ladr/spine/pure/ViewModel;
+	public final fun component2 ()Ladr/blocks/triage/TriageView;
+	public final fun component3 ()Ladr/blocks/escalation/EscalationView;
+	public final fun component4 ()Ladr/blocks/console/ConsoleView;
+	public final fun component5 ()Ladr/blocks/artifact/ArtifactView;
+	public final fun component6 ()Ladr/blocks/analysis/AnalysisView;
+	public final fun component7 ()Ladr/blocks/inbox/InboxView;
+	public final fun copy (Ladr/spine/pure/ViewModel;Ladr/blocks/triage/TriageView;Ladr/blocks/escalation/EscalationView;Ladr/blocks/console/ConsoleView;Ladr/blocks/artifact/ArtifactView;Ladr/blocks/analysis/AnalysisView;Ladr/blocks/inbox/InboxView;)Ladr/app/AppView;
+	public static synthetic fun copy$default (Ladr/app/AppView;Ladr/spine/pure/ViewModel;Ladr/blocks/triage/TriageView;Ladr/blocks/escalation/EscalationView;Ladr/blocks/console/ConsoleView;Ladr/blocks/artifact/ArtifactView;Ladr/blocks/analysis/AnalysisView;Ladr/blocks/inbox/InboxView;ILjava/lang/Object;)Ladr/app/AppView;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnalysis ()Ladr/blocks/analysis/AnalysisView;
+	public final fun getArtifact ()Ladr/blocks/artifact/ArtifactView;
+	public final fun getConsole ()Ladr/blocks/console/ConsoleView;
+	public final fun getEscalation ()Ladr/blocks/escalation/EscalationView;
+	public final fun getInbox ()Ladr/blocks/inbox/InboxView;
+	public final fun getRoot ()Ladr/spine/pure/ViewModel;
+	public final fun getTriage ()Ladr/blocks/triage/TriageView;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/app/Assembly {
+	public fun <init> ()V
+	public final fun context (Ladr/app/State;Ljava/util/List;Ladr/spine/pure/ContextBounds;)Ladr/spine/pure/Context;
+	public static synthetic fun context$default (Ladr/app/Assembly;Ladr/app/State;Ljava/util/List;Ladr/spine/pure/ContextBounds;ILjava/lang/Object;)Ladr/spine/pure/Context;
+	public final fun fold-8pmiTL8 (Ladr/app/State;Ljava/util/List;JLadr/spine/pure/Signature;)Lkotlin/Pair;
+	public final fun initialState (Ljava/util/List;Ljava/util/List;)Ladr/app/State;
+	public static synthetic fun initialState$default (Ladr/app/Assembly;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ladr/app/State;
+	public final fun view (Ladr/app/State;)Ladr/app/AppView;
+}
+
+public final class adr/app/ConfirmingAuthorities : adr/spine/ports/ConfirmPolicy {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Set;)V
+	public synthetic fun <init> (Ljava/util/Set;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun mayConfirm-RdbXiUk (Ladr/spine/pure/Signature;Ladr/contract/ToolResult;Ljava/lang/String;)Z
+}
+
+public final class adr/app/Demo {
+	public fun <init> (Ladr/app/Narrator;)V
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class adr/app/DiagPerformer {
+	public fun <init> (Ljava/util/List;)V
+	public final fun perform (Ladr/contract/Effect$Diag;)V
+	public final fun performer ()Ladr/spine/pure/EffectPerformer;
+}
+
+public final class adr/app/Env {
+	public fun <init> (Ladr/app/World;Ladr/spine/ports/AuthorityResolver;Ladr/spine/ports/Clock;Ljava/util/List;Ladr/spine/ports/ConfirmPolicy;Ladr/spine/ports/EventSource;Ljava/util/List;Ladr/spine/ports/Mailbox;Ladr/spine/ports/RelayRead;Ljava/util/List;Ladr/spine/pure/ContextBounds;)V
+	public synthetic fun <init> (Ladr/app/World;Ladr/spine/ports/AuthorityResolver;Ladr/spine/ports/Clock;Ljava/util/List;Ladr/spine/ports/ConfirmPolicy;Ladr/spine/ports/EventSource;Ljava/util/List;Ladr/spine/ports/Mailbox;Ladr/spine/ports/RelayRead;Ljava/util/List;Ladr/spine/pure/ContextBounds;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ladr/spine/ports/Clock;Ladr/spine/ports/AuthorityResolver;Ladr/blocks/escalation/OncallPort;Ladr/blocks/artifact/DeliveryPort;Ladr/blocks/analysis/AnalysisRelay;Ladr/spine/ports/IdSource;Ladr/spine/ports/Bus;Ladr/spine/ports/ConfirmPolicy;Ladr/spine/ports/EventSource;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/ContextBounds;Ljava/util/List;Ljava/util/List;Ladr/spine/ports/Mailbox;Ladr/spine/ports/RelayRead;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ladr/spine/ports/Clock;Ladr/spine/ports/AuthorityResolver;Ladr/blocks/escalation/OncallPort;Ladr/blocks/artifact/DeliveryPort;Ladr/blocks/analysis/AnalysisRelay;Ladr/spine/ports/IdSource;Ladr/spine/ports/Bus;Ladr/spine/ports/ConfirmPolicy;Ladr/spine/ports/EventSource;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/ContextBounds;Ljava/util/List;Ljava/util/List;Ladr/spine/ports/Mailbox;Ladr/spine/ports/RelayRead;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ladr/spine/ports/Clock;
+	public final fun component10 ()Ljava/lang/String;
+	public final fun component11 ()Ljava/lang/String;
+	public final fun component12-waIrM9Y ()Ljava/lang/String;
+	public final fun component13 ()Ladr/spine/pure/ContextBounds;
+	public final fun component14 ()Ljava/util/List;
+	public final fun component15 ()Ljava/util/List;
+	public final fun component16 ()Ladr/spine/ports/Mailbox;
+	public final fun component17 ()Ladr/spine/ports/RelayRead;
+	public final fun component18 ()Ljava/util/List;
+	public final fun component2 ()Ladr/spine/ports/AuthorityResolver;
+	public final fun component3 ()Ladr/blocks/escalation/OncallPort;
+	public final fun component4 ()Ladr/blocks/artifact/DeliveryPort;
+	public final fun component5 ()Ladr/blocks/analysis/AnalysisRelay;
+	public final fun component6 ()Ladr/spine/ports/IdSource;
+	public final fun component7 ()Ladr/spine/ports/Bus;
+	public final fun component8 ()Ladr/spine/ports/ConfirmPolicy;
+	public final fun component9 ()Ladr/spine/ports/EventSource;
+	public final fun copy-cE5Xrc4 (Ladr/spine/ports/Clock;Ladr/spine/ports/AuthorityResolver;Ladr/blocks/escalation/OncallPort;Ladr/blocks/artifact/DeliveryPort;Ladr/blocks/analysis/AnalysisRelay;Ladr/spine/ports/IdSource;Ladr/spine/ports/Bus;Ladr/spine/ports/ConfirmPolicy;Ladr/spine/ports/EventSource;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/ContextBounds;Ljava/util/List;Ljava/util/List;Ladr/spine/ports/Mailbox;Ladr/spine/ports/RelayRead;Ljava/util/List;)Ladr/app/Env;
+	public static synthetic fun copy-cE5Xrc4$default (Ladr/app/Env;Ladr/spine/ports/Clock;Ladr/spine/ports/AuthorityResolver;Ladr/blocks/escalation/OncallPort;Ladr/blocks/artifact/DeliveryPort;Ladr/blocks/analysis/AnalysisRelay;Ladr/spine/ports/IdSource;Ladr/spine/ports/Bus;Ladr/spine/ports/ConfirmPolicy;Ladr/spine/ports/EventSource;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/ContextBounds;Ljava/util/List;Ljava/util/List;Ladr/spine/ports/Mailbox;Ladr/spine/ports/RelayRead;Ljava/util/List;ILjava/lang/Object;)Ladr/app/Env;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAuthority ()Ladr/spine/ports/AuthorityResolver;
+	public final fun getBus ()Ladr/spine/ports/Bus;
+	public final fun getClock ()Ladr/spine/ports/Clock;
+	public final fun getContextBounds ()Ladr/spine/pure/ContextBounds;
+	public final fun getDelivery ()Ladr/blocks/artifact/DeliveryPort;
+	public final fun getEvents ()Ladr/spine/ports/EventSource;
+	public final fun getIds ()Ladr/spine/ports/IdSource;
+	public final fun getMailbox ()Ladr/spine/ports/Mailbox;
+	public final fun getOncall ()Ladr/blocks/escalation/OncallPort;
+	public final fun getPolicies ()Ljava/util/List;
+	public final fun getPolicy ()Ladr/spine/ports/ConfirmPolicy;
+	public final fun getPromptVersion ()Ljava/lang/String;
+	public final fun getReducerVersion ()Ljava/lang/String;
+	public final fun getRelay ()Ladr/blocks/analysis/AnalysisRelay;
+	public final fun getRelayRead ()Ladr/spine/ports/RelayRead;
+	public final fun getSession-waIrM9Y ()Ljava/lang/String;
+	public final fun getTickets ()Ljava/util/List;
+	public final fun getVerbs ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/app/MainKt {
+	public static final fun main ()V
+	public static synthetic fun main ([Ljava/lang/String;)V
+}
+
+public abstract interface class adr/app/Narrator {
+	public abstract fun say (Ljava/lang/String;)V
+}
+
+public final class adr/app/RunAuthority : adr/spine/ports/AuthorityResolver {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun authorityOf-zIbn0L8 (Ladr/spine/pure/Actor;Ljava/lang/String;)Ljava/lang/String;
+	public final fun getActing-E-okScE ()Ljava/lang/String;
+	public final fun setActing-X6JfNjg (Ljava/lang/String;)V
+}
+
+public abstract interface class adr/app/ScopedBody {
+	public abstract fun invoke (Lkotlinx/coroutines/CoroutineScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class adr/app/ScriptedEvents : adr/spine/ports/EventSource {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun poll ()Ladr/spine/pure/StagedInput$Perceived;
+}
+
+public final class adr/app/State {
+	public fun <init> ()V
+	public fun <init> (Ladr/spine/pure/SpineSlice;Ladr/blocks/triage/TriageSlice;Ladr/blocks/escalation/EscalationSlice;Ladr/blocks/console/ConsoleSlice;Ladr/blocks/artifact/ArtifactSlice;Ladr/blocks/analysis/AnalysisSlice;Ladr/blocks/inbox/InboxSlice;)V
+	public synthetic fun <init> (Ladr/spine/pure/SpineSlice;Ladr/blocks/triage/TriageSlice;Ladr/blocks/escalation/EscalationSlice;Ladr/blocks/console/ConsoleSlice;Ladr/blocks/artifact/ArtifactSlice;Ladr/blocks/analysis/AnalysisSlice;Ladr/blocks/inbox/InboxSlice;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ladr/spine/pure/SpineSlice;
+	public final fun component2 ()Ladr/blocks/triage/TriageSlice;
+	public final fun component3 ()Ladr/blocks/escalation/EscalationSlice;
+	public final fun component4 ()Ladr/blocks/console/ConsoleSlice;
+	public final fun component5 ()Ladr/blocks/artifact/ArtifactSlice;
+	public final fun component6 ()Ladr/blocks/analysis/AnalysisSlice;
+	public final fun component7 ()Ladr/blocks/inbox/InboxSlice;
+	public final fun copy (Ladr/spine/pure/SpineSlice;Ladr/blocks/triage/TriageSlice;Ladr/blocks/escalation/EscalationSlice;Ladr/blocks/console/ConsoleSlice;Ladr/blocks/artifact/ArtifactSlice;Ladr/blocks/analysis/AnalysisSlice;Ladr/blocks/inbox/InboxSlice;)Ladr/app/State;
+	public static synthetic fun copy$default (Ladr/app/State;Ladr/spine/pure/SpineSlice;Ladr/blocks/triage/TriageSlice;Ladr/blocks/escalation/EscalationSlice;Ladr/blocks/console/ConsoleSlice;Ladr/blocks/artifact/ArtifactSlice;Ladr/blocks/analysis/AnalysisSlice;Ladr/blocks/inbox/InboxSlice;ILjava/lang/Object;)Ladr/app/State;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAnalysis ()Ladr/blocks/analysis/AnalysisSlice;
+	public final fun getArtifact ()Ladr/blocks/artifact/ArtifactSlice;
+	public final fun getConsole ()Ladr/blocks/console/ConsoleSlice;
+	public final fun getEscalation ()Ladr/blocks/escalation/EscalationSlice;
+	public final fun getInbox ()Ladr/blocks/inbox/InboxSlice;
+	public final fun getSpine ()Ladr/spine/pure/SpineSlice;
+	public final fun getTriage ()Ladr/blocks/triage/TriageSlice;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/app/WireKt {
+	public static final fun getALL_BLOCKS ()Ljava/util/List;
+	public static final fun getDEEP_TIER ()Ljava/util/List;
+	public static final fun getFAST_TIER ()Ljava/util/List;
+}
+
+public final class adr/app/Wiring {
+	public fun <init> ()V
+	public final fun agentLoop (Ladr/app/App;Ladr/spine/ports/ModelProvider;Ljava/lang/String;)Ladr/spine/agent/AgentLoop;
+	public final fun consumerActions (Ladr/spine/pure/ConsumerEvent;)Ljava/util/List;
+	public final fun drainActions (Ladr/spine/pure/Message$Drain;)Ljava/util/List;
+	public final fun effectPerformers (Ladr/app/Env;Ljava/util/List;)Ladr/spine/pure/Performers;
+	public final fun modelProvider (Lai/torad/aisdk/LanguageModel;)Ladr/spine/ports/ModelProvider;
+	public final fun promptFor (Ladr/spine/pure/Message;)Ljava/lang/String;
+	public final fun tierRunner (Ladr/app/App;Ladr/spine/ports/ModelProvider;Ljava/lang/String;)Ladr/spine/concurrency/TurnRunner;
+	public final fun wireApp (Ladr/app/Env;)Ladr/app/App;
+	public final fun wireConsumer (Ladr/app/App;Ladr/app/Env;Ladr/spine/concurrency/TurnRunner;)Ladr/spine/concurrency/SerialConsumer;
+}
+
+public final class adr/app/World {
+	public fun <init> ()V
+	public fun <init> (Ladr/spine/concurrency/InMemoryRelay;)V
+	public synthetic fun <init> (Ladr/spine/concurrency/InMemoryRelay;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getConclusions ()Ljava/util/List;
+	public final fun getDeliveries ()Ljava/util/List;
+	public final fun getDelivery ()Ladr/blocks/artifact/DeliveryPort;
+	public final fun getOncall ()Ladr/blocks/escalation/OncallPort;
+	public final fun getPages ()Ljava/util/List;
+	public final fun getRelay ()Ladr/blocks/analysis/AnalysisRelay;
+	public final fun getStore ()Ladr/spine/concurrency/InMemoryRelay;
+}
+

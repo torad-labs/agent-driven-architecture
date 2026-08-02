@@ -1,0 +1,20 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: Prefer async iterables over promise arrays for streaming.
+# Rationale: AsyncIterable composes like Flow — lazy, composable, backpressure-aware.
+# Promise.all([...promises]) loads everything into memory.
+# Use for-await-of with async generators for streaming patterns.
+id: async-stream-pattern-tsx
+language: tsx
+severity: error
+message: "Consider AsyncIterable for streaming instead of Promise.all for batch processing."
+files:
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.tsx"
+  - "**/test/**"
+rule:
+  pattern: Promise.all($ARRAY.map($$$ARGS))

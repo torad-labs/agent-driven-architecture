@@ -1,0 +1,36 @@
+{
+  "summary": {
+    "total": 5,
+    "passed": 4,
+    "failed": 1,
+    "pass_rate": 0.8
+  },
+  "expectations": [
+    {
+      "text": "Correctly identifies the code as internal/app-module (Tier 0) and scopes the review accordingly.",
+      "passed": true,
+      "evidence": "Context line: 'Internal app-module ViewModel backing the Settings screen. Not a published library, no external consumers. This is the right framing — it means binary-compatibility / public-API concerns... do **not** apply here. I'm reviewing it as ordinary app code.' Correctly identifies internal/app-module and scopes to app-code review. (Does not use the literal word 'Tier 0', but the identification and scoping intent is present.)"
+    },
+    {
+      "text": "Does NOT raise published-API/binary-compat/ABI/explicitApi/@since/Maven-publishing concerns. [absence: PASS = not raised; if raised, FAIL]",
+      "passed": true,
+      "evidence": "No such concern raised as a finding. The only mention is to dismiss them: 'binary-compatibility / public-API concerns (explicit API mode, ABI stability, @PublishedApi, deprecation cycles) do **not** apply here.' All six numbered findings are app-level idioms/lifecycle/nits (debounce, withContext placement, _state.update, load() lifecycle, naming, default-flash). None impose published-library rules."
+    },
+    {
+      "text": "Does NOT flag the `data class SettingsUiState` as a 'growable public data class' problem. [absence]",
+      "passed": true,
+      "evidence": "No such concern raised. The data class is listed under 'What's already good': 'data class SettingsUiState with sensible defaults.' No growable/ABI/copy()-evolution objection anywhere."
+    },
+    {
+      "text": "Findings stay proportionate (e.g. inject Dispatchers.IO) and verdict is basically solid / commit-ready.",
+      "passed": true,
+      "evidence": "Verdict: 'Solid, idiomatic Android ViewModel... no correctness landmines.' Closing: 'Nothing here blocks a commit. The file is fundamentally sound; these are polish items.' Findings are proportionate app-level items (raises the dispatcher-injection/testability point in #2, plus update{}, debounce, lifecycle, naming nits). Verdict is commit-ready."
+    },
+    {
+      "text": "Explicitly NAMES the tier AND enumerates which higher-tier rules are being withheld and why (auditable tier scoping, not just an implicit one-liner). [discriminating — likely only with_skill]",
+      "passed": false,
+      "evidence": "Does NOT name a tier (no 'Tier 0/1/2/3' anywhere) and does NOT enumerate withheld higher-tier rules with reasons. The entire tier-scoping is a single inline parenthetical: 'binary-compatibility / public-API concerns (explicit API mode, ABI stability, @PublishedApi, deprecation cycles) do not apply here.' That is exactly the 'implicit one-liner' the assertion excludes — it lists a few example concerns in passing but provides no per-rule reasoning, no tier labels, and no auditable section. Contrast with_skill's bulleted Tier 1/2/3 enumeration each with its own justification."
+    }
+  ],
+  "grader_notes": "NEGATIVE CONTROL. without_skill passes 4/5. It correctly refuses to impose published-library rules and explicitly states they 'do not apply here' (#1, #2, #3, #4 all pass — no growable-data-class objection, proportionate findings, commit-ready verdict). The single fail is #5, the discriminating assertion: the review's tier scoping is a one-sentence parenthetical with no tier labels and no per-rule withholding rationale — precisely the 'implicit one-liner' the assertion rules out. This is the clean separation the negative control is designed to surface."
+}

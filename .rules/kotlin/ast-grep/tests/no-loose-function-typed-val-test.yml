@@ -1,0 +1,61 @@
+id: no-loose-function-typed-val
+valid:
+  # A plain constant is not a function.
+  - |
+    package good
+
+    val limit: Int = 5
+  # A getter property computes a value; it is not a lambda held at file scope.
+  - |
+    package good
+
+    val initial: Slice get() = Slice(emptyMap())
+  # THE IMPORTANT VALID CASE: a function-typed property inside a class is legal,
+  # because the class is what supplies the instantiation. Constructor-injected
+  # callbacks and private member lambdas must not be flagged.
+  - |
+    package good
+
+    class Host(private val onEach: (Int) -> Unit) {
+        private val double: (Int) -> Int = { it * 2 }
+        fun run(x: Int) = onEach(double(x))
+    }
+  # The remedy shape.
+  - |
+    package good
+
+    fun interface Arm {
+        fun apply(slice: Slice): Slice
+    }
+  # SAM CONSTRUCTION — the lambda is an argument that CONSTRUCTS a Clock, so the value
+  # has an instantiation. The first draft of this rule flagged these, i.e. it banned the
+  # exact idiom it exists to encourage. Regression-locked here.
+  - |
+    package good
+
+    val systemClock = Clock { System.currentTimeMillis() }
+
+    val randomIds = IdSource { UUID.randomUUID().toString() }
+
+    val typedSam: Clock = Clock { 5L }
+  # A lambda nested inside a call argument is not the property's initializer.
+  - |
+    package good
+
+    val CHECKS: List<Check> = listOf(Check("a") { it.ok() }, Check("b") { it.bad() })
+invalid:
+  # The declared-function-type form — the direct rewrite of a banned `fun`.
+  - |
+    package bad
+
+    val triageArm: (Int) -> Int = { x -> x + 1 }
+  # The inferred form: no type annotation, still a loose function.
+  - |
+    package bad
+
+    val inferred = { s: String -> s.uppercase() }
+  # A `var` is no better than a `val`.
+  - |
+    package bad
+
+    var handler: (String) -> Unit = { println(it) }

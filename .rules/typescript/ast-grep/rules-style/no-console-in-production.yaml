@@ -1,0 +1,19 @@
+# TENET: No console.log in production code.
+# Rationale: Use a proper logging library for structured logs.
+# console.log bypasses log levels and aggregation.
+id: no-console-in-production
+language: typescript
+severity: error
+message: "Use a logging library instead of console.log in production."
+files:
+  - "**/src/**/*.ts"
+  - "**/src/**/*.tsx"
+ignores:
+  - "**/test/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+rule:
+  any:
+    - pattern: console.log($$$ARGS)
+    - pattern: console.warn($$$ARGS)
+    - pattern: console.info($$$ARGS)

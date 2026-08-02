@@ -1,0 +1,43 @@
+{
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "expectations": [
+    {
+      "text": "Polymorphic messages are a sealed hierarchy with @JsonClassDiscriminator on the base and explicit @SerialName on each subtype (wire decoupled from class names).",
+      "passed": true,
+      "evidence": "ChatWireModels.kt:54-56 `@Serializable @JsonClassDiscriminator(\"type\") public sealed interface Message`. Each subtype carries an explicit @SerialName pinned to the wire value: TextMessage `@SerialName(\"text\")` (l.85), ToolCallMessage `@SerialName(\"tool_call\")` (l.101), ToolResultMessage `@SerialName(\"tool_result\")` (l.122). KDoc states the default discriminator is the FQ class name and 'every subtype gets an explicit @SerialName' so a rename leaves '\"type\":\"text\"' untouched (l.66-69)."
+    },
+    {
+      "text": "Forward-compat for new server fields via per-class @JsonIgnoreUnknownKeys rather than the GLOBAL ignoreUnknownKeys flag (or at minimum scopes leniency deliberately and notes the trade).",
+      "passed": true,
+      "evidence": "Per-class @JsonIgnoreUnknownKeys is applied on every inbound model (6 occurrences: ChatWireModels.kt:86,102,123,146,168 + the enums-free wrapper). ChatWireJson.kt:27-32 deliberately documents the choice and the trade: 'Forward-compat for *unknown fields* is handled per-class with @JsonIgnoreUnknownKeys on each inbound model, NOT with the global ignoreUnknownKeys = true flag. The global flag would also make our request/strict models swallow typos; the per-class annotation keeps leniency scoped' and explicitly marks '(Deliberately NOT set: ignoreUnknownKeys = true)'. This is the exact per-class behavior the assertion privileges over the global flag."
+    },
+    {
+      "text": "Single reused Json instance (top-level/object val), not a per-call Json {}.",
+      "passed": true,
+      "evidence": "ChatWireJson.kt:19 `public val WireJson: Json = Json { ... }` — a single top-level val. KDoc (l.13-18): 'Built **once** into a top-level `val` and reused for every encode/decode call... constructing Json { } inside a response handler throws that cache away.' All usage in ChatWireUsage.kt references this one instance (e.g. `WireJson.encodeToString<Message>`)."
+    },
+    {
+      "text": "Unknown polymorphic subtypes handled gracefully (polymorphic defaultDeserializer / fallback type) rather than throwing.",
+      "passed": true,
+      "evidence": "ChatWireJson.kt:57-61 registers `serializersModule = SerializersModule { polymorphic(Message::class) { defaultDeserializer { UnknownMessage.serializer() } } }`. UnknownMessage (ChatWireModels.kt:147-152) captures the raw discriminator via `@SerialName(\"type\") rawType: String?`. Runtime harness in transcript confirmed: unknown type `tool_call_v2` decoded to `UnknownMessage(rawType=tool_call_v2)` instead of throwing."
+    },
+    {
+      "text": "Encodes/decodes through the base type so the discriminator is written, AND demonstrates a class/property rename doesn't change the JSON (via @SerialName).",
+      "passed": true,
+      "evidence": "ChatWireUsage.kt encodes through the static base: `WireJson.encodeToString<Message>(message)` (l.24) and `encodeToString<List<Message>>` (l.28), with KDoc warning that serializing through a concrete subtype omits the discriminator (l.10-15). Rename safety is established via @SerialName on every subtype and constant; ChatWireModels.kt:66-69 documents that renaming TextMessage to PlainTextMessage 'leaves the JSON contract (\"type\":\"text\") untouched'. Transcript confirms the discriminator '\"type\":\"text\"' was present in the run output."
+    }
+  ],
+  "execution_metrics": {
+    "total_tokens": 113036,
+    "output_files": 3
+  },
+  "timing": {
+    "executor_duration_seconds": 250.6
+  },
+  "grader_notes": "5/5. The with_skill output makes the discriminating choice on #2 unambiguously: per-class @JsonIgnoreUnknownKeys on every inbound model with the global ignoreUnknownKeys flag deliberately left unset and the trade-off explicitly named (global flag would also make strict request models swallow typos). It also uses the @JsonClassDiscriminator annotation on the sealed base (the @InheritableSerialInfo, class-bound approach) rather than the Json-builder classDiscriminator, satisfying #1 precisely. Encoding is forced through the base type with explicit <Message> type args, and the polymorphic defaultDeserializer fallback was verified at runtime (transcript: tool_call_v2 -> UnknownMessage). The executor also caught a real bug by running rather than only compiling (coerceInputValues only coerces to a property DEFAULT, so each enum wire field needed a = UNKNOWN default), which is exactly the kind of latent crash the eval is probing. No superficial passes detected."
+}

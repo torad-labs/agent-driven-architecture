@@ -1,0 +1,13 @@
+id: no-clock-or-random-in-domain
+valid:
+  - |
+    package good
+
+    data class ClockInput(val nowMillis: Long, val id: String)
+invalid:
+  - |
+    package bad
+
+    import kotlinx.datetime.Instant
+
+    fun mintedNow(): Instant = Instant.now()

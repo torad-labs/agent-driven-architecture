@@ -1,0 +1,20 @@
+id: no-todo-throws
+snapshots:
+  ? |
+    package bad
+
+    fun notDone(): Int = TODO()
+  : labels:
+    - source: TODO()
+      style: primary
+      start: 34
+      end: 40
+  ? |
+    package bad
+
+    fun notDoneEither(): Int = TODO("finish this")
+  : labels:
+    - source: TODO("finish this")
+      style: primary
+      start: 40
+      end: 59

@@ -1,0 +1,46 @@
+{
+  "summary": {
+    "total": 7,
+    "passed": 5,
+    "failed": 2,
+    "pass_rate": 0.71
+  },
+  "expectations": [
+    {
+      "text": "Stream exposed as a cold Flow from a NON-suspend function.",
+      "passed": true,
+      "evidence": "PriceWatch.kt:150 `public fun stream(symbol: String): Flow<PriceTick> = channelFlow { ... }` — non-suspend fun returning a cold channelFlow; KDoc line 128-129 'Returns a cold flow ... Each collector opens its own connection on collection'."
+    },
+    {
+      "text": "Cancellation correct: CancellationException not swallowed; clean shutdown via scope cancellation; no GlobalScope.",
+      "passed": true,
+      "evidence": "PriceWatch.kt:173-174 `catch (ce: CancellationException) { throw ce }` placed BEFORE the broad `catch (t: Throwable)`; isTransient(CancellationException)=false (line 103) as a second guard. No GlobalScope; clean shutdown relies on collector-scope cancellation unwinding the suspended readUTF8Line through execute{} (KDoc 139-143). Note: no ViewModel/scope-owner deliverable, but the cold-Flow contract delegates shutdown to the collector's scope, which is correct."
+    },
+    {
+      "text": "Retries ONLY transient failures with capped + jittered backoff; not a bare while(true) with no delay; doesn't retry terminal 4xx.",
+      "passed": false,
+      "evidence": "Backoff is capped exponential but NOT jittered: PriceWatch.kt:183 `nextDelay = (nextDelay * 2).coerceAtMost(reconnect.maxDelayMs)` is deterministic — no Random/jitter anywhere in the file (grep confirmed). The assertion explicitly requires 'capped + JITTERED backoff'. Transient-only classification (isTransient, terminal 4xx not retried) is correct and tested (http_error_status_is_terminal_and_not_retried asserts attempt==1), and delay() is present — but the jitter requirement is unmet, so a thundering-herd reconnect of synchronized clients is possible."
+    },
+    {
+      "text": "HttpClient/engine AND dispatcher injected for testability.",
+      "passed": false,
+      "evidence": "Constructor `PriceWatchClient(httpClient, baseUrl, reconnect)` (PriceWatch.kt:122-126) injects the HttpClient but NOT a dispatcher — no CoroutineDispatcher parameter and no `.flowOn(...)` operator anywhere (grep confirmed none). The assertion requires BOTH HttpClient AND dispatcher injected; dispatcher injection is absent. Tests stay deterministic via MockEngine + runTest, but the dispatcher seam itself is missing."
+    },
+    {
+      "text": "No fake/last-known value returned on failure that masks the outage.",
+      "passed": true,
+      "evidence": "Terminal PriceStreamHttpException re-thrown (PriceWatch.kt:202-206); exhausted budget re-throws via `if (!isTransient(t) || consecutiveFailures >= maxRetries) throw t` (line 176); empty-stream throws EmptyStreamException (171). No sentinel/default tick emitted on failure — the error propagates to the collector."
+    },
+    {
+      "text": "Frames incrementally by reading the body channel line-by-line over a retained buffer; does NOT accumulate the whole response and re-split per read (no O(n^2)/re-emit).",
+      "passed": true,
+      "evidence": "PriceWatch.kt:208-214 `val channel = response.bodyAsChannel(); while(true){ val line = channel.readUTF8Line() ?: break; ... onTick(tick) }` — Ktor's readUTF8Line yields one frame per read off the channel's own buffer; no whole-response accumulation, no re-split. Test streams_incrementally_from_a_live_never_closing_channel writes to a live ByteChannel and awaits each item as it lands."
+    },
+    {
+      "text": "Stays Tier 0: no explicitApi/ABI/publishing noise.",
+      "passed": true,
+      "evidence": "No explicitApi{} DSL, ABI/.api dump, Maven coordinates, or publishing block in the 2 .kt deliverables (grep confirmed none). `public` modifiers are ordinary Kotlin. Transcript stays on app-feature concerns; the explicitApi mention is about the HOST repo's compile check, not added publishing config."
+    }
+  ],
+  "grader_notes": "Baseline failed exactly the two discriminating assertions (3 jitter, 4 dispatcher injection). On 3: backoff is correctly capped/exponential and transient-only with terminal-4xx fail-fast, but contains zero jitter — a literal reading of 'capped + jittered' fails. If the eval intends jitter as optional, soften the wording; as written it correctly discriminates. On 4: the prompt says 'dispatcher injected' and the baseline injects only the HttpClient, so the assertion fires correctly. Assertion 6 did NOT discriminate this pair — both used a per-line channel read (readUTF8Line vs readLine), so once manual framing is forced, the easy O(n^2) failure mode didn't appear in either; it may need a harder variant (e.g. a deliberately chunk-split body) to keep teeth. Assertion 7 is weak (passes for any output that merely omits publishing config). The baseline transcript reports 11/11 tests passing under isolated kotlinc + project explicitApi compile, which no assertion rewards."
+}

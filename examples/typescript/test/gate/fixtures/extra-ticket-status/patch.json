@@ -1,0 +1,28 @@
+{
+  "why": "G12 / §15.4 — §15.4's G12 self-check, shipped as a test instead of asserted as prose. Adding a fifth TicketStatus variant MUST break the build at every consumer, and at nothing else.",
+  "expect": {
+    "owner": "escalation",
+    "files": [
+      "blocks/escalation/fold.ts",
+      "blocks/escalation/project.ts"
+    ],
+    "errors": 3,
+    "perFile": {
+      "blocks/escalation/fold.ts": 1,
+      "blocks/escalation/project.ts": 2
+    },
+    "outOfFolder": []
+  },
+  "edits": [
+    {
+      "file": "src/blocks/escalation/slice.ts",
+      "find": "export type TicketStatusKind = \"Open\" | \"Escalating\" | \"Escalated\" | \"Resolved\";",
+      "replace": "export type TicketStatusKind = \"Open\" | \"Escalating\" | \"Escalated\" | \"Resolved\" | \"Archived\";"
+    },
+    {
+      "file": "src/blocks/escalation/slice.ts",
+      "find": "export type TicketStatus = Open | Escalating | Escalated | Resolved;",
+      "replace": "export interface Archived extends TicketStatusBase {\n  readonly kind: \"Archived\";\n  readonly requestedBy: null;\n  readonly at: number;\n}\n\nexport type TicketStatus = Open | Escalating | Escalated | Resolved | Archived;"
+    }
+  ]
+}

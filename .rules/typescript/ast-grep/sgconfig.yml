@@ -1,0 +1,15 @@
+# ast-grep configuration for Torad TypeScript rules
+# Install: copy to project root or .rules/typescript/ast-grep/
+# Run: ast-grep scan --config .rules/typescript/ast-grep/sgconfig.yml
+
+ruleDirs:
+  - rules
+  - codemods
+  - normalize
+
+utilDirs:
+  - utils
+
+testConfigs:
+  - testDir: tests
+    snapshotDir: __snapshots__

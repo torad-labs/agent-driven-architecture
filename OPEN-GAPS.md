@@ -1,0 +1,540 @@
+# Open gaps
+
+Architectural questions raised by review that are **not** covered by the F1–F13 remediation pass.
+Each is a real decision with a recommended direction, not a bug report. Numbered `A*` so they never
+collide with the `F*` finding IDs.
+
+Status legend: `open` · `decided` · `done`
+
+---
+
+## A1 · §6.8 unsigns UI tools, and that guts the differentiator — `done`
+
+**Landed in full (book + both ports).** §6.8's axis is decision-vs-ephemeral; a presentation verb
+folds *and signs* through the same site set as a domain verb in both ports (the GateTest asserts
+the registration shapes are identical); ephemeral view-state stays in one file per block, visible only
+to its own projection (check C12). The record below is the original case, kept for its reasoning.
+
+**Severity: major.** Folded into the remediation pass rather than deferred: it is an *architectural*
+change (it grows the sealed `Command` hierarchy, puts both tool kinds through the `name → Command`
+map, and changes the blast-radius number), so applying it after the ports were built would have meant
+rebuilding them. Caught while the run was still one agent in, before anything was written.
+
+§6.8's table says a UI tool "folds, does not sign." That carve-out contradicts the architecture's own
+core move and removes the property that makes agent-driven UI worth having: an agent that can
+show/hide, reposition, and restructure the interface, *auditably and replayably*.
+
+It contradicts three claims made elsewhere:
+
+| Claim | Where | How §6.8 breaks it |
+|---|---|---|
+| "a person tapping a control and the agent calling a tool resolve to the identical `Command`" | §3.2 | not identical if one signs and one does not |
+| "the authoring discipline is identical … Both fold identically" | §4.4 | not identical if one mints a Command and one does not |
+| the discriminator is "does a human need to ask *who did this, and when?*" | §5.4 | for agent-driven layout the answer is plainly **yes** |
+
+It is also self-defeating on its own terms. §6.8 buys a cheaper UI tool (1 declared site vs 3) at the
+cost of two tool mechanics instead of one — which is *worse* for lego composition and for a uniform
+blast-radius story, not better.
+
+**The line is already in the book; §6.8 drew it on the wrong axis.** §4.6 gives the right test:
+*"If losing a field on a re-fold would change what the system believes or what the artifact contains,
+it is truth — fold it."*
+
+**Recommended resolution** — replace the UI-vs-domain axis with the decision-vs-ephemeral axis:
+
+- **Agent presentation decisions** (show/hide, reposition, focus, surface a draft for review) are
+  authored acts. They **fold and sign**, exactly like domain tools. Attributable, replayable,
+  reconstructable.
+- **Ephemeral local view-state** (hover, scroll offset, expanded panel, unsubmitted text) never enters
+  a tool, never folds, never signs. Already §4.6's rule; leave it untouched.
+
+Consequences to carry through: §3.2 and §4.4 become true as written; blast radius becomes **uniform**
+across both tool kinds; Fig 3.1's fan-out to view toggles stops needing its apologetic caption; and
+"why did the panel move?" becomes answerable from the timeline.
+
+The volume objection behind §6.8 is real but misapplied — §5.4's concern was byte-heavy, high-rate
+input (blobs, sensor streams), not deliberate low-frequency layout decisions. A repositioning is
+precisely the "discrete, auditable, low-frequency action" §5.4 says belongs on the bus.
+
+**Touches:** §6.8 (the table and the ADDING A TOOL callout), §3.2, §4.4, Fig 3.1's caption, §5.4's
+worked discriminator, §16.1's per-feature economics card, and the `name → Command` map in both ports.
+
+---
+
+## A2 · The guarantee is auditability, not reliability — say so — `done`
+
+**Landed.** The book now states plainly, in §14.1.1 ("What replay does and does not buy"), what replay does and does not buy —
+determinism over a *recorded* timeline (forensics, audit, traces-as-fixtures), never behavioural
+reproducibility — and the payoff grid carries the matching line. The record below is the original case.
+
+**Severity: moderate — framing, but it sets reader expectations that the architecture cannot meet.**
+
+What is actually delivered is *replay-determinism over a recorded timeline*. The book is honest about
+this in the caveats (§12.3: reproducible from the recorded stream, not the raw firehose; §14.5: no test
+layer validates model behaviour). But the cumulative impression a reader takes away is "my agent system
+is deterministic," which is not on offer — the **recording** is faithful; the **behaviour** is not
+reproducible.
+
+That is still a strong pitch: audit trails, incident forensics, production traces as permanent
+regression fixtures. It is a *forensics* guarantee, not a *control* guarantee, and the two get
+conflated constantly in this space.
+
+**Recommended:** one short subsection near §14.1 stating plainly what replay does and does not buy,
+and a matching line in §16.1 so the payoff grid does not imply behavioural determinism.
+
+---
+
+## A3 · Everything upstream of the model is unspecified — `decided`
+
+F4 adds the missing context seam (`projectContext`), which closes the mechanical hole. The broader
+point is not closed by that fix: the architecture specifies everything **downstream** of the model in
+exhaustive detail and almost nothing **upstream**, and in practice context construction is the part
+that determines whether an agent works at all.
+
+**Recommended:** after F4 lands, decide explicitly whether context engineering is *in scope* (then it
+needs the same treatment as the view projection: a type, a bound, invariants, a test layer) or *out of
+scope* (then say so in §16.2's non-goals, so the silence reads as a boundary rather than an oversight).
+G9's own rationale currently leans on "a context summary" the book never defines — F4 fixes that
+sentence, but not the scope question behind it.
+
+**Decided: the context *seam* is in scope, context *engineering* is not.** The two are separated on
+the same axis the book already uses for authorization, persistence and configuration — the
+architecture owns the invariant, the product owns the strategy.
+
+- **In scope, specified and enforced.** `projectContext(state, staged) → Context` is the third pure
+  projection, a function of committed State plus this step's *ordered* staged input. It carries a
+  stated growth bound (O(1) in timeline length; `MAX_CONTEXT_LINES_PER_BLOCK = 8`,
+  `MAX_CONTEXT_NOTICES = 8`, tested against 500 tickets and 200 notices), `render(context)` is the
+  exact text the model saw, and that text plus the active prompt version ride the committed
+  `StepRecord` as `ContextFixture` — so a re-fold re-derives the digest and a change that silently
+  alters what the model read fails the golden trace **without re-running the model**.
+- **Out of scope, and product-owned** — recorded in §16.2's non-goals *and* as a row in §17.1's
+  product-owned-seam list, beside authorization (§14.3), persistence and retention (§14.6), and
+  configuration/secrets (§14.4): **what** you choose to project, how you rank, retrieve, compact or
+  summarise it, and how you author the prompt.
+
+The obligation the architecture keeps is the invariant, not the strategy: **whatever you project is
+a pure function of committed State plus staged input, and if you compact, the summary is a captured
+fixture** — because "why did the agent decide this?" is unanswerable without the text the model
+actually read (§14.7's reasoning, generalized).
+
+**What this does not buy, stated so the silence stays a boundary:** no ranking policy, no retrieval
+or compaction strategy, and no test layer for prompt quality. Choosing badly here still produces an
+agent that does not work; the architecture only guarantees you can see exactly what it was given.
+One correction fell out of the seam and every app pays it, rung or no rung: `staged` is an **ordered
+list** of `StagedInput`, not a single value — §5.4 always specified plural off-bus inputs "in their
+staging order, keyed to the consuming step", and both ports were narrower than the book until now.
+
+---
+
+## A4 · Pattern marketed as a dependency — `reframed · the package itself stays open`
+
+**Severity: moderate — adoption-facing, not correctness-facing.**
+
+§1.3 and §8.1 promise "you build two kinds of tools; the spine you inherit — zero runtime source in
+your repository." No spine package exists, and both reference ports hand-write the entire right column
+of Fig 8.1. §8.4 concedes this honestly, but the concession swallows the headline: an architecture
+*pattern* and a *dependency you install* have very different adoption costs.
+
+The value does not depend on the library existing. "Here is a pattern, here is a reference
+implementation, here are the gates that keep it honest" is true and strong today.
+
+**Recommended:** pick one and commit — either (a) reframe §1.3/§8.1 so the spine is described as a
+pattern with a reference implementation, with the library named as future work, or (b) extract the
+spine from `examples/` into an actual published package and make the claim true. Do not leave the
+headline claiming (b) while the repo demonstrates (a).
+
+**Taken: (a), and sharpened by something that was not true when this gap was written.** The spine is
+no longer prose scattered through a flat port — it is a **tier**: 37 files in TypeScript, 38 in Kotlin
+(the same components, spelled per language; each port pins its exact roster with a test), holding the
+signed bus, the fold driver, state derivation, replay, the barge-in mailbox, the tier relay and the
+enforcement gate. It can be lifted out whole and vendored.
+The claim is therefore restated everywhere it appeared, in these terms: **you depend on the loop, you
+vendor the spine.** The runtime is a real dependency with no source here that exactly one file names;
+the spine is source you hold but do not author per feature — every feature lands in `blocks/<X>/`
+plus the root, and each component stays swappable behind its own contract (§8.5). *"Zero of their
+source lives in your repository"* is retired; the honest headline is **two kinds of tool + thin
+wiring + a loop you depend on + a spine you vendor once and never author per feature.**
+
+**A gate check makes the tier's independence a property of the build, not a promise.** `C15` denies
+any import from `spine/**` into `blocks/**` or `app/**`, in both ports, with the paired
+violating/compliant fixtures every other check ships and no separate command to run. It is not
+redundant with `C1`: `C1` is a per-folder allow-list that a future folder could quietly relax, `C15`
+is a tier-level denial. In Kotlin it catches what `C1` structurally cannot — the sealed-hierarchy
+package rule forces every block's transport declaration into `adr.contract`, which `C1` must permit
+from spine folders, so `C15` additionally denies any `adr.contract.*` symbol outside the three roots
+the spine itself owns.
+
+**Still open, and deliberately: (b).** No spine package is published on any registry, and this pass
+does not publish one. That is the repository owner's decision — coordinates, release cadence,
+versioning and the support surface a published artifact commits you to are not a remediation task —
+so no package name, registry coordinate, install command or version number appears anywhere in the
+repo, and the prose says publishing is future work rather than implying it already happened. This
+gap closes when that decision is made, either way.
+
+---
+
+## A5 · The advanced rungs are the least-exercised material — `both rungs built; the residue labelled`
+
+Defects clustered in tiering (§11), barge-in (§12), and blocks (§4.5–4.7) — and neither reference
+implementation exercises any of them. That correlation is not a coincidence: unexercised specification
+drifts.
+
+**Recommended:** apply the book's own §16.4 discipline to itself. Either exercise a rung in the
+reference implementation (a second tier behind a relay; a real mailbox with a preemption test), or mark
+it explicitly as *specified but unproven* so a reader knows which parts have been run and which have
+only been written. The honesty costs nothing and the current silence implies parity that does not exist.
+
+**Both halves were taken: the two rungs were built in both ports, and what is still unbuilt is now
+labelled rather than silent.** Blocks (§4.5–4.7) were already answered by six shipped blocks.
+
+**The barge-in mailbox (§12), and it fixes F11.** The book's 12.3 drain loop cannot preempt —
+`outcome = await(inFlight)` sits at loop-body indentation, so control never reaches `take()` during a
+turn, `turnInFlight` is false at every take, and all three guards below it are dead code. What ships
+is a **select over `{ the next message, the running turn's completion }`** — Kotlin's `select`,
+TypeScript's `Promise.race` — so a message is observable *while* a turn runs. On that: `Input` takes a
+**closed policy choice, not a boolean** (`Perishable` conflates to the newest and folds a *counted*
+drop; `DurableQueue` never conflates, dedupes on a source key, and acks only after the commit — and
+it is the **default**, because losing durable work silently is worse than repeating perishable work
+visibly); `Interrupt` **preempts**, cancelling and *joining* the running turn before the next fold
+starts, so two folds cannot interleave; `Drain` **defers**. Preemption is proven against a virtual
+clock, not asserted: the interrupt's turn starts at t=150 (Kotlin, against a *measured* control run
+of 10 000) and t=100 (TypeScript, against 10 000), and the TypeScript suite carries the book's own
+12.3 loop inline as a contrast test that does not see the interrupt until t=10 100. Also proven:
+cancellation lands on a **step boundary** — a preempted turn's already-committed step stays folded and
+its effect stays performed, with no rollback — and a turn that throws degrades to a typed status
+carrying its cause without killing the consumer (§12.4). Every barge-in decision travels the one
+existing path (`resolveAction → gate → fold → commit → signed Command`), so a conflated drop is
+observable, and the conflation count is folded *before* the winning turn, which means the model is
+told it is shedding load.
+
+**The tiered relay (§11).** A deep tier publishes conclusions to an **append-only** relay; the fast
+tier reaches them only through a recall tool returning **text** — no method handle, no shared mutable
+object, no synchronous request. The port promises neither speed nor return, so the party that must not
+block does the bounding: recall reads under a deadline and degrades to a **typed** `LastKnown`, which
+is a distinct variant from `Fresh` and from `Empty` ("the deep tier has not published yet"), with
+`never`-guarded consumers so a fourth variant cannot slip past — a relay that never answers costs the
+fast path exactly the deadline, and stale is never rendered as fresh. The recall result is off-bus
+input, so it is **captured at both sites that matter** — the record's ordered `staged` fixture, which
+reaches the committed digest, and the committed `ToolResult`, which is what the fold reads — and read
+once per turn, so a re-fold resolves the same snapshot *and the same branch* and can never re-query.
+Recalled content is untrusted (§10.2, §11.3) by construction: `Recalled` carries no `Authority` and
+has no field that could, so an injected relay entry demanding an irreversible confirmation is refused
+at the gate, which keys on authority a recall cannot supply. The second tier is optional and plugs in
+without editing the fast tier or an existing block — two buses, two clocks, neither holding a handle
+to the other.
+
+**Still labelled *specified but unproven*, in both ports' READMEs, because §16.4 licenses stopping
+early but not implying parity:** the rungs of schema evolution (§14.7) that did NOT ship — `StepRecord`
+now carries a required `schemaVersion` and one worked v1 -> v2 upcaster, but no upcaster CHAIN, no
+versioned wire encoding (§14.1 leaves it product-owned) and no per-reducer-version golden trace. The
+one easiest to mistake for an omission, so it is recorded as a deliberate bound rather than a gap:
+**the envelope is enforced by the COMPILER and never read at run time, because the reference ships no
+loader** — there is no `JSON.parse`, `readFile` or `deserialize` anywhere in either port's `src`, so a
+runtime version check would exist only to be called by its own test. A version-dispatched load path,
+if an adopter wants one, is theirs to build where their encoding lives. Also: dispatcher confinement
+of a turn's `submit` channel, which is structural in the
+reference (the consumer mints the channel and calls the boundary itself) but is not gate-checkable,
+so an adopter running turns on another thread could still interleave two folds; and the honest cost
+of the cancel bound — it bounds the **consumer**, not the turn. A turn that ignores cancellation is
+abandoned at the deadline, its `submit` channel revoked so it can no longer fold, and the blown
+deadline folded as a signed command. It is named, degraded and counted, never hidden — removing the
+leak entirely needs an unbounded join, which §12.3 itself calls exactly a hang.
+
+---
+
+## A6 · TypeScript block dispatch trusts a predicate it cannot verify — `done`
+
+**Found during independent verification of the A3–A5 pass, not by review.** Reproduced, fixed, and
+regression-tested; the hardening that was the remaining half has since landed and is recorded at the
+foot of this entry. The record below is the original case, kept for its reasoning.
+
+`foldOk` dispatches by asking each block `owns(r)`. Those are hand-written type predicates
+(`isTriageResult` returns `r.outcome === "ok" && r.tool === "setPriority"`), and **TypeScript trusts a
+predicate it cannot verify** — so after the chain, `r` narrows to `never` at compile time while a real
+value flows through at runtime. `const _never: never = r; return _never;` then returned `undefined`,
+and the caller died on `out.effects is not iterable`.
+
+Measured before the fix: all four declared appends written, `tsc --noEmit` exit 0, `eslint` exit 0,
+101/101 tests green — then a crash on first dispatch. Kotlin has no such hole; `when (r) { is
+TriageResult -> }` is a compiler-verified type check, not a trusted predicate.
+
+**Fixed (the floor).** `unclaimedArm` in `spine/pure/spine-slice.ts`: an unclaimed result now folds
+like any unknown tool name — no transition, one `Diag` effect, one `Rejected` notice naming the tool.
+Total *and* observable, which is what §6.5 demanded all along; the previous behaviour was a crash out
+of the one arm §6.5 says must never crash. Regression test in `test/app/totality.test.ts`, red-green
+proven (reverting the fix reproduces the original `TypeError` exactly).
+
+Note the gate caught the first attempt at this fix: constructing the marker inside the fold tripped
+`[C7] a ToolResult may only be produced by a verb body or by the boundary`. That was correct — the
+fold does not mint transport — so the arm moved into the spine. The enforcement worked on its author.
+
+**LANDED (the hardening) — and the seam is not the one the first attempt reached for.** The reverted
+attempt tried to derive `owns` by CALLING each block's verb-table function, and died on the fact that
+the six take different arguments (`()`, `(read)`, `(tier)`). That is a real obstacle and it has not
+been re-attempted: the six verb-table signatures are untouched. The seam that IS uniform is the
+block's own **result union**, and it was one level away the whole time.
+
+`owns` is now derived rather than written. `spine/pure/tool-result.ts` publishes
+
+```ts
+export type ToolClaim<R extends OwnedResult> = Readonly<Record<R["tool"], true>>;
+export function claims<R extends OwnedResult>(table: ToolClaim<R>): (r: ToolResultBase) => r is R;
+```
+
+and each block writes `export const isConsoleResult = claims<ConsoleResult>({ focusTicket: true,
+setPanel: true });`. Because the parameter type is a mapped type over the block's own union and the
+argument is a fresh object literal, the table is **exact in both directions**: a declared case the
+table omits is a missing property, and a name the union does not declare is an excess property.
+Adding a result case and claiming it are therefore ONE edit — the first does not compile without the
+second, which is what "cannot go stale" needed to mean.
+
+**Proved, not asserted, in four places.**
+
+- *Compile-time, both directions.* `test/gate/fixtures/owns-under-claim/` drops a declared case from
+  the console block's table; `test/gate/fixtures/owns-over-claim/` adds an undeclared one to the
+  inbox block's. Each rides the existing `test/gate/exhaustiveness.test.ts` harness — real `tsc` over
+  a package farm — and asserts `errors: 1`, `perFile` 1, and `outOfFolder: []`. Measured on the
+  landed tree: `TS2345` (missing `setPanel`) and `TS2353` (excess `setPriority`), each in the block's
+  own `contract.ts` and nowhere else.
+- *Compile-time, on the ADOPTER TEMPLATE, which is a block folder like any other.* The quickstart
+  walk materialises a second copy of the template, appends a second verb at its four other declared
+  sites and deliberately omits the claim entry, and runs the template's own `npm run typecheck`. It
+  fails, with `TS2345` in `src/blocks/notes/contract.ts` and in no other file. Before the derivation
+  that exact mutation was FULLY GREEN — which is why the template is covered rather than assumed.
+- *Run-time, the half no type can state.* A block's claim being exact over its own union says nothing
+  about whether that union still matches the verbs the block REGISTERS. `ownershipGaps` in
+  `test/gate/totality.ts` exercises every published `owns` over the whole live vocabulary — plus a
+  name nothing registers — and compares the set each predicate accepts with the tool names on that
+  block's own registration. It is a behavioural probe rather than a read of source, so an alias, a
+  wildcard import or a computed key defeats none of it. Its allow-half and four block-halves are in
+  `test/app/totality.test.ts`; the census is cross-checked against the block folders on disk, so a
+  seventh block joins by existing.
+- *That the claim is DERIVED AT ALL, in every block folder on disk.* `undrivedOwns` in
+  `test/laws/roster-count.test.ts` reads every `<block>/contract.ts` under both block roots — the
+  port's own and the adopter template's — and denies any that does not derive its claim, OR that
+  declares a narrowing predicate of the form `(…): r is …` by hand. It denies the FORM rather than a
+  list of names, so renaming the predicate does not escape it; its violating half is a four-input
+  synthetic pair including exactly that renamed bypass.
+- *The floor is untouched.* `unclaimedArm` and its regression test still stand. What changed is that
+  reaching them by forgetting the predicate is no longer writable.
+
+**What is NOT closed, stated rather than implied.** `r is ConsoleResult` is still a claim TypeScript
+trusts. An author who bypasses `claims`, hand-writes a predicate AND edits `undrivedOwns` to stop
+watching is back at the original shape, and no type in this language can stop that. Kotlin needs none
+of these layers; `when (r) { is TriageResult -> }` is a compiler-verified check, and that asymmetry is
+the finding this entry has always carried.
+
+- ~~**`isAnalysisResult` is narrower than the analysis verb table.**~~ **Resolved by relocation:**
+  `noteDrop`/`noteFault` now live in the inbox block's own contract, claimed by the inbox's `owns`,
+  so no block's predicate under-claims its own verbs.
+
+## A7 · Signed transport can be copied, not only constructed — `TypeScript CLOSED · Kotlin open, measured`
+
+**The rule both ports ship is a CONSTRUCTION rule, and copying is not construction.** Kotlin's C7
+has always named its half of this (`cmd.copy(…)` on a received command, `Rules.kt`); the TypeScript
+half was the object spread, `{ ...received }`, which carries the `outcome` key without writing it and
+so passes a selector keyed on the property. Measured on the live tree at the time: the spread produced
+no message. The TypeScript comment previously claimed the opposite — that `outcome` being a required
+member meant no literal could be spelled without the key — which is true of a literal and false of a
+spread; that sentence was corrected, and this row is where the residue lives.
+
+**Why it was not closed by widening the rule.** Denying `SpreadElement` inside an `ObjectExpression`
+in the pure buckets would redden legitimate code — `slice.ts:withPriority` spreads its own slice —
+and a rule that fires on idiomatic code is the nuisance §15.2 warns about, which authors turn off.
+The honest options were a type-level brand on the transport (the move `docs/DECISIONS.md:23` used for
+`Signature`) or a runtime identity check at the boundary; both are real work, neither is a comment.
+
+**What is NOT at risk, and why this was `open` rather than a blocker.** The stamp cannot be forged
+this way in either port: `Signature` is a class in TypeScript and a non-data class in Kotlin, so a
+copied Command or ToolResult carries its ORIGINAL signature, and the boundary's authority check
+still keys on that. What a copy buys is a transport whose payload was edited after signing — which
+replay detects, because the re-fold of the committed bytes disagrees with what was performed.
+
+### TypeScript — CLOSED at the type, with the mint's own scarcity closed at the FORM
+
+`spine/pure/tool-result.ts` gains `TransportSeal`, a class holding a `#`-private field, plus
+`Sealed<T> = T & TransportSeal`. The five seams that ACCEPT a transport take only sealed values:
+`Dispatchers.fold`, `boundary/gate`, `boundary/action` (both maps), and `StepRecord`'s `results` and
+`commands`. A `#` field is not a property, so no spread and no literal can carry it. The `unique
+symbol` brand this port already uses for `Authority` would NOT have worked — an object spread
+propagates a brand property from its source, which is the same measurement that made `Signature` a
+class rather than an intersection.
+
+Measured on the landed tree:
+
+| question | before | after |
+|---|---|---|
+| `{ ...received }` handed to `fold` / `gate` / a committed record | compiles, and the lint says nothing | 5 compile errors at 5 distinct seams (`test/gate/seal.test.ts`, real `tsc`, shipped flags) |
+| a verb body, a block contract, a fold arm, a projection, a slice | — | **untouched**; `Sealed<T>` is assignable to `T`, so every field read still compiles as written |
+| the composition root's `fold` | — | one type name, four lines |
+| the committed bytes | — | **identical**: `#`-private is not an own property, so `JSON.stringify`, key order and structural equality are unchanged, and `spine/replay`'s `sameMark` compares results exactly as before |
+| the mint | — | two licensed sites, both in `spine/`: `boundary/action` for every live result and signed Command, `pure/step-record` for §14.7's upcast, the one path by which an old record reaches the fold |
+
+**The mint's scarcity is a THREE-LAYER lint, and the middle layer is keyed on the form because a name
+was not enough.** `C7_MINT` denies binding `seal`/`TransportSeal` as a value in every bucket except
+the two that mint. Inside those two the name is legitimately in scope under any alias, so a name-keyed
+denial is defeated by one keystroke — MEASURED: `import { seal as s }; export const s5 = s;` and
+`import { TransportSeal as TS }; export class F extends TS {}` were both silent, and the second was
+silent in `spine/boundary` too, which C4's own seal walls. So `C7_SEAL` rides those two buckets and
+denies the SHAPE of every value publication: a specifier, a non-literal `export const`, a reassignable
+export, a default export, and any class with a superclass. Its fixture pair lives at the mint-bucket
+path `test/gate/fixtures/{violating,compliant}/C7/src/spine/pure/step-record.ts`, and the violating
+side is written entirely under RENAMED imports — a pair a name-keyed rule could pass would prove
+nothing.
+
+**What is still open on this port, stated rather than implied.** The honest claim is bounded to
+assignability: `Object.assign`, `structuredClone` and any user-written `<T>(t: T) => T` launder any
+brand whatsoever, exactly as they do for the stamp — which is why the runtime identity check at the
+single `verb.sign` call site is still the layer that closes the forge. And one publication shape stays
+open BY CONSTRUCTION: an exported FUNCTION wrapping the mint
+(`export function mintWrap(v) { return seal(v as never); }`) is not a value publication of it and no
+selector sees it — measured, it draws nothing. Denying that form would redden `step-record`'s own
+`upcastV1`, the exported function the exemption exists for. It is the same residue `boundary.ts`
+already declares for `Signature`, and it is why this heading says the COPY route is closed, never that
+a transport cannot be forged.
+
+### Kotlin — still open, and the three routes are now measured
+
+`copy()` reproduces every constructor value, including any seal placed there, so branding the value
+in place is not available in this language at all. The three real routes were compiled against the
+tree rather than argued about:
+
+| route | measured result |
+|---|---|
+| delete `data` from the transport leaves | contradicts ADR-001 §1's ratified table (`copy` is *correct* for a description of what happened) and removes the value equality `Replay.RecordMark` compares two records with |
+| `@ConsistentCopyVisibility` + `internal constructor` — the only lever that hides `copy()` while keeping `data` | 2 compile errors in `block/triage/…/Tools.kt`, at the upcaster and at `run`: ADR-001 §3's DAG declares a block's transport inside `:spine` while its verb table lives in `:block:<x>`, so hiding the constructor removes the one production site C7 licenses |
+| a `:spine`-internal wrapper at the fold seam (the TypeScript move, spelled for a language with no intersection types) | `internal` in `:spine` is invisible to the root test project, where the replay suite hand-builds committed records — so it needs either a build-logic friend-path grant or relocating that suite, neither of which any ratified record takes |
+
+So the Kotlin closure is a structural decision, and ADR-001 §6 already owns it as an open one.
+`GateTest`'s `C7(b)` now holds the residue mechanically: it derives every transport leaf from the live
+tree (29 today, against a floor of 8) and asserts each is still a `data class` with a public
+constructor, so the hole can be neither forgotten nor closed silently — landing any of the three above
+turns it red and forces this row to move with it.
+
+**Remaining direction.** Kotlin only, and it is ADR-001 §6's to take.
+
+---
+
+## A8 · ADR-001's API freeze — the wall is wired, `explicitApi()` is measured and still out — `open`
+
+**The enforcing half is landed.** `adr.kotlin.library` applies the binary-compatibility-validator, so
+each of the fourteen modules commits `<module>/api/<name>.api` and `apiCheck` runs inside
+`./gradlew check`. What ADR-001 §4 states — "a public declaration beyond the frozen set fails
+`apiCheck`" — is now true of this tree in both directions: adding one public declaration to a block
+turns `check` red naming the added line, and it goes green again only after `./gradlew apiDump` is
+re-run and the new dump is read. The guard that made it fit ADR-001 §3's DAG is recorded in the plugin:
+the validator configures `allprojects` from wherever it is applied, `:block:<x>:adapter` is the one
+module nested inside another, and applying it twice in one subtree fails configuration.
+
+**Why the guard is not trusted, measured rather than argued.** `adr.root` asserts four things about
+every one of the fourteen modules — the `apiCheck` task exists, `check` depends on it, nothing has
+switched it off, and it still has actions to run. The third and fourth are there because review
+proved the first two insufficient: two lines in one block's build script (`enabled = false` plus a new
+public declaration) left `./gradlew check`, the TypeScript suite and the Kotlin law scan ALL GREEN
+with the declaration absent from the committed dump. Every switch is now denied by FORM rather than by
+name — `enabled = false`, `onlyIf { false }`, `setOnlyIf`, the reason-string overload, a later flip
+through `taskGraph.whenReady`, and an emptied action list were each measured red. The declared limit
+is equally measured: rewriting the task's body (a `doFirst` that aborts it) or hand-editing a
+committed dump is green, and no assertion inside a build can adjudicate its own build script.
+
+**The measurement, reported rather than re-frozen.** ADR-001 predicted 6·5·5·8·9·8. Measured after
+narrowing the 27 block declarations no module outside their block names, the dumps carry
+**8·8·5·8·8·8** — three exact, three off, and ADR-001 §4 now records why: two symbols the prediction
+counted are declared in `:spine` under the sealed rule and cannot appear in a block's own dump, and
+the ROOT project's gate harness is a second cross-module consumer the `:app`-only derivation missed,
+naming six block symbols `internal` cannot hide. `examples/typescript/test/laws/freeze.test.ts`
+re-derives the series from the committed dumps and re-reads the deltas out of the ADR's prose, so that
+arithmetic cannot rot again without turning a gate red.
+
+**What is still open, with its cost measured.** `explicitApi()` is still not wired, and it is not the
+wiring change this entry used to call it. Turning it on was run end to end against this tree, in
+warning mode, on the tree that ships: it costs **485 visibility diagnostics and 27 explicit return
+types across 81 of this port's 87 main sources** — 536 across 87 before the 27 narrowings above, which
+is why an earlier draft of this entry quoted the pre-narrowing figure for the post-narrowing tree. It
+compiles, and both gates stay green, so the objection is the size and the editorial reach, not the
+risk.
+
+**Direction.** Land `explicitApi()` as its own mechanical item, in one deterministic sweep rather
+than by hand: the compiler's own explicit-API diagnostics name the insertion point of every one of
+the 485 modifiers, and only the 27 return types need a type written. Nothing about the freeze waits
+on it — `apiCheck` already denies API growth — so what it buys is that a declaration's visibility is
+stated in the source rather than inferred, which is the half of ADR-001 §4's row that still reads as
+specified.
+
+---
+
+## A9 · The TypeScript gate's verdict was load-dependent — `done`
+
+Recorded because the class matters more than the instance. Six gate cases shell out to `tsc`, `npm`
+or the demo runner, and they ran under vitest's DEFAULT 5000 ms per-test timeout, so on a contended
+machine the gate went RED on byte-identical, pristine source with an error naming nothing about the
+code. `scripts/wall.mjs` opens with "a gate whose verdict depends on whether it was previously
+exercised is not a gate"; the same objection applies to a verdict that depends on host load, and a
+gate that fails at random is the fastest route to the re-run culture §15.2 is written against.
+
+Closed by an explicit 60s `testTimeout`/`hookTimeout`. The general rule this leaves behind: **any
+gate case that spawns a subprocess owns its own timeout**, because the default was chosen for unit
+tests and a compile is not one.
+
+---
+
+## A10 · Neither demo drew the purity boundary the way the architecture specifies — `done`
+
+**Closed on the demo, not on the book — which is the direction this entry insisted on.** Every
+TypeScript block now holds the pair: a pure unit `@adr/block-<x>` and an adapter leaf
+`@adr/block-<x>-adapter`, both inside the block's own folder, fourteen workspace packages where there
+were eight. The pure unit neither lists the `adapter/` folder nor references the project that owns it,
+so a pure file naming its own block's live client is `TS6307` from the wall — measured, with its control
+beside it, in `examples/typescript/test/laws/edges.test.ts`, which builds the real solution file over a
+copy of the tree. Before the split the same reach passed the compiler, the wall, eslint and biome: the
+whole gate was green over a fold arm calling its block's live relay. The three blocks with no seam ship a
+declared-empty leaf, because the pair is unconditional. Not one line of the book changed.
+
+**The residue, named rather than left for a reader to find.** A *third-party* library still resolves from
+a pure file on the TypeScript port — npm hoists one copy to the single root store, and no `exports` map,
+`tsconfig` reference or `paths` mapping can unsee it. What the split bought there is the *declaration*: the
+pure unit's dependency list omits every client library and the leaf's declares them. That half is check
+C1's, it is the same measurement `laws.toml` already records as the reason the foreign-import law keeps
+the lower rung, and `edges.test.ts`'s `foreign-library` probe keeps it a permanent negative wall rather
+than a footnote. The per-file grants *inside* a unit (which file gets the schema DSL, which gets the
+runner) stay with the lint layer on both ports, which is where §7.5 puts them: they are below the
+resolution a build edge has, and no module graph can express them.
+
+**Direction of this entry, stated because it is the whole point.** The book is the
+platform-generic specification; `examples/typescript` and `examples/kotlin` are demos showing how
+it could be done on two stacks. A divergence between them is therefore a finding against the DEMO,
+never an overclaim by the book, and it is closed by fixing a demo or by recording its gap here —
+never by narrowing an architectural law to one platform.
+
+**What the architecture specifies.** §4.6: a block is one folder holding TWO build units, and "the
+pair is unconditional — a block with no seam to the outside declares the leaf and leaves it empty".
+§7.8: "the purity boundary is drawn inside each block by the unit split, **not by a rule reading
+file names**", because the block's own unit permits the spine and nothing else, so there is no I/O
+for its pure tier to reach. §4.7 and §15.3's G10/G11 notes say the same. That is a coherent law and
+it is what makes package-by-feature safe: the boundary is held by the build, and the folder names
+are a legend for it rather than the thing itself.
+
+**Where each demo fell short, measured — the case as it was filed.**
+- The **TypeScript** demo shipped ONE workspace package per block, so `adapter.ts` sat in the same
+  build unit as `fold.ts`. Its `exports` map and `tsconfig` references could not separate them, and
+  the purity line was held instead by an eslint per-file rule keyed on the FILENAME — precisely the
+  mechanism §7.8 says the architecture does not use. The pair was not unconditional there; it did
+  not exist. **This is the half the landing above closed.**
+- The **Kotlin** demo already shipped the pair, and its convention plugin bans I/O libraries from the
+  pure module's classpath at configuration time — the specified mechanism, genuinely held. Its
+  file-level rules (C8's import ban, C1's allow-list) still key on file names inside the module, and
+  after this landing so do TypeScript's: that is the per-file layer §7.5 keeps, not a shortfall in the
+  unit split.
+
+**Why it was filed `open` and not as a blocker.** Both demos DID keep I/O out of a block's pure tier —
+the guarantee held in each, by different means. What the TypeScript one did not demonstrate was the
+architecture's stated MECHANISM for it, so a reader who took the book's law and looked to a demo for the
+shape found it in Kotlin and did not find it here. Both now show it.
+
+---
+
+## Not in this file
+
+F1–F13 (the verified review findings) are handled by the remediation pass and tracked there. This file
+is only for gaps that pass did **not** address.

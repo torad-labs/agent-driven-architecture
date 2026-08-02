@@ -1,0 +1,24 @@
+# TENET (Marcos #324.1 + the PastePayload/ManifestCallPayload precedent, 2026-07-13): data
+# crossing the operations queue is a @Serializable payload class — typed end to end — never
+# an ad-hoc buildJsonObject bag at the call site. A bag can smuggle misspelled keys, missing
+# fields, and verbs outside the closed set; a typed payload cannot even express them.
+id: no-raw-json-op-payload
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+rule:
+  any:
+    - pattern: $H.request($OP, buildJsonObject { $$$BODY })
+    - pattern: $H.enqueue($OP, $T, buildJsonObject { $$$BODY }, $$$REST)

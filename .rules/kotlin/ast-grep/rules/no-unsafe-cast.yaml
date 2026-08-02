@@ -1,0 +1,34 @@
+# TENET: Avoid unsafe casts (as).
+# Rationale: Unsafe casts throw ClassCastException at runtime.
+# Use safe cast (as?) with null handling or smart casts via is checks.
+# Grammar note: `x as T`, `x as? T`, and `x as T?` are ALL as_expression nodes;
+# the `not: pattern: $X as? $T` clause is what excludes the safe-cast operator
+# (calibration 2026-07-03: without it the rule matched every safe cast — 1628 FP hits).
+id: no-unsafe-cast
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/test/**"
+  - "**/*Test/**"
+  - "**/testFixtures/**"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "Avoid unsafe cast `as`. Use `as?` (safe cast) or smart cast via `is` check."
+rule:
+  kind: as_expression
+  all:
+    - not:
+        pattern: $X as? $T
+    - not:
+        has:
+          kind: nullable_type

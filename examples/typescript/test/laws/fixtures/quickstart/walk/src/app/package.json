@@ -1,0 +1,6 @@
+{
+  "name": "@adr/app",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@adr/spine": "*", "@adr/block-notes": "*" }
+}

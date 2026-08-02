@@ -1,0 +1,49 @@
+id: no-sealed-interface
+snapshots:
+  ? |
+    package bad
+
+    sealed interface Command {
+        val tool: ToolName
+    }
+  : labels:
+    - source: |-
+        sealed interface Command {
+            val tool: ToolName
+        }
+      style: primary
+      start: 13
+      end: 64
+    - source: interface
+      style: secondary
+      start: 20
+      end: 29
+    - source: sealed
+      style: secondary
+      start: 13
+      end: 19
+    - source: sealed
+      style: secondary
+      start: 13
+      end: 19
+  ? |
+    package bad
+
+    sealed interface Gating
+  : labels:
+    - source: sealed interface Gating
+      style: primary
+      start: 13
+      end: 36
+    - source: interface
+      style: secondary
+      start: 20
+      end: 29
+    - source: sealed
+      style: secondary
+      start: 13
+      end: 19
+    - source: sealed
+      style: secondary
+      start: 13
+      end: 19

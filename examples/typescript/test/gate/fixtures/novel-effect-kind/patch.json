@@ -1,0 +1,17 @@
+{
+  "why": "THE HANDLER SPLIT — a NOVEL EFFECT KIND costs zero PRODUCTION sites outside the owning block. Before the split this same patch broke src/app/wire.ts (the exhaustive switch's `const _never: never = effect` guard) and broke nothing inside blocks/triage/, because nothing in the folder was obliged to perform it. After it, the compiler names the block's own handler table and the GATE's own totality ledger in test/app/totality.test.ts — and the composition root does not move. The ledger is an out-of-folder cost and is counted as one here: `outOfFolder` is asserted as an exact set, and the verb half of the same ledger has always cost the same edit.",
+  "expect": {
+    "owner": "triage",
+    "files": ["blocks/triage/register.ts", "test/app/totality.test.ts"],
+    "errors": 2,
+    "perFile": { "blocks/triage/register.ts": 1, "test/app/totality.test.ts": 1 },
+    "outOfFolder": ["test/app/totality.test.ts"]
+  },
+  "edits": [
+    {
+      "file": "src/blocks/triage/contract.ts",
+      "find": "export type TriageEffect = LogDecision;",
+      "replace": "/** THE NOVEL KIND. No production file outside this folder was touched — that is the point. */\nexport interface NotifyReporter extends EffectBase {\n  readonly kind: \"NotifyReporter\";\n  readonly ticket: TicketId;\n}\n\nexport type TriageEffect = LogDecision | NotifyReporter;"
+    }
+  ]
+}
