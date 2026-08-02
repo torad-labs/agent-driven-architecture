@@ -1,10 +1,10 @@
-// ── blocks/artifact/adapter — THE ONLY IMPURE FILE IN THIS BLOCK (G13) ─────
+// ── blocks/artifact/adapter/adapter — THIS BLOCK'S IMPURE UNIT (G13) ──────
 // The delivery client lives here and nowhere else. In a real deployment this
 // writes to object storage or a ticketing system; here it writes lines to a
 // caller-supplied emitter, so the demo runs offline.
 
 import type { Emit } from "@adr/spine/pure/emit";
-import type { DeliveryPort } from "./port";
+import type { DeliveryPort } from "../port";
 
 export function liveDelivery(emit: Emit): DeliveryPort {
   return {

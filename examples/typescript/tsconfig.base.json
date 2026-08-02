@@ -1,5 +1,5 @@
 {
-  "//": "The compiler options every workspace package shares, extracted so the eight package tsconfigs cannot drift from the root's. It carries no `include` and no `noEmit`: each package declares its own include, and `noEmit` is passed on the command line by `npm run typecheck`, because a config that sets `composite` may not also disable emit.",
+  "//": "The compiler options every workspace package shares, extracted so the fourteen package tsconfigs cannot drift from the root's. It carries no `include` and no `noEmit`: each package declares its own include, and `noEmit` is passed on the command line by `npm run typecheck`, because a config that sets `composite` may not also disable emit.",
   "compilerOptions": {
     "target": "ES2023",
     "module": "ESNext",

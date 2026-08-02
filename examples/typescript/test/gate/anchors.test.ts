@@ -143,9 +143,11 @@ describe("the gate's anchors hold", () => {
   });
 
   it("the block rosters are pinned — the filenames the buckets scope by cannot drift silently", () => {
-    // contract.ts, tools.ts, project.ts, port.ts, adapter.ts and view-state.ts
+    // contract.ts, tools.ts, project.ts, port.ts, adapter/ and view-state.ts
     // are SCOPES: C4 applies to contract.ts, the schema DSL is granted to
-    // tools.ts, C11 to port.ts, C12 keys on view-state. A block file renamed
+    // tools.ts, C11 to port.ts, C12 keys on view-state, and the client-library
+    // grant is scoped to the `adapter/` FOLDER now that the leaf is its own
+    // build unit. A block file renamed
     // out of its bucket falls back to the generic rules and quietly sheds the
     // specific ones — this pin is what makes that a visible diff.
     //
@@ -154,6 +156,9 @@ describe("the gate's anchors hold", () => {
     // added here deliberately rather than slipping in:
     //   · package.json  — the block IS a package now; its `exports` map is what
     //     makes every file below unreachable by a bare specifier.
+    //   · adapter/      — the block's SECOND build unit, a directory rather than
+    //     a file since the unit split. It is in this roster because a block that
+    //     lost its leaf would otherwise be a shorter list nobody reads.
     //   · tsconfig.json — the wall itself: `composite` roots the project at this
     //     folder, so a reach into a sibling is a resolution error.
     //   · <block>.test.ts, in the four blocks that have an isolation test — the
@@ -163,7 +168,7 @@ describe("the gate's anchors hold", () => {
     //     shipped-code rules and go red rather than quietly relax them.
     const blocks: Record<string, readonly string[]> = {
       analysis: [
-        "adapter.ts",
+        "adapter",
         "contract.ts",
         "fold.ts",
         "package.json",
@@ -175,7 +180,7 @@ describe("the gate's anchors hold", () => {
         "tsconfig.json",
       ],
       artifact: [
-        "adapter.ts",
+        "adapter",
         "artifact.test.ts",
         "contract.ts",
         "fold.ts",
@@ -188,6 +193,7 @@ describe("the gate's anchors hold", () => {
         "tsconfig.json",
       ],
       console: [
+        "adapter",
         "console.test.ts",
         "contract.ts",
         "fold.ts",
@@ -200,7 +206,7 @@ describe("the gate's anchors hold", () => {
         "view-state.ts",
       ],
       escalation: [
-        "adapter.ts",
+        "adapter",
         "contract.ts",
         "escalation.test.ts",
         "fold.ts",
@@ -213,6 +219,7 @@ describe("the gate's anchors hold", () => {
         "tsconfig.json",
       ],
       inbox: [
+        "adapter",
         "contract.ts",
         "fold.ts",
         "package.json",
@@ -223,6 +230,7 @@ describe("the gate's anchors hold", () => {
         "tsconfig.json",
       ],
       triage: [
+        "adapter",
         "contract.ts",
         "fold.ts",
         "package.json",
@@ -234,6 +242,27 @@ describe("the gate's anchors hold", () => {
         "tsconfig.json",
       ],
     };
+    // THE LEAF'S OWN ROSTER, pinned in the same breath and for the same reason.
+    // `adapter` above is a DIRECTORY entry, so the roster next door would
+    // otherwise say nothing about what is inside it — and what is inside it is
+    // the difference between a declared-empty leaf and a live one. Both shapes
+    // are named, so a leaf that grew a file, or one that lost its wall, is a
+    // visible diff. The three IO-less blocks ship the pair anyway: §4.6's
+    // pair is unconditional, and the leaf that holds nothing still declares.
+    const leaves: Record<string, readonly string[]> = {
+      analysis: ["adapter.ts", "package.json", "tsconfig.json"],
+      artifact: ["adapter.ts", "package.json", "tsconfig.json"],
+      console: ["package.json", "tsconfig.json"],
+      escalation: ["adapter.ts", "package.json", "tsconfig.json"],
+      inbox: ["package.json", "tsconfig.json"],
+      triage: ["package.json", "tsconfig.json"],
+    };
+    for (const [block, files] of Object.entries(leaves)) {
+      expect(
+        readdirSync(join(ROOT, "src", "blocks", block, "adapter")).sort(),
+        `${block}/adapter`,
+      ).toEqual(files);
+    }
     for (const [block, files] of Object.entries(blocks)) {
       expect(readdirSync(join(ROOT, "src", "blocks", block)).sort(), block).toEqual(files);
     }

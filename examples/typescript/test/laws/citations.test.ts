@@ -353,7 +353,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // type, the C7_LITERAL narrowing to construction, the brand's own gate
   // fixtures (the step-record FORM vectors) and the replay round-trip note each
   // cite G1/§6 and D2.
-  "examples/typescript": 506,
+  // +7 (506 -> 513): A10's per-block adapter packages — each new adapter
+  // package.json/tsconfig and the pure/impure edge fixtures cite §7.5/§7.8 and
+  // G10/G11 as the boundary they now hold by resolution.
+  "examples/typescript": 513,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the
@@ -484,7 +487,10 @@ const FILE_PIN: Record<string, number> = {
   // `src/spine/pure/tool-result.ts`, which already declared the base the six
   // predicates narrow from, so the 37-file spine roster does not move.
   // +6 (206 -> 212): A7 adds the brand type, its gate fixtures and the round-trip test.
-  "examples/typescript": 212,
+  // +14 (212 -> 226): A10 grew the workspace 8 -> 14 packages; every block
+  // gains an adapter package (package.json + tsconfig), and the walk fixture
+  // mirrors the shape.
+  "examples/typescript": 226,
   wiki: 10,
   // NEWLY PINNED alongside the resolvable bucket above, and +2 in the same
   // breath: CHANGELOG.md and RELEASE-RITUAL.md join laws.toml, README.md and

@@ -82,7 +82,7 @@ async function perFile(
  * moves is a rule that changed reach, which is a diff a reviewer must see.
  */
 const DENIED: Readonly<Record<string, Readonly<Record<string, number>>>> = {
-  C1: { "blocks/triage/adapter.ts": 1, "spine/pure/thing.ts": 1 },
+  C1: { "blocks/triage/adapter/adapter.ts": 1, "spine/pure/thing.ts": 1 },
   C2: { "blocks/triage/fold.ts": 2 },
   C3: { "blocks/triage/tools.ts": 2 },
   C4: {
@@ -304,7 +304,7 @@ describe("the package-specifier route is denied, per rule", () => {
   };
   const SIBLING_PKG = "may not import a sibling block by package name either";
   const SPINE_NAMES_BLOCK = "a package specifier is still naming one";
-  const ADAPTER_TIER = "an adapter may import its own port";
+  const ADAPTER_TIER = "an adapter leaf may import its own block";
 
   it("C2 DENIES a sibling reached by its package name — the one route tsc resolves", async () => {
     // The SPECIFIER is asserted, not just the tag: this rule is the only thing
@@ -343,11 +343,15 @@ describe("the package-specifier route is denied, per rule", () => {
       }
     }
     // The narrowed cell's ALLOW half is the LIVE tree rather than a synthetic
-    // fixture, and it is the stronger witness: the three shipped adapters import
-    // `@adr/spine/pure/*` plus their client libraries, so a lookahead that
-    // over-denied would fire here on real code.
-    const adapters = await eslint.lintFiles([join(ROOT, "src", "blocks", "*", "adapter.ts")]);
-    expect(adapters.map((r) => basename(dirname(r.filePath))).sort()).toEqual([
+    // fixture, and it is the stronger witness: the three shipped adapter LEAVES
+    // import `@adr/spine/pure/*` and their own block's port, so a lookahead that
+    // over-denied would fire here on real code. The three IO-less blocks ship a
+    // declared-EMPTY leaf, which is why this glob finds three files under six
+    // `adapter/` folders and the roster below names exactly those three.
+    const adapters = await eslint.lintFiles([
+      join(ROOT, "src", "blocks", "*", "adapter", "adapter.ts"),
+    ]);
+    expect(adapters.map((r) => basename(dirname(dirname(r.filePath)))).sort()).toEqual([
       "analysis",
       "artifact",
       "escalation",
@@ -390,29 +394,54 @@ describe("the workspace wall covers every package", () => {
     readonly references: readonly { readonly path: string }[];
   };
 
-  /** the workspaces globs EXPANDED against the tree — never a second hand-list */
+  /** the workspaces globs EXPANDED against the tree — never a second hand-list.
+   *  The star is no longer always last: the glob naming every block's SECOND
+   *  build unit carries it in the middle, so the expansion splits on the star
+   *  rather than on a trailing one. NOTHING IS FILTERED OUT afterwards — a block
+   *  that ships no `adapter/` still yields the path, and the manifest read below
+   *  then throws, which is the fail-closed direction: a missing leaf is red, not
+   *  invisible. */
   const declared = must(root.workspaces)
-    .flatMap((glob) =>
-      glob.endsWith("/*")
-        ? readdirSync(join(ROOT, glob.slice(0, -2)), { withFileTypes: true })
-            .filter((e) => e.isDirectory())
-            .map((e) => `${glob.slice(0, -2)}/${e.name}`)
-        : [glob],
-    )
+    .flatMap((glob) => {
+      const star = glob.indexOf("*");
+      if (star < 0) return [glob];
+      const head = glob.slice(0, star - 1);
+      const tail = glob.slice(star + 1);
+      return readdirSync(join(ROOT, head), { withFileTypes: true })
+        .filter((e) => e.isDirectory())
+        .map((e) => `${head}/${e.name}${tail}`);
+    })
     .sort();
-  const blocks = declared.filter((d) => d.startsWith("src/blocks/"));
+  /** the PURE unit of each block — the package that publishes `./register` */
+  const blocks = declared.filter((d) => /^src\/blocks\/[^/]+$/.test(d));
+  /** its IMPURE half, one per block and never optional */
+  const leaves = declared.filter((d) => /^src\/blocks\/[^/]+\/adapter$/.test(d));
 
-  it("is the eight packages the tree holds — the spine, six blocks, the root", () => {
+  it("is the fourteen packages the tree holds — the spine, a PAIR per block, the root", () => {
+    // §4.6's pair, taken literally: a block is one folder holding TWO
+    // build units, and the pair is unconditional. Three of the six blocks own no
+    // live IO today and still get a leaf, because a builder may not narrow
+    // fourteen to eleven — the same arithmetic the Kotlin port's settings script
+    // records for its own fourteen modules.
     expect(declared).toEqual([
       "src/app",
       "src/blocks/analysis",
+      "src/blocks/analysis/adapter",
       "src/blocks/artifact",
+      "src/blocks/artifact/adapter",
       "src/blocks/console",
+      "src/blocks/console/adapter",
       "src/blocks/escalation",
+      "src/blocks/escalation/adapter",
       "src/blocks/inbox",
+      "src/blocks/inbox/adapter",
       "src/blocks/triage",
+      "src/blocks/triage/adapter",
       "src/spine",
     ]);
+    // and the pair is DERIVED, so a leaf deleted is a red diff rather than a
+    // shorter list nobody reads
+    expect(leaves).toEqual(blocks.map((b) => `${b}/adapter`));
   });
 
   it("BUILDS every one of them — a package no reference names has no wall", () => {
@@ -439,14 +468,22 @@ describe("the workspace wall covers every package", () => {
     // green, because composite/rootDir were both still intact. The reference
     // list was the one part of the wall carrying no instrument, and it is the
     // part C1/C2's sunset (`spine-2`) hands the whole job to.
-    for (const dir of declared.filter((d) => d.startsWith("src/blocks/"))) {
-      const cfg = JSON.parse(readFileSync(join(ROOT, dir, "tsconfig.json"), "utf8")) as {
-        readonly references?: readonly { readonly path: string }[];
-      };
-      expect(
-        cfg.references?.map((r) => r.path),
-        dir,
-      ).toEqual(["../../spine"]);
+    const references = (dir: string): readonly string[] | undefined =>
+      (
+        JSON.parse(readFileSync(join(ROOT, dir, "tsconfig.json"), "utf8")) as {
+          readonly references?: readonly { readonly path: string }[];
+        }
+      ).references?.map((r) => r.path);
+    for (const dir of blocks) expect(references(dir), dir).toEqual(["../../spine"]);
+    // THE PURITY EDGE, as a reference list. A block's pure unit may see the spine
+    // and NOT its own adapter leaf; the leaf may see the spine and its own block.
+    // That asymmetry is the whole of §7.8's mechanism on this port — the
+    // pure tier has no route to the impure one, so there is no I/O for it to
+    // reach — and it is measured with the real compiler in
+    // test/laws/edges.test.ts. Here it is the SHAPE, so a reference quietly added
+    // to a pure unit is red before any probe has to run.
+    for (const dir of leaves) {
+      expect(references(dir), dir).toEqual(["../../../spine", ".."]);
     }
   });
 
@@ -508,6 +545,19 @@ describe("the workspace wall covers every package", () => {
     // excluded by asserting the whole set rather than a membership.
     for (const dir of blocks) {
       expect(Object.keys(must(manifest(dir).exports)).sort(), dir).toEqual(["./register"]);
+    }
+    // THE LEAF PUBLISHES NOTHING, and the empty map is the mechanism rather than
+    // a formality. MEASURED: a manifest with NO `exports` field at all does not
+    // deny a subpath — it falls back to directory resolution, and
+    // `@adr/block-escalation-adapter/adapter` then resolved clean from inside a
+    // sibling block, which would have added six new open cross-block routes in
+    // the same landing that exists to close one. `{}` denies every subpath
+    // (TS2307), which keeps the route the wall cannot close at ONE published
+    // specifier per block. The composition root still reaches the leaf, because
+    // it does so RELATIVELY through a referenced project and an exports map is
+    // not on that path.
+    for (const dir of [...leaves, "src/app"]) {
+      expect(manifest(dir).exports, dir).toEqual({});
     }
     // The `//sunset` note is one sentence copied into six manifests, and six
     // copies of a claim with no checked source is six chances to drift. The

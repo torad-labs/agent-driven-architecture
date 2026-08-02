@@ -1,5 +1,5 @@
 // ── scripts/wall.mjs — the wall's invocation, made SELF-CLEANING ─────────────
-// `npm run typecheck:wall` builds the eight package programs, and `tsc -b` is a
+// `npm run typecheck:wall` builds the fourteen package programs, and `tsc -b` is a
 // BUILD: it writes declarations. That is harmless while it SUCCEEDS — the output
 // lands under `.tsbuild/`, which no walk counts. It is not harmless when it
 // FAILS, and that asymmetry is the whole reason this file exists.
@@ -27,8 +27,9 @@
 // excludes that directory too; this prune is the half that keeps it empty.
 //
 // TWO NON-ANSWERS, both measured on a clean tree so nobody re-proposes them:
-// `--noEmit` is 13 × TS6310 and exit 2 (a composite project may not disable
-// emit), and `emitDeclarationOnly` only halves six droppings to three `.d.ts` —
+// `--noEmit` is 25 × TS6310 and exit 2 (a composite project may not disable
+// emit; re-measured when every block grew its second unit — the count is one per
+// project edge, not one per project), and `emitDeclarationOnly` only halves six droppings to three `.d.ts` —
 // the half that breaks eslint and inflates the census. The fix is to remove the
 // emission, not to teach the detectors to ignore it.
 //

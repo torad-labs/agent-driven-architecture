@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
 import { project } from "../../src/app/assemble";
 import type { Ports } from "../../src/app/wire";
 import { DEEP_TIER, effectSink, FAST_TIER, wireApp, wireConsumer } from "../../src/app/wire";
-import { liveRelay } from "../../src/blocks/analysis/adapter";
+import { liveRelay } from "../../src/blocks/analysis/adapter/adapter";
 import type { Action } from "../../src/spine/boundary/action";
 import { InMemoryBus, movingClock, RecordingSink } from "../../src/spine/boundary/in-memory";
 import type { TurnContext, TurnRunner } from "../../src/spine/concurrency/consumer";

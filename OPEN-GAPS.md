@@ -479,7 +479,27 @@ tests and a compile is not one.
 
 ---
 
-## A10 · Neither demo draws the purity boundary the way the architecture specifies — `open`
+## A10 · Neither demo drew the purity boundary the way the architecture specifies — `done`
+
+**Closed on the demo, not on the book — which is the direction this entry insisted on.** Every
+TypeScript block now holds the pair: a pure unit `@adr/block-<x>` and an adapter leaf
+`@adr/block-<x>-adapter`, both inside the block's own folder, fourteen workspace packages where there
+were eight. The pure unit neither lists the `adapter/` folder nor references the project that owns it,
+so a pure file naming its own block's live client is `TS6307` from the wall — measured, with its control
+beside it, in `examples/typescript/test/laws/edges.test.ts`, which builds the real solution file over a
+copy of the tree. Before the split the same reach passed the compiler, the wall, eslint and biome: the
+whole gate was green over a fold arm calling its block's live relay. The three blocks with no seam ship a
+declared-empty leaf, because the pair is unconditional. Not one line of the book changed.
+
+**The residue, named rather than left for a reader to find.** A *third-party* library still resolves from
+a pure file on the TypeScript port — npm hoists one copy to the single root store, and no `exports` map,
+`tsconfig` reference or `paths` mapping can unsee it. What the split bought there is the *declaration*: the
+pure unit's dependency list omits every client library and the leaf's declares them. That half is check
+C1's, it is the same measurement `laws.toml` already records as the reason the foreign-import law keeps
+the lower rung, and `edges.test.ts`'s `foreign-library` probe keeps it a permanent negative wall rather
+than a footnote. The per-file grants *inside* a unit (which file gets the schema DSL, which gets the
+runner) stay with the lint layer on both ports, which is where §7.5 puts them: they are below the
+resolution a build edge has, and no module graph can express them.
 
 **Direction of this entry, stated because it is the whole point.** The book is the
 platform-generic specification; `examples/typescript` and `examples/kotlin` are demos showing how
@@ -495,27 +515,22 @@ for its pure tier to reach. §4.7 and §15.3's G10/G11 notes say the same. That 
 it is what makes package-by-feature safe: the boundary is held by the build, and the folder names
 are a legend for it rather than the thing itself.
 
-**Where each demo falls short, measured.**
-- The **TypeScript** demo ships ONE workspace package per block, so `adapter.ts` sits in the same
-  build unit as `fold.ts`. Its `exports` map and `tsconfig` references cannot separate them, and
-  the purity line is held instead by an eslint per-file rule keyed on the FILENAME — precisely the
-  mechanism §7.8 says the architecture does not use. The pair is not unconditional here; it does
-  not exist.
-- The **Kotlin** demo does ship the pair, and its convention plugin bans I/O libraries from the
-  pure module's classpath at configuration time — the specified mechanism, genuinely held. But its
-  file-level rules (C8's import ban, C1's allow-list) still key on file names inside the module, so
-  even here the unit split is not carrying the whole boundary on its own.
+**Where each demo fell short, measured — the case as it was filed.**
+- The **TypeScript** demo shipped ONE workspace package per block, so `adapter.ts` sat in the same
+  build unit as `fold.ts`. Its `exports` map and `tsconfig` references could not separate them, and
+  the purity line was held instead by an eslint per-file rule keyed on the FILENAME — precisely the
+  mechanism §7.8 says the architecture does not use. The pair was not unconditional there; it did
+  not exist. **This is the half the landing above closed.**
+- The **Kotlin** demo already shipped the pair, and its convention plugin bans I/O libraries from the
+  pure module's classpath at configuration time — the specified mechanism, genuinely held. Its
+  file-level rules (C8's import ban, C1's allow-list) still key on file names inside the module, and
+  after this landing so do TypeScript's: that is the per-file layer §7.5 keeps, not a shortfall in the
+  unit split.
 
-**Why this is `open` and not a blocker.** Both demos DO keep I/O out of a block's pure tier — the
-guarantee holds in each, by different means. What neither fully demonstrates is the architecture's
-stated MECHANISM for it. A reader who takes the book's law and looks to a demo for the shape will
-find it in Kotlin and will not find it in TypeScript.
-
-**Direction.** Split each TypeScript block into two workspace packages (`@adr/block-x` and
-`@adr/block-x-adapter`), so the pure package's dependency list can omit every client library and
-the boundary is held by resolution rather than by a filename rule. That is the change that makes
-the TypeScript demo demonstrate the law it is shipped to demonstrate. Until then this row is what
-an honest reader is owed.
+**Why it was filed `open` and not as a blocker.** Both demos DID keep I/O out of a block's pure tier —
+the guarantee held in each, by different means. What the TypeScript one did not demonstrate was the
+architecture's stated MECHANISM for it, so a reader who took the book's law and looked to a demo for the
+shape found it in Kotlin and did not find it here. Both now show it.
 
 ---
 

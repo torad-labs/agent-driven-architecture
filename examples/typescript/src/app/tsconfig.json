@@ -1,5 +1,5 @@
 {
-  "//": "The root's own wall: rootDir is src/app, so a relative reach into a project this one does NOT reference is a resolution error here too. It references every package, and that is what makes its two spellings legal - a block's REGISTRATION by package name (`@adr/block-x/register`, the one subpath a block publishes), and a block's live client by the relative `../blocks/x/adapter`, which resolves through the referenced project's declarations rather than through its exports map.",
+  "//": "The root's own wall: rootDir is src/app, so a relative reach into a project this one does NOT reference is a resolution error here too. It references every package - both halves of every block's pair - and that is what makes its two spellings legal: a block's REGISTRATION by package name (`@adr/block-x/register`, the one subpath a block publishes), and a block's live client by the relative `../blocks/x/adapter/adapter`, which resolves through the referenced adapter project's declarations rather than through an exports map that leaf does not have.",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
@@ -21,19 +21,37 @@
       "path": "../blocks/analysis"
     },
     {
+      "path": "../blocks/analysis/adapter"
+    },
+    {
       "path": "../blocks/artifact"
+    },
+    {
+      "path": "../blocks/artifact/adapter"
     },
     {
       "path": "../blocks/console"
     },
     {
+      "path": "../blocks/console/adapter"
+    },
+    {
       "path": "../blocks/escalation"
+    },
+    {
+      "path": "../blocks/escalation/adapter"
     },
     {
       "path": "../blocks/inbox"
     },
     {
+      "path": "../blocks/inbox/adapter"
+    },
+    {
       "path": "../blocks/triage"
+    },
+    {
+      "path": "../blocks/triage/adapter"
     }
   ]
 }

@@ -2,7 +2,7 @@
   "name": "notes-app",
   "private": true,
   "type": "module",
-  "workspaces": ["src/spine", "src/blocks/*", "src/app"],
+  "workspaces": ["src/spine", "src/blocks/*", "src/blocks/*/adapter", "src/app"],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
