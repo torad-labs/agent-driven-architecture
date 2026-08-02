@@ -497,7 +497,10 @@ const FILE_PIN: Record<string, number> = {
   // examples/README.md. A root document deleted is now a red diff.
   root: 5,
   // NEWLY PINNED: one file in that bucket, the CI workflow.
-  ".github": 1,
+  // 1 -> 3: main added `.github/dependabot.yml` and
+  // `.github/workflows/dependabot-automerge.yml`; both are config that cites
+  // nothing, so the FILE count rises while the resolvable count does not.
+  ".github": 3,
 };
 
 describe("citations resolve — one public namespace", () => {
