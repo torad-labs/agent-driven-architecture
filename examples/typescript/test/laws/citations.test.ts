@@ -263,7 +263,20 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // fixture pair's headers each cite what they hold.
   // +2 (729 -> 731): the drain's conflation-flush clause and its pinning test
   // each cite §12.2 (what the consumer sheds is observable, never silent).
-  "examples/kotlin": 731,
+  // +8 (731 -> 739): ADR-001 §4's `.api` freeze, at the four places it lands.
+  // Attributed by a per-LINE census of exactly those four files, before and
+  // after, and NOT evenly — the split is 1/2/3/2, not "two per file":
+  //   · build-logic/build.gradle.kts +1 — the plugin dependency's rationale line.
+  //   · adr.kotlin.library +2 NET — three new §-bearing lines (the freeze banner,
+  //     the `./gradlew check` sentence and the ancestor guard's nesting clause)
+  //     less the deferral line that cited ADR-001 §9 Stage 5 and is now gone.
+  //   · adr.root +3 — the (1b) banner's opening line, its nesting clause, and the
+  //     missing-task failure message. The (1c) and boundary paragraphs cite
+  //     nothing and buy nothing.
+  //   · the port README +2 — the freeze section's heading and its measured-series
+  //     paragraph.
+  // Nothing was removed elsewhere and no other root moved; 739 is the live figure.
+  "examples/kotlin": 739,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites

@@ -1,0 +1,5 @@
+public final class adr/blocks/artifact/LiveDelivery : adr/blocks/artifact/DeliveryPort {
+	public fun <init> (Ladr/spine/pure/Emit;)V
+	public fun deliver (Ljava/util/List;)V
+}
+

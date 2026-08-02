@@ -50,7 +50,7 @@ val SET_PRIORITY = ToolName("setPriority")
  */
 const val PRE_V2_REASON = "not recorded (pre-v2 record)"
 
-data class SetPriorityInput(val ticket: TicketId, val level: Priority, val reason: String?)
+internal data class SetPriorityInput(val ticket: TicketId, val level: Priority, val reason: String?)
 
 /**
  * THE WORKED UPCASTER (14.7), v1 -> v2 for this block's one payload.
@@ -67,7 +67,7 @@ class TriageUpcast {
         TriageResult.SetPriority(old.tool, old.ticket, old.level, PRE_V2_REASON)
 }
 
-class TriageTools<S>(private val lens: Lens<S, TriageSlice>) {
+internal class TriageTools<S>(private val lens: Lens<S, TriageSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(

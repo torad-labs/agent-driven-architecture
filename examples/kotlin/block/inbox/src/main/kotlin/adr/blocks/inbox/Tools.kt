@@ -27,11 +27,11 @@ import adr.spine.pure.Verb
 val NOTE_DROP = ToolName("noteDrop")
 val NOTE_FAULT = ToolName("noteFault")
 
-data class NoteDropInput(val source: SourceName, val reason: DropReason, val dropped: Int)
+internal data class NoteDropInput(val source: SourceName, val reason: DropReason, val dropped: Int)
 
-data class NoteFaultInput(val source: SourceName, val fault: String)
+internal data class NoteFaultInput(val source: SourceName, val fault: String)
 
-class InboxTools<S>(private val lens: Lens<S, InboxSlice>) {
+internal class InboxTools<S>(private val lens: Lens<S, InboxSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(

@@ -1,0 +1,89 @@
+public final class adr/blocks/artifact/ArtifactBlock : adr/spine/pure/Block {
+	public fun <init> ()V
+	public fun arm-8pmiTL8 (Ladr/blocks/artifact/ArtifactSlice;Ladr/contract/ArtifactResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public synthetic fun arm-8pmiTL8 (Ljava/lang/Object;Ladr/contract/ToolResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public final fun lineCount (Ladr/blocks/artifact/ArtifactSlice;)I
+	public final fun performer (Ladr/blocks/artifact/DeliveryPort;)Ladr/spine/pure/EffectPerformer;
+	public final fun register (Ladr/spine/pure/Lens;)Ladr/spine/pure/BlockRegistration;
+	public fun view (Ladr/blocks/artifact/ArtifactSlice;)Ladr/blocks/artifact/ArtifactView;
+	public synthetic fun view (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class adr/blocks/artifact/ArtifactSlice {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/List;Ladr/blocks/artifact/SealStatus;)V
+	public synthetic fun <init> (Ljava/util/List;Ladr/blocks/artifact/SealStatus;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ladr/blocks/artifact/SealStatus;
+	public final fun copy (Ljava/util/List;Ladr/blocks/artifact/SealStatus;)Ladr/blocks/artifact/ArtifactSlice;
+	public static synthetic fun copy$default (Ladr/blocks/artifact/ArtifactSlice;Ljava/util/List;Ladr/blocks/artifact/SealStatus;ILjava/lang/Object;)Ladr/blocks/artifact/ArtifactSlice;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLines ()Ljava/util/List;
+	public final fun getSeal ()Ladr/blocks/artifact/SealStatus;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun withLine (Ladr/contract/ArtifactResult$ArtifactLine;)Ladr/blocks/artifact/ArtifactSlice;
+	public final fun withSeal (Ladr/blocks/artifact/SealStatus;)Ladr/blocks/artifact/ArtifactSlice;
+}
+
+public final class adr/blocks/artifact/ArtifactView {
+	public fun <init> (Ljava/util/List;Ljava/lang/String;ZZ)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun copy (Ljava/util/List;Ljava/lang/String;ZZ)Ladr/blocks/artifact/ArtifactView;
+	public static synthetic fun copy$default (Ladr/blocks/artifact/ArtifactView;Ljava/util/List;Ljava/lang/String;ZZILjava/lang/Object;)Ladr/blocks/artifact/ArtifactView;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCanSeal ()Z
+	public final fun getLines ()Ljava/util/List;
+	public final fun getSealed ()Z
+	public final fun getState ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class adr/blocks/artifact/DeliveryPort {
+	public abstract fun deliver (Ljava/util/List;)V
+}
+
+public abstract class adr/blocks/artifact/SealStatus {
+}
+
+public final class adr/blocks/artifact/SealStatus$Draft : adr/blocks/artifact/SealStatus {
+	public static final field INSTANCE Ladr/blocks/artifact/SealStatus$Draft;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/blocks/artifact/SealStatus$Sealed : adr/blocks/artifact/SealStatus {
+	public synthetic fun <init> (JLjava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2-28T1e6g ()Ljava/lang/String;
+	public final fun copy--dX_jOo (JLjava/lang/String;)Ladr/blocks/artifact/SealStatus$Sealed;
+	public static synthetic fun copy--dX_jOo$default (Ladr/blocks/artifact/SealStatus$Sealed;JLjava/lang/String;ILjava/lang/Object;)Ladr/blocks/artifact/SealStatus$Sealed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAt-MLqvMck ()J
+	public final fun getBy-28T1e6g ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/blocks/artifact/SealStatus$Sealing : adr/blocks/artifact/SealStatus {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-28T1e6g ()Ljava/lang/String;
+	public final fun copy-CqyS7P4 (Ljava/lang/String;)Ladr/blocks/artifact/SealStatus$Sealing;
+	public static synthetic fun copy-CqyS7P4$default (Ladr/blocks/artifact/SealStatus$Sealing;Ljava/lang/String;ILjava/lang/Object;)Ladr/blocks/artifact/SealStatus$Sealing;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRequestedBy-28T1e6g ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/blocks/artifact/ToolsKt {
+	public static final fun getCONFIRM_SEAL ()Ljava/lang/String;
+	public static final fun getRECORD_FINDING ()Ljava/lang/String;
+	public static final fun getREQUEST_SEAL ()Ljava/lang/String;
+}
+

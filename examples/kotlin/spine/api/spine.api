@@ -1,0 +1,1962 @@
+public abstract class adr/contract/AnalysisCommand : adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/AnalysisCommand$PublishAnalysis : adr/contract/AnalysisCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy-W_BMX6U (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/AnalysisCommand$PublishAnalysis;
+	public static synthetic fun copy-W_BMX6U$default (Ladr/contract/AnalysisCommand$PublishAnalysis;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/AnalysisCommand$PublishAnalysis;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getText ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/AnalysisCommand$RecallAnalysis : adr/contract/AnalysisCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ladr/spine/pure/Recall;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4 ()Ladr/spine/pure/Recall;
+	public final fun copy-W_BMX6U (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ladr/spine/pure/Recall;)Ladr/contract/AnalysisCommand$RecallAnalysis;
+	public static synthetic fun copy-W_BMX6U$default (Ladr/contract/AnalysisCommand$RecallAnalysis;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ladr/spine/pure/Recall;ILjava/lang/Object;)Ladr/contract/AnalysisCommand$RecallAnalysis;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public final fun getRecall ()Ladr/spine/pure/Recall;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/AnalysisEffect : adr/contract/Effect {
+	public synthetic fun <init> (JLadr/spine/pure/EffectClass;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getAt-MLqvMck ()J
+}
+
+public final class adr/contract/AnalysisEffect$PublishConclusion : adr/contract/AnalysisEffect {
+	public synthetic fun <init> (JLjava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-skJIsPY (JLjava/lang/String;)Ladr/contract/AnalysisEffect$PublishConclusion;
+	public static synthetic fun copy-skJIsPY$default (Ladr/contract/AnalysisEffect$PublishConclusion;JLjava/lang/String;ILjava/lang/Object;)Ladr/contract/AnalysisEffect$PublishConclusion;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAt-MLqvMck ()J
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/AnalysisResult : adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/AnalysisResult$PublishAnalysis : adr/contract/AnalysisResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-dWvK0fw (Ljava/lang/String;Ljava/lang/String;)Ladr/contract/AnalysisResult$PublishAnalysis;
+	public static synthetic fun copy-dWvK0fw$default (Ladr/contract/AnalysisResult$PublishAnalysis;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/AnalysisResult$PublishAnalysis;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getText ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/AnalysisResult$RecallAnalysis : adr/contract/AnalysisResult {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Recall;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Recall;
+	public final fun copy-dWvK0fw (Ljava/lang/String;Ladr/spine/pure/Recall;)Ladr/contract/AnalysisResult$RecallAnalysis;
+	public static synthetic fun copy-dWvK0fw$default (Ladr/contract/AnalysisResult$RecallAnalysis;Ljava/lang/String;Ladr/spine/pure/Recall;ILjava/lang/Object;)Ladr/contract/AnalysisResult$RecallAnalysis;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRecall ()Ladr/spine/pure/Recall;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/ArtifactCommand : adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/ArtifactCommand$ConfirmSeal : adr/contract/ArtifactCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun copy-qgisoJ4 (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;)Ladr/contract/ArtifactCommand$ConfirmSeal;
+	public static synthetic fun copy-qgisoJ4$default (Ladr/contract/ArtifactCommand$ConfirmSeal;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ArtifactCommand$ConfirmSeal;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/ArtifactCommand$RecordFinding : adr/contract/ArtifactCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy-W_BMX6U (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/ArtifactCommand$RecordFinding;
+	public static synthetic fun copy-W_BMX6U$default (Ladr/contract/ArtifactCommand$RecordFinding;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ArtifactCommand$RecordFinding;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getText ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/ArtifactCommand$RequestSeal : adr/contract/ArtifactCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun copy-qgisoJ4 (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;)Ladr/contract/ArtifactCommand$RequestSeal;
+	public static synthetic fun copy-qgisoJ4$default (Ladr/contract/ArtifactCommand$RequestSeal;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ArtifactCommand$RequestSeal;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/ArtifactEffect : adr/contract/Effect {
+	public synthetic fun <init> (JLadr/spine/pure/EffectClass;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getAt-MLqvMck ()J
+}
+
+public final class adr/contract/ArtifactEffect$DeliverArtifact : adr/contract/ArtifactEffect {
+	public synthetic fun <init> (JLjava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy-skJIsPY (JLjava/util/List;)Ladr/contract/ArtifactEffect$DeliverArtifact;
+	public static synthetic fun copy-skJIsPY$default (Ladr/contract/ArtifactEffect$DeliverArtifact;JLjava/util/List;ILjava/lang/Object;)Ladr/contract/ArtifactEffect$DeliverArtifact;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAt-MLqvMck ()J
+	public final fun getLines ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/ArtifactResult : adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/ArtifactResult$ArtifactLine {
+	public synthetic fun <init> (JLadr/spine/pure/Actor;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2 ()Ladr/spine/pure/Actor;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy-Wzg-xj4 (JLadr/spine/pure/Actor;Ljava/lang/String;)Ladr/contract/ArtifactResult$ArtifactLine;
+	public static synthetic fun copy-Wzg-xj4$default (Ladr/contract/ArtifactResult$ArtifactLine;JLadr/spine/pure/Actor;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ArtifactResult$ArtifactLine;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAt-MLqvMck ()J
+	public final fun getBy ()Ladr/spine/pure/Actor;
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/ArtifactResult$ConfirmSeal : adr/contract/ArtifactResult {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun copy-L_6zD9A (Ljava/lang/String;)Ladr/contract/ArtifactResult$ConfirmSeal;
+	public static synthetic fun copy-L_6zD9A$default (Ladr/contract/ArtifactResult$ConfirmSeal;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ArtifactResult$ConfirmSeal;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/ArtifactResult$RecordFinding : adr/contract/ArtifactResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-dWvK0fw (Ljava/lang/String;Ljava/lang/String;)Ladr/contract/ArtifactResult$RecordFinding;
+	public static synthetic fun copy-dWvK0fw$default (Ladr/contract/ArtifactResult$RecordFinding;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ArtifactResult$RecordFinding;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getText ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/ArtifactResult$RequestSeal : adr/contract/ArtifactResult {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun copy-L_6zD9A (Ljava/lang/String;)Ladr/contract/ArtifactResult$RequestSeal;
+	public static synthetic fun copy-L_6zD9A$default (Ladr/contract/ArtifactResult$RequestSeal;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ArtifactResult$RequestSeal;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun authority-28T1e6g ()Ljava/lang/String;
+	public final fun by ()Ladr/spine/pure/Actor;
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/Command$Refused : adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy-W_BMX6U (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/Command$Refused;
+	public static synthetic fun copy-W_BMX6U$default (Ladr/contract/Command$Refused;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/Command$Refused;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public final fun getReason ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/Command$Unhandled : adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy-W_BMX6U (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/Command$Unhandled;
+	public static synthetic fun copy-W_BMX6U$default (Ladr/contract/Command$Unhandled;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/Command$Unhandled;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public final fun getNote ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/ConsoleCommand : adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/ConsoleCommand$FocusTicket : adr/contract/ConsoleCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4-3ukyJ98 ()Ljava/lang/String;
+	public final fun copy-ERlBkU8 (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/ConsoleCommand$FocusTicket;
+	public static synthetic fun copy-ERlBkU8$default (Ladr/contract/ConsoleCommand$FocusTicket;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ConsoleCommand$FocusTicket;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/ConsoleCommand$SetPanel : adr/contract/ConsoleCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4-Z5adLXU ()Ljava/lang/String;
+	public final fun component5 ()Z
+	public final fun copy-eeRFdcY (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Z)Ladr/contract/ConsoleCommand$SetPanel;
+	public static synthetic fun copy-eeRFdcY$default (Ladr/contract/ConsoleCommand$SetPanel;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Ladr/contract/ConsoleCommand$SetPanel;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public final fun getPanel-Z5adLXU ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public final fun getVisible ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/ConsoleResult : adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/ConsoleResult$FocusTicket : adr/contract/ConsoleResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2-3ukyJ98 ()Ljava/lang/String;
+	public final fun copy-fRtkwEw (Ljava/lang/String;Ljava/lang/String;)Ladr/contract/ConsoleResult$FocusTicket;
+	public static synthetic fun copy-fRtkwEw$default (Ladr/contract/ConsoleResult$FocusTicket;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ConsoleResult$FocusTicket;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/ConsoleResult$SetPanel : adr/contract/ConsoleResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2-Z5adLXU ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun copy-E8pgALU (Ljava/lang/String;Ljava/lang/String;Z)Ladr/contract/ConsoleResult$SetPanel;
+	public static synthetic fun copy-E8pgALU$default (Ladr/contract/ConsoleResult$SetPanel;Ljava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Ladr/contract/ConsoleResult$SetPanel;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPanel-Z5adLXU ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public final fun getVisible ()Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/Effect {
+	public synthetic fun <init> (JLadr/spine/pure/EffectClass;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getAt-MLqvMck ()J
+	public fun getEffectClass ()Ladr/spine/pure/EffectClass;
+}
+
+public final class adr/contract/Effect$Diag : adr/contract/Effect {
+	public synthetic fun <init> (JLjava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-skJIsPY (JLjava/lang/String;)Ladr/contract/Effect$Diag;
+	public static synthetic fun copy-skJIsPY$default (Ladr/contract/Effect$Diag;JLjava/lang/String;ILjava/lang/Object;)Ladr/contract/Effect$Diag;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAt-MLqvMck ()J
+	public final fun getNote ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/EscalationCommand : adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/EscalationCommand$ConfirmEscalation : adr/contract/EscalationCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4-3ukyJ98 ()Ljava/lang/String;
+	public final fun copy-ERlBkU8 (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/EscalationCommand$ConfirmEscalation;
+	public static synthetic fun copy-ERlBkU8$default (Ladr/contract/EscalationCommand$ConfirmEscalation;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/EscalationCommand$ConfirmEscalation;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/EscalationCommand$RequestEscalation : adr/contract/EscalationCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4-3ukyJ98 ()Ljava/lang/String;
+	public final fun copy-ERlBkU8 (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/EscalationCommand$RequestEscalation;
+	public static synthetic fun copy-ERlBkU8$default (Ladr/contract/EscalationCommand$RequestEscalation;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/EscalationCommand$RequestEscalation;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/EscalationEffect : adr/contract/Effect {
+	public synthetic fun <init> (JLadr/spine/pure/EffectClass;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getAt-MLqvMck ()J
+}
+
+public final class adr/contract/EscalationEffect$PageOncall : adr/contract/EscalationEffect {
+	public synthetic fun <init> (JLjava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2-3ukyJ98 ()Ljava/lang/String;
+	public final fun copy-2dFq3-A (JLjava/lang/String;)Ladr/contract/EscalationEffect$PageOncall;
+	public static synthetic fun copy-2dFq3-A$default (Ladr/contract/EscalationEffect$PageOncall;JLjava/lang/String;ILjava/lang/Object;)Ladr/contract/EscalationEffect$PageOncall;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAt-MLqvMck ()J
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/EscalationResult : adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/EscalationResult$ConfirmEscalation : adr/contract/EscalationResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2-3ukyJ98 ()Ljava/lang/String;
+	public final fun copy-fRtkwEw (Ljava/lang/String;Ljava/lang/String;)Ladr/contract/EscalationResult$ConfirmEscalation;
+	public static synthetic fun copy-fRtkwEw$default (Ladr/contract/EscalationResult$ConfirmEscalation;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/EscalationResult$ConfirmEscalation;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/EscalationResult$RequestEscalation : adr/contract/EscalationResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2-3ukyJ98 ()Ljava/lang/String;
+	public final fun copy-fRtkwEw (Ljava/lang/String;Ljava/lang/String;)Ladr/contract/EscalationResult$RequestEscalation;
+	public static synthetic fun copy-fRtkwEw$default (Ladr/contract/EscalationResult$RequestEscalation;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/EscalationResult$RequestEscalation;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/InboxCommand : adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/InboxCommand$NoteDrop : adr/contract/InboxCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ladr/contract/InboxResult$DropReason;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4-VdKJcmE ()Ljava/lang/String;
+	public final fun component5 ()Ladr/contract/InboxResult$DropReason;
+	public final fun component6 ()I
+	public final fun copy-A1lAJLM (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ladr/contract/InboxResult$DropReason;I)Ladr/contract/InboxCommand$NoteDrop;
+	public static synthetic fun copy-A1lAJLM$default (Ladr/contract/InboxCommand$NoteDrop;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ladr/contract/InboxResult$DropReason;IILjava/lang/Object;)Ladr/contract/InboxCommand$NoteDrop;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDropped ()I
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public final fun getReason ()Ladr/contract/InboxResult$DropReason;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/InboxCommand$NoteFault : adr/contract/InboxCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4-VdKJcmE ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy-KarUJWY (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/InboxCommand$NoteFault;
+	public static synthetic fun copy-KarUJWY$default (Ladr/contract/InboxCommand$NoteFault;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/InboxCommand$NoteFault;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFault ()Ljava/lang/String;
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/InboxResult : adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/InboxResult$DropReason : java/lang/Enum {
+	public static final field Conflated Ladr/contract/InboxResult$DropReason;
+	public static final field Duplicate Ladr/contract/InboxResult$DropReason;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ladr/contract/InboxResult$DropReason;
+	public static fun values ()[Ladr/contract/InboxResult$DropReason;
+}
+
+public abstract interface class adr/contract/InboxResult$DropReason$Parser {
+	public abstract fun parse (Ljava/lang/String;)Ladr/contract/InboxResult$DropReason;
+}
+
+public final class adr/contract/InboxResult$NoteDrop : adr/contract/InboxResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ladr/contract/InboxResult$DropReason;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2-VdKJcmE ()Ljava/lang/String;
+	public final fun component3 ()Ladr/contract/InboxResult$DropReason;
+	public final fun component4 ()I
+	public final fun copy-GBRYkkY (Ljava/lang/String;Ljava/lang/String;Ladr/contract/InboxResult$DropReason;I)Ladr/contract/InboxResult$NoteDrop;
+	public static synthetic fun copy-GBRYkkY$default (Ladr/contract/InboxResult$NoteDrop;Ljava/lang/String;Ljava/lang/String;Ladr/contract/InboxResult$DropReason;IILjava/lang/Object;)Ladr/contract/InboxResult$NoteDrop;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDropped ()I
+	public final fun getReason ()Ladr/contract/InboxResult$DropReason;
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/InboxResult$NoteFault : adr/contract/InboxResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2-VdKJcmE ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy-OVnyTXg (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ladr/contract/InboxResult$NoteFault;
+	public static synthetic fun copy-OVnyTXg$default (Ladr/contract/InboxResult$NoteFault;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/InboxResult$NoteFault;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFault ()Ljava/lang/String;
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/ToolResult$Refused : adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-dWvK0fw (Ljava/lang/String;Ljava/lang/String;)Ladr/contract/ToolResult$Refused;
+	public static synthetic fun copy-dWvK0fw$default (Ladr/contract/ToolResult$Refused;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ToolResult$Refused;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReason ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/contract/ToolResult$Unhandled : adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-dWvK0fw (Ljava/lang/String;Ljava/lang/String;)Ladr/contract/ToolResult$Unhandled;
+	public static synthetic fun copy-dWvK0fw$default (Ladr/contract/ToolResult$Unhandled;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/ToolResult$Unhandled;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNote ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/TriageCommand : adr/contract/Command {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/TriageCommand$SetPriority : adr/contract/TriageCommand {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Signature;
+	public final fun component3-cvxmM5w ()Ljava/lang/String;
+	public final fun component4-3ukyJ98 ()Ljava/lang/String;
+	public final fun component5 ()Ladr/contract/TriageResult$Priority;
+	public final fun copy-MP_NQ-A (Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;)Ladr/contract/TriageCommand$SetPriority;
+	public static synthetic fun copy-MP_NQ-A$default (Ladr/contract/TriageCommand$SetPriority;Ljava/lang/String;Ladr/spine/pure/Signature;Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;ILjava/lang/Object;)Ladr/contract/TriageCommand$SetPriority;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getId-cvxmM5w ()Ljava/lang/String;
+	public final fun getLevel ()Ladr/contract/TriageResult$Priority;
+	public fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/TriageEffect : adr/contract/Effect {
+	public synthetic fun <init> (JLadr/spine/pure/EffectClass;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getAt-MLqvMck ()J
+}
+
+public final class adr/contract/TriageEffect$LogDecision : adr/contract/TriageEffect {
+	public synthetic fun <init> (JLjava/lang/String;Ladr/contract/TriageResult$Priority;Ladr/contract/TriageResult$Priority;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2-3ukyJ98 ()Ljava/lang/String;
+	public final fun component3 ()Ladr/contract/TriageResult$Priority;
+	public final fun component4 ()Ladr/contract/TriageResult$Priority;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun copy-YDiMyz0 (JLjava/lang/String;Ladr/contract/TriageResult$Priority;Ladr/contract/TriageResult$Priority;Ljava/lang/String;)Ladr/contract/TriageEffect$LogDecision;
+	public static synthetic fun copy-YDiMyz0$default (Ladr/contract/TriageEffect$LogDecision;JLjava/lang/String;Ladr/contract/TriageResult$Priority;Ladr/contract/TriageResult$Priority;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/TriageEffect$LogDecision;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAt-MLqvMck ()J
+	public final fun getLevel ()Ladr/contract/TriageResult$Priority;
+	public final fun getReason ()Ljava/lang/String;
+	public final fun getSupersedes ()Ladr/contract/TriageResult$Priority;
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/TriageResult : adr/contract/ToolResult {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/contract/TriageResult$Priority : java/lang/Enum {
+	public static final field High Ladr/contract/TriageResult$Priority;
+	public static final field Low Ladr/contract/TriageResult$Priority;
+	public static final field Normal Ladr/contract/TriageResult$Priority;
+	public static final field Urgent Ladr/contract/TriageResult$Priority;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ladr/contract/TriageResult$Priority;
+	public static fun values ()[Ladr/contract/TriageResult$Priority;
+}
+
+public final class adr/contract/TriageResult$SetPriority : adr/contract/TriageResult {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2-3ukyJ98 ()Ljava/lang/String;
+	public final fun component3 ()Ladr/contract/TriageResult$Priority;
+	public final fun component4 ()Ljava/lang/String;
+	public final fun copy-jL4ojNw (Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;Ljava/lang/String;)Ladr/contract/TriageResult$SetPriority;
+	public static synthetic fun copy-jL4ojNw$default (Ladr/contract/TriageResult$SetPriority;Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;Ljava/lang/String;ILjava/lang/Object;)Ladr/contract/TriageResult$SetPriority;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLevel ()Ladr/contract/TriageResult$Priority;
+	public final fun getReason ()Ljava/lang/String;
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/contract/TriageV1Result {
+}
+
+public final class adr/contract/TriageV1Result$SetPriority : adr/contract/TriageV1Result {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2-3ukyJ98 ()Ljava/lang/String;
+	public final fun component3 ()Ladr/contract/TriageResult$Priority;
+	public final fun copy-3o_ktF4 (Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;)Ladr/contract/TriageV1Result$SetPriority;
+	public static synthetic fun copy-3o_ktF4$default (Ladr/contract/TriageV1Result$SetPriority;Ljava/lang/String;Ljava/lang/String;Ladr/contract/TriageResult$Priority;ILjava/lang/Object;)Ladr/contract/TriageV1Result$SetPriority;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLevel ()Ladr/contract/TriageResult$Priority;
+	public final fun getTicket-3ukyJ98 ()Ljava/lang/String;
+	public final fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/agent/AgentLoop : ai/torad/aisdk/ToolLoopAgent {
+	public fun <init> (Lai/torad/aisdk/LanguageModel;Ljava/lang/String;Ljava/util/Map;Ladr/spine/pure/Source;Ladr/spine/pure/Source;Ladr/spine/pure/Source;Ladr/spine/boundary/Submit;)V
+	public final fun runTurn (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class adr/spine/agent/SdkToolSurface {
+	public fun <init> (Ladr/spine/pure/Source;Ladr/spine/pure/Source;)V
+	public final fun toolFor (Ladr/spine/pure/Verb;)Lai/torad/aisdk/Tool;
+}
+
+public final class adr/spine/agent/TurnResult {
+	public fun <init> (ILjava/lang/String;)V
+	public final fun component1 ()I
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (ILjava/lang/String;)Ladr/spine/agent/TurnResult;
+	public static synthetic fun copy$default (Ladr/spine/agent/TurnResult;ILjava/lang/String;ILjava/lang/Object;)Ladr/spine/agent/TurnResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSteps ()I
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/boundary/ActionResolution {
+	public fun <init> (Ljava/util/Map;)V
+	public final fun resolve (Ladr/spine/pure/Action;Ladr/spine/pure/Ctx;)Ladr/contract/ToolResult;
+	public final fun sign-aVwBONw (Ladr/contract/ToolResult;Ladr/spine/pure/Signature;Ljava/lang/String;)Ladr/contract/Command;
+}
+
+public final class adr/spine/boundary/Boundary {
+	public synthetic fun <init> (Ladr/spine/ports/Clock;Ladr/spine/ports/IdSource;Ladr/spine/ports/Bus;Ladr/spine/ports/Sink;Ladr/spine/ports/AuthorityResolver;Ladr/spine/ports/ConfirmPolicy;Ljava/util/Map;Ladr/spine/pure/Fold;Ladr/spine/pure/ProjectContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Ladr/spine/pure/ContextBounds;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ladr/spine/ports/Clock;Ladr/spine/ports/IdSource;Ladr/spine/ports/Bus;Ladr/spine/ports/Sink;Ladr/spine/ports/AuthorityResolver;Ladr/spine/ports/ConfirmPolicy;Ljava/util/Map;Ladr/spine/pure/Fold;Ladr/spine/pure/ProjectContext;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Object;Ladr/spine/pure/ContextBounds;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun context (Ljava/util/List;)Ladr/spine/pure/Context;
+	public static synthetic fun context$default (Ladr/spine/boundary/Boundary;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/pure/Context;
+	public final fun getAgent ()Ladr/spine/boundary/Submit;
+	public final fun getContextBounds ()Ladr/spine/pure/ContextBounds;
+	public final fun getHuman ()Ladr/spine/boundary/Submit;
+	public final fun getSpine ()Ladr/spine/boundary/Submit;
+	public final fun getState ()Ljava/lang/Object;
+}
+
+public final class adr/spine/boundary/DedupingSink : adr/spine/ports/Sink {
+	public fun <init> ()V
+	public fun <init> (Ladr/spine/ports/Sink;)V
+	public synthetic fun <init> (Ladr/spine/ports/Sink;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getFired ()Ljava/util/List;
+	public fun perform (Ladr/spine/pure/KeyedEffect;Ladr/spine/pure/PerformMode;)V
+}
+
+public final class adr/spine/boundary/FinishedStep {
+	public fun <init> (Ljava/util/List;Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;Ljava/util/List;)Ladr/spine/boundary/FinishedStep;
+	public static synthetic fun copy$default (Ladr/spine/boundary/FinishedStep;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/boundary/FinishedStep;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActions ()Ljava/util/List;
+	public final fun getStaged ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/boundary/InMemoryBus : adr/spine/ports/Bus {
+	public fun <init> ()V
+	public fun append-PGSznRk (Ladr/spine/pure/StepRecord;)I
+	public fun records ()Ljava/util/List;
+}
+
+public final class adr/spine/boundary/IrreversibilityGate {
+	public fun <init> (Ljava/util/Map;Ladr/spine/ports/ConfirmPolicy;)V
+	public final fun check (Ladr/contract/ToolResult;Ladr/spine/pure/Signature;Ljava/lang/Object;)Ladr/contract/ToolResult;
+}
+
+public final class adr/spine/boundary/MovingClock : adr/spine/ports/Clock {
+	public fun <init> (JJ)V
+	public fun now-MLqvMck ()J
+}
+
+public final class adr/spine/boundary/RecordingSink : adr/spine/ports/Sink {
+	public fun <init> ()V
+	public fun <init> (Ladr/spine/ports/Sink;)V
+	public synthetic fun <init> (Ladr/spine/ports/Sink;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getPerformed ()Ljava/util/List;
+	public fun perform (Ladr/spine/pure/KeyedEffect;Ladr/spine/pure/PerformMode;)V
+}
+
+public final class adr/spine/boundary/SequentialIds : adr/spine/ports/IdSource {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun next-cvxmM5w ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/boundary/Submit {
+	public abstract fun invoke (Ladr/spine/boundary/FinishedStep;)V
+}
+
+public abstract interface class adr/spine/concurrency/Barrier {
+	public abstract fun invoke (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public final class adr/spine/concurrency/InMemoryMailbox : adr/spine/ports/Mailbox {
+	public fun <init> ()V
+	public fun ack (Ladr/spine/pure/Message;)V
+	public fun getMessages ()Lkotlinx/coroutines/channels/ReceiveChannel;
+	public fun post (Ladr/spine/pure/Message;)V
+	public final fun redeliver ()V
+	public final fun unacked ()Ljava/util/List;
+}
+
+public final class adr/spine/concurrency/InMemoryRelay : adr/spine/ports/RelayRead {
+	public fun <init> ()V
+	public fun <init> (Ladr/spine/concurrency/Barrier;)V
+	public synthetic fun <init> (Ladr/spine/concurrency/Barrier;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun latest (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun publish-skJIsPY (JLjava/lang/String;)V
+	public final fun published ()Ljava/util/List;
+}
+
+public final class adr/spine/concurrency/SerialConsumer {
+	public synthetic fun <init> (Ladr/spine/ports/Mailbox;Ladr/spine/concurrency/TurnRunner;Ladr/spine/boundary/Submit;Ladr/spine/boundary/Submit;Ladr/spine/pure/Report;Ladr/spine/pure/Report;Ljava/util/List;Ljava/util/Set;Ladr/spine/ports/RelayRead;Ljava/lang/String;JJJILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public synthetic fun <init> (Ladr/spine/ports/Mailbox;Ladr/spine/concurrency/TurnRunner;Ladr/spine/boundary/Submit;Ladr/spine/boundary/Submit;Ladr/spine/pure/Report;Ladr/spine/pure/Report;Ljava/util/List;Ljava/util/Set;Ladr/spine/ports/RelayRead;Ljava/lang/String;JJJLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun getSettled ()Ljava/util/List;
+	public final fun isStopped ()Z
+	public final fun run (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class adr/spine/concurrency/TurnContext {
+	public abstract fun getStaged ()Ljava/util/List;
+	public abstract fun submit (Ladr/spine/boundary/FinishedStep;)V
+}
+
+public abstract interface class adr/spine/concurrency/TurnRunner {
+	public abstract fun run (Ladr/spine/pure/Message;Ladr/spine/concurrency/TurnContext;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class adr/spine/ports/AuthorityResolver {
+	public abstract fun authorityOf-zIbn0L8 (Ladr/spine/pure/Actor;Ljava/lang/String;)Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/ports/Bus {
+	public abstract fun append-PGSznRk (Ladr/spine/pure/StepRecord;)I
+	public abstract fun records ()Ljava/util/List;
+}
+
+public abstract interface class adr/spine/ports/Clock {
+	public abstract fun now-MLqvMck ()J
+}
+
+public abstract interface class adr/spine/ports/ConfirmPolicy {
+	public abstract fun mayConfirm-RdbXiUk (Ladr/spine/pure/Signature;Ladr/contract/ToolResult;Ljava/lang/String;)Z
+}
+
+public abstract interface class adr/spine/ports/EventSource {
+	public abstract fun poll ()Ladr/spine/pure/StagedInput$Perceived;
+}
+
+public abstract interface class adr/spine/ports/IdSource {
+	public abstract fun next-cvxmM5w ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/ports/Mailbox {
+	public abstract fun ack (Ladr/spine/pure/Message;)V
+	public abstract fun getMessages ()Lkotlinx/coroutines/channels/ReceiveChannel;
+	public abstract fun post (Ladr/spine/pure/Message;)V
+}
+
+public abstract interface class adr/spine/ports/ModelProvider {
+	public abstract fun model ()Ljava/lang/Object;
+}
+
+public abstract interface class adr/spine/ports/RelayRead {
+	public abstract fun latest (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+}
+
+public abstract interface class adr/spine/ports/Sink {
+	public abstract fun perform (Ladr/spine/pure/KeyedEffect;Ladr/spine/pure/PerformMode;)V
+}
+
+public final class adr/spine/pure/Action {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/RawInput;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/RawInput;
+	public final fun copy-dWvK0fw (Ljava/lang/String;Ladr/spine/pure/RawInput;)Ladr/spine/pure/Action;
+	public static synthetic fun copy-dWvK0fw$default (Ladr/spine/pure/Action;Ljava/lang/String;Ladr/spine/pure/RawInput;ILjava/lang/Object;)Ladr/spine/pure/Action;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getInput ()Ladr/spine/pure/RawInput;
+	public final fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Actor : java/lang/Enum {
+	public static final field Agent Ladr/spine/pure/Actor;
+	public static final field Human Ladr/spine/pure/Actor;
+	public static final field Spine Ladr/spine/pure/Actor;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ladr/spine/pure/Actor;
+	public static fun values ()[Ladr/spine/pure/Actor;
+}
+
+public final class adr/spine/pure/Admission {
+	public fun <init> (Ljava/util/Map;)V
+	public final fun admit (Ljava/util/List;)Ljava/util/List;
+}
+
+public final class adr/spine/pure/ArmOut {
+	public fun <init> (Ljava/lang/Object;Ljava/util/List;Ljava/util/List;)V
+	public synthetic fun <init> (Ljava/lang/Object;Ljava/util/List;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/Object;Ljava/util/List;Ljava/util/List;)Ladr/spine/pure/ArmOut;
+	public static synthetic fun copy$default (Ladr/spine/pure/ArmOut;Ljava/lang/Object;Ljava/util/List;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/pure/ArmOut;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEffects ()Ljava/util/List;
+	public final fun getNotices ()Ljava/util/List;
+	public final fun getSlice ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Attributed {
+	public fun <init> (Ladr/contract/ToolResult;Ladr/contract/Effect;)V
+	public final fun admit (Ljava/util/Set;)Ladr/contract/Effect;
+}
+
+public final class adr/spine/pure/Authority {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ladr/spine/pure/Authority;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getId ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/Block {
+	public abstract fun arm-8pmiTL8 (Ljava/lang/Object;Ladr/contract/ToolResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public abstract fun view (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class adr/spine/pure/BlockRegistration {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;)Ladr/spine/pure/BlockRegistration;
+	public static synthetic fun copy$default (Ladr/spine/pure/BlockRegistration;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/pure/BlockRegistration;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlock ()Ljava/lang/String;
+	public final fun getVerbs ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/CommandId {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ladr/spine/pure/CommandId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public abstract class adr/spine/pure/ConsumerEvent {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/ConsumerEvent$CancelDeadlineExceeded : adr/spine/pure/ConsumerEvent {
+	public synthetic fun <init> (Ljava/lang/String;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2 ()J
+	public final fun copy-4_HSc0U (Ljava/lang/String;J)Ladr/spine/pure/ConsumerEvent$CancelDeadlineExceeded;
+	public static synthetic fun copy-4_HSc0U$default (Ladr/spine/pure/ConsumerEvent$CancelDeadlineExceeded;Ljava/lang/String;JILjava/lang/Object;)Ladr/spine/pure/ConsumerEvent$CancelDeadlineExceeded;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAfterMs ()J
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/ConsumerEvent$Conflated : adr/spine/pure/ConsumerEvent {
+	public synthetic fun <init> (Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun copy-4_HSc0U (Ljava/lang/String;I)Ladr/spine/pure/ConsumerEvent$Conflated;
+	public static synthetic fun copy-4_HSc0U$default (Ladr/spine/pure/ConsumerEvent$Conflated;Ljava/lang/String;IILjava/lang/Object;)Ladr/spine/pure/ConsumerEvent$Conflated;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDropped ()I
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/ConsumerEvent$Duplicate : adr/spine/pure/ConsumerEvent {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2-W53RwLg ()Ljava/lang/String;
+	public final fun copy-DEfOebE (Ljava/lang/String;Ljava/lang/String;)Ladr/spine/pure/ConsumerEvent$Duplicate;
+	public static synthetic fun copy-DEfOebE$default (Ladr/spine/pure/ConsumerEvent$Duplicate;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/ConsumerEvent$Duplicate;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getKey-W53RwLg ()Ljava/lang/String;
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/ConsumerEvent$TurnFailed : adr/spine/pure/ConsumerEvent {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-4_HSc0U (Ljava/lang/String;Ljava/lang/String;)Ladr/spine/pure/ConsumerEvent$TurnFailed;
+	public static synthetic fun copy-4_HSc0U$default (Ladr/spine/pure/ConsumerEvent$TurnFailed;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/ConsumerEvent$TurnFailed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFault ()Ljava/lang/String;
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Context {
+	public fun <init> (Ljava/util/List;Ljava/util/List;Ljava/util/List;I)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ljava/util/List;
+	public final fun component4 ()I
+	public final fun copy (Ljava/util/List;Ljava/util/List;Ljava/util/List;I)Ladr/spine/pure/Context;
+	public static synthetic fun copy$default (Ladr/spine/pure/Context;Ljava/util/List;Ljava/util/List;Ljava/util/List;IILjava/lang/Object;)Ladr/spine/pure/Context;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getArtifactLineCount ()I
+	public final fun getLines ()Ljava/util/List;
+	public final fun getNotices ()Ljava/util/List;
+	public final fun getStaged ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/ContextBounds {
+	public fun <init> ()V
+	public fun <init> (II)V
+	public synthetic fun <init> (IIILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun copy (II)Ladr/spine/pure/ContextBounds;
+	public static synthetic fun copy$default (Ladr/spine/pure/ContextBounds;IIILjava/lang/Object;)Ladr/spine/pure/ContextBounds;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getLinesPerBlock ()I
+	public final fun getNotices ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/ContextFixture {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;)Ladr/spine/pure/ContextFixture;
+	public static synthetic fun copy$default (Ladr/spine/pure/ContextFixture;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/ContextFixture;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDigest ()Ljava/lang/String;
+	public final fun getPromptVersion ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/ContextKt {
+	public static final field MAX_CONTEXT_LINES_PER_BLOCK I
+	public static final field MAX_CONTEXT_NOTICES I
+	public static final fun getDEFAULT_CONTEXT_BOUNDS ()Ladr/spine/pure/ContextBounds;
+}
+
+public final class adr/spine/pure/ContextRenderer {
+	public fun <init> ()V
+	public final fun render (Ladr/spine/pure/Context;)Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Ctx {
+	public fun <init> (Ljava/lang/Object;Ladr/spine/pure/Context;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ladr/spine/pure/Context;
+	public final fun copy (Ljava/lang/Object;Ladr/spine/pure/Context;)Ladr/spine/pure/Ctx;
+	public static synthetic fun copy$default (Ladr/spine/pure/Ctx;Ljava/lang/Object;Ladr/spine/pure/Context;ILjava/lang/Object;)Ladr/spine/pure/Ctx;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getContext ()Ladr/spine/pure/Context;
+	public final fun getState ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/Decode {
+	public abstract fun invoke (Ladr/spine/pure/RawInput;)Ljava/lang/Object;
+}
+
+public final class adr/spine/pure/EffectClass : java/lang/Enum {
+	public static final field Irreversible Ladr/spine/pure/EffectClass;
+	public static final field Routine Ladr/spine/pure/EffectClass;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ladr/spine/pure/EffectClass;
+	public static fun values ()[Ladr/spine/pure/EffectClass;
+}
+
+public final class adr/spine/pure/EffectKey {
+	public synthetic fun <init> (IILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-wsmmnVI ()I
+	public final fun component2 ()I
+	public final fun copy-Kgt9A-c (II)Ladr/spine/pure/EffectKey;
+	public static synthetic fun copy-Kgt9A-c$default (Ladr/spine/pure/EffectKey;IIILjava/lang/Object;)Ladr/spine/pure/EffectKey;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getIndex ()I
+	public final fun getStep-wsmmnVI ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/EffectPerformer {
+	public fun <init> (Ljava/lang/String;Ladr/spine/pure/NarrowEffect;Ladr/spine/pure/PerformEffect;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/NarrowEffect;
+	public final fun component3 ()Ladr/spine/pure/PerformEffect;
+	public final fun copy (Ljava/lang/String;Ladr/spine/pure/NarrowEffect;Ladr/spine/pure/PerformEffect;)Ladr/spine/pure/EffectPerformer;
+	public static synthetic fun copy$default (Ladr/spine/pure/EffectPerformer;Ljava/lang/String;Ladr/spine/pure/NarrowEffect;Ladr/spine/pure/PerformEffect;ILjava/lang/Object;)Ladr/spine/pure/EffectPerformer;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBlock ()Ljava/lang/String;
+	public final fun getNarrow ()Ladr/spine/pure/NarrowEffect;
+	public final fun getPerform ()Ladr/spine/pure/PerformEffect;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun tryPerform (Ladr/contract/Effect;)Z
+}
+
+public abstract interface class adr/spine/pure/Emit {
+	public abstract fun invoke (Ljava/lang/Object;)V
+}
+
+public abstract interface class adr/spine/pure/Fold {
+	public abstract fun invoke-8pmiTL8 (Ljava/lang/Object;Ljava/util/List;JLadr/spine/pure/Signature;)Lkotlin/Pair;
+}
+
+public abstract class adr/spine/pure/Gating {
+}
+
+public final class adr/spine/pure/Gating$NeedsConfirmation : adr/spine/pure/Gating {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-E-okScE ()Ljava/lang/String;
+	public final fun copy-X6JfNjg (Ljava/lang/String;)Ladr/spine/pure/Gating$NeedsConfirmation;
+	public static synthetic fun copy-X6JfNjg$default (Ladr/spine/pure/Gating$NeedsConfirmation;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/Gating$NeedsConfirmation;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRequestedBy-E-okScE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Gating$Ungated : adr/spine/pure/Gating {
+	public static final field INSTANCE Ladr/spine/pure/Gating$Ungated;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/InputPolicies {
+	public fun <init> (Ljava/util/List;)V
+	public final fun forSource-J3o3G1Q (Ljava/lang/String;)Ladr/spine/pure/InputPolicy;
+}
+
+public abstract class adr/spine/pure/InputPolicy {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/InputPolicy$DurableQueue : adr/spine/pure/InputPolicy {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun copy-J3o3G1Q (Ljava/lang/String;)Ladr/spine/pure/InputPolicy$DurableQueue;
+	public static synthetic fun copy-J3o3G1Q$default (Ladr/spine/pure/InputPolicy$DurableQueue;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/InputPolicy$DurableQueue;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/InputPolicy$Perishable : adr/spine/pure/InputPolicy {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun copy-J3o3G1Q (Ljava/lang/String;)Ladr/spine/pure/InputPolicy$Perishable;
+	public static synthetic fun copy-J3o3G1Q$default (Ladr/spine/pure/InputPolicy$Perishable;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/InputPolicy$Perishable;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/KeyedEffect {
+	public fun <init> (Ladr/spine/pure/EffectKey;Ladr/contract/Effect;)V
+	public final fun component1 ()Ladr/spine/pure/EffectKey;
+	public final fun component2 ()Ladr/contract/Effect;
+	public final fun copy (Ladr/spine/pure/EffectKey;Ladr/contract/Effect;)Ladr/spine/pure/KeyedEffect;
+	public static synthetic fun copy$default (Ladr/spine/pure/KeyedEffect;Ladr/spine/pure/EffectKey;Ladr/contract/Effect;ILjava/lang/Object;)Ladr/spine/pure/KeyedEffect;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEffect ()Ladr/contract/Effect;
+	public final fun getKey ()Ladr/spine/pure/EffectKey;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/KeyedEffectKt {
+	public static final field ORPHAN_EFFECT Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/Lens {
+	public abstract fun invoke (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class adr/spine/pure/MailboxKt {
+	public static final field CANCEL_DEADLINE_MS J
+	public static final field DRAIN_DEADLINE_MS J
+}
+
+public abstract class adr/spine/pure/Message {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Message$Drain : adr/spine/pure/Message {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-4_HSc0U (Ljava/lang/String;Ljava/lang/String;)Ladr/spine/pure/Message$Drain;
+	public static synthetic fun copy-4_HSc0U$default (Ladr/spine/pure/Message$Drain;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/Message$Drain;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReason ()Ljava/lang/String;
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Message$Input : adr/spine/pure/Message {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/StagedInput$Perceived;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/StagedInput$Perceived;
+	public final fun copy-4_HSc0U (Ljava/lang/String;Ladr/spine/pure/StagedInput$Perceived;)Ladr/spine/pure/Message$Input;
+	public static synthetic fun copy-4_HSc0U$default (Ladr/spine/pure/Message$Input;Ljava/lang/String;Ladr/spine/pure/StagedInput$Perceived;ILjava/lang/Object;)Ladr/spine/pure/Message$Input;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public final fun getStaged ()Ladr/spine/pure/StagedInput$Perceived;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Message$Interrupt : adr/spine/pure/Message {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-4_HSc0U (Ljava/lang/String;Ljava/lang/String;)Ladr/spine/pure/Message$Interrupt;
+	public static synthetic fun copy-4_HSc0U$default (Ladr/spine/pure/Message$Interrupt;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/Message$Interrupt;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getReason ()Ljava/lang/String;
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/Narrow {
+	public abstract fun invoke (Ladr/contract/ToolResult;)Ladr/contract/ToolResult;
+}
+
+public abstract interface class adr/spine/pure/NarrowEffect {
+	public abstract fun invoke (Ladr/contract/Effect;)Ladr/contract/Effect;
+}
+
+public abstract class adr/spine/pure/Notice {
+	public synthetic fun <init> (JLjava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getAt-MLqvMck ()J
+	public fun getReason ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Notice$Refused : adr/spine/pure/Notice {
+	public synthetic fun <init> (JLjava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2-2hWXv7Y ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy-5ys33OI (JLjava/lang/String;Ljava/lang/String;)Ladr/spine/pure/Notice$Refused;
+	public static synthetic fun copy-5ys33OI$default (Ladr/spine/pure/Notice$Refused;JLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/Notice$Refused;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAt-MLqvMck ()J
+	public fun getReason ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Notice$Rejected : adr/spine/pure/Notice {
+	public synthetic fun <init> (JLjava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2-2hWXv7Y ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy-5ys33OI (JLjava/lang/String;Ljava/lang/String;)Ladr/spine/pure/Notice$Rejected;
+	public static synthetic fun copy-5ys33OI$default (Ladr/spine/pure/Notice$Rejected;JLjava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/Notice$Rejected;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getAt-MLqvMck ()J
+	public fun getReason ()Ljava/lang/String;
+	public fun getTool-2hWXv7Y ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/PanelId {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ladr/spine/pure/PanelId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/PerformEffect {
+	public abstract fun invoke (Ladr/contract/Effect;)V
+}
+
+public final class adr/spine/pure/PerformMode : java/lang/Enum {
+	public static final field LIVE Ladr/spine/pure/PerformMode;
+	public static final field RECOVERY Ladr/spine/pure/PerformMode;
+	public static final field REPLAY Ladr/spine/pure/PerformMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Ladr/spine/pure/PerformMode;
+	public static fun values ()[Ladr/spine/pure/PerformMode;
+}
+
+public final class adr/spine/pure/Performers {
+	public fun <init> (Ljava/util/List;)V
+	public final fun blocks ()Ljava/util/List;
+	public final fun claims ()Ljava/util/List;
+	public final fun perform (Ladr/contract/Effect;)Ladr/contract/Effect$Diag;
+}
+
+public abstract interface class adr/spine/pure/ProjectContext {
+	public abstract fun invoke (Ljava/lang/Object;Ljava/util/List;Ladr/spine/pure/ContextBounds;)Ladr/spine/pure/Context;
+}
+
+public final class adr/spine/pure/RawInput {
+	public fun <init> (Lkotlinx/serialization/json/JsonElement;)V
+	public fun <init> ([Lkotlin/Pair;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun flag (Ljava/lang/String;)Ljava/lang/Boolean;
+	public fun hashCode ()I
+	public final fun text (Ljava/lang/String;)Ljava/lang/String;
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract class adr/spine/pure/Recall {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Timestamp;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getPublishedAt-TaBua1A ()Ladr/spine/pure/Timestamp;
+	public fun getText ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Recall$Empty : adr/spine/pure/Recall {
+	public static final field INSTANCE Ladr/spine/pure/Recall$Empty;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Recall$Fresh : adr/spine/pure/Recall {
+	public synthetic fun <init> (Ljava/lang/String;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2-MLqvMck ()J
+	public final fun copy-aTH7AkQ (Ljava/lang/String;J)Ladr/spine/pure/Recall$Fresh;
+	public static synthetic fun copy-aTH7AkQ$default (Ladr/spine/pure/Recall$Fresh;Ljava/lang/String;JILjava/lang/Object;)Ladr/spine/pure/Recall$Fresh;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getPublishedAt-MLqvMck ()J
+	public synthetic fun getPublishedAt-TaBua1A ()Ladr/spine/pure/Timestamp;
+	public fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Recall$LastKnown : adr/spine/pure/Recall {
+	public synthetic fun <init> (Ljava/lang/String;JLkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2-MLqvMck ()J
+	public final fun copy-aTH7AkQ (Ljava/lang/String;J)Ladr/spine/pure/Recall$LastKnown;
+	public static synthetic fun copy-aTH7AkQ$default (Ladr/spine/pure/Recall$LastKnown;Ljava/lang/String;JILjava/lang/Object;)Ladr/spine/pure/Recall$LastKnown;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getPublishedAt-MLqvMck ()J
+	public synthetic fun getPublishedAt-TaBua1A ()Ladr/spine/pure/Timestamp;
+	public fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/RegistryBuilder {
+	public fun <init> ()V
+	public final fun of (Ljava/util/List;)Ljava/util/Map;
+	public final fun of ([Ladr/spine/pure/BlockRegistration;)Ljava/util/Map;
+}
+
+public final class adr/spine/pure/RelayEntry {
+	public synthetic fun <init> (JLjava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-skJIsPY (JLjava/lang/String;)Ladr/spine/pure/RelayEntry;
+	public static synthetic fun copy-skJIsPY$default (Ladr/spine/pure/RelayEntry;JLjava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/RelayEntry;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPublishedAt-MLqvMck ()J
+	public final fun getText ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/Report {
+	public abstract fun invoke (Ljava/lang/Object;)Ljava/util/List;
+}
+
+public abstract interface class adr/spine/pure/RequestedBy {
+	public abstract fun invoke-rvqknC4 (Ljava/lang/Object;Ladr/contract/ToolResult;)Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/Run {
+	public abstract fun invoke (Ljava/lang/Object;Ladr/spine/pure/Ctx;)Ladr/contract/ToolResult;
+}
+
+public abstract class adr/spine/pure/RunStatus {
+}
+
+public final class adr/spine/pure/RunStatus$Degraded : adr/spine/pure/RunStatus {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ladr/spine/pure/RunStatus$Degraded;
+	public static synthetic fun copy$default (Ladr/spine/pure/RunStatus$Degraded;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/RunStatus$Degraded;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/RunStatus$Error : adr/spine/pure/RunStatus {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ladr/spine/pure/RunStatus$Error;
+	public static synthetic fun copy$default (Ladr/spine/pure/RunStatus$Error;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/RunStatus$Error;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFault ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/RunStatus$Idle : adr/spine/pure/RunStatus {
+	public static final field INSTANCE Ladr/spine/pure/RunStatus$Idle;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/RunStatus$Working : adr/spine/pure/RunStatus {
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Ladr/spine/pure/RunStatus$Working;
+	public static synthetic fun copy$default (Ladr/spine/pure/RunStatus$Working;IILjava/lang/Object;)Ladr/spine/pure/RunStatus$Working;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getStep ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/SchemaUpcast {
+	public fun <init> (Ladr/spine/pure/UpcastResult;)V
+	public final fun v1 (Ladr/spine/pure/StepRecordV1;)Ladr/spine/pure/StepRecord;
+}
+
+public final class adr/spine/pure/SchemaVersion {
+	public static final synthetic fun box-impl (I)Ladr/spine/pure/SchemaVersion;
+	public static fun constructor-impl (I)I
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ILjava/lang/Object;)Z
+	public static final fun equals-impl0 (II)Z
+	public final fun getValue ()I
+	public fun hashCode ()I
+	public static fun hashCode-impl (I)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (I)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()I
+}
+
+public final class adr/spine/pure/SessionId {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ladr/spine/pure/SessionId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/Sign {
+	public abstract fun invoke-aVwBONw (Ladr/contract/ToolResult;Ladr/spine/pure/Signature;Ljava/lang/String;)Ladr/contract/Command;
+}
+
+public final class adr/spine/pure/Signature {
+	public synthetic fun <init> (Ladr/spine/pure/Actor;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAuthority-28T1e6g ()Ljava/lang/String;
+	public final fun getBy ()Ladr/spine/pure/Actor;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/Source {
+	public abstract fun invoke ()Ljava/lang/Object;
+}
+
+public final class adr/spine/pure/SourceKey {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ladr/spine/pure/SourceKey;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/SourceName {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ladr/spine/pure/SourceName;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/SpineArms {
+	public fun <init> ()V
+	public final fun refused-fjaG4xY (Ladr/spine/pure/SpineSlice;Ladr/contract/ToolResult$Refused;J)Ladr/spine/pure/ArmOut;
+	public final fun unhandled-fjaG4xY (Ladr/spine/pure/SpineSlice;Ladr/contract/ToolResult$Unhandled;J)Ladr/spine/pure/ArmOut;
+}
+
+public final class adr/spine/pure/SpineProjection {
+	public fun <init> ()V
+	public final fun view (Ladr/spine/pure/SpineSlice;)Ladr/spine/pure/ViewModel;
+}
+
+public final class adr/spine/pure/SpineSlice {
+	public fun <init> ()V
+	public fun <init> (Ladr/spine/pure/RunStatus;Ljava/util/List;)V
+	public synthetic fun <init> (Ladr/spine/pure/RunStatus;Ljava/util/List;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ladr/spine/pure/RunStatus;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ladr/spine/pure/RunStatus;Ljava/util/List;)Ladr/spine/pure/SpineSlice;
+	public static synthetic fun copy$default (Ladr/spine/pure/SpineSlice;Ladr/spine/pure/RunStatus;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/pure/SpineSlice;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNotices ()Ljava/util/List;
+	public final fun getRun ()Ladr/spine/pure/RunStatus;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun withNotices (Ljava/util/List;)Ladr/spine/pure/SpineSlice;
+}
+
+public final class adr/spine/pure/SpineSliceKt {
+	public static final field REFUSED_EFFECT Ljava/lang/String;
+}
+
+public abstract class adr/spine/pure/StagedInput {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/StagedInput$Perceived : adr/spine/pure/StagedInput {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3-W53RwLg ()Ljava/lang/String;
+	public final fun copy-Oc-iuXA (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ladr/spine/pure/StagedInput$Perceived;
+	public static synthetic fun copy-Oc-iuXA$default (Ladr/spine/pure/StagedInput$Perceived;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/StagedInput$Perceived;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBody ()Ljava/lang/String;
+	public final fun getKey-W53RwLg ()Ljava/lang/String;
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/StagedInput$Recalled : adr/spine/pure/StagedInput {
+	public synthetic fun <init> (Ljava/lang/String;Ladr/spine/pure/Recall;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun component2 ()Ladr/spine/pure/Recall;
+	public final fun copy-4_HSc0U (Ljava/lang/String;Ladr/spine/pure/Recall;)Ladr/spine/pure/StagedInput$Recalled;
+	public static synthetic fun copy-4_HSc0U$default (Ladr/spine/pure/StagedInput$Recalled;Ljava/lang/String;Ladr/spine/pure/Recall;ILjava/lang/Object;)Ladr/spine/pure/StagedInput$Recalled;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRecall ()Ladr/spine/pure/Recall;
+	public fun getSource-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/StagedKt {
+	public static final field RECALL_DEADLINE_MS J
+}
+
+public final class adr/spine/pure/StepIndex {
+	public static final synthetic fun box-impl (I)Ladr/spine/pure/StepIndex;
+	public static fun constructor-impl (I)I
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (ILjava/lang/Object;)Z
+	public static final fun equals-impl0 (II)Z
+	public final fun getValue ()I
+	public fun hashCode ()I
+	public static fun hashCode-impl (I)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (I)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()I
+}
+
+public final class adr/spine/pure/StepRecord {
+	public synthetic fun <init> (IJLadr/spine/pure/Signature;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ladr/spine/pure/ContextFixture;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-nSzyZBg ()I
+	public final fun component2-MLqvMck ()J
+	public final fun component3 ()Ladr/spine/pure/Signature;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/util/List;
+	public final fun component8 ()Ladr/spine/pure/ContextFixture;
+	public final fun copy-PswK7wU (IJLadr/spine/pure/Signature;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ladr/spine/pure/ContextFixture;)Ladr/spine/pure/StepRecord;
+	public static synthetic fun copy-PswK7wU$default (Ladr/spine/pure/StepRecord;IJLadr/spine/pure/Signature;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ladr/spine/pure/ContextFixture;ILjava/lang/Object;)Ladr/spine/pure/StepRecord;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActions ()Ljava/util/List;
+	public final fun getCommands ()Ljava/util/List;
+	public final fun getContext ()Ladr/spine/pure/ContextFixture;
+	public final fun getNow-MLqvMck ()J
+	public final fun getResults ()Ljava/util/List;
+	public final fun getSchemaVersion-nSzyZBg ()I
+	public final fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getStaged ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/StepRecordKt {
+	public static final fun getCURRENT_SCHEMA ()I
+	public static final fun getGENESIS_SCHEMA ()I
+}
+
+public final class adr/spine/pure/StepRecordV1 {
+	public synthetic fun <init> (IJLadr/spine/pure/Signature;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ladr/spine/pure/ContextFixture;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-nSzyZBg ()I
+	public final fun component2-MLqvMck ()J
+	public final fun component3 ()Ladr/spine/pure/Signature;
+	public final fun component4 ()Ljava/util/List;
+	public final fun component5 ()Ljava/util/List;
+	public final fun component6 ()Ljava/util/List;
+	public final fun component7 ()Ljava/util/List;
+	public final fun component8 ()Ladr/spine/pure/ContextFixture;
+	public final fun copy-PswK7wU (IJLadr/spine/pure/Signature;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ladr/spine/pure/ContextFixture;)Ladr/spine/pure/StepRecordV1;
+	public static synthetic fun copy-PswK7wU$default (Ladr/spine/pure/StepRecordV1;IJLadr/spine/pure/Signature;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;Ladr/spine/pure/ContextFixture;ILjava/lang/Object;)Ladr/spine/pure/StepRecordV1;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActions ()Ljava/util/List;
+	public final fun getCommands ()Ljava/util/List;
+	public final fun getContext ()Ladr/spine/pure/ContextFixture;
+	public final fun getNow-MLqvMck ()J
+	public final fun getResults ()Ljava/util/List;
+	public final fun getSchemaVersion-nSzyZBg ()I
+	public final fun getSig ()Ladr/spine/pure/Signature;
+	public final fun getStaged ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/TicketId {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ladr/spine/pure/TicketId;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Timestamp {
+	public static final synthetic fun box-impl (J)Ladr/spine/pure/Timestamp;
+	public static fun constructor-impl (J)J
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (JLjava/lang/Object;)Z
+	public static final fun equals-impl0 (JJ)Z
+	public final fun getValue ()J
+	public fun hashCode ()I
+	public static fun hashCode-impl (J)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (J)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()J
+}
+
+public final class adr/spine/pure/ToolName {
+	public static final synthetic fun box-impl (Ljava/lang/String;)Ladr/spine/pure/ToolName;
+	public static fun constructor-impl (Ljava/lang/String;)Ljava/lang/String;
+	public fun equals (Ljava/lang/Object;)Z
+	public static fun equals-impl (Ljava/lang/String;Ljava/lang/Object;)Z
+	public static final fun equals-impl0 (Ljava/lang/String;Ljava/lang/String;)Z
+	public final fun getValue ()Ljava/lang/String;
+	public fun hashCode ()I
+	public static fun hashCode-impl (Ljava/lang/String;)I
+	public fun toString ()Ljava/lang/String;
+	public static fun toString-impl (Ljava/lang/String;)Ljava/lang/String;
+	public final synthetic fun unbox-impl ()Ljava/lang/String;
+}
+
+public abstract class adr/spine/pure/TurnOutcome {
+}
+
+public final class adr/spine/pure/TurnOutcome$Cancelled : adr/spine/pure/TurnOutcome {
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-VdKJcmE ()Ljava/lang/String;
+	public final fun copy-J3o3G1Q (Ljava/lang/String;)Ladr/spine/pure/TurnOutcome$Cancelled;
+	public static synthetic fun copy-J3o3G1Q$default (Ladr/spine/pure/TurnOutcome$Cancelled;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/TurnOutcome$Cancelled;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBy-VdKJcmE ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/TurnOutcome$Idle : adr/spine/pure/TurnOutcome {
+	public static final field INSTANCE Ladr/spine/pure/TurnOutcome$Idle;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/TurnOutcome$Ok : adr/spine/pure/TurnOutcome {
+	public fun <init> (I)V
+	public final fun component1 ()I
+	public final fun copy (I)Ladr/spine/pure/TurnOutcome$Ok;
+	public static synthetic fun copy$default (Ladr/spine/pure/TurnOutcome$Ok;IILjava/lang/Object;)Ladr/spine/pure/TurnOutcome$Ok;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getSteps ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/TurnOutcome$Threw : adr/spine/pure/TurnOutcome {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ladr/spine/pure/TurnOutcome$Threw;
+	public static synthetic fun copy$default (Ladr/spine/pure/TurnOutcome$Threw;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/pure/TurnOutcome$Threw;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFault ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class adr/spine/pure/UpcastResult {
+	public abstract fun invoke (Ljava/lang/Object;)Ladr/contract/ToolResult;
+}
+
+public abstract class adr/spine/pure/Verb {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/Decode;Ladr/spine/pure/Run;Ladr/spine/pure/Sign;Ladr/spine/pure/Narrow;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public abstract fun gating (Ljava/lang/Object;Ladr/contract/ToolResult;)Ladr/spine/pure/Gating;
+	public fun getDecode ()Ladr/spine/pure/Decode;
+	public fun getDescribe ()Ljava/lang/String;
+	public fun getName-2hWXv7Y ()Ljava/lang/String;
+	public fun getNarrow ()Ladr/spine/pure/Narrow;
+	public fun getRun ()Ladr/spine/pure/Run;
+	public fun getSign ()Ladr/spine/pure/Sign;
+	public final fun modelEcho (Ladr/spine/pure/RawInput;Ladr/spine/pure/Ctx;)Ljava/lang/String;
+	public final fun resolve (Ladr/spine/pure/RawInput;Ladr/spine/pure/Ctx;)Ladr/contract/ToolResult;
+	public final fun signOf-aVwBONw (Ladr/contract/ToolResult;Ladr/spine/pure/Signature;Ljava/lang/String;)Ladr/contract/Command;
+}
+
+public final class adr/spine/pure/Verb$Irreversible : adr/spine/pure/Verb {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/Decode;Ladr/spine/pure/Run;Ladr/spine/pure/Sign;Ladr/spine/pure/Narrow;Ladr/spine/pure/RequestedBy;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ladr/spine/pure/Decode;
+	public final fun component4 ()Ladr/spine/pure/Run;
+	public final fun component5 ()Ladr/spine/pure/Sign;
+	public final fun component6 ()Ladr/spine/pure/Narrow;
+	public final fun component7 ()Ladr/spine/pure/RequestedBy;
+	public final fun copy-uUVTlao (Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/Decode;Ladr/spine/pure/Run;Ladr/spine/pure/Sign;Ladr/spine/pure/Narrow;Ladr/spine/pure/RequestedBy;)Ladr/spine/pure/Verb$Irreversible;
+	public static synthetic fun copy-uUVTlao$default (Ladr/spine/pure/Verb$Irreversible;Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/Decode;Ladr/spine/pure/Run;Ladr/spine/pure/Sign;Ladr/spine/pure/Narrow;Ladr/spine/pure/RequestedBy;ILjava/lang/Object;)Ladr/spine/pure/Verb$Irreversible;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun gating (Ljava/lang/Object;Ladr/contract/ToolResult;)Ladr/spine/pure/Gating;
+	public fun getDecode ()Ladr/spine/pure/Decode;
+	public fun getDescribe ()Ljava/lang/String;
+	public fun getName-2hWXv7Y ()Ljava/lang/String;
+	public fun getNarrow ()Ladr/spine/pure/Narrow;
+	public final fun getRequestedBy ()Ladr/spine/pure/RequestedBy;
+	public fun getRun ()Ladr/spine/pure/Run;
+	public fun getSign ()Ladr/spine/pure/Sign;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/Verb$Reversible : adr/spine/pure/Verb {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/Decode;Ladr/spine/pure/Run;Ladr/spine/pure/Sign;Ladr/spine/pure/Narrow;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-2hWXv7Y ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ladr/spine/pure/Decode;
+	public final fun component4 ()Ladr/spine/pure/Run;
+	public final fun component5 ()Ladr/spine/pure/Sign;
+	public final fun component6 ()Ladr/spine/pure/Narrow;
+	public final fun copy-23_JyGI (Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/Decode;Ladr/spine/pure/Run;Ladr/spine/pure/Sign;Ladr/spine/pure/Narrow;)Ladr/spine/pure/Verb$Reversible;
+	public static synthetic fun copy-23_JyGI$default (Ladr/spine/pure/Verb$Reversible;Ljava/lang/String;Ljava/lang/String;Ladr/spine/pure/Decode;Ladr/spine/pure/Run;Ladr/spine/pure/Sign;Ladr/spine/pure/Narrow;ILjava/lang/Object;)Ladr/spine/pure/Verb$Reversible;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun gating (Ljava/lang/Object;Ladr/contract/ToolResult;)Ladr/spine/pure/Gating;
+	public fun getDecode ()Ladr/spine/pure/Decode;
+	public fun getDescribe ()Ljava/lang/String;
+	public fun getName-2hWXv7Y ()Ljava/lang/String;
+	public fun getNarrow ()Ladr/spine/pure/Narrow;
+	public fun getRun ()Ladr/spine/pure/Run;
+	public fun getSign ()Ladr/spine/pure/Sign;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/pure/VerbKt {
+	public static final field DECODE_FAILED Ljava/lang/String;
+}
+
+public final class adr/spine/pure/VersionKt {
+	public static final field SPINE_VERSION Ljava/lang/String;
+}
+
+public final class adr/spine/pure/ViewModel {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/String;Ljava/util/List;)Ladr/spine/pure/ViewModel;
+	public static synthetic fun copy$default (Ladr/spine/pure/ViewModel;Ljava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/pure/ViewModel;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBanner ()Ljava/lang/String;
+	public final fun getNotices ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/replay/RecordMark {
+	public synthetic fun <init> (JLjava/lang/String;Ljava/util/List;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-MLqvMck ()J
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy-Wzg-xj4 (JLjava/lang/String;Ljava/util/List;)Ladr/spine/replay/RecordMark;
+	public static synthetic fun copy-Wzg-xj4$default (Ladr/spine/replay/RecordMark;JLjava/lang/String;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/replay/RecordMark;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getDigest ()Ljava/lang/String;
+	public final fun getNow-MLqvMck ()J
+	public final fun getResults ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/replay/Recovery {
+	public fun <init> ()V
+	public final fun committedSourceKeys (Ljava/util/List;)Ljava/util/Set;
+	public final fun tailFrom (Ljava/util/List;I)Ladr/spine/replay/TimelineTail;
+}
+
+public final class adr/spine/replay/RefoldOutcome {
+	public fun <init> (Ljava/lang/Object;Ljava/util/List;)V
+	public final fun component1 ()Ljava/lang/Object;
+	public final fun component2 ()Ljava/util/List;
+	public final fun copy (Ljava/lang/Object;Ljava/util/List;)Ladr/spine/replay/RefoldOutcome;
+	public static synthetic fun copy$default (Ladr/spine/replay/RefoldOutcome;Ljava/lang/Object;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/replay/RefoldOutcome;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEffects ()Ljava/util/List;
+	public final fun getState ()Ljava/lang/Object;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/replay/Replay {
+	public fun <init> (Ladr/spine/pure/Fold;Ladr/spine/pure/Admission;)V
+	public final fun collectPerform (Ljava/lang/Object;Ljava/util/List;Ladr/spine/ports/Sink;Ladr/spine/pure/PerformMode;)V
+	public final fun refold (Ljava/lang/Object;Ljava/util/List;)Ladr/spine/replay/RefoldOutcome;
+	public final fun refoldFrom (Ladr/spine/replay/Snapshot;Ladr/spine/replay/TimelineTail;Ljava/lang/String;)Ladr/spine/replay/Resume;
+	public final fun snapshotAt (Ljava/lang/Object;Ljava/util/List;ILjava/lang/String;)Ladr/spine/replay/Snapshot;
+	public final fun stateAtStep (Ljava/lang/Object;Ljava/util/List;I)Ladr/spine/replay/RefoldOutcome;
+}
+
+public final class adr/spine/replay/ReplayFaithfulness {
+	public fun <init> (Ladr/spine/pure/Fold;Ladr/spine/pure/ProjectContext;Ljava/lang/String;Ladr/spine/pure/Admission;Ladr/spine/pure/ContextBounds;)V
+	public final fun assertFaithful (Ljava/lang/Object;Ljava/util/List;Ljava/lang/Object;Ljava/util/List;)V
+}
+
+public abstract class adr/spine/replay/Resume {
+}
+
+public final class adr/spine/replay/Resume$Refused : adr/spine/replay/Resume {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Ladr/spine/replay/Resume$Refused;
+	public static synthetic fun copy$default (Ladr/spine/replay/Resume$Refused;Ljava/lang/String;ILjava/lang/Object;)Ladr/spine/replay/Resume$Refused;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCause ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/replay/Resume$Resumed : adr/spine/replay/Resume {
+	public fun <init> (Ladr/spine/replay/RefoldOutcome;)V
+	public final fun component1 ()Ladr/spine/replay/RefoldOutcome;
+	public final fun copy (Ladr/spine/replay/RefoldOutcome;)Ladr/spine/replay/Resume$Resumed;
+	public static synthetic fun copy$default (Ladr/spine/replay/Resume$Resumed;Ladr/spine/replay/RefoldOutcome;ILjava/lang/Object;)Ladr/spine/replay/Resume$Resumed;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getOutcome ()Ladr/spine/replay/RefoldOutcome;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/replay/Snapshot {
+	public fun <init> (Ladr/spine/replay/SnapshotTag;Ljava/lang/Object;Ljava/util/List;)V
+	public final fun component1 ()Ladr/spine/replay/SnapshotTag;
+	public final fun component2 ()Ljava/lang/Object;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Ladr/spine/replay/SnapshotTag;Ljava/lang/Object;Ljava/util/List;)Ladr/spine/replay/Snapshot;
+	public static synthetic fun copy$default (Ladr/spine/replay/Snapshot;Ladr/spine/replay/SnapshotTag;Ljava/lang/Object;Ljava/util/List;ILjava/lang/Object;)Ladr/spine/replay/Snapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEffects ()Ljava/util/List;
+	public final fun getState ()Ljava/lang/Object;
+	public final fun getTag ()Ladr/spine/replay/SnapshotTag;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/replay/SnapshotTag {
+	public fun <init> (Ljava/lang/String;ILadr/spine/replay/RecordMark;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()I
+	public final fun component3 ()Ladr/spine/replay/RecordMark;
+	public final fun copy (Ljava/lang/String;ILadr/spine/replay/RecordMark;)Ladr/spine/replay/SnapshotTag;
+	public static synthetic fun copy$default (Ladr/spine/replay/SnapshotTag;Ljava/lang/String;ILadr/spine/replay/RecordMark;ILjava/lang/Object;)Ladr/spine/replay/SnapshotTag;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getCoveredThrough ()Ladr/spine/replay/RecordMark;
+	public final fun getOffset ()I
+	public final fun getReducerVersion ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/replay/TimelineTail {
+	public fun <init> (ILjava/util/List;Ladr/spine/replay/RecordMark;)V
+	public final fun component1 ()I
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Ladr/spine/replay/RecordMark;
+	public final fun copy (ILjava/util/List;Ladr/spine/replay/RecordMark;)Ladr/spine/replay/TimelineTail;
+	public static synthetic fun copy$default (Ladr/spine/replay/TimelineTail;ILjava/util/List;Ladr/spine/replay/RecordMark;ILjava/lang/Object;)Ladr/spine/replay/TimelineTail;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getFollows ()Ladr/spine/replay/RecordMark;
+	public final fun getFrom ()I
+	public final fun getRecords ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/spine/surface/Controller {
+	public fun <init> (Ladr/spine/pure/Source;Ladr/spine/boundary/Submit;)V
+	public final fun getView ()Ljava/lang/Object;
+	public final fun onAction (Ladr/spine/pure/Action;)V
+}
+

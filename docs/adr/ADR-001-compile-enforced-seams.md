@@ -373,7 +373,7 @@ build code, not a review comment.
 
 | plugin | applied by | wires and enforces |
 |---|---|---|
-| `adr.kotlin.library` | every module | Kotlin JVM, jvmTarget 21 — **plus, SPECIFIED BUT NOT YET WIRED:** `explicitApi()` and the binary-compatibility-validator (`.api` dump into `check`), see OPEN-GAPS |
+| `adr.kotlin.library` | every module | Kotlin JVM, jvmTarget 21, and the binary-compatibility-validator: `apiCheck` is a dependency of `check` in all fourteen modules, over a committed `<module>/api/<name>.api`, and `adr.root` asserts every module has that task, that `check` depends on it, and that nothing has switched it off. **Still specified but not wired:** `explicitApi()` — measured on the tree that ships at 485 visibility diagnostics and 27 explicit return types across 81 of the port's 87 main sources (536 across 87 before this item's 27 `internal` narrowings), see OPEN-GAPS |
 | `adr.spine` | `:spine` only | asserts it is the only module declaring the boundary, bus or fold; forbids IO libraries on the classpath |
 | `adr.block` | `:block:<x>` | auto-adds `implementation(project(":spine"))`; **rejects every other project dependency**, including the block's own adapter; forbids IO libraries on the classpath |
 | `adr.block.adapter` | `:block:<x>:adapter` | auto-adds `implementation(project(":spine"))` and a dependency on its parent `:block:<x>`; **rejects every other project dependency**; IO libraries **allowed**; asserts no module but `:app` depends on it |
@@ -428,11 +428,39 @@ Four, four, five, seven, eight, seven today. Under D9 the three concrete adapter
 triage · console · inbox · escalation · artifact · analysis. The frozen `.api` set is **strictly larger**
 than that floor: the formula above adds the types the slice and view reach, which `:app` never names but
 Kotlin's `explicitApi` forces public (`TicketRow` and `Priority` for triage — marking them `internal`
-does not compile). Measured against the live tree, the frozen sets are **6 · 5 · 5 · 8 · 9 · 8**. A
-public declaration beyond the frozen set *will* fail `apiCheck` in CI once the validator is wired (it is not, today — the counts below are the specification that wiring must satisfy), and `internal` on everything else makes
-that automatic. This still replaces what
-the review measured — **14 to 20 public declarations per block and zero uses of `internal`
-repository-wide** — but by shrinking the surface to a measured floor rather than to one symbol.
+does not compile). Predicted here, before the validator was wired, as **6 · 5 · 5 · 8 · 9 · 8**. A
+public declaration beyond the frozen set **fails `apiCheck`**: the validator is applied by
+`adr.kotlin.library`, `apiCheck` is a dependency of `check` in all fourteen modules, and `internal` on
+everything else is what keeps the surface at the floor rather than at whatever accumulates. This
+still replaces what the review measured — **14 to 20 public declarations per block and zero uses of
+`internal` repository-wide** — but by shrinking the surface to a measured floor rather than to one
+symbol.
+
+**What the wiring MEASURED, and where the prediction above is wrong.** The dumps the validator now
+commits carry **8 · 8 · 5 · 8 · 8 · 8** for the same six blocks, after every narrowing that is
+semantics-preserving: 27 block declarations became `internal`, each of them a name no module outside
+its own block resolves. Three of the six land exactly on the prediction (inbox, escalation,
+analysis). The other three miss for two reasons, and both are defects in the derivation above rather
+than in the code:
+
+- **The set counted above is not the set a `<module>.api` can hold.** `Priority` (triage) and
+  `ArtifactLine` (artifact) are counted here as part of a block's frozen surface, and §3's sealed rule
+  authors both inside `:spine` — so a block's own dump cannot carry them. That is **-1 for triage** and
+  **-1 for artifact**, and the second is the whole of artifact's difference.
+- **`:app` is not the only cross-module consumer.** The floor was derived by grepping `:app`. Since §9's
+  Stages 2–4 moved the block sources out of the root project, the ROOT project — which keeps the gate
+  harness and depends on `:spine`, all six blocks and `:app` — is a second one, and `internal` does not
+  cross that edge either: it names `SET_PRIORITY`, `PRE_V2_REASON` and `TriageUpcast` in triage, and
+  `FOCUS_TICKET`, `ConsoleProjection` and `ViewState` in console. Narrowing those is not
+  semantics-preserving, so they stay public and are reported here rather than re-frozen quietly. That
+  is **+3 for triage** and **+3 for console**.
+
+The corrections reconcile exactly, and nothing else moves: triage 6 - 1 + 3 = 8, console 5 + 3 = 8,
+artifact 9 - 1 = 8, and inbox, escalation and analysis unmoved at 5, 8 and 8.
+`examples/typescript/test/laws/freeze.test.ts` re-derives the measured series from the committed dumps
+and re-reads the prediction, every delta and every enumerated symbol out of this prose, so a number
+restated wrongly here — or a series left stale in §6, in OPEN-GAPS or in the port README — turns the
+TypeScript gate red.
 
 **Why the surface cannot be one symbol.** Kotlin `internal` does not cross a module edge, and under §3
 `:app` is a different module from every block. `:app`'s `State` (`adr/app/Contract.kt`: one field per
@@ -442,18 +470,24 @@ block slice plus the spine's own) names every block's **slice** type; its `AppVi
 `Port.kt` and still name four, four and five symbols. So the port edge is not what decides this, and for
 half the blocks it does not arise at all.
 
-**What is still open is the mechanism, not the measurement.** This ADR does not ship a mechanism it has
-not compiled — §6.6 holds itself to the same bar — so the choice is recorded open rather than guessed:
+**The mechanism was the open half, and one of the two is now compiled.** This ADR does not ship a
+mechanism it has not compiled — §6.6 holds itself to the same bar — so both candidates were recorded
+open rather than guessed, and the record is kept here with the verdict each has earned:
 
 - **Accept the public surface** and let the `.api` freeze be the wall. Cheap, and the surface above is
-  small and measured.
+  small and measured. **LANDED.** It is compiled, committed and red-green proven: the validator is
+  applied by `adr.kotlin.library`, each module commits `<module>/api/<name>.api`, an unregenerated
+  public addition fails `./gradlew check` naming the added line, and `./gradlew apiDump` is what makes
+  it green again.
 - **Friend association** — `-Xfriend-paths`, or Gradle's `associateWith` — letting `:app` and
   `:block:<x>:adapter` see `internal` declarations of `:block:<x>`, shrinking the surface further. It has
   to be shown to hold across an `api`/`implementation` edge and under binary-compatibility-validator.
+  **STILL NOT COMPILED HERE, so still not prescribed.** It is not a prerequisite of the freeze: it would
+  shrink the frozen set, not change what enforces it.
 
-Neither has been compiled in this repository, so neither is prescribed here. What does **not** depend on
-the choice: a *sibling* block is kept out by §3's dependency law, rejected at configuration time before
-visibility is consulted at all. Visibility is the second lock on a welded door.
+What does **not** depend on the remaining choice: a *sibling* block is kept out by §3's dependency law,
+rejected at configuration time before visibility is consulted at all. Visibility is the second lock on
+a welded door.
 
 ---
 
@@ -592,10 +626,13 @@ so a reader can see at a glance which laws are walls and which are hopes.
 5. **A block's public surface is the measured frozen set** — its `Block` type, its slice and view types
    and everything those reach, its block port interfaces where it declares any, and the verb constants
    `:app` names; §4 pastes the command that measures the `:app`-named lower bound and publishes both
-   series — the floor and the strictly larger frozen set the reached types force (6 · 5 · 5 · 8 · 9 · 8
-   across the six blocks). `internal` on everything else plus the `.api` freeze, with `:app` and the
-   block's own adapter leaf the only modules permitted to depend on the block at all (§3, §4).
-   *(currently unenforced)*
+   series — the floor, and the strictly larger frozen set the reached types force, MEASURED from the
+   committed dumps at 8 · 8 · 5 · 8 · 8 · 8 across the six blocks (§4 predicted 6 · 5 · 5 · 8 · 9 · 8
+   and records, at the same place, the two derivation defects that account for every difference).
+   `internal` on everything else plus the `.api` freeze, with `:app` and the block's own adapter leaf
+   the only modules permitted to depend on the block at all (§3, §4).
+   *(enforced: `apiCheck` over a committed `<module>/api/<name>.api`, a dependency of `check` in all
+   fourteen modules)*
 6. **The irreversible-action gate** — a **witness type**, stated as a requirement rather than a snippet,
    because the first draft of this item was itself a rule wearing a compile-time label.
 
@@ -712,9 +749,10 @@ sequence, and this section deliberately does not reuse its numbers.
 - **Stage 2 — sequential, one builder.** The reference block `:block:triage` end to end, **as the module
   pair D9 requires**: `:block:triage` pure, `internal` on everything §4's frozen set does not name, `.api`
   frozen to that measured surface; `:block:triage:adapter` holding its live IO. Triage declares no port
-  and still freezes the six-symbol set §4 measures for it — the four names `:app` uses plus the two
-  reached types `explicitApi` forces public — so this template shows the general case rather than a
-  degenerate one. Every other block copies it.
+  and still freezes the eight-symbol set §4 measures for it — the four names `:app` uses plus the two
+  reached types `explicitApi` forces public, less `Priority`, which §3's sealed rule declares in `:spine`
+  so no block dump can carry it, plus the three the root project's gate harness names — so this template
+  shows the general case rather than a degenerate one. Every other block copies it.
 - **Stage 3 — parallel, one builder per block.** `escalation · console · artifact · analysis · inbox`.
   Each creates its module pair, moves its files, applies `adr.block` and `adr.block.adapter`. Blocks do
   not import each other so they do not contend; the only shared write is `:app`'s construction list,

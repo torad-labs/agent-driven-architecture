@@ -27,7 +27,7 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
-class EscalationArm {
+internal class EscalationArm {
 
     fun arm(
         slice: EscalationSlice,

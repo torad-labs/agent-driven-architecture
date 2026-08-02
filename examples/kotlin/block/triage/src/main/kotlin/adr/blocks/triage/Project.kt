@@ -31,7 +31,7 @@ data class TicketRow(
 
 data class TriageView(val rows: List<TicketRow>)
 
-class TriageProjection {
+internal class TriageProjection {
 
     fun view(slice: TriageSlice): TriageView = TriageView(
         rows = slice.tickets.values.map { ticket ->

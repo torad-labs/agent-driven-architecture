@@ -12,7 +12,7 @@ import adr.spine.pure.Notice
 import adr.spine.pure.Signature
 import adr.spine.pure.Timestamp
 
-class ConsoleArm {
+internal class ConsoleArm {
 
     fun arm(
         slice: ConsoleSlice,

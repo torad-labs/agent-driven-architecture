@@ -1,0 +1,78 @@
+public final class adr/blocks/triage/Ticket {
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;Lkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1-3ukyJ98 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun copy-Xo39wHk (Ljava/lang/String;Ljava/lang/String;)Ladr/blocks/triage/Ticket;
+	public static synthetic fun copy-Xo39wHk$default (Ladr/blocks/triage/Ticket;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/blocks/triage/Ticket;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBody ()Ljava/lang/String;
+	public final fun getId-3ukyJ98 ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/blocks/triage/TicketRow {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ladr/blocks/triage/TicketRow;
+	public static synthetic fun copy$default (Ladr/blocks/triage/TicketRow;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;ILjava/lang/Object;)Ladr/blocks/triage/TicketRow;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBadge ()Ljava/lang/String;
+	public final fun getBody ()Ljava/lang/String;
+	public final fun getTicket ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class adr/blocks/triage/ToolsKt {
+	public static final field PRE_V2_REASON Ljava/lang/String;
+	public static final fun getSET_PRIORITY ()Ljava/lang/String;
+}
+
+public final class adr/blocks/triage/TriageBlock : adr/spine/pure/Block {
+	public fun <init> ()V
+	public fun arm-8pmiTL8 (Ladr/blocks/triage/TriageSlice;Ladr/contract/TriageResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public synthetic fun arm-8pmiTL8 (Ljava/lang/Object;Ladr/contract/ToolResult;JLadr/spine/pure/Signature;)Ladr/spine/pure/ArmOut;
+	public final fun contextLines (Ladr/blocks/triage/TriageSlice;I)Ljava/util/List;
+	public static synthetic fun contextLines$default (Ladr/blocks/triage/TriageBlock;Ladr/blocks/triage/TriageSlice;IILjava/lang/Object;)Ljava/util/List;
+	public final fun performer (Ladr/spine/pure/Emit;)Ladr/spine/pure/EffectPerformer;
+	public final fun register (Ladr/spine/pure/Lens;)Ladr/spine/pure/BlockRegistration;
+	public final fun slice (Ljava/util/List;)Ladr/blocks/triage/TriageSlice;
+	public fun view (Ladr/blocks/triage/TriageSlice;)Ladr/blocks/triage/TriageView;
+	public synthetic fun view (Ljava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class adr/blocks/triage/TriageSlice {
+	public fun <init> ()V
+	public fun <init> (Ljava/util/Map;Ljava/util/Map;)V
+	public synthetic fun <init> (Ljava/util/Map;Ljava/util/Map;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/util/Map;
+	public final fun component2 ()Ljava/util/Map;
+	public final fun copy (Ljava/util/Map;Ljava/util/Map;)Ladr/blocks/triage/TriageSlice;
+	public static synthetic fun copy$default (Ladr/blocks/triage/TriageSlice;Ljava/util/Map;Ljava/util/Map;ILjava/lang/Object;)Ladr/blocks/triage/TriageSlice;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getPriority ()Ljava/util/Map;
+	public final fun getTickets ()Ljava/util/Map;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+	public final fun withPriority-Xo39wHk (Ljava/lang/String;Ladr/contract/TriageResult$Priority;)Ladr/blocks/triage/TriageSlice;
+}
+
+public final class adr/blocks/triage/TriageUpcast {
+	public fun <init> ()V
+	public final fun v1 (Ladr/contract/TriageV1Result$SetPriority;)Ladr/contract/TriageResult$SetPriority;
+}
+
+public final class adr/blocks/triage/TriageView {
+	public fun <init> (Ljava/util/List;)V
+	public final fun component1 ()Ljava/util/List;
+	public final fun copy (Ljava/util/List;)Ladr/blocks/triage/TriageView;
+	public static synthetic fun copy$default (Ladr/blocks/triage/TriageView;Ljava/util/List;ILjava/lang/Object;)Ladr/blocks/triage/TriageView;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getRows ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+

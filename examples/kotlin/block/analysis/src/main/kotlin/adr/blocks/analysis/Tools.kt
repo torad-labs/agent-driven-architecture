@@ -38,11 +38,11 @@ val PUBLISH_ANALYSIS = ToolName("publishAnalysis")
  * instantiation, which is the same defect as a top-level function, and this one is a
  * VALUE the decode step returns rather than a singleton anything depends on.
  */
-class NoRecallInput
+internal class NoRecallInput
 
-data class PublishAnalysisInput(val text: String)
+internal data class PublishAnalysisInput(val text: String)
 
-class AnalysisTools<S>(private val lens: Lens<S, AnalysisSlice>) {
+internal class AnalysisTools<S>(private val lens: Lens<S, AnalysisSlice>) {
 
     /** The FAST tier's verbs. Reading a peer's conclusion is reversible and emits nothing. */
     fun fastVerbs(): List<Verb<S, *, *>> = listOf(

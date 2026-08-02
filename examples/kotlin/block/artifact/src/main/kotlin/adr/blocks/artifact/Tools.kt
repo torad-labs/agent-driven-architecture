@@ -19,16 +19,16 @@ val RECORD_FINDING = ToolName("recordFinding")
 val REQUEST_SEAL = ToolName("requestSeal")
 val CONFIRM_SEAL = ToolName("confirmSeal")
 
-data class FindingInput(val text: String)
+internal data class FindingInput(val text: String)
 
 /**
  * The input of a verb that takes none. A CLASS, not a `data object`: an object has no
  * instantiation, which is the same defect as a top-level function, and this one is a
  * VALUE the decode step returns rather than a singleton anything depends on.
  */
-class NoInput
+internal class NoInput
 
-class ArtifactTools<S>(private val lens: Lens<S, ArtifactSlice>) {
+internal class ArtifactTools<S>(private val lens: Lens<S, ArtifactSlice>) {
 
     fun verbs(): List<Verb<S, *, *>> = listOf(
         Verb.Reversible(
