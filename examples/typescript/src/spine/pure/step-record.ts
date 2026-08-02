@@ -35,11 +35,12 @@
 // would not have worked.
 
 import type { Signature } from "./actor";
-import type { CommandBase } from "./command";
+import type { SealedCommand } from "./command";
 import type { ContextFixture } from "./context";
 import type { RawInput, Timestamp, ToolName } from "./ids";
 import type { StagedInput } from "./staged";
-import type { ToolResultBase } from "./tool-result";
+import type { SealedResult, ToolResultBase } from "./tool-result";
+import { seal } from "./tool-result";
 
 /** An OPEN boundary input (the 6.10 carve-out): a name and an undecoded blob.
  *  Declared here because it is a field of the committed record; re-exported
@@ -75,8 +76,12 @@ export interface StepRecord {
   readonly sig: Signature;
   readonly staged: readonly StagedInput[];
   readonly actions: readonly Action[];
-  readonly results: readonly ToolResultBase[];
-  readonly commands: readonly CommandBase[];
+  /** SEALED, and that is the second half of C7 (spine/pure/tool-result). A
+   *  result reaches this list from the boundary's own map or from 14.7's
+   *  upcast below and from nowhere else — `{ ...received }` in a fold arm
+   *  produces a value this field will not take. */
+  readonly results: readonly SealedResult[];
+  readonly commands: readonly SealedCommand[];
   readonly context: ContextFixture;
 }
 
@@ -100,7 +105,7 @@ export interface StepRecordV1<R> {
   readonly staged: readonly StagedInput[];
   readonly actions: readonly Action[];
   readonly results: readonly R[];
-  readonly commands: readonly CommandBase[];
+  readonly commands: readonly SealedCommand[];
   readonly context: ContextFixture;
 }
 
@@ -115,6 +120,12 @@ export function upcastV1<R>(
   return {
     ...record,
     schemaVersion: SCHEMA_VERSION,
-    results: record.results.map(payload),
+    // THE SECOND MINT SITE, and the only one outside `spine/boundary`. A
+    // block's upcaster produces the PAYLOAD (check C7 puts it in the block's
+    // tools.ts); the seal is the spine's, applied here, because this is the one
+    // path by which a record written before the current shape existed reaches
+    // the fold. Sealing at the boundary instead would be unreachable: an old
+    // record never passes through the live name→result map.
+    results: record.results.map((result) => seal(payload(result))),
   };
 }

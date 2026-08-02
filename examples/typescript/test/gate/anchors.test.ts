@@ -24,7 +24,7 @@ import { describe, expect, it } from "vitest";
 import type { Actor, Authority } from "../../src/spine/pure/actor";
 import { authority, Signature } from "../../src/spine/pure/actor";
 // C7_LITERAL rides the `outcome` key of BOTH transport bases:
-import type { CommandBase } from "../../src/spine/pure/command";
+import type { CommandBase, SealedCommand } from "../../src/spine/pure/command";
 // C16 keys on the member `Attributed` must NOT publish, and the admission
 // rule's own totality rides `EffectClass`:
 import type { EffectBase, EffectClass } from "../../src/spine/pure/effect";
@@ -42,9 +42,9 @@ import type {
 import { degraded, errored, idle, working } from "../../src/spine/pure/run-status";
 // C4_SHAPE keys on these interface names:
 import type { Perceived, Recalled, StagedInputBase } from "../../src/spine/pure/staged";
-// C7_IMPORT keys on these:
-import type { ToolResultBase } from "../../src/spine/pure/tool-result";
-import { refused, unhandled } from "../../src/spine/pure/tool-result";
+// C7_IMPORT keys on these, and C7_MINT/C7_LAUNDER on the two below them:
+import type { SealedResult, ToolResultBase } from "../../src/spine/pure/tool-result";
+import { refused, seal, TransportSeal, unhandled } from "../../src/spine/pure/tool-result";
 import type { Ctx } from "../../src/spine/pure/verb";
 
 const ROOT = join(dirname(new URL(import.meta.url).pathname), "..", "..");
@@ -67,6 +67,8 @@ type TypeAnchors = [
   Perceived,
   Recalled,
   ToolResultBase,
+  SealedResult,
+  SealedCommand,
   Ctx<unknown>,
   EffectClass,
 ];
@@ -90,6 +92,13 @@ describe("the gate's anchors hold", () => {
       working,
       unhandled,
       refused,
+      // C7_MINT and C7_LAUNDER are rules about a VALUE BINDING, so they go
+      // vacuous the moment either name stops being a value — turn `seal` into a
+      // type-only helper or fold `TransportSeal` into an interface and no file
+      // can value-import it, so both rules match nothing, silently, forever.
+      // The seal probe catches the TYPE half; this catches the rule half.
+      seal,
+      TransportSeal,
     ]) {
       expect(typeof anchored).toBe("function");
     }

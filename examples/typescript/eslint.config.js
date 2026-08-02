@@ -37,7 +37,7 @@ export const CHECKS = [
   { id: "C4", invariant: "G1 — an Actor is unrepresentable upstream", by: "tag", rule: "" },
   { id: "C5", invariant: "G9 — the fold cannot key an effect", by: "tag", rule: "" },
   { id: "C6", invariant: "§12.4 — per-item failures are not session-global", by: "tag", rule: "" },
-  { id: "C7", invariant: "G1 — one production site for ToolResult", by: "tag", rule: "" },
+  { id: "C7", invariant: "G1 — signed transport is CONSTRUCTED only in a verb body or at the boundary; a COPY is denied by the type, not here", by: "tag", rule: "" },
   { id: "C8", invariant: "G2 — tools are pure", by: "tag", rule: "" },
   { id: "C9", invariant: "G12 — closed matches, no catch-all", by: "rule", rule: "@typescript-eslint/switch-exhaustiveness-check" },
   { id: "C10", invariant: "G7 — no service locators, no module-level mutable state", by: "tag", rule: "" },
@@ -326,6 +326,139 @@ const C7_IMPORT = [
   },
 ];
 
+// C7, the MINT half — the transport seal (spine/pure/tool-result).
+//
+// C7's other three halves are CONSTRUCTION rules and copying is not
+// construction: a spread carries `outcome` without writing it, so no key-named
+// selector in this file can see it. The seal closes that at the TYPE level, and
+// this rule is what keeps the seal's own mint where the type story says it is.
+//
+// TWO LICENSED BUCKETS, both flagged `mintsSeal` below: `spine/boundary`, where
+// every live result and every signed Command is produced, and
+// `spine/pure/step-record`, whose 14.7 upcast is the one path by which a record
+// written before the current shape existed reaches the fold. Everything else —
+// every block, every other spine folder, the composition root — may name
+// `Sealed`, `SealedResult` and `SealedCommand` as TYPES and may not bind the
+// mint as a value, which is exactly the `Signature` asymmetry one rule group up.
+const C7_MINT = [
+  {
+    regex: ".",
+    importNames: ["seal", "TransportSeal"],
+    allowTypeImports: true,
+    message:
+      "[C7] only the boundary and 14.7's upcast may seal a transport — reading a sealed value is a type import, minting one is a production site",
+  },
+];
+
+// C7, the SEAL half — the price of the two mint exemptions, and it is keyed on
+// the FORM, never on a name.
+//
+// WHY FORM. `C7_LAUNDER` below is name-keyed, and a name-keyed rule dies to one
+// keystroke inside a bucket that may legitimately hold the mint under any local
+// name: `import { seal as s } from "./tool-result"; export const s5 = s;` and
+// `import { TransportSeal as TS } from "./tool-result"; export class F extends
+// TS {}` are both invisible to it. MEASURED — both were silent, and the second
+// was silent in `spine/boundary` too, which C4_SEAL walls: `C4_SEAL` has no
+// subclass clause, and a subclass instance inherits `#sealed`, so it IS a
+// branded transport without `seal` ever being named. So this group denies the
+// SHAPE of every value publication a mint bucket could make, and there is no
+// alias to find.
+//
+// WHAT IT COSTS THE TREE: nothing, measured. `spine/boundary` exports only
+// interfaces, type aliases, functions and classes with no superclass;
+// `spine/pure/step-record` exports two number-literal consts (`SCHEMA_VERSION`,
+// `GENESIS_SCHEMA_VERSION`) and one function. `init.type!="Literal"` is the
+// refinement that keeps those two consts clean while denying every expression
+// that could EVALUATE to the mint — identifier, `as` cast, conditional,
+// destructure, class expression — and `kind!="const"` closes the live-binding
+// route a literal check cannot see (`export let x = 1; x = seal`).
+//
+// SCOPED TO THE MINT BUCKETS, and that is what makes a blanket form denial
+// affordable: `C7_MINT` already denies binding the mint anywhere else, so a
+// value binding of it can only exist in these two folders. Riding every bucket
+// instead was MEASURED and rejected — it reddens `src/blocks/artifact/fold.ts`
+// and `project.ts`, where `seal` is live block domain vocabulary
+// (`SealStatus`, `sealLabel`, `confirmSeal`), which is §15.2's nuisance.
+//
+// EVERY SELECTOR STRING HERE IS TEXTUALLY DISTINCT FROM `C4_SEAL`'s, and that
+// is load-bearing rather than cosmetic: `no-restricted-syntax` keys its visitor
+// by selector STRING, so a duplicate silently overwrites the earlier entry.
+// MEASURED: two entries both selecting `ExportDefaultDeclaration` produce ONE
+// message, not two — i.e. a colliding C7 clause would have switched C4's
+// default-export denial off while looking like an addition.
+//
+// NAMED RESIDUE, in the C4_SHAPE tradition. An exported FUNCTION wrapping the
+// mint (`export function mintWrap(v) { return seal(v as never); }`) is not a
+// value publication of the mint and no selector here sees it — measured, it
+// draws nothing. It is UNWRITABLE as a form rule in this bucket, because
+// `step-record`'s own `upcastV1` is an exported function and denying the form
+// would redden the file the exemption exists for. That is the same residue
+// `boundary.ts` already carries for `Signature`, and it is why the claim these
+// rules earn is "the mint cannot be REPUBLISHED as a value out of its two
+// folders", never "a sealed transport cannot be produced".
+const C7_SEAL = [
+  {
+    selector: 'ExportNamedDeclaration[exportKind="value"] > ExportSpecifier[exportKind="value"]',
+    message:
+      "[C7] a bucket that mints the transport seal publishes no value specifier — `import { seal as s }; export { s }` renames the mint, and a name-keyed rule cannot follow a rebinding",
+  },
+  {
+    selector:
+      'ExportNamedDeclaration[exportKind="value"] > VariableDeclaration > VariableDeclarator[init.type!="Literal"]',
+    message:
+      "[C7] a bucket that mints the transport seal publishes only LITERAL consts — an identifier, an `as` cast, a conditional, a destructure and a class expression all evaluate to the mint under a second name",
+  },
+  {
+    selector: 'ExportNamedDeclaration[exportKind="value"] > VariableDeclaration[kind!="const"]',
+    message:
+      "[C7] a bucket that mints the transport seal publishes no reassignable binding — `export let x = 1; x = seal` hands the mint out through a live binding no literal check can see",
+  },
+  {
+    selector: "ExportDefaultDeclaration[declaration]",
+    message:
+      "[C7] a bucket that mints the transport seal has no default export — a default is a value publication under the one name no import denial can key on",
+  },
+  {
+    selector: "[superClass]",
+    message:
+      "[C7] a bucket that mints the transport seal declares no subclass — a subclass of `TransportSeal` inherits `#sealed`, so its instances carry the brand without the mint ever being named",
+  },
+  {
+    // A STATIC CLASS MEMBER is a value publication the five clauses above miss:
+    // `export class SealHolder { static readonly mint = seal; }` is not a
+    // VariableDeclarator, not an ExportSpecifier, not a default and has no
+    // superClass, so `SealHolder.mint` hands the mint out under a class name
+    // C7_MINT does not deny. A review reached it in two lint-clean hops. The
+    // mint buckets hold NO static member today (measured: zero across
+    // spine/boundary and spine/pure/step-record), so denying the form costs
+    // nothing; the literal refinement keeps a future `static readonly N = 2`
+    // clean the same way the const clause does.
+    selector: 'ClassBody > PropertyDefinition[static=true][value.type!="Literal"]',
+    message:
+      "[C7] a bucket that mints the transport seal declares no static class member — `static readonly mint = seal` publishes the mint under a class name no import denial keys on",
+  },
+];
+
+// C7, the LAUNDER half — name-keyed, and it rides EVERY bucket for the reason
+// C4_LAUNDER does: a second module republishing the mint puts it back within
+// reach under a name an import rule cannot key on.
+//
+// IT IS THE OUTER LAYER, NOT THE ONE THAT COVERS THE MINT BUCKETS. Inside a
+// mint bucket the name is legitimately in scope under any alias, so this rule
+// is defeated there by construction and `C7_SEAL` above is what owns those two
+// folders. What this adds is the belt on every OTHER bucket, where `C7_MINT`
+// already denies the import: a file that declares its own `seal` and publishes
+// it under that name is denied here too, so the vocabulary cannot be reused to
+// smuggle a second mint in under the shipped name.
+const C7_LAUNDER = [
+  {
+    selector:
+      'ExportNamedDeclaration[exportKind="value"] > ExportSpecifier[local.name=/^(seal|TransportSeal)$/]',
+    message:
+      "[C7] the transport seal is never republished as a value binding — a second publication site is a second mint",
+  },
+];
+
 // C8 — G2: a pure file names no I/O.
 const C8_IMPORT = [{ regex: "^node:", message: "[C8] a pure file may not import a runtime module" }];
 
@@ -585,7 +718,11 @@ const C9_RULE = {
 
 // ── composition helpers ─────────────────────────────────────────────────────
 
-const bucket = (files, { imports, syntax, globals = [], mintsStamp = false }) => ({
+/** `off` when a bucket has nothing left to deny, so an empty pattern list is not
+ *  configured as an error with no patterns. */
+const restrict = (patterns) => (patterns.length === 0 ? "off" : ["error", { patterns }]);
+
+const bucket = (files, { imports, syntax, globals = [], mintsStamp = false, mintsSeal = false }) => ({
   files,
   // THE GATE CANNOT BE SILENCED FROM INSIDE A FILE. Without this line, one
   // `/* eslint-disable */` comment turns every check below into prose — 15.2's
@@ -601,29 +738,38 @@ const bucket = (files, { imports, syntax, globals = [], mintsStamp = false }) =>
   rules: {
     ...C9_RULE,
     "no-restricted-imports": imports.length === 0 ? "off" : ["error", { patterns: imports }],
-    // NO_DYNAMIC_IMPORT, C4_LAUNDER, C7_COMPUTED and C16 ride every bucket, so a
-    // bucket added later is denied all four by DEFAULT: an import table with an
-    // escape hatch is not a table, and a stamp with a second publication site is
-    // not a stamp. None of the four takes an exemption flag — C16 is written
-    // against the PUBLIC member only, so the file that implements the rule needs
-    // no carve-out and there is no per-file flag here that could spread.
-    // `mintsStamp` TRADES one wall for another rather than switching a wall
-    // off — the minting bucket loses C4_MINT and gains C4_SEAL — which is what
-    // keeps the single exemption watched from both sides.
+    // NO_DYNAMIC_IMPORT, C4_LAUNDER, C7_COMPUTED, C7_LAUNDER and C16 ride every
+    // bucket, so a bucket added later is denied all five by DEFAULT: an import
+    // table with an escape hatch is not a table, and a stamp — or a seal — with
+    // a second publication site is not one. None of the five takes an exemption
+    // flag, not even on a minting bucket: C16 is written against the PUBLIC
+    // member only, so the file that implements the rule needs no carve-out, and
+    // republication under the SHIPPED name is denied to the mint buckets too.
+    // `mintsStamp` and `mintsSeal` each TRADE one wall for another rather than
+    // switching a wall off — a minting bucket loses its import denial and gains
+    // the matching FORM denial — which is what keeps every exemption watched
+    // from both sides. The two flags are INDEPENDENT: `step-record` seals
+    // without gaining the right to construct a stamp.
     "no-restricted-syntax": [
       "error",
       ...NO_DYNAMIC_IMPORT,
       ...C4_LAUNDER,
       ...C7_COMPUTED,
+      ...C7_LAUNDER,
       ...C16,
       ...(mintsStamp ? C4_SEAL : []),
+      ...(mintsSeal ? C7_SEAL : []),
       ...syntax,
     ],
     // The BASE `no-restricted-imports` above is §1.3's per-bucket import table;
-    // this one is C4's mint denial. Two rules, two pattern sets, both on.
-    "@typescript-eslint/no-restricted-imports": mintsStamp
-      ? "off"
-      : ["error", { patterns: C4_MINT }],
+    // this one carries the two MINT denials — C4's stamp and C7's seal. Two
+    // rules, three pattern sets, and the two exemptions are INDEPENDENT: the
+    // upcast bucket seals without gaining the right to construct a stamp, and
+    // the boundary is the only bucket that holds both.
+    "@typescript-eslint/no-restricted-imports": restrict([
+      ...(mintsStamp ? [] : C4_MINT),
+      ...(mintsSeal ? [] : C7_MINT),
+    ]),
     "no-restricted-globals": globals.length === 0 ? "off" : ["error", ...globals],
   },
 });
@@ -695,6 +841,20 @@ export const gate = [
     syntax: [...C3, ...C8_SYNTAX, ...C10],
     globals: [...C3_GLOBALS, ...C8_GLOBALS],
   }),
+  // … and the file whose 14.7 UPCAST is the second seal mint. It is a bucket
+  // rather than a widened rule for the reason the two above are: the exemption
+  // is one path, named, and visible in the table. It keeps C4's mint denial —
+  // sealing a lifted payload is not minting a stamp — and it gains C7_SEAL,
+  // which is the FORM denial shaped for a bucket that legitimately exports
+  // literal consts. It does NOT gain C4_SEAL: C4_SEAL bans `export const`
+  // wholesale, which would redden `SCHEMA_VERSION` and `GENESIS_SCHEMA_VERSION`
+  // — the two exemptions are different shapes because the two buckets are.
+  bucket(["**/src/spine/pure/step-record.ts"], {
+    imports: [only("`spine/pure` may import `spine/pure` only", SIBLING), ...C5_MINT, ...C5_TYPE, ...C7_IMPORT, ...C8_IMPORT, ...C12, ...C15],
+    syntax: PURE_SYNTAX,
+    globals: [...C3_GLOBALS, ...C8_GLOBALS],
+    mintsSeal: true,
+  }),
   bucket(["**/src/spine/pure/keyed-effect.ts"], {
     imports: [only("`spine/pure` may import `spine/pure` only", SIBLING), ...C7_IMPORT, ...C8_IMPORT, ...C12, ...C15],
     syntax: PURE_SYNTAX,
@@ -721,6 +881,8 @@ export const gate = [
     // the ONE folder that may bind the `Signature` constructor as a value (C4),
     // and in exchange the one folder that may publish no value binding at all
     mintsStamp: true,
+    // …and the folder that produces every LIVE transport, so it seals (C7).
+    mintsSeal: true,
   }),
 
   // spine/agent — the ONLY file in the system that may name the agent runtime.

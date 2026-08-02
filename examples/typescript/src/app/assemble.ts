@@ -32,7 +32,7 @@ import type { Notice } from "@adr/spine/pure/notice";
 import { renderNotice } from "@adr/spine/pure/notice";
 import { spineArm, unclaimedArm, withNotices } from "@adr/spine/pure/spine-slice";
 import type { StagedInput } from "@adr/spine/pure/staged";
-import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import type { Sealed, ToolResultBase } from "@adr/spine/pure/tool-result";
 import type { ArmOut, FoldOut } from "@adr/spine/pure/verb";
 import { spineView } from "@adr/spine/pure/view";
 
@@ -48,7 +48,7 @@ interface Emitted {
 
 export function fold(
   state: State,
-  results: readonly ToolResult[],
+  results: readonly Sealed<ToolResult>[],
   now: Timestamp,
   sig: Signature,
 ): FoldOut<State> {
@@ -65,7 +65,7 @@ export function fold(
   return { state: current, effects };
 }
 
-function foldOne(state: State, r: ToolResult, now: Timestamp, sig: Signature): Emitted {
+function foldOne(state: State, r: Sealed<ToolResult>, now: Timestamp, sig: Signature): Emitted {
   switch (r.outcome) {
     // The spine's own two arms, identical in every application (§7): a
     // diagnostic and a per-item notice; no transition, no domain effect.
@@ -86,7 +86,7 @@ function foldOne(state: State, r: ToolResult, now: Timestamp, sig: Signature): E
   }
 }
 
-function foldOk(state: State, r: OkResult, now: Timestamp, sig: Signature): Emitted {
+function foldOk(state: State, r: Sealed<OkResult>, now: Timestamp, sig: Signature): Emitted {
   if (triage.owns(r)) {
     return merge(triage.arm(state.triage, r, now, sig), (slice) => ({ ...state, triage: slice }));
   }
@@ -195,7 +195,7 @@ export function projectContext(
 export const dispatchers = {
   fold(
     state: State,
-    results: readonly ToolResult[],
+    results: readonly Sealed<ToolResult>[],
     now: Timestamp,
     sig: Signature,
   ): FoldOut<State> {

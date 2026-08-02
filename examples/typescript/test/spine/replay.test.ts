@@ -20,6 +20,7 @@ import { RecordingSink } from "../../src/spine/boundary/in-memory";
 import { authority, Signature } from "../../src/spine/pure/actor";
 import type { StepRecord, StepRecordV1 } from "../../src/spine/pure/step-record";
 import { GENESIS_SCHEMA_VERSION, SCHEMA_VERSION, upcastV1 } from "../../src/spine/pure/step-record";
+import { seal } from "../../src/spine/pure/tool-result";
 import { collectPerform, refold, stateAtStep } from "../../src/spine/replay/replay";
 import { fakeWorld, harness, POLICY_TIER } from "../harness";
 import { must } from "../support/must";
@@ -295,7 +296,11 @@ describe("schema evolution — an old-shape log replays only through its upcaste
         sig: V1_SIG,
         staged: [],
         actions: [{ tool: "setPriority", input: { ticket: "4118", level: "High" } }],
-        results: [nativeResult],
+        // SEALED, because a committed record only ever holds what the boundary
+        // itself produced (spine/pure/tool-result). The control is still built
+        // from a real v2 literal — the seal is the spine's stamp on it, not a
+        // second shape.
+        results: [seal(nativeResult)],
         commands: [],
         context: { promptVersion: "triage-prompt@1", digest: "" },
       },

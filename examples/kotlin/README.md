@@ -337,6 +337,26 @@ tier, no baseline file, and no `ignoreFailures` on any task that defends the liv
 | C16 | G6 — only the admission rule opens the fold's attributed output, so an effect reaches perform through `admit` | Konsist |
 | C17 | G6 — an Irreversible-class effect is constructed only at its own pinned site, never in a Reversible verb's arm | Konsist |
 
+**C7 is a CONSTRUCTION rule, and a COPY is not construction — this port does not close that.**
+A `data class` variant ships a synthesized `copy()`, so `cmd.copy(…)` on a received command mints a
+transport the derivation above cannot see, and the same is true of `result.copy(…)` in a fold arm.
+The TypeScript port closed its own spelling of this — an object spread — by branding what the fold
+and a committed record accept with a type no spread can carry. **There is no Kotlin twin**, and the
+three routes were measured on this tree rather than argued about:
+
+| route | measured |
+|---|---|
+| delete `data` from the transport leaves | contradicts ADR-001 §1's ratified table (`copy` is *correct* for a description of what happened) and takes the value equality `Replay.RecordMark` compares records with |
+| `internal constructor` (the only lever that hides `copy()` while keeping `data`) | two compile errors in `block/triage/…/Tools.kt` — at the upcaster and at `run` — because ADR-001 §3's DAG declares a block's transport in `:spine` while its verb table lives in `:block:<x>`; it removes the one production site C7 licenses |
+| a `:spine`-internal wrapper at the fold seam | `internal` in `:spine` is invisible to this root test project, where the replay suite hand-builds committed records |
+
+What is NOT at risk is the stamp: `Signature` is not a data class, so a copied Command carries its
+ORIGINAL signature and the boundary's authority check still keys on that. What a copy buys is a
+payload edited after signing — which replay detects, because the re-fold of the committed bytes
+disagrees with what was performed. Closing it structurally is ADR-001 §6's still-open decision;
+`GateTest`'s `C7(b)` holds the residue mechanically, so it can be neither forgotten nor quietly
+closed, and `OPEN-GAPS.md`'s signed-transport-copy row carries the record.
+
 **Why C15 is not redundant with C1.** C1 is a per-folder **allow**-list; C15 is a tier-level
 **denial** that no per-folder rule can accidentally relax, and it survives a future spine folder
 arriving with a permissive bucket. In Kotlin it also catches something C1 structurally *cannot*: the

@@ -17,7 +17,7 @@
 
 import type { Actor, Signature } from "./actor";
 import type { CommandId, ToolName } from "./ids";
-import type { ResultOutcome } from "./tool-result";
+import type { ResultOutcome, Sealed } from "./tool-result";
 
 export interface CommandBase {
   readonly outcome: ResultOutcome;
@@ -39,6 +39,11 @@ export interface RefusedCommand extends CommandBase {
 }
 
 export type SpineCommand = UnhandledCommand | RefusedCommand;
+
+/** What a COMMITTED record accepts. The same seal the results carry
+ *  (spine/pure/tool-result): a Command spread out of one a fold arm was handed
+ *  is a copy, and a copy is not a production. */
+export type SealedCommand = Sealed<CommandBase>;
 
 export function actorOf(command: CommandBase): Actor {
   return command.sig.by;

@@ -250,13 +250,23 @@ val CHECKS: List<Check> = listOf(
     // exists. `is TriageCommand.SetPriority ->` is a MATCH and stays legal
     // everywhere; `TriageCommand.SetPriority(` is a CONSTRUCTION and does not.
     //
-    // NAMED RESIDUE: a data-class variant also ships `copy()`, and `cmd.copy(…)`
-    // on a received command is a mint this text-level rule cannot see. The stamp
-    // itself cannot be forged that way — Signature is not a data class — so a
-    // copied Command carries its original sig; closing the rest structurally is
-    // ADR-001 §6's witness token. The TypeScript port carries the SAME residue
-    // in its own spelling — an object spread, `{ ...received }` — and both are
-    // recorded together in OPEN-GAPS.md, under the signed-transport-copy row.
+    // NAMED RESIDUE, AND IT IS NOW THIS PORT'S ALONE. A data-class variant also
+    // ships `copy()`, and `cmd.copy(…)` on a received command is a mint this
+    // text-level rule cannot see. The TypeScript port closed ITS half — the
+    // object spread `{ ...received }` — at the type, by sealing what the fold
+    // and a committed record accept with a brand no spread can carry. There is
+    // no Kotlin twin of that move, and the reason is measured rather than
+    // assumed: `copy()` reproduces every constructor value including any seal,
+    // so only a non-public constructor removes it — and that removes the VERB
+    // BODY with it, because ADR-001 §3's DAG declares a block's transport in
+    // `:spine` while its verb table lives in `:block:<x>`. A value-copy member
+    // is also what ADR-001 §1 ratifies for transport. The stamp itself is still
+    // not forgeable this way — Signature is not a data class — so a copied
+    // Command carries its original sig, and what a copy buys is a payload
+    // edited after signing, which replay detects. Closing it structurally is
+    // ADR-001 §6's open decision; the residue is held mechanically by
+    // GateTest's `C7(b)` and recorded in OPEN-GAPS.md's signed-transport-copy
+    // row, with the per-port asymmetry stated in each port's README.
     Check("C7", "signed transport is constructed only in a tool and at the boundary") { files ->
         val variants = GateFacts().transportVariants(files)
         val allowed = { file: GateFile ->

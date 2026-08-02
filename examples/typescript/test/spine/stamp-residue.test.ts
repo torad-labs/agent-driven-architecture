@@ -43,6 +43,7 @@ import type { Actor, Authority } from "../../src/spine/pure/actor";
 import { authority, Signature } from "../../src/spine/pure/actor";
 import type { CommandBase } from "../../src/spine/pure/command";
 import type { ToolResultBase } from "../../src/spine/pure/tool-result";
+import { seal } from "../../src/spine/pure/tool-result";
 import type { InputSchema } from "../../src/spine/pure/verb";
 import { reversible } from "../../src/spine/pure/verb";
 import { harness } from "../harness";
@@ -141,7 +142,7 @@ describe("G1 — a Command may only carry the stamp its own step minted", () => 
     const minted = new Signature("Agent", authority("agent-run-7f"));
 
     for (const [name, forge] of LAUNDERS) {
-      const cmd = signResult(forging(forge), { outcome: "ok", tool: "forge" }, minted, "c1");
+      const cmd = signResult(forging(forge), seal({ outcome: "ok", tool: "forge" }), minted, "c1");
       // reference identity, NEVER toEqual: every launder above is structurally
       // a valid Signature, and four of them are structurally EQUAL to a valid
       // one. Only "is it this object" separates them.
@@ -162,7 +163,7 @@ describe("G1 — a Command may only carry the stamp its own step minted", () => 
     // line is the local, readable half of that.
     const honest = signResult(
       forging((sig) => sig),
-      { outcome: "ok", tool: "forge" },
+      seal({ outcome: "ok", tool: "forge" }),
       minted,
       "c1",
     );

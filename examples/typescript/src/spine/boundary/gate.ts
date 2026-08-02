@@ -41,38 +41,40 @@
 
 import type { Authorization } from "../ports/authorization";
 import type { Signature } from "../pure/actor";
-import type { ToolResultBase } from "../pure/tool-result";
-import { isSpineResult, refused } from "../pure/tool-result";
+import type { SealedResult } from "../pure/tool-result";
+import { isSpineResult, refused, seal } from "../pure/tool-result";
 import type { Registry } from "./action";
 
 export function gate<S>(
-  result: ToolResultBase,
+  result: SealedResult,
   sig: Signature,
   state: S,
   registry: Registry<S>,
   authz: Authorization<S>,
-): ToolResultBase {
+): SealedResult {
   // Already a spine verdict (no verb ran, or an input failed to decode) —
   // there is nothing to gate, and it is already the thing that gets committed.
   if (isSpineResult(result)) return result;
   const verb = registry.get(result.tool);
   // Unreachable via resolveAction; kept total rather than thrown.
-  if (verb === undefined) return refused(result.tool, "no registered verb");
+  if (verb === undefined) return seal(refused(result.tool, "no registered verb"));
   switch (verb.kind) {
     case "Reversible":
       return result;
     case "Irreversible": {
       const requester = verb.requestedBy(state, result);
-      if (requester === null) return refused(result.tool, "no pending request");
+      if (requester === null) return seal(refused(result.tool, "no pending request"));
       if (requester === sig.authority) {
-        return refused(
-          result.tool,
-          "self-confirm: the confirming authority is the requesting authority",
+        return seal(
+          refused(
+            result.tool,
+            "self-confirm: the confirming authority is the requesting authority",
+          ),
         );
       }
       return authz.mayConfirm(sig, result, state)
         ? result
-        : refused(result.tool, "authority may not confirm this action");
+        : seal(refused(result.tool, "authority may not confirm this action"));
     }
     default: {
       const _never: never = verb;

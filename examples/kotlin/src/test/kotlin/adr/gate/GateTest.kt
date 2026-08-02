@@ -104,7 +104,7 @@ class GateTest {
 
     @Test fun `C6 - a per-item failure is never session-global`() = verify("C6")
 
-    @Test fun `C7 - one production site for ToolResult`() = verify("C7")
+    @Test fun `C7 - a block's ToolResult is CONSTRUCTED only in its verb table, and the spine's only at the boundary`() = verify("C7")
 
     @Test fun `C8 - the pure ring performs no IO`() = verify("C8")
 
@@ -916,6 +916,64 @@ class GateTest {
     }
 
     /**
+     * G1, the COPY half of C7 — and this test PINS AN OPEN RESIDUE rather than a wall.
+     *
+     * C7 is a CONSTRUCTION rule and copying is not construction: `cmd.copy(...)` on a
+     * received command is a mint the text-level derivation cannot see. The TypeScript
+     * port closed its own half of this — its spread route dies at the type, because a
+     * `#`-private brand is not a property an object spread can carry — and THIS PORT HAS
+     * NO SUCH WALL. The asymmetry is deliberate and it is recorded, not smoothed over:
+     *
+     *  · a value-copy member is exactly what ADR-001 §1 ratifies for transport
+     *    ("a description of what happened ... value semantics are wanted; `copy` is
+     *    correct"), and the same table sends the capability types the other way. Deleting
+     *    `data` here would contradict a ratified row AND take the value equality
+     *    `Replay.RecordMark` compares two records with.
+     *  · the only lever that removes `copy()` while keeping `data` is a non-public
+     *    constructor, and MEASURED on this tree it removes the VERB BODY with it:
+     *    `internal constructor` on `TriageResult.SetPriority` fails
+     *    `block/triage/.../Tools.kt` at the upcaster and at `run`, because ADR-001 §3's
+     *    DAG declares a block's transport inside `:spine` while its verb table lives in
+     *    `:block:<x>`. Two compile errors, both at the one production site C7 licenses.
+     *  · a `:spine`-internal wrapper at the fold seam has the same edge problem one step
+     *    out: MEASURED, `internal` in `:spine` is invisible to this root test project,
+     *    where the replay suite hand-builds committed records.
+     *
+     * So the closure is a structural decision this record does not get to take, and
+     * ADR-001 §6 is where it lives, still open. What this test buys is that the residue
+     * cannot be quietly forgotten OR quietly closed: land any of the three above and this
+     * goes red, which forces `OPEN-GAPS.md`'s signed-transport-copy row to move with it.
+     */
+    @Test
+    fun `C7(b) - every transport leaf still ships a public copy(), and that is recorded`() {
+        // The same shape `GateFacts.transportVariants` reads, narrowed to the classes
+        // that really EXTEND their union: a nested helper (the inbox's `DropReason`
+        // enum) is inside a transport union without being a case of it.
+        val leaves = live.flatMap { f -> f.file.classes(includeNested = true) }
+            .filter { it.name.endsWith("Result") || it.name.endsWith("Command") }
+            .flatMap { union ->
+                union.classes(includeNested = false)
+                    .filter { leaf -> leaf.parents(indirectParents = false).any { it.name == union.name } }
+            }
+        // NON-EMPTY first: a derivation that walked to nothing agrees with any tree at
+        // all, which is the exact rot C7's own anchor pin exists against.
+        assertTrue(leaves.size >= MIN_TRANSPORT_LEAVES, "the transport-leaf derivation went vacuous")
+        leaves.forEach { leaf ->
+            assertTrue(
+                leaf.hasDataModifier,
+                "`${leaf.name}` stopped being a data class — the copy residue may be CLOSED; " +
+                    "move OPEN-GAPS.md's signed-transport-copy row before deleting this pin",
+            )
+            assertTrue(
+                leaf.primaryConstructor?.hasInternalModifier != true &&
+                    leaf.primaryConstructor?.hasPrivateModifier != true,
+                "`${leaf.name}`'s constructor stopped being public, so `copy()` did too — " +
+                    "the residue may be CLOSED; move OPEN-GAPS.md's row before deleting this pin",
+            )
+        }
+    }
+
+    /**
      * G1, the COPY half of C4(d). The detekt half denies `Signature.<init>` as a
      * resolved call — but a `data class` ships a synthesized `copy()`, and
      * `sig.copy(by = Actor.Human)` is a SECOND production site with a different
@@ -1247,3 +1305,8 @@ private const val VERB_PACKAGE = "adr.spine.pure"
 
 /** The fixture pair the blast-radius census is proven against, in both polarities. */
 private const val BLAST_FIXTURE = "BLAST-RADIUS"
+
+/** A FLOOR, not a pin: the transport-leaf derivation must not walk to nothing, and a
+ *  block appending a case is a legitimate growth this number must not fight. Measured
+ *  on the landed tree, which carries 29. */
+private const val MIN_TRANSPORT_LEAVES = 8
