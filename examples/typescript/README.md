@@ -160,7 +160,7 @@ ONE edit site. Every excluded line below is named by number so you can add it ba
 |---|---|---|---|
 | 1 | the `ToolResult` case | `blocks/<X>/contract.ts` | it *is* the thing you are adding |
 | 2 | the `Command` case | `blocks/<X>/contract.ts` | it *is* the thing you are adding |
-| 3 | the `owns` narrowing predicate's tool-name clause | `blocks/<X>/contract.ts` | **nothing — see below** |
+| 3 | the `owns` narrowing predicate's claim entry | `blocks/<X>/contract.ts` | the compiler — see below |
 | 4 | the `Verb` entry (name, description, schema, pure `run`, `sign`, reversibility) | `blocks/<X>/tools.ts` | gate check C13 |
 | 5 | the fold-arm branch | `blocks/<X>/fold.ts` | `never`-guarded match |
 
@@ -173,16 +173,16 @@ verb where a carve-out would have hidden if one still existed:
 cd examples/typescript && grep -rnE 'setPanel|SetPanel' src/blocks/console
 ```
 
-Read it against the table: `contract.ts:29` the `SetPanelResult` interface, `:36` its membership of
-`ConsoleResult`, `:45` the `SetPanelCommand` interface, `:52` its membership of `ConsoleCommand`,
-`:59` the `owns` clause; `tools.ts:31` the verb entry (plus its two import lines at `:12` and `:13`);
-`fold.ts:24` the arm. Excluded and named: `contract.ts:8` is prose, and `console.test.ts` is the
-block's co-located test rather than a declaration. **So a verb is 5 declared sites and 9 edit lines**
+Read it against the table: `contract.ts:30` the `SetPanelResult` interface, `:37` its membership of
+`ConsoleResult`, `:46` the `SetPanelCommand` interface, `:53` its membership of `ConsoleCommand`,
+`:65` the `owns` claim entry; `tools.ts:31` the verb entry (plus its two import lines at `:12` and
+`:13`); `fold.ts:24` the arm. Excluded and named: `contract.ts:8` is prose, and `console.test.ts` is
+the block's co-located test rather than a declaration. **So a verb is 5 declared sites and 9 edit lines**
 — sites 1 and 2 each cost TWO edits in this port, the interface and its membership in a union that
 is written out by hand, which is precisely what Kotlin's sealed hierarchies do for you.
 
 **Where this port differs from Kotlin, and it is the interesting half of the row.** Kotlin pays four
-declared sites, not five — it has no hand-written `owns` — but two of its four are authored in the
+declared sites, not five — a sealed hierarchy needs no `owns` at all — but two of its four are authored in the
 `:spine` module, because Kotlin seals a hierarchy within one *module*. TypeScript pays a fifth site
 and keeps all five inside the block's own folder **and** its own workspace package, because
 `tsconfig` project references, not module sealing, are what closes this port. Neither port is
@@ -194,24 +194,41 @@ strictly cheaper; they pay in different currencies, and a single averaged number
 src/blocks/triage/fold.ts(51,13): error TS2322: Type '"resolveTicket"' is not assignable to type 'never'.
 ```
 
-**KNOWN HOLE — site 3 has no guard.** Each block exports an `owns` type predicate (`isTriageResult`)
-whose declared return type is `r is TriageResult` but whose body enumerates tool names by hand.
-Measured: with sites 1, 2, 4 and 5 written and `owns` left stale, `tsc --noEmit` exits **0**, `eslint`
-exits **0**, and the whole suite passes — then the verb fails at runtime the first time it is
-dispatched:
+**SITE 3 WAS THIS PORT'S ONE UNGUARDED SITE, and the measurement that made it one is kept here
+because the fix is only legible beside it.** Each block exported an `owns` type predicate
+(`isTriageResult`) whose declared return type was `r is TriageResult` and whose body enumerated tool
+names by hand. Measured on that shape: with sites 1, 2, 4 and 5 written and `owns` left stale,
+`tsc --noEmit` exited **0**, `eslint` exited **0**, and the whole suite passed — then the verb failed
+at runtime the first time it was dispatched:
 
 ```
 TypeError: out.effects is not iterable (cannot read property undefined)
   ❯ fold src/app/assemble.ts:50:13
 ```
 
-because `foldOk` fell through to `const _never: never = r; return _never;`, which returns
-`undefined`. Kotlin does not have this hole — its root dispatch is `is TriageResult ->`, a real sealed
-type check. **Do not write "4 sites, all compiler-forced" for this port.** Its number is five, and one
-of the five is on you.
+because `foldOk` fell through to `const _never: never = r; return _never;`, which returns `undefined`.
+
+**That shape is gone in two layers.** The predicate is now *derived*: `claims<ConsoleResult>({ … })`
+takes a table whose type is `Record<ConsoleResult["tool"], true>` — a mapped type over the block's own
+union — so the union case and its claim are ONE edit. Omit a case the union declares and the property
+is missing; name a tool it does not declare and the property is excess. Both are proved must-fail by
+`test/gate/fixtures/owns-under-claim/` and `test/gate/fixtures/owns-over-claim/`, each asserting
+`errors: 1` and `outOfFolder: []` — the error lands in the block's own file and nowhere else. What no
+type can state — that the union a block claims is still the set of verbs it *registers* — is the
+ownership census in `test/app/totality.test.ts`, which exercises every published `owns` over the whole
+live vocabulary and compares the set it accepts with the block's own registration. That the claim is
+*derived at all*, in every block folder on disk including the adopter template, is asserted by
+`test/laws/roster-count.test.ts`'s `undrivedOwns` — which denies the FORM `(r): r is XResult`, not a
+list of names, so a renamed hand-written predicate is caught too.
+
+The crash floor beneath all three is unchanged and still tested: an unclaimed result folds a
+diagnostic and a notice rather than returning `undefined`. **Do not write "4 sites, all
+compiler-forced" for this port.** Its number is still five; what changed is that the fifth is now
+named by a mapped type rather than by nothing. Kotlin pays four, because its root dispatch is
+`is TriageResult ->`, a real sealed type check, and it needs no claim table at all.
 
 **Out of folder, in the test tree: two hand-maintained name ledgers** — `test/app/totality.test.ts`'s
-verb map (`:55-56` for the inbox pair) and `test/gate/gate.test.ts`'s `declared` list (`:179-180`).
+verb map (`:65-66` for the inbox pair) and `test/gate/gate.test.ts`'s `declared` list (`:245-246`).
 Both deny, so both are on the edit list. A block going from one verb to two additionally needs its
 fold's `const _never: never = r.tool` changed to `= r` — that one *is* compiler-forced.
 
@@ -284,11 +301,14 @@ regenerated by `npm install` rather than authored. Every union membership is wri
 which is the whole TypeScript/Kotlin delta on this row: Kotlin's sealed hierarchies close themselves
 and pay instead by authoring the block's transport inside `:spine`.
 
-**Six gate ledgers move, and they are the receipt** for a new block carrying two verbs. Four are
+**Seven gate ledgers move, and they are the receipt** for a new block carrying two verbs. Four are
 structural: `test/gate/gate.test.ts`'s eight-package equality, `test/gate/anchors.test.ts`'s per-block
 file roster, `test/gate/exhaustiveness.test.ts`'s package farm, and `test/laws/edges.test.ts`'s package
 map. Two more are the verb ledgers row 1 already names: `test/app/totality.test.ts`'s verb map and
-`test/gate/gate.test.ts`'s `declared` list. The spine roster of 37 in `test/gate/gate.test.ts` does
+`test/gate/gate.test.ts`'s `declared` list. The seventh is a BLOCK ledger rather than a verb one and
+was added with the derived-`owns` hardening: `test/app/totality.test.ts`'s `OWNS` map, one entry per
+block, which the ownership census reads — a block present on disk but missing from it fails the file
+at collection rather than reporting silence, so it cannot be forgotten quietly. The spine roster of 37 in `test/gate/gate.test.ts` does
 **not** move — a block adds no spine file. One further pin sits in this port's tree but counts *both*
 ports, and is named here so nobody looks for it twice: the citation census's per-root file and
 citation counts in `test/laws/citations.test.ts`.
@@ -400,8 +420,9 @@ whose only `exports` subpath is `./register`, and write the six files this port'
 `src/blocks/console/` shows you: `contract.ts`, `slice.ts`, `tools.ts`, `fold.ts`, `project.ts`,
 `register.ts`. Four of the edits are the verb itself — the `ToolResult` case and the `Command` case
 in `contract.ts`, the `Verb` entry in `tools.ts`, the arm branch in `fold.ts` — and the fifth is the
-hand-kept `is<X>Result` predicate that TypeScript will not check for you. All five are inside the
-folder.
+`is<X>Result` claim entry: write it as `claims<XResult>({ … })`, a table the compiler keeps exhaustive
+over the block's own result union, so declaring a case and claiming it are one edit rather than two
+things to keep in step. All five are inside the folder.
 
 **5 — the root.** `src/app/` gets `contract.ts` (State as a product of slices, plus the three closed
 unions), `assemble.ts` (fold, project, projectContext) and `wire.ts` (ports to adapters, the effect
@@ -519,7 +540,7 @@ here rather than left to imply a parity that does not exist:
 | **CI** | `.github/workflows/ci.yml` runs `npm test` (and the Kotlin suite) on every push and pull request — the same entry point a developer runs locally, no CI-only rule set. |
 | **Dispatcher confinement of `submit`** | the consumer mints the turn's only channel and calls the boundary itself, so the reference cannot violate it — but an adopter who runs a turn on another thread could interleave two folds despite the design. Structural, **not gate-checkable**. |
 | **The abandoned turn can leak** | after a cancel-deadline timeout the turn may never unwind. The design bounds the *consumer*, not the turn; removing the leak needs an unbounded join, which 12.3 itself calls a hang. The leak is named, degraded, counted and folded — never hidden. |
-| **The `owns` type predicate is unguarded** | see the blast-radius note above: a new verb whose name is not added to `isXResult` typechecks and lints clean, then fails at runtime. TypeScript-only; Kotlin's root dispatch is a real sealed type check. |
+| **The `owns` type predicate is still a predicate** | it left this row. `owns` is derived from a claim table that is a mapped type over the block's own result union, so the two ways it could drift — omitting a declared case, naming an undeclared one — are a missing and an excess property, each proved must-fail by its own fixture under `test/gate/fixtures/`; the half no type can state, that the claim still matches the verbs the block *registers*, is the ownership census in `test/app/totality.test.ts`; and that every block folder on disk derives its claim at all is `test/laws/roster-count.test.ts`'s `undrivedOwns`, which denies the form rather than a name list. What remains structural rather than closed: the declared return type `r is TriageResult` is still a claim TypeScript **trusts**, so an author who bypasses `claims`, hand-writes a predicate *and* edits `undrivedOwns` to stop watching is back where this started. Kotlin needs none of the three, because its root dispatch is a real sealed type check. |
 
 ---
 

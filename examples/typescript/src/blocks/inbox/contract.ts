@@ -20,6 +20,7 @@
 import type { CommandBase } from "@adr/spine/pure/command";
 import type { SourceKey, SourceName } from "@adr/spine/pure/ids";
 import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import { claims } from "@adr/spine/pure/tool-result";
 
 export type DropReasonKind = "Conflated" | "Duplicate";
 
@@ -77,6 +78,10 @@ export type InboxCommand = NoteDropCommand | NoteFaultCommand;
 // This block contributes NO effect case. A drop is truth to be recorded, not an
 // action on the outside world.
 
-export function isInboxResult(r: ToolResultBase): r is InboxResult {
-  return r.outcome === "ok" && (r.tool === "noteDrop" || r.tool === "noteFault");
-}
+/** WHICH RESULTS THIS BLOCK'S ARM FOLDS, derived rather than written. The table
+ *  is a mapped type over the union above (`spine/pure/tool-result`), so a case
+ *  added there and a case claimed here are ONE edit: omit it and the property is
+ *  missing, name a tool the union does not declare and the property is excess.
+ *  The under-claiming predicate this used to be — green build, stale clause,
+ *  fall-through at run time — is not writable in this form. */
+export const isInboxResult = claims<InboxResult>({ noteDrop: true, noteFault: true });

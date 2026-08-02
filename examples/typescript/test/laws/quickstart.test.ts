@@ -40,7 +40,15 @@
 // claiming both lists are re-executed, and `GATE_SPLIT` is what holds it there.
 
 import { execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import {
@@ -649,5 +657,162 @@ describe("the walk — an adopter following this list gets a working one-verb ap
 
   afterAll(() => {
     rmSync(WALK, { recursive: true, force: true });
+  });
+});
+
+// ── THE SAME WALK, MUTATED — the template's fifth site is COMPILER-NAMED ──
+// The walk above proves the adopter list WORKS. This one proves the template's
+// own ownership claim cannot go stale, which is the property the port's six
+// blocks got from `claims<XResult>` and which the template must not drift away
+// from: it is the one copy an adopter clones.
+//
+// IT HAS TO BE A MATERIALISED-AND-COMPILED PROBE rather than a source read. The
+// template is excluded from this port's `tsconfig`, from `eslint.config.js` and
+// from `biome.json`, so nothing judges it in place; the only instrument that can
+// see a type error inside it is the template's OWN `npm run typecheck`, run on a
+// copy with the live spine beside it — which is exactly what step 6 instructs.
+//
+// THE MUTATION IS A SECOND VERB DECLARED AT ITS FOUR OTHER SITES — the result
+// case and the command case in `contract.ts`, the `Verb` entry in `tools.ts`, the
+// fold arm in `fold.ts` — with the claim entry DELIBERATELY OMITTED. That is the
+// authoring mistake OPEN-GAPS A6 recorded. Measured before the claim was derived:
+// this same mutation left `npm test` fully green and the template's own
+// `npm run typecheck` at exit 0, with the verb falling through to the unclaimed
+// arm at run time. It must now fail to compile, inside the block's own folder and
+// nowhere else.
+//
+// EVERY EDIT ASSERTS ITS ANCHOR BEFORE IT WRITES, so a template that moved fails
+// loudly rather than turning this proof into a silent no-op — the vacuous-fixture
+// failure this repository has shipped before. The edits run INSIDE the test
+// rather than in the describe body, so a legitimate change to the template
+// reddens this probe alone and leaves the walk's own thirty-five assertions to
+// report, correctly, that the adopter list still works.
+
+const MUTANT = join(PORT, ".work", "quickstart-walk-mutant");
+
+/** The same recipe as `materialise()`, into a SECOND directory so the walk above
+ *  keeps a pristine copy: template, then the LIVE spine, then the two links an
+ *  install would have made. */
+function materialiseMutant(): string {
+  rmSync(MUTANT, { recursive: true, force: true });
+  mkdirSync(join(MUTANT, "node_modules", "@adr"), { recursive: true });
+  cpSync(TEMPLATE, MUTANT, { recursive: true });
+  cpSync(join(PORT, "src", "spine"), join(MUTANT, "src", "spine"), { recursive: true });
+  symlinkSync("../../src/spine", join(MUTANT, "node_modules", "@adr", "spine"), "dir");
+  symlinkSync("../../src/blocks/notes", join(MUTANT, "node_modules", "@adr", "block-notes"), "dir");
+  return MUTANT;
+}
+
+/** One anchored edit inside the mutant. The anchor is ASSERTED, so a template
+ *  that moved fails loudly here instead of quietly proving nothing. */
+function mutate(relative: string, find: string, replace: string): void {
+  const file = join(MUTANT, relative);
+  const before = readFileSync(file, "utf8");
+  expect(before, `${relative} — the mutation's anchor has moved`).toContain(find);
+  writeFileSync(file, before.replace(find, replace));
+}
+
+const NOTES = "src/blocks/notes";
+
+/** A second verb, `archiveNote`, declared at every site a verb costs EXCEPT the
+ *  claim entry. Four appends, exactly the four an adopter would write. */
+function declareArchiveNoteWithoutClaiming(): void {
+  // APPEND 1 — the ToolResult case, and its membership of the block's union.
+  mutate(
+    `${NOTES}/contract.ts`,
+    "export type NotesResult = AddNoteResult;",
+    [
+      "export interface ArchiveNoteResult extends ToolResultBase {",
+      '  readonly outcome: "ok";',
+      '  readonly tool: "archiveNote";',
+      "  readonly text: string;",
+      "}",
+      "",
+      "export type NotesResult = AddNoteResult | ArchiveNoteResult;",
+    ].join("\n"),
+  );
+  // APPEND 2 — the Command case, and its membership.
+  mutate(
+    `${NOTES}/contract.ts`,
+    "export type NotesCommand = AddNoteCommand;",
+    [
+      "export interface ArchiveNoteCommand extends CommandBase {",
+      '  readonly outcome: "ok";',
+      '  readonly tool: "archiveNote";',
+      "  readonly text: string;",
+      "}",
+      "",
+      "export type NotesCommand = AddNoteCommand | ArchiveNoteCommand;",
+    ].join("\n"),
+  );
+  // APPEND 3 — the Verb entry, and the import it needs.
+  mutate(
+    `${NOTES}/tools.ts`,
+    'import type { AddNoteCommand, AddNoteResult } from "./contract";',
+    [
+      "import type {",
+      "  AddNoteCommand,",
+      "  AddNoteResult,",
+      "  ArchiveNoteCommand,",
+      "  ArchiveNoteResult,",
+      '} from "./contract";',
+    ].join("\n"),
+  );
+  mutate(
+    `${NOTES}/tools.ts`,
+    "    }),\n  ];\n}",
+    [
+      "    }),",
+      "    reversible<S, { text: string }, ArchiveNoteResult, ArchiveNoteCommand>({",
+      '      name: "archiveNote",',
+      '      describe: "Archive a note on the session.",',
+      "      schema: object({ text: string() }),",
+      '      run: (input) => ({ outcome: "ok", tool: "archiveNote", text: input.text }),',
+      "      sign: (result, sig, id) => ({",
+      '        outcome: "ok",',
+      '        tool: "archiveNote",',
+      "        sig,",
+      "        id,",
+      "        text: result.text,",
+      "      }),",
+      "    }),",
+      "  ];",
+      "}",
+    ].join("\n"),
+  );
+  // APPEND 4 — the fold arm, and the `never` widening a second case forces.
+  mutate(
+    `${NOTES}/fold.ts`,
+    "    default: {\n      const _never: never = r.tool;",
+    [
+      '    case "archiveNote": {',
+      "      return armOut(withNote(slice, r.text, now), [], []);",
+      "    }",
+      "    default: {",
+      "      const _never: never = r;",
+    ].join("\n"),
+  );
+}
+
+describe("the adopter template's own block cannot under-claim its verb table", () => {
+  const dir = materialiseMutant();
+
+  it("a verb declared at all four other sites, with NO claim entry, FAILS to compile", () => {
+    declareArchiveNoteWithoutClaiming();
+    const result = run("npm", ["run", "--prefix", dir, "typecheck"]);
+    expect(result.code).not.toBe(0);
+    expect(result.output).toContain(`${NOTES}/contract.ts`);
+    expect(result.output).toMatch(/error TS2345/);
+    expect(result.output).toContain("archiveNote");
+    // AND NOWHERE ELSE. The blast radius of a forgotten claim is the block's own
+    // folder — one file — which is the whole point of deriving it there.
+    const blamed = [
+      ...new Set([...result.output.matchAll(/^(\S+\.ts)\(\d+,\d+\): error/gm)].map((m) => m[1])),
+    ];
+    expect(blamed).toEqual([`${NOTES}/contract.ts`]);
+  });
+
+  afterAll(() => {
+    rmSync(MUTANT, { recursive: true, force: true });
   });
 });

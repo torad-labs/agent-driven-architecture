@@ -18,6 +18,7 @@
 import type { CommandBase } from "@adr/spine/pure/command";
 import type { PanelId, TicketId } from "@adr/spine/pure/ids";
 import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import { claims } from "@adr/spine/pure/tool-result";
 
 // ── ToolResult cases ────────────────────────────────────────────────────────
 export interface FocusTicketResult extends ToolResultBase {
@@ -55,6 +56,10 @@ export type ConsoleCommand = FocusTicketCommand | SetPanelCommand;
 // verbs (a layout decision is truth, not an outside-world action), not of
 // presentation blocks in general.
 
-export function isConsoleResult(r: ToolResultBase): r is ConsoleResult {
-  return r.outcome === "ok" && (r.tool === "focusTicket" || r.tool === "setPanel");
-}
+/** WHICH RESULTS THIS BLOCK'S ARM FOLDS, derived rather than written. The table
+ *  is a mapped type over the union above (`spine/pure/tool-result`), so a case
+ *  added there and a case claimed here are ONE edit: omit it and the property is
+ *  missing, name a tool the union does not declare and the property is excess.
+ *  The under-claiming predicate this used to be — green build, stale clause,
+ *  fall-through at run time — is not writable in this form. */
+export const isConsoleResult = claims<ConsoleResult>({ focusTicket: true, setPanel: true });

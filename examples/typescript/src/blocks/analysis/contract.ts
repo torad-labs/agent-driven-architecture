@@ -27,6 +27,7 @@ import type { CommandBase } from "@adr/spine/pure/command";
 import type { EffectBase } from "@adr/spine/pure/effect";
 import type { Recall } from "@adr/spine/pure/staged";
 import type { ToolResultBase } from "@adr/spine/pure/tool-result";
+import { claims } from "@adr/spine/pure/tool-result";
 
 // ── ToolResult cases ────────────────────────────────────────────────────────
 /** Carries the whole sealed `Recall` — text AND variant. That is what makes a
@@ -80,6 +81,13 @@ export interface PublishConclusion extends EffectBase {
 
 export type AnalysisEffect = PublishConclusion;
 
-export function isAnalysisResult(r: ToolResultBase): r is AnalysisResult {
-  return r.outcome === "ok" && (r.tool === "recallAnalysis" || r.tool === "publishAnalysis");
-}
+/** WHICH RESULTS THIS BLOCK'S ARM FOLDS, derived rather than written. The table
+ *  is a mapped type over the union above (`spine/pure/tool-result`), so a case
+ *  added there and a case claimed here are ONE edit: omit it and the property is
+ *  missing, name a tool the union does not declare and the property is excess.
+ *  The under-claiming predicate this used to be — green build, stale clause,
+ *  fall-through at run time — is not writable in this form. */
+export const isAnalysisResult = claims<AnalysisResult>({
+  recallAnalysis: true,
+  publishAnalysis: true,
+});

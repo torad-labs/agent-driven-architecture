@@ -1,0 +1,17 @@
+{
+  "why": "The same table's OTHER direction, which the missing-property rule does not cover. Claiming a tool the block's own union does not declare — a sibling's verb, or a name nothing registers — is an EXCESS property on a fresh object literal, so an over-claiming predicate is as unwritable as an under-claiming one. It rides a different block from its twin on purpose: two fixtures that shared a subject would prove one table exact rather than the shape of every table.",
+  "expect": {
+    "owner": "inbox",
+    "files": ["blocks/inbox/contract.ts"],
+    "errors": 1,
+    "perFile": { "blocks/inbox/contract.ts": 1 },
+    "outOfFolder": []
+  },
+  "edits": [
+    {
+      "file": "src/blocks/inbox/contract.ts",
+      "find": "claims<InboxResult>({ noteDrop: true, noteFault: true })",
+      "replace": "claims<InboxResult>({ noteDrop: true, noteFault: true, setPriority: true })"
+    }
+  ]
+}
