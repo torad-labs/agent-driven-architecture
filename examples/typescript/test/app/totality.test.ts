@@ -42,7 +42,7 @@ import { admit, ORPHAN_EFFECT } from "../../src/spine/pure/effect";
 import type { Timestamp } from "../../src/spine/pure/ids";
 import { keyedEffect } from "../../src/spine/pure/keyed-effect";
 import type { ToolResultBase } from "../../src/spine/pure/tool-result";
-import { refused } from "../../src/spine/pure/tool-result";
+import { refused, seal } from "../../src/spine/pure/tool-result";
 import type { BlockOwnership } from "../gate/totality";
 import { handlerGaps, ownershipGaps, UNREGISTERED_TOOL } from "../gate/totality";
 import { AGENT_RUN, harness } from "../harness";
@@ -82,7 +82,7 @@ describe("C13 — the verb-registry half", () => {
 
   it("the spine's own two cases sign too — a refusal is a decision (5.4)", () => {
     const { app } = harness();
-    expect(signResult(app.registry, refused("confirmSeal", "nope"), sig, "c9")).toEqual({
+    expect(signResult(app.registry, seal(refused("confirmSeal", "nope")), sig, "c9")).toEqual({
       outcome: "refused",
       tool: "confirmSeal",
       sig,

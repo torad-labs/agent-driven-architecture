@@ -56,6 +56,63 @@ export function isSpineResult(r: ToolResultBase): r is SpineResult {
   return r.outcome !== "ok";
 }
 
+// ── THE TRANSPORT SEAL — a COPY is not a production (G1) ───────────────────
+// C7 is a CONSTRUCTION rule and copying is not construction. `{ ...received }`
+// carries the `outcome` key without writing it, so it is invisible to every
+// key-named selector in the gate — MEASURED on the live tree: the spread
+// produced no lint message at all. The residue is recorded in OPEN-GAPS.md;
+// this is the layer that closes its TypeScript half.
+//
+// THE SHAPE IS THE ONE `Signature` ALREADY USES, and for the same measured
+// reason. A `unique symbol` brand — the `Authority` idiom one file away —
+// denies a bare literal and leaves the spread compiling, because TypeScript's
+// object-spread type carries a brand PROPERTY over from its source. A `#`
+// field is not a property, so a spread cannot carry it and a copy stops being
+// assignable where a sealed transport is asked for.
+//
+// WHY IT IS AN INTERSECTION AND NOT A WRAPPER. Every fold arm, every projection
+// and every consumer READS these values by field; a `{ value: … }` box would
+// put an unwrapping step in front of all of them, and the gate's own idiom is
+// that a wall costs the author nothing at the read site. `Sealed<T>` is
+// assignable to `T`, so every existing read is untouched — what changes is only
+// what may be HANDED to the fold, to the gate and to a committed record. A verb
+// body still returns a plain literal: block authoring is untouched, which is
+// the one production site 6.8 licenses.
+//
+// WHAT IT DOES NOT CLAIM. It closes SPELLING and assignability, exactly as far
+// as the stamp's own brand does: `Object.assign({}, received)` is `T & U`,
+// `structuredClone` is `T -> T`, and any user-written `<T>(t: T) => T` launders
+// any brand whatsoever. Those belong to the runtime layer the stamp already
+// carries — the identity check at the single `verb.sign` call site — not here.
+// The honest claim is "a copy is not assignable where the boundary and the fold
+// accept a transport", never "a transport cannot be forged".
+
+/** The brand. A `#` field is not a property, so no spread and no object
+ *  literal can carry it — only a value this class helped build. */
+export class TransportSeal {
+  readonly #sealed = true;
+}
+
+/** A transport value the spine itself produced. */
+export type Sealed<T> = T & TransportSeal;
+
+/** What the fold, the gate and a committed record accept. */
+export type SealedResult = Sealed<ToolResultBase>;
+
+/** THE MINT, and it has exactly two licensed callers: `spine/boundary`, where
+ *  every live result and every signed Command is produced, and 14.7's upcast in
+ *  `spine/pure/step-record`, which is the one path by which a HISTORICAL
+ *  payload enters the fold. Binding this name as a value anywhere else is a
+ *  `[C7]` error at every specifier spelling; the type aliases above stay
+ *  importable everywhere, because reading a sealed value is not minting one.
+ *
+ *  The constraint is `ToolResultBase` rather than a bare structural escape:
+ *  `CommandBase` carries `outcome` and `tool` too, so the one mint serves both
+ *  halves of the signed transport and nothing else can be handed to it. */
+export function seal<T extends ToolResultBase>(value: T): Sealed<T> {
+  return Object.assign(new TransportSeal(), value);
+}
+
 // ── WHICH RESULTS ARE MINE? — the block's half of the same question ─────────
 // The root dispatches an "ok" result by asking each block whether it owns it,
 // and TypeScript has no sealed sub-hierarchy to ask instead: the answer is a

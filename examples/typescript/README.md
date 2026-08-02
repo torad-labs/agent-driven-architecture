@@ -126,6 +126,53 @@ An `===` against a single variant is **not** a closed match. That was the shippe
 (`t.status.kind === "Open"`), and `test/gate/exhaustiveness.test.ts` now performs 15.4's G12
 self-check instead of asserting it.
 
+### A copy is not a construction — the transport seal
+
+C7 above is a **construction** rule, and it says so now. Copying is not construction: `{ ...received }`
+in a fold arm carries the `outcome` key without writing it, so every key-named selector in
+`eslint.config.js` is blind to it — measured on this tree, the spread produced no lint message at all.
+Widening the selector was not on offer either: `slice.ts:withPriority` spreads its own slice, and a
+rule that reddens idiomatic code is the nuisance §15.2 warns about.
+
+So this port closes it with a **type**, in the shape `Signature` already uses and for the same measured
+reason. `TransportSeal` (`src/spine/pure/tool-result.ts`) carries a `#`-private field; `Sealed<T>` is
+`T & TransportSeal`; and the seams that accept a transport — `Dispatchers.fold`, `boundary/gate`,
+`boundary/action`, and `StepRecord`'s `results` and `commands` — accept only sealed values. A `#` field
+is not a property, so no spread and no object literal can carry it; the `unique symbol` brand this port
+uses for `Authority` would NOT have worked, because an object spread propagates a brand property from
+its source.
+
+What it costs, measured on this folder:
+
+| site | change |
+|---|---|
+| a block's verb body, contract, arm, projection and slice | **none** — a verb still returns a plain literal, and `Sealed<T>` is assignable to `T`, so every field read is untouched |
+| the composition root's `fold` | one type name, four lines (`readonly Sealed<ToolResult>[]`) |
+| the committed record's bytes | **none** — a `#` field is not an own property, so `JSON.stringify`, key order and structural equality are byte-identical; `spine/replay`'s `sameMark` compares results exactly as before |
+| the mint | two licensed sites, both in `spine/` — `boundary/action` for every live result and signed Command, and `pure/step-record` for §14.7's upcast, the one path by which an old record reaches the fold |
+
+`test/gate/seal.test.ts` runs the real compiler over five copy vectors and one allow-file. The mint's
+own scarcity is three lint layers, and they carry a violating/compliant fixture pair inside
+`test/gate/fixtures/{violating,compliant}/C7` — including a file at the mint-bucket path
+`src/spine/pure/step-record.ts`, whose imports are deliberately RENAMED so a name-keyed rule scores
+zero on it:
+
+| layer | rides | denies |
+|---|---|---|
+| `C7_MINT` | every bucket EXCEPT the two that mint | naming `seal`/`TransportSeal` as a value at all — named, aliased, namespace or re-export |
+| `C7_SEAL` | the two minting buckets ONLY | the FORM of every value publication: a specifier, a non-literal `export const`, a reassignable export, a default export, a subclass |
+| `C7_LAUNDER` | every bucket | republishing either name under its shipped spelling |
+
+The honest claim is *a copy is not assignable where the boundary and the fold accept a transport*, never
+"a transport cannot be forged" — `Object.assign`, `structuredClone` and any user-written `<T>(t: T) => T`
+launder any brand whatsoever, which is why the runtime identity check at `verb.sign` still exists. And
+one publication shape stays open by construction: an exported FUNCTION wrapping the mint is not a value
+publication of it, and denying that form would redden `step-record`'s own `upcastV1`. That is the same
+residue `boundary.ts` already declares for the stamp.
+
+**The Kotlin port does NOT have this wall**, and the asymmetry is written down rather than smoothed over:
+see `OPEN-GAPS.md`, the signed-transport-copy row, for what was measured and why.
+
 **Take full advantage of the parent.** `TicketStatus` and `SealStatus` declare `requestedBy:
 Authority | null` on the sealed parent. The boundary gate reads "is a request pending, and who
 raised it?" off any variant with no match at all — so a fifth variant cannot be added without
@@ -597,7 +644,7 @@ one **allow-test** over `test/gate/fixtures/`. There is no warning tier.
 | C4 | G1 — `Actor`/`Authority`/`Signature` unnameable where a `ToolResult` is declared; the `Signature` constructor bindable only inside `spine/boundary`, re-exportable as a value from nowhere |
 | C5 | G9 — the fold cannot key an effect |
 | C6 | §12.4 — a block may not touch the session-global `RunStatus` |
-| C7 | G1 — one production site for `ToolResult` |
+| C7 | G1 — signed transport is CONSTRUCTED only in a verb body or at the boundary; a COPY is denied by the type, not by this check |
 | C8 | G2 — tools (and everything pure) are pure |
 | C9 | G12 — closed matches, no catch-all |
 | C10 | G7 — no module-level mutable state |

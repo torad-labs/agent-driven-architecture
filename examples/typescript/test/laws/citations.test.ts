@@ -276,7 +276,10 @@ const RESOLVABLE_PIN: Record<string, number> = {
   //   · the port README +2 — the freeze section's heading and its measured-series
   //     paragraph.
   // Nothing was removed elsewhere and no other root moved; 739 is the live figure.
-  "examples/kotlin": 739,
+  // +9 (739 -> 748): A7's Kotlin transport brand — the sealed transport denies
+  // external copy(), and the check/fixtures/ADR notes documenting it cite §6.6
+  // and D2 as the construction rule they narrow.
+  "examples/kotlin": 748,
   // a third of the TS files are gate fixture trees that cite far less than
   // the source they stand for
   // +1 (408 -> 409): `stateAtStep`'s doc comment in spine/replay/replay.ts cites
@@ -346,7 +349,11 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // same section for the same reason and §15.2 for the two-inputs-to-one-checker
   // shape it is built in. The triage predicate's 16.1 sentence is REWRITTEN, not
   // dropped, so it neither adds nor removes a credit. No citation was deleted.
-  "examples/typescript": 488,
+  // +18 (488 -> 506): A7's TypeScript transport brand — the #-branded transport
+  // type, the C7_LITERAL narrowing to construction, the brand's own gate
+  // fixtures (the step-record FORM vectors) and the replay round-trip note each
+  // cite G1/§6 and D2.
+  "examples/typescript": 506,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the
@@ -476,7 +483,8 @@ const FILE_PIN: Record<string, number> = {
   // table can drift. No source file was added: the derivation rides
   // `src/spine/pure/tool-result.ts`, which already declared the base the six
   // predicates narrow from, so the 37-file spine roster does not move.
-  "examples/typescript": 206,
+  // +6 (206 -> 212): A7 adds the brand type, its gate fixtures and the round-trip test.
+  "examples/typescript": 212,
   wiki: 10,
   // NEWLY PINNED alongside the resolvable bucket above, and +2 in the same
   // breath: CHANGELOG.md and RELEASE-RITUAL.md join laws.toml, README.md and

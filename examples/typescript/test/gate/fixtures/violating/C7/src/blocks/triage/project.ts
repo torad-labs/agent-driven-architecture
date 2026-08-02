@@ -9,3 +9,10 @@ export const forged = { ["out" + "come"]: "ok", tool: "setPriority", ticket: "41
 // case: `C7_IMPORT` could be deleted outright with the whole gate green.
 import { refused, unhandled } from "@adr/spine/pure/result";
 export const reached = [refused, unhandled];
+
+// VIOLATION: G1, the SEAL's mint half — a block reaching for the transport seal
+// can wrap `{ ...received }` and hand the result to the fold, which is the copy
+// route the type wall exists to close. Reading a sealed value is a TYPE import
+// and stays legal; binding the mint is not.
+import { seal } from "@adr/spine/pure/result";
+export const sealed = seal;

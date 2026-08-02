@@ -20,12 +20,12 @@
 //    place, and it is what makes the compile-time edit list total.
 
 import type { Signature } from "../pure/actor";
-import type { CommandBase, SpineCommand } from "../pure/command";
+import type { SealedCommand, SpineCommand } from "../pure/command";
 import type { CommandId, StepIndex, ToolName } from "../pure/ids";
 import type { StagedInput } from "../pure/staged";
 import type { Action } from "../pure/step-record";
-import type { ToolResultBase } from "../pure/tool-result";
-import { isSpineResult, unhandled } from "../pure/tool-result";
+import type { SealedResult } from "../pure/tool-result";
+import { isSpineResult, seal, unhandled } from "../pure/tool-result";
 import type { Ctx, Verb } from "../pure/verb";
 
 export type { Action } from "../pure/step-record";
@@ -80,17 +80,20 @@ export function registryOf<S>(verbs: readonly Verb<S>[]): Registry<S> {
   return new Map(verbs.map((v) => [v.name, v]));
 }
 
-/** name → ToolResult. Closed, boundary-owned, pre-fold. */
-export function resolveAction<S>(
-  registry: Registry<S>,
-  action: Action,
-  ctx: Ctx<S>,
-): ToolResultBase {
+/** name → ToolResult. Closed, boundary-owned, pre-fold.
+ *
+ *  IT IS ALSO WHERE THE SEAL IS APPLIED, and that is what makes "one production
+ *  site" a property of the TYPE rather than of a key-named lint. A verb body
+ *  returns a plain literal — block authoring is untouched — and this line is
+ *  the only place a live result becomes something the fold, the gate and a
+ *  committed record will accept. `{ ...received }` in a fold arm produces a
+ *  value none of the three take (spine/pure/tool-result). */
+export function resolveAction<S>(registry: Registry<S>, action: Action, ctx: Ctx<S>): SealedResult {
   const verb = registry.get(action.tool);
-  if (verb === undefined) return unhandled(action.tool, "no registered verb");
+  if (verb === undefined) return seal(unhandled(action.tool, "no registered verb"));
   const decoded = verb.decode(action.input);
-  if (!decoded.ok) return unhandled(action.tool, "input failed to decode");
-  return verb.run(decoded.input, ctx);
+  if (!decoded.ok) return seal(unhandled(action.tool, "input failed to decode"));
+  return seal(verb.run(decoded.input, ctx));
 }
 
 /** name → Command. The other half of the same registration (6.8). Under it
@@ -98,10 +101,10 @@ export function resolveAction<S>(
  *  two cases, because a refusal is a decision someone may need to ask about. */
 export function signResult<S>(
   registry: Registry<S>,
-  result: ToolResultBase,
+  result: SealedResult,
   sig: Signature,
   id: CommandId,
-): CommandBase {
+): SealedCommand {
   if (isSpineResult(result)) {
     switch (result.outcome) {
       case "unhandled": {
@@ -112,7 +115,7 @@ export function signResult<S>(
           id,
           note: result.note,
         };
-        return cmd;
+        return seal(cmd);
       }
       case "refused": {
         const cmd: SpineCommand = {
@@ -122,7 +125,7 @@ export function signResult<S>(
           id,
           reason: result.reason,
         };
-        return cmd;
+        return seal(cmd);
       }
       default: {
         const _never: never = result;
@@ -141,7 +144,7 @@ export function signResult<S>(
       id,
       note: "no registered verb",
     };
-    return cmd;
+    return seal(cmd);
   }
   // A COMMAND MAY ONLY CARRY THE STAMP THIS STEP MINTED — checked by IDENTITY,
   // and this is the ONLY layer that closes the constructed-forge class.
@@ -171,7 +174,7 @@ export function signResult<S>(
       id,
       reason: "forged signature",
     };
-    return refused;
+    return seal(refused);
   }
-  return cmd;
+  return seal(cmd);
 }

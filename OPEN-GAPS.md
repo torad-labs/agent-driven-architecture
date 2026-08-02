@@ -329,30 +329,90 @@ the finding this entry has always carried.
   `noteDrop`/`noteFault` now live in the inbox block's own contract, claimed by the inbox's `owns`,
   so no block's predicate under-claims its own verbs.
 
-## A7 · Signed transport can be copied, not only constructed — `open · named on both ports`
+## A7 · Signed transport can be copied, not only constructed — `TypeScript CLOSED · Kotlin open, measured`
 
 **The rule both ports ship is a CONSTRUCTION rule, and copying is not construction.** Kotlin's C7
 has always named its half of this (`cmd.copy(…)` on a received command, `Rules.kt`); the TypeScript
-half is the object spread, `{ ...received }`, which carries the `outcome` key without writing it and
-so passes a selector keyed on the property. Measured on the live tree: the spread produces no
-message. The TypeScript comment previously claimed the opposite — that `outcome` being a required
+half was the object spread, `{ ...received }`, which carries the `outcome` key without writing it and
+so passes a selector keyed on the property. Measured on the live tree at the time: the spread produced
+no message. The TypeScript comment previously claimed the opposite — that `outcome` being a required
 member meant no literal could be spelled without the key — which is true of a literal and false of a
-spread; that sentence is corrected, and this row is where the residue now lives.
+spread; that sentence was corrected, and this row is where the residue lives.
 
-**Why it is not closed by widening the rule.** Denying `SpreadElement` inside an `ObjectExpression`
+**Why it was not closed by widening the rule.** Denying `SpreadElement` inside an `ObjectExpression`
 in the pure buckets would redden legitimate code — `slice.ts:withPriority` spreads its own slice —
 and a rule that fires on idiomatic code is the nuisance §15.2 warns about, which authors turn off.
-The honest options are a type-level brand on the transport (the move D2 used for `Signature`) or a
-runtime identity check at the boundary; both are real work, neither is a comment.
+The honest options were a type-level brand on the transport (the move `docs/DECISIONS.md:23` used for
+`Signature`) or a runtime identity check at the boundary; both are real work, neither is a comment.
 
-**What is NOT at risk, and why this is `open` rather than a blocker.** The stamp cannot be forged
+**What is NOT at risk, and why this was `open` rather than a blocker.** The stamp cannot be forged
 this way in either port: `Signature` is a class in TypeScript and a non-data class in Kotlin, so a
 copied Command or ToolResult carries its ORIGINAL signature, and the boundary's authority check
 still keys on that. What a copy buys is a transport whose payload was edited after signing — which
 replay detects, because the re-fold of the committed bytes disagrees with what was performed.
 
-**Direction.** Brand the transport types the way `Signature` is branded, so a copy is not
-assignable; then narrow C7's claim to construction, which is what it actually enforces.
+### TypeScript — CLOSED at the type, with the mint's own scarcity closed at the FORM
+
+`spine/pure/tool-result.ts` gains `TransportSeal`, a class holding a `#`-private field, plus
+`Sealed<T> = T & TransportSeal`. The five seams that ACCEPT a transport take only sealed values:
+`Dispatchers.fold`, `boundary/gate`, `boundary/action` (both maps), and `StepRecord`'s `results` and
+`commands`. A `#` field is not a property, so no spread and no literal can carry it. The `unique
+symbol` brand this port already uses for `Authority` would NOT have worked — an object spread
+propagates a brand property from its source, which is the same measurement that made `Signature` a
+class rather than an intersection.
+
+Measured on the landed tree:
+
+| question | before | after |
+|---|---|---|
+| `{ ...received }` handed to `fold` / `gate` / a committed record | compiles, and the lint says nothing | 5 compile errors at 5 distinct seams (`test/gate/seal.test.ts`, real `tsc`, shipped flags) |
+| a verb body, a block contract, a fold arm, a projection, a slice | — | **untouched**; `Sealed<T>` is assignable to `T`, so every field read still compiles as written |
+| the composition root's `fold` | — | one type name, four lines |
+| the committed bytes | — | **identical**: `#`-private is not an own property, so `JSON.stringify`, key order and structural equality are unchanged, and `spine/replay`'s `sameMark` compares results exactly as before |
+| the mint | — | two licensed sites, both in `spine/`: `boundary/action` for every live result and signed Command, `pure/step-record` for §14.7's upcast, the one path by which an old record reaches the fold |
+
+**The mint's scarcity is a THREE-LAYER lint, and the middle layer is keyed on the form because a name
+was not enough.** `C7_MINT` denies binding `seal`/`TransportSeal` as a value in every bucket except
+the two that mint. Inside those two the name is legitimately in scope under any alias, so a name-keyed
+denial is defeated by one keystroke — MEASURED: `import { seal as s }; export const s5 = s;` and
+`import { TransportSeal as TS }; export class F extends TS {}` were both silent, and the second was
+silent in `spine/boundary` too, which C4's own seal walls. So `C7_SEAL` rides those two buckets and
+denies the SHAPE of every value publication: a specifier, a non-literal `export const`, a reassignable
+export, a default export, and any class with a superclass. Its fixture pair lives at the mint-bucket
+path `test/gate/fixtures/{violating,compliant}/C7/src/spine/pure/step-record.ts`, and the violating
+side is written entirely under RENAMED imports — a pair a name-keyed rule could pass would prove
+nothing.
+
+**What is still open on this port, stated rather than implied.** The honest claim is bounded to
+assignability: `Object.assign`, `structuredClone` and any user-written `<T>(t: T) => T` launder any
+brand whatsoever, exactly as they do for the stamp — which is why the runtime identity check at the
+single `verb.sign` call site is still the layer that closes the forge. And one publication shape stays
+open BY CONSTRUCTION: an exported FUNCTION wrapping the mint
+(`export function mintWrap(v) { return seal(v as never); }`) is not a value publication of it and no
+selector sees it — measured, it draws nothing. Denying that form would redden `step-record`'s own
+`upcastV1`, the exported function the exemption exists for. It is the same residue `boundary.ts`
+already declares for `Signature`, and it is why this heading says the COPY route is closed, never that
+a transport cannot be forged.
+
+### Kotlin — still open, and the three routes are now measured
+
+`copy()` reproduces every constructor value, including any seal placed there, so branding the value
+in place is not available in this language at all. The three real routes were compiled against the
+tree rather than argued about:
+
+| route | measured result |
+|---|---|
+| delete `data` from the transport leaves | contradicts ADR-001 §1's ratified table (`copy` is *correct* for a description of what happened) and removes the value equality `Replay.RecordMark` compares two records with |
+| `@ConsistentCopyVisibility` + `internal constructor` — the only lever that hides `copy()` while keeping `data` | 2 compile errors in `block/triage/…/Tools.kt`, at the upcaster and at `run`: ADR-001 §3's DAG declares a block's transport inside `:spine` while its verb table lives in `:block:<x>`, so hiding the constructor removes the one production site C7 licenses |
+| a `:spine`-internal wrapper at the fold seam (the TypeScript move, spelled for a language with no intersection types) | `internal` in `:spine` is invisible to the root test project, where the replay suite hand-builds committed records — so it needs either a build-logic friend-path grant or relocating that suite, neither of which any ratified record takes |
+
+So the Kotlin closure is a structural decision, and ADR-001 §6 already owns it as an open one.
+`GateTest`'s `C7(b)` now holds the residue mechanically: it derives every transport leaf from the live
+tree (29 today, against a floor of 8) and asserts each is still a `data class` with a public
+constructor, so the hole can be neither forgotten nor closed silently — landing any of the three above
+turns it red and forces this row to move with it.
+
+**Remaining direction.** Kotlin only, and it is ADR-001 §6's to take.
 
 ---
 

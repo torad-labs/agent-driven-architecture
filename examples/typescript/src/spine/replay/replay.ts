@@ -38,7 +38,7 @@ import type { KeyedEffect } from "../pure/keyed-effect";
 import { keyedEffect } from "../pure/keyed-effect";
 import { isPerceived } from "../pure/staged";
 import type { StepRecord } from "../pure/step-record";
-import type { ToolResultBase } from "../pure/tool-result";
+import type { SealedResult } from "../pure/tool-result";
 import type { Dispatchers } from "../pure/verb";
 
 export interface Refolded<S> {
@@ -240,7 +240,7 @@ export interface RecordMark {
    *  unchanged rendered context — and a corrupted offset then resumed a wrong
    *  tail with every mark agreeing. The results list separates every record the
    *  reference commits. */
-  readonly results: readonly ToolResultBase[];
+  readonly results: readonly SealedResult[];
 }
 
 /** Which reducer produced this prefix, how many committed steps it covers, and

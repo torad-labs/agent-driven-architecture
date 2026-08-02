@@ -12,3 +12,9 @@ export const stashed = {
   ticket: "9999",
   level: "High",
 };
+
+// VIOLATION: G1, the SEAL's launder half — republishing the mint under its own
+// SHIPPED name puts it back within reach of a block. Denied in EVERY bucket by
+// C7_LAUNDER, and a second time by C7_MINT, which reads the `from` clause: a
+// re-export is an import the specifier rule can still see.
+export { seal } from "@adr/spine/pure/result";

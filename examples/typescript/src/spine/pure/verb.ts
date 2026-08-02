@@ -18,7 +18,7 @@ import type { Attributed, EffectBase } from "./effect";
 import type { CommandId, RawInput, Timestamp, ToolName } from "./ids";
 import type { Notice } from "./notice";
 import type { StagedInput } from "./staged";
-import type { ToolResultBase } from "./tool-result";
+import type { SealedResult, ToolResultBase } from "./tool-result";
 
 // ── What a tool may read ────────────────────────────────────────────────────
 // NO actor. NO authority. NO Signature. Deleting `ctx.actor` is what makes an
@@ -175,7 +175,7 @@ export interface FoldOut<S> {
  *  deliberately: the app implements them over its own CLOSED unions
  *  (`readonly ToolResult[]`), while the spine may only name the open base. */
 export interface Dispatchers<S> {
-  fold(state: S, results: readonly ToolResultBase[], now: Timestamp, sig: Signature): FoldOut<S>;
+  fold(state: S, results: readonly SealedResult[], now: Timestamp, sig: Signature): FoldOut<S>;
   /** THE BOUND IS AN ARGUMENT, not a constant this function closes over
    *  (docs/DECISIONS.md:174). The boundary hands it the value the root wired,
    *  and replay can hand it a different one — which is the only way the

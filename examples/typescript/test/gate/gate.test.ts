@@ -99,7 +99,23 @@ const DENIED: Readonly<Record<string, Readonly<Record<string, number>>>> = {
   },
   C5: { "blocks/triage/fold.ts": 2 },
   C6: { "blocks/escalation/fold.ts": 1 },
-  C7: { "blocks/triage/fold.ts": 2, "blocks/triage/project.ts": 3 },
+  // +2 fold.ts (2 -> 4): the seal's LAUNDER vector, `export { seal } from …`,
+  // which C7_LAUNDER and C7_MINT each deny once — the re-export is a `from`
+  // clause the import rule can still read.
+  // +1 project.ts (3 -> 4): the seal's MINT vector, `import { seal }` in a block.
+  // NEW spine/pure/step-record.ts (7): the seal's FORM vectors, authored inside
+  // the bucket the mint is EXEMPTED for, which is the only place a value
+  // binding of it can exist. Every import in that file is RENAMED, so a
+  // name-keyed rule scores zero there by construction — the seven are the const
+  // rebinding, the specifier, the default, the subclass declaration, the class
+  // EXPRESSION (which counts twice: it is both a non-literal init and a
+  // superclass), and the reassignable `export let`. Measured off the tree, not
+  // derived: a number that moves is a clause that changed reach.
+  C7: {
+    "blocks/triage/fold.ts": 4,
+    "blocks/triage/project.ts": 4,
+    "spine/pure/step-record.ts": 7,
+  },
   C8: { "blocks/triage/tools.ts": 5 },
   C9: { "blocks/escalation/project.ts": 1 },
   C10: { "app/wire.ts": 1 },
