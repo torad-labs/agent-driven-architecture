@@ -1,0 +1,34 @@
+# TENET: Use runTest, not runBlocking in tests.
+# Rationale: runBlocking pins the thread, runs delays in real time, and lets leaked coroutines pass silently.
+# runTest gives virtual time + leak detection. Live-IO tests are exempt.
+id: tests-no-runblocking
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/*Live*Test.kt"
+  - "**/*Integration*Test.kt"
+  # A TEST rule must not police PRODUCTION sources. Its id says `tests-`, its message
+  # says "use runTest", and runTest is a test-only API — yet with no main-source
+  # exclusion it fired on examples/kotlin/src/main/kotlin/adr/app/Demo.kt and told
+  # production code to adopt a testing dependency. runBlocking in main sources is
+  # governed by its own two rules (no-runblocking-in-production, -in-common), which
+  # is where that judgement belongs.
+  - "**/src/main/**"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "Use runTest (kotlinx.coroutines.test), not runBlocking. runBlocking uses real time and hides leaks."
+rule:
+  any:
+    - pattern: runBlocking { $$$BODY }
+    - pattern: runBlocking($$$ARGS) { $$$BODY }
+    - pattern: import kotlinx.coroutines.runBlocking

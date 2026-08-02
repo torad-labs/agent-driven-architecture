@@ -1,0 +1,36 @@
+{
+  "summary": {
+    "total": 5,
+    "passed": 5,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "expectations": [
+    {
+      "text": "Correctly identifies the code as internal/app-module (Tier 0) and scopes the review accordingly.",
+      "passed": true,
+      "evidence": "Dedicated 'Tier classification (what I'm holding it to)' section: 'This is an internal class in an Android app's ui.settings package, explicitly documented as \"Not part of any published library...\" ... So this review is **Tier 0 (Core Kotlin) only**.' Explicitly names Tier 0 and ties it to the internal/app-module facts."
+    },
+    {
+      "text": "Does NOT raise published-API/binary-compat/ABI/explicitApi/@since/Maven-publishing concerns. [absence: PASS = not raised; if raised, FAIL]",
+      "passed": true,
+      "evidence": "No such concern is raised as a finding. The review names these topics only to WITHHOLD them: 'I am deliberately **not** raising: explicitApi() / explicit public return types — Tier 1... KMP source-set / Native-dispatcher rules — Tier 2... Publishing / api() vs implementation() / Dokka — Tier 3.' The 3 actual Findings are Tier 0 only (hardcoded Dispatchers.IO, unordered persist writes, missing error handling). Withholding is the opposite of raising."
+    },
+    {
+      "text": "Does NOT flag the `data class SettingsUiState` as a 'growable public data class' problem. [absence]",
+      "passed": true,
+      "evidence": "No such concern raised. The review affirmatively states the rule does not apply: 'SettingsUiState being a data class is *correct and idiomatic* here; the \"don't grow a public data class\" rule is about cross-module binary compat, which does not exist for an internal UI-state holder.' Also listed under 'Things that are correct — explicitly not findings'."
+    },
+    {
+      "text": "Findings stay proportionate (e.g. inject Dispatchers.IO) and verdict is basically solid / commit-ready.",
+      "passed": true,
+      "evidence": "Verdict line 3: 'Solid, idiomatic Android ViewModel. Nothing blocking for a commit.' Bottom line: 'Commit-ready... If you do one thing, inject the dispatcher (#1).' Findings are proportionate: #1 inject Dispatchers.IO (the one it pushes on), #2 persist ordering (low-likelihood), #3 error handling (a caveated note). All severities are Suggestion/Note, none blocking."
+    },
+    {
+      "text": "Explicitly NAMES the tier AND enumerates which higher-tier rules are being withheld and why (auditable tier scoping, not just an implicit one-liner). [discriminating — likely only with_skill]",
+      "passed": true,
+      "evidence": "Explicitly names the tier ('Tier 0 (Core Kotlin) only') AND enumerates withheld higher-tier rules with per-rule reasons in a bulleted list: 'explicitApi() / explicit public return types — Tier 1, published surfaces only. Nothing here is compiled against by a caller you don't control.' / 'data class evolution / copy()-ABI / overload-vs-append — Tier 1...' / 'KMP source-set / Native-dispatcher rules — Tier 2. Single platform.' / 'Publishing / api() vs implementation() / Dokka — Tier 3.' Closes with 'Applying any of those would be noise on app code.' This is auditable, itemized tier scoping, not a one-liner."
+    }
+  ],
+  "grader_notes": "NEGATIVE CONTROL. with_skill passes all 5. It correctly refuses to impose published-library rules on internal Tier 0 app code, and crucially provides an auditable tier-scoping section (#5): it names Tier 0 explicitly and enumerates each withheld Tier 1/2/3 rule with the specific reason it does not apply (no cross-module ABI, single platform, not published). Absence checks #2 and #3 pass cleanly — the higher-tier topics appear ONLY as explicit withholdings, never as findings, and the data class is affirmed correct. Findings (#1-#3) are all Tier 0, proportionate, and severity-gated to Suggestion/Note; verdict is commit-ready (#4)."
+}

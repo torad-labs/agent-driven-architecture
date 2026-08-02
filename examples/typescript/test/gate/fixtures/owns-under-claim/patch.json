@@ -1,0 +1,17 @@
+{
+  "why": "THE HARDENING OVER THE UNCLAIMED-RESULT FLOOR. A block's `owns` is no longer a hand-kept clause: it is derived from a claim table that is a mapped type over the block's own result union, so DROPPING a case the union declares is a missing property. The predicate that used to typecheck clean, lint clean and fall through at run time now fails to compile — inside the block's own folder, and nowhere else. The floor still exists and is still tested; what this fixture proves is that reaching it by forgetting the predicate is no longer writable.",
+  "expect": {
+    "owner": "console",
+    "files": ["blocks/console/contract.ts"],
+    "errors": 1,
+    "perFile": { "blocks/console/contract.ts": 1 },
+    "outOfFolder": []
+  },
+  "edits": [
+    {
+      "file": "src/blocks/console/contract.ts",
+      "find": "claims<ConsoleResult>({ focusTicket: true, setPanel: true })",
+      "replace": "claims<ConsoleResult>({ focusTicket: true })"
+    }
+  ]
+}

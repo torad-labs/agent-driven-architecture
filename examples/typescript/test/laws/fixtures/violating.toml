@@ -1,0 +1,715 @@
+# BLOCK-TEST for the registry check. Twenty-seven deliberate violations, one per law:
+#   G1  a law with NO enforcement layer             (the first bar)
+#   G2  a denying-check law whose pointer is GONE   (the un-resolved-string trap)
+#   G3  a denying-check law that names no check     (the second bar)
+#   G4  a LINT-OWNED check claiming an in-checker pair (the value-check escape)
+#   G5  a pointer that resolves to an EMPTY tree    (a fixture dir with nothing)
+#   G6  a law whose NOTE credits a check while the law names none
+#   G7  a law enforced on ONE PORT only
+#   G8  a law that dropped one PORT of a check id another law also holds
+#   G10 layers CLAIM the configuration-time rung, the headline does not
+#   G11 the headline CLAIMS a build edge, the layers do not
+#   G12 the rung claimed with edge evidence on ONE PORT ONLY
+#   G13 the rung claimed with NO edge evidence at all
+#   G14 a build edge declared while the layers omit the rung it proves
+#   G15 an edge whose file no longer DECLARES the token the row names
+#   G16 an edge pointer that resolves to nothing, and an edge naming a port the
+#       registry does not cover
+#   G17 a value check whose in-checker pair NAMES NO BLOCK-TEST, and one naming a
+#       case the file does not declare
+#   G18 a value-check site pointing at a file that is not there, and one that is
+#       not <path>::<title> at all
+#   G19 an on-disk row wearing a test site — the row nobody can say they read
+#   G20 an in-checker row wearing a fixture tree — the same defect, mirrored
+#   G21 a case that survives ONLY in the comment its deleting author left behind
+#   G22 a pair that is ONE input named twice — in-checker and on-disk, one each
+#   G23 a case switched off with `it.skip`, and one with `@Ignore`
+#   G24 a case switched off with `xit`, and one with `@Disabled`
+#   G25 a case that is only `it.todo`, and a backticked fun carrying no `@Test`
+#   G26 a case inside a SUITE that is switched off, and a title that occurs only
+#       as an argument in live code — quoted, but not a declaration
+#   G27 a block-test the runner would never execute: a path outside vitest's
+#       include shape, and one under its exclude list
+#   G28 a `pair` nobody can read — a PROTOTYPE key and an ordinary typo
+# G9 is the control: it holds the same duplicated id on BOTH ports and must not
+# be reported. A registry check that accepts this file is not a check.
+#
+# G17-G28 are the block half of "the shape difference is where the pair lives,
+# never whether there is one". Before them the in-checker branch asked for two
+# EMPTY fields and nothing else, so a value check could ship no block-test at all
+# and this file's own G4 row was the only thing the branch could ever report. The
+# two SHAPE-CONFUSION rows, G19 and G20, are the mirror pair: each field set is
+# refused the other's, in both directions, so neither can be the untested one.
+# G21 and G23-G26 are the block half of RESOLUTION rather than search: a quoted
+# substring is satisfied by a deleted case, a disabled case and a title in any
+# role at all, and each of those is spelled here separately because a matcher
+# that catches `it.skip` need not catch `xit`. G22 is the block half of "a pair
+# is two things", on BOTH shapes from one checker.
+#
+# G10-G14 are the block half of THE FLOOR RULE, and they are five laws rather
+# than one because the rule is a JOINT with four ways to come apart: the machine
+# field outranking the printed sentence, the sentence outranking the field, the
+# rung claimed where only the stronger port earns it, and the rung claimed on no
+# evidence at all. G15 and G16 are the block half of "pointers are resolved,
+# never trusted" for the same field — a deleted wall whose row survived it, and
+# a row pointing at nothing.
+
+vocabulary = ["configuration-time", "denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+
+[[laws]]
+id = "G1"
+name = "law-with-no-layer"
+layers = []
+headline = "Nothing holds it."
+note = "No layer declared at all."
+guarantee = "the fixture's guarantee cell"
+
+[[laws]]
+id = "G2"
+name = "law-with-a-dangling-pointer"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "Its fixture pointer names a directory that does not exist."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/GONE"
+compliant = "fixtures/compliant/GONE"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/GONE"
+compliant = "fixtures/compliant/GONE"
+
+[[laws]]
+id = "G3"
+name = "law-with-no-check"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It claims a denying layer and names nothing at all."
+guarantee = "the fixture's guarantee cell"
+
+[[laws]]
+id = "G4"
+name = "law-whose-lint-check-claims-a-value-pair"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "A lint-owned rule cannot carry its pair inside the checker."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C2"
+home = "eslint"
+pair = "in-checker"
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C2"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C2"
+compliant = "fixtures/compliant/C2"
+
+[[laws]]
+id = "G5"
+name = "law-with-an-empty-fixture-tree"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The directory is there and holds nothing."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C3"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/EMPTY"
+compliant = "fixtures/compliant/EMPTY"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C3"
+home = "detekt"
+pair = "on-disk"
+violating = "fixtures/violating/C3.kt"
+compliant = "fixtures/compliant/C3.kt"
+
+[[laws]]
+id = "G6"
+name = "law-whose-note-credits-a-check-it-does-not-name"
+layers = ["behavioral"]
+headline = "Behavioral."
+note = "The golden trace re-derives the digest; the purity check keeps the projections pure."
+guarantee = "the fixture's guarantee cell"
+
+[[laws]]
+id = "G7"
+name = "law-enforced-on-one-port-only"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It names a TypeScript rule and forgets that the other port has one too."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C4"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C4"
+compliant = "fixtures/compliant/C4"
+
+[[laws]]
+id = "G8"
+name = "law-that-dropped-one-port-of-a-shared-id"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It holds C11, which G9 also holds — so the surviving occurrence answers for both unless the trace is per port."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C11"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C11"
+compliant = "fixtures/compliant/C11"
+
+[[laws]]
+id = "G9"
+name = "the-control-law-that-is-correct"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The same duplicated id, held on BOTH ports. Nothing here may be reported."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C11"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C11"
+compliant = "fixtures/compliant/C11"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C11"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C11"
+compliant = "fixtures/compliant/C11"
+
+[[laws]]
+id = "G10"
+name = "layers-claim-a-rung-the-headline-does-not"
+layers = ["configuration-time", "denying-check"]
+headline = "Denying check."
+note = "The machine field claims the module graph holds this; the printed sentence says only that a rule denies it."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/edge/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G11"
+name = "headline-claims-a-rung-the-layers-do-not"
+layers = ["denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "The printed sentence promises a wall the registry does not record — the overclaim direction."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G12"
+name = "the-rung-earned-on-one-port-only"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "One port draws the edge and the other does not, and the cell that prints this speaks for both."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G13"
+name = "the-rung-claimed-on-no-evidence"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "A layer claim with nothing behind it — the shape that passed the whole gate before the floor rule."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G14"
+name = "a-wall-the-printed-cell-does-not-report"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "Both edges are named and the layer that would print them is missing — the underclaim direction."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/edge/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G15"
+name = "an-edge-whose-declaration-was-deleted"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "The path still resolves; the declaration that drew the refusal is gone and the row survived it."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/LOST/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G17"
+name = "a-value-pair-that-names-no-block-test"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One half is an empty string and the other names a case nobody wrote — the escape the in-checker branch left open."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = ""
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a case nobody ever wrote"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G18"
+name = "a-value-site-that-resolves-to-nothing"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One site names a file that is not there; the other is not a site at all, only a path."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/GONE/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G19"
+name = "an-on-disk-row-wearing-a-test-site"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It names two trees and a test site, so no reader can say which pair the check actually ships."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = ""
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G20"
+name = "an-in-checker-row-wearing-a-fixture-tree"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "It names its two test sites and a tree as well, so the tree is a pointer nobody resolves."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+violating = "fixtures/violating/C13"
+compliant = ""
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G21"
+name = "a-case-that-only-its-comment-remembers"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The case is gone and the note saying which case used to be here survived it — the bypass a quoted substring search cannot see."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/COMMENTED.test.ts::a case only a comment remembers"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/COMMENTED.kt::a case only the comment remembers"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G22"
+name = "a-pair-that-is-one-thing-named-twice"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One row names its block half and its allow half identically; the other names one tree for both. Each is a check shipping one half, spelled as two."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/violating/C1"
+
+[[laws]]
+id = "G23"
+name = "a-case-switched-off-with-skip"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The title is declared and the runner will not run it — the shape an appendix on fix-never-disable may least afford to accept."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/SKIP.test.ts::a case that is switched off"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/IGNORED.kt::a case switched off with Ignore"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G24"
+name = "a-case-switched-off-the-other-spellings"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "A matcher that catches one spelling need not catch the next, so `xit` and `@Disabled` are their own row."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/XIT.test.ts::a case switched off with an x"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/DISABLED.kt::a case switched off with Disabled"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G25"
+name = "a-case-that-was-never-a-case"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One is a plan the runner reports and never executes; the other is a backticked function no framework will ever call."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/TODO.test.ts::a case that is only a plan"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/NOTEST.kt::a helper that carries no Test annotation"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G26"
+name = "a-suite-switched-off-and-a-mere-mention"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One case is live inside a suite that is not; the other title is quoted in live code and declares nothing — the case that makes DECLARATION POSITION non-vacuous."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/DESCSKIP.test.ts::a case inside a suite that is switched off"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/MENTION.kt::a case nobody declares, only mentions"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G27"
+name = "a-block-test-the-runner-never-opens"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One path is outside the runner's include shape and the other sits under its exclude list, so both cases exist and neither ever runs."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/notatest.ts::a case in a file the runner never opens"
+allowTest = ".tsbuild/fixtures/site/live.test.ts::a case compiled into the build output"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G28"
+name = "a-pair-shape-nobody-can-read"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One names a key off Object's own prototype and the other is an ordinary typo; both must be REPORTED rather than crash the reader or fall through it."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "toString"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "on-dsik"
+
+[[laws]]
+id = "G16"
+name = "an-edge-pointing-at-nothing"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "One row names a path that is not there; a third names a port this registry does not cover."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/GONE/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/edge/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.edges]]
+port = "elixir"
+path = "fixtures/edge/mix.exs"
+token = "deps"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"

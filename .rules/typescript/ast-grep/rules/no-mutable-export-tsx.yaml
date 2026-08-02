@@ -1,0 +1,21 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: No mutable exports — exports should be const or readonly.
+# Rationale: Mutable module-level state creates hidden coupling.
+# Use const for exports, or encapsulate state in a class/closure.
+id: no-mutable-export-tsx
+language: tsx
+severity: error
+message: "Export const, not let. Mutable exports create hidden coupling."
+files:
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.tsx"
+  - "**/test/**"
+rule:
+  any:
+    - pattern: export let $VAR = $VALUE
+    - pattern: export let $VAR

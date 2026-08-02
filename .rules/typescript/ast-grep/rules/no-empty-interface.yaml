@@ -1,0 +1,14 @@
+# TENET: No empty interfaces.
+# Rationale: Empty interfaces are equivalent to {} or unknown.
+# Use a type alias or add meaningful members.
+id: no-empty-interface
+language: typescript
+severity: error
+message: "Empty interface is equivalent to {}. Use a type alias or add members."
+files:
+  - "**/*.ts"
+rule:
+  pattern: interface $NAME {}
+  not:
+    has:
+      kind: extends_type_clause

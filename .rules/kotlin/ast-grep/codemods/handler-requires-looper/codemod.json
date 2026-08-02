@@ -1,0 +1,11 @@
+{
+  "name": "handler-requires-looper",
+  "version": "1.0.0",
+  "targets": {
+    "languages": [
+      "kotlin"
+    ]
+  },
+  "category": "reference",
+  "installsLaw": "no-handler-without-looper"
+}

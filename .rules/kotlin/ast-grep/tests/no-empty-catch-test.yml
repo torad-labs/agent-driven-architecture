@@ -1,0 +1,11 @@
+id: no-empty-catch
+valid:
+  - |
+    fun f() {
+        try { g() } catch (e: Exception) { logger.warn(e) }
+    }
+invalid:
+  - |
+    fun f() {
+        try { g() } catch (e: Exception) {}
+    }

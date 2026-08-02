@@ -1,0 +1,15 @@
+id: no-child-process-in-src
+valid:
+  - |
+    @file:JsModule("node:http")
+
+    package good
+
+    external fun request(): dynamic
+invalid:
+  - |
+    @file:JsModule("node:child_process")
+
+    package bad
+
+    external fun spawn(): dynamic

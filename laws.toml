@@ -1,0 +1,561 @@
+# laws.toml — THE LAW REGISTRY. One source of truth for the sixteen
+# portable invariants: their public id, their invariant name, the layer that
+# actually holds each one, and the checks (with their fixture pairs) that do
+# the holding. The book's §15.3 table is ASSERTED against this file by
+# examples/typescript/test/laws/laws.test.ts, which also proves that no law
+# ships without an enforcement layer and no denying check ships without a
+# fixture pair that resolves on disk.
+#
+# Since §15's inversion each law's LAYER rides the law's own row — the fourth
+# cell of that one table — so id, name, guarantee and layer are read together
+# and cannot drift into two tables that disagree, in either keying.
+#
+# `layers` is a CLOSED vocabulary: configuration-time | denying-check |
+# compiler-proof | behavioral | discipline | structural-untested. `headline`
+# and `note` are the book cell, verbatim — the meta-check reconstructs the cell
+# from them byte for byte.
+#
+# THE FLOOR RULE, for `configuration-time` and for every token that follows it.
+# One `layers` field prints ONE cell, and that cell speaks for BOTH ports — so a
+# token may appear here only where the rung holds on EVERY port the registry
+# covers. A rung one port reaches earlier than the other is prose in the `note`;
+# it is never a headline word and never a `layers` entry, because a cell that
+# reports the stronger port has promised a wall the other port has not built.
+# The floor is mechanical, not a taste call: a law claiming the token owes one
+# `[[laws.edges]]` row PER PORT, checked in both directions by the shape rule.
+#
+# `[[laws.edges]]` — keys `port`, `path`, `token`, and nothing else. `token` is
+# the DECLARATION whose deletion removes the refusal, and the checker resolves
+# the path AND requires the token to still occur in it, so a wall that is
+# deleted while its row survives is red rather than green. Without that, a
+# layer claim with nothing behind it passed the entire gate — the one field in
+# this registry that was prose wearing a machine field's clothes.
+#
+# THE EDGED SET IS DERIVED BY MEASUREMENT, recorded here so it does not reopen.
+# A build edge is the declared, permitted-dependency relation between two
+# modules, and what it refuses it refuses before either module compiles.
+# Measured on both reference ports: a deep import of a sibling block's internals
+# is a resolution refusal on BOTH, so the dependency and isolation laws carry
+# the token. A foreign library named INSIDE a module the graph already permits
+# is refused on one port and accepted on the other — so neither the purity law
+# nor the foreign-import law qualifies, however structural either feels, and
+# both stay on the denying-check rung with the asymmetry stated in their notes
+# rather than dissolved into a headline.
+#
+# `pair = "in-checker"` is §15.2's listed shape difference: a check about
+# VALUES carries its block/allow pair as two inputs to the same checker, not
+# as two trees on disk. Only a home the lint does not own may declare it, and
+# "lint-owned" is DERIVED from the eslint config source and the konsist rule
+# list — never from a token in this file, which a forger would simply edit.
+#
+# THE SHAPE DIFFERENCE IS WHERE THE PAIR LIVES, NEVER WHETHER THERE IS ONE, and
+# for one landing this file said otherwise: the in-checker branch required
+# `violating` and `compliant` EMPTY and demanded nothing in their place, so a
+# value check could claim the shape, ship no block-test at all, and pass the
+# fixture assertion. So an in-checker row names `blockTest` and `allowTest`
+# instead, each `<path>::<exact test title>`, and the checker RESOLVES both
+# rather than reading them: the runner must be one that would open the file, the
+# file must still declare a case under that title in LIVE code, that declaration
+# must not be switched off, and the two halves must be two different cases. A
+# renamed case is red; a deleted one is red even with the deleting author's
+# comment left behind; a case turned off with `it.skip` or `@Ignore` is red,
+# because a disabled check denies nothing; and one site named twice is red,
+# because that is a row declaring one half while spelling two. The two field
+# pairs are mutually exclusive and each shape is refused the other's, so no row
+# can be read two ways — an in-checker row that also names a tree is reported,
+# and so is an on-disk row that names a test site. Both shapes are also refused a
+# pair that is one thing named twice, from the same checker, so neither branch
+# is held to a bar the other is not.
+#
+# SCOPE, DECLARED: this registry holds G-LAWS and nothing else. The reference
+# lint that enforces the public citation namespace (test/laws/citations.ts) is
+# a citation check, not a G-law — the ratified decisions record refuses a
+# seventeenth law, §16.4's bar being unmet — so it is deliberately absent from
+# the rows below rather than silently missing. This file is itself scanned by
+# that lint: the registry obeys the namespace it defines.
+
+vocabulary = ["configuration-time", "denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+
+[[laws]]
+id = "G1"
+name = "actor-stamped-at-boundary"
+layers = ["denying-check", "behavioral"]
+headline = "Denying checks + behavior."
+note = "One denying check holds the declaration rule (no Actor/Authority/Signature upstream); a second holds one production site for signed transport; the stamp's TYPE additionally denies construction outside that site — no value-copy member where the language ships one, a nominal brand where it does not. Neither type shape closes the forge on its own — a generic helper launders any brand — so the stamp is also frozen when minted, and a Command carrying a stamp other than the one its own step minted is refused at the boundary by identity. WHICH <code>Actor</code> rides that stamp is no longer a claim the payload makes: a finished step carries none, and the boundary publishes one submission channel per value, so a caller stamps what its channel stamps. That the boundary <em>stamps correctly</em> is behavioral (the boundary tests); that a caller cannot ask for a different value is the shape of the step type, and the gate was never the layer that held it — it compares Authorities and never reads <code>sig.by</code>."
+guarantee = "Every <code>Command</code> carries its <code>Actor</code> <em>and</em> the <code>Authority</code> it was admitted under, paired on one <code>Signature</code>. Both are stamped only at the boundary and neither can be forged upstream — an <code>Actor</code> is <strong>unrepresentable</strong> before that point, not merely unstamped: no tool result and no field of the read-only context may declare one (<a class=\"x\" href=\"#signed-command-bus\">5.3</a>). The Actor answers <em>who acted</em>; the Authority answers <em>under whose permission</em>; the irreversible gate keys on the Authority, never on the Actor."
+
+[[laws.checks]]
+port = "typescript"
+id = "C4"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C4"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C4"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C4"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C4"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C4"
+
+[[laws.checks]]
+port = "typescript"
+id = "C7"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C7"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C7"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C7"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C7"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C7"
+
+[[laws]]
+id = "G2"
+name = "tool-reads-context-only"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The inner and middle rings import no I/O, await nothing, read no ambient environment. Neither language has an effect type, so purity is not a shape a signature can carry."
+guarantee = "A tool may read the agent context but never write to it. Results flow out as a returned payload, folded at the boundary."
+
+[[laws.checks]]
+port = "typescript"
+id = "C8"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C8"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C8"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C8"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C8"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C8"
+
+[[laws]]
+id = "G3"
+name = "loop-is-declaration"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "The loop fails the build at its first decision point. No type says a function body branches, so the absence of control flow is not declarable."
+guarantee = "The agent loop is configuration only, no control flow, no business logic in the loop body or its lifecycle side-methods."
+
+[[laws.checks]]
+port = "typescript"
+id = "C14"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C14"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C14"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C14"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C14"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C14"
+
+[[laws]]
+id = "G4"
+name = "domain-imports-nothing-foreign"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "§1.3's import table as an allow-list, and the rung above it is out of reach for a reason worth stating. A module declares what it may depend on, so an edge can refuse a foreign module — but where a package manager hoists one copy of every dependency to a single root, a bare third-party name resolves from inside any module that root reaches, declared there or not. One reference port draws that edge and the other cannot, so the allow-list is where this law is held."
+guarantee = "The pure domain core imports no framework, transport, UI, or platform types. I/O lives only at the named edges."
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C1"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C1"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C1"
+
+[[laws]]
+id = "G5"
+name = "surface-decides-nothing"
+layers = ["discipline"]
+headline = "Discipline."
+note = "No check denies a deciding surface today. The reference surfaces are projections by construction, but nothing would catch a regression — this is the sharpest open edge in the map."
+guarantee = "A surface handler maps one interaction to exactly one action and contains no decision — no <em>domain/policy</em> branch on business state to decide what is true, and no <em>presentational</em> decision (whether to show an empty state, whether a control is enabled) computed in the view or the controller. The view renders <em>by</em> pre-computed values: it applies flags the <a class=\"x\" href=\"#stateless-reducer-agent\">view projection</a> already decided (<code>showEmptyState</code>, <code>isEnabled</code>) and reads which variant of a state to draw — it never computes the flag behind the branch. Rendering by a pre-decided value stays in the view; computing the decision belongs to the projection (<a class=\"x\" href=\"#stateless-reducer-agent\">6.9</a>)."
+
+[[laws]]
+id = "G6"
+name = "irreversible-action-gated"
+layers = ["denying-check", "behavioral"]
+headline = "Behavioral + three denying edges."
+note = "The gate's authority-vs-requester comparison and its committed verdict are exercised by tests, and three denying checks fence the seam: one forbids minting the gate's <code>Refused</code> verdict anywhere else, one forbids opening the fold's attributed output outside the admission rule, and one forbids constructing an <code>Irreversible</code>-class effect anywhere but its own pinned site. So an effect reaches the perform seam only through a licence check keyed on the result it came from. What remains unproven by denial is the boundary's own code path: nothing statically proves the ordered steps stay in order."
+guarantee = "An agent may dispatch only a non-destructive <code>Request</code> for an irreversible action; the destructive command needs explicit confirmation. The check runs <strong>at the boundary, before the fold commits</strong>, and compares the <em>confirming authority</em> against the <em>requesting authority recorded in State</em> — not against a <code>Human</code> literal (<a class=\"x\" href=\"#replay-and-recovery\">14.3</a>). A refusal is committed as an explicit <code>Refused</code> result, so it re-folds like any other decision and the authorization seam is never called again on replay."
+
+[[laws.checks]]
+port = "typescript"
+id = "C7"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C7"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C7"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C7"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C7"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C7"
+
+[[laws.checks]]
+port = "typescript"
+id = "C16"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C16"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C16"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C16"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C16"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C16"
+
+[[laws.checks]]
+port = "typescript"
+id = "C17"
+home = "vitest"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C17"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C17"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C17"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C17"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C17"
+
+[[laws]]
+id = "G7"
+name = "no-service-locators"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "No module-level mutable state; dependencies pass through the one root. A module graph bounds how far an ambient value travels, but it is drawn between modules and a locator is declared inside one, so nothing structural forbids reintroducing one beside the code that wants it."
+guarantee = "Dependencies are injected at one composition root; no global, no ambient locator, no module-level mutable state."
+
+[[laws.checks]]
+port = "typescript"
+id = "C10"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C10"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C10"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C10"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C10"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C10"
+
+[[laws]]
+id = "G8"
+name = "single-state-single-sink"
+layers = ["structural-untested"]
+headline = "Structural by type, un-denied."
+note = "The Controller exposes one value and one sink because its type declares nothing else; no rule would catch a second public member growing beside it."
+guarantee = "A surface controller exposes exactly one immutable value — the <code>ViewModel</code> projected from the one domain <code>State</code> (<a class=\"x\" href=\"#stateless-reducer-agent\">6.9</a>) — and one action sink, nothing else public. The projection is derived and read-only, so it is no second source of truth."
+
+[[laws]]
+id = "G9"
+name = "identity-and-clock-injected-at-boundary"
+layers = ["denying-check", "behavioral"]
+headline = "Denying checks + behavior."
+note = "Two checks deny — ambient clock, random and id including resolved calls, and effect keys nameable only by the boundary and replay; the capture-external-reads half is behavioral (relay and replay golden traces). Ambient reads are library calls in scope everywhere, so no visibility rule removes them."
+guarantee = "No model or tool reads the wall clock, draws a random number, or mints an id. The boundary passes <code>now</code> into the fold and assigns ids deterministically from the committed sequence. The same discipline extends to any tool whose <em>result</em> depends on an external source: it must be recorded as an ordered fixture and fed back on re-fold, never recomputed. And no fold may mint an effect's idempotency key: <code>Effect</code> carries no identity, the boundary alone derives <code>EffectKey(committed step index, effect index within the step)</code>, and <code>perform</code> accepts only a <code>KeyedEffect</code> (<a class=\"x\" href=\"#replay-and-recovery\">14.6</a>). This is the rule replay depends on most."
+
+[[laws.checks]]
+port = "typescript"
+id = "C3"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C3"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C3"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C3"
+home = "detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/detekt/violating/spine/pure/AmbientCapability.kt"
+compliant = "examples/kotlin/src/test/fixtures/detekt/compliant/spine/boundary/AmbientCapability.kt"
+
+[[laws.checks]]
+port = "typescript"
+id = "C5"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C5"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C5"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C5"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C5"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C5"
+
+[[laws]]
+id = "G10"
+name = "dependencies-point-inward"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edges + denying checks."
+note = "The module-crossing half is a build edge: a block declares the trunk as the only thing it may depend on, an adapter leaf declares its own block, and the trunk declares nothing at all — so a sibling block's internals are not a name those modules can resolve — refused by the module graph itself rather than by a rule that must run. An edge permits a WHOLE module, so it can neither deny a direction inside one module nor narrow which part of a permitted module a consumer may reach: a surface naming a reducer, and a block reaching past the trunk's pure tier into its impure one, both stay with the per-folder and per-tier denying checks."
+guarantee = "<a class=\"x\" href=\"#the-dependency-rule\">The dependency rule</a>, in its canonical wording: an import may point inward toward the core, or it is the composition root; it may never point outward from the core, sideways between adapters, or from a passive node — a surface or a tool — into anything but domain types. Concretely: a surface imports <code>State</code> and <code>Command</code> types only — never the <code>fold</code>, a policy, or any adapter — adapters never import one another (they meet at core-declared ports, wired at the root), and the core never names a surface or transport. Each forbidden edge — surface&rarr;infra, surface&rarr;reducer, domain&rarr;surface, adapter&rarr;adapter, tool&rarr;framework — is a structural break in unidirectional flow, port substitution, or replay, not a style note."
+
+[[laws.edges]]
+port = "typescript"
+path = "examples/typescript/src/blocks/triage/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "examples/kotlin/build-logic/src/main/kotlin/adr.block.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C1"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C1"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C1"
+
+[[laws.checks]]
+port = "typescript"
+id = "C15"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C15"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C15"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C15"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C15"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C15"
+
+[[laws]]
+id = "G11"
+name = "component-isolation"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edges + denying checks."
+note = "A block's permitted dependencies name the trunk and never a sibling, so a sibling's internals are unresolvable rather than merely forbidden — the edge, on both reference ports. Two cross-block routes survive it and the checks still hold them, both the interim state rather than the end state: a block's own <em>published</em> entry, which a package graph cannot show the root while hiding from a sibling, and — where a language requires every variant of a sealed set to live in one module — the block's transport hosted in the trunk under a <em>name-prefix</em> convention standing in for the module wall. View-state stays visible only to its own projection."
+guarantee = "A feature may be authored as a self-contained block whose public face is one or more tools and whose internals — a namespaced <code>State</code> slice, fold arms, a view-model, a port interface, and a private adapter behind that port — are owned by the block and invisible to siblings. Isolation grants no new power over the spine: the block's tools stay pure <code>(input, ctx) -&gt; payload</code> and perform no I/O (its repository is an injected read-only capability for reads, an effect descriptor performed at the one boundary for writes); every external read it makes is captured as an ordered fixture on the one timeline and replayed, never recomputed; it contributes <em>cases</em> to the one sealed <code>Command</code> and arms to the one fold but owns no bus, log, reducer, boundary, or composition-root wiring; its state is a slice of the one immutable <code>State</code>, never a separate root; it holds only ephemeral, non-replay-relevant view-state and never business truth; it emits an unsigned intent and never stamps the <code>Actor</code>; and blocks couple only through shared domain types, the one bus, and the one folded <code>State</code> — never by importing a sibling's internals. The block owns the leaves; the spine owns the trunk, and the trunk is never per-block. <strong>The failure this catches that <a class=\"x\" href=\"#enforced-constraints\">G10</a> cannot:</strong> a sibling coupling to this block's <code>State</code> slice <em>by its internal shape</em> rather than through the bus and the block's published slice contract &mdash; import-legal, since the slice sits on the one shared <code>State</code> both are entitled to read, yet exactly the cross-block coupling isolation forbids. G10 governs import <em>direction</em>; G11 governs what a block may <em>expose</em> and what a sibling may <em>lean on</em> &mdash; a failure no forbidden import would reveal."
+
+[[laws.edges]]
+port = "typescript"
+path = "examples/typescript/src/blocks/triage/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "examples/kotlin/build-logic/src/main/kotlin/adr.block.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C2"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C2"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C2"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C2"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C2"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C2"
+
+[[laws.checks]]
+port = "typescript"
+id = "C6"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C6"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C6"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C6"
+home = "konsist+detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C6"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C6"
+
+[[laws.checks]]
+port = "typescript"
+id = "C12"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C12"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C12"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C12"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C12"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C12"
+
+[[laws]]
+id = "G12"
+name = "exhaustive-discriminated-modeling"
+layers = ["denying-check", "compiler-proof"]
+headline = "Denying check + compiler proof."
+note = "No <code>else</code> over a sealed subject, type-aware, plus TWO checked-in compiler-proof fixture pairs the real compiler must break on at a named number of sites and nowhere else: a fifth state variant at exactly three sites, all inside the owning block, and a novel effect kind at exactly one PRODUCTION site, the owning block's own effect performer, plus each port's single out-of-folder gate ledger, which both READMEs name and measure."
+guarantee = "A value that is &ldquo;one of a fixed set&rdquo; — <code>State</code>, the run status, a command outcome, a presentational variant on the view-model — is modeled as a sealed discriminated union whose variants each carry their own payload, never as loose booleans (flag soup) or a bare string. Consumers handle it with a closed match and <em>no catch-all</em>, so the type system proves every case is handled and adding a variant fails to compile at every site that must handle it — the fold arm, the <a class=\"x\" href=\"#stateless-reducer-agent\">view projection</a>, the boundary's command map — until each is updated. Illegal combinations (a <code>Failed</code> with no reason, a <code>Loading</code>-and-<code>Done</code>) are unrepresentable rather than merely avoided. The missing case surfaces at build time, never at runtime (<a class=\"x\" href=\"#stateless-reducer-agent\">6.10</a>)."
+
+[[laws.checks]]
+port = "typescript"
+id = "C9"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C9"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C9"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C9"
+home = "detekt"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/detekt/violating/blocks/triage/CatchAllMatch.kt"
+compliant = "examples/kotlin/src/test/fixtures/detekt/compliant/blocks/triage/ClosedMatch.kt"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "examples/typescript/test/gate/gate.test.ts::DENIES a registry with a verb pulled out of it"
+allowTest = "examples/typescript/test/gate/gate.test.ts::ALLOWS the shipped registry — every declared verb is registered and signs"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "examples/kotlin/src/test/kotlin/adr/app/TotalityTest.kt::C13 BLOCK-TEST - a registry with a verb pulled out is DENIED"
+allowTest = "examples/kotlin/src/test/kotlin/adr/app/TotalityTest.kt::C13 - every ToolResult case has a registry entry, and every entry has a case"
+
+[[laws]]
+id = "G13"
+name = "contract-first-stable-interface"
+layers = ["denying-check", "discipline"]
+headline = "Denying check for the snapshot half; discipline for the rest."
+note = "A port file with a body fails. Both remaining halves are discipline, and the word is used here exactly as this column defines it — no machine holds them. The contract-<em>first</em> ordering half is temporal, as G13's own text states. The fresh-author trial is human: a person is handed one contract and asked to implement from it, and nothing automates that. What the release ritual adds is not a wall around either but a receipt for the second — the trial's shortlist is counted per release and its finding recorded — which is why the layer is declared rather than left to this note."
+guarantee = "Every seam a module presents outward — a core port, a block's port-and-adapter, a block's tool registration plus the slice shape siblings read off <code>State</code> — is a published, frozen contract: a stable public surface (inputs, outputs, shape invariants, error and tolerance semantics, written in a per-module coordination note) that downstream depends on instead of the implementation behind it. The contract lands first, as a skeleton, <em>before</em> its body; internals may then change freely without breaking any consumer; modules couple only through declared contracts, never hidden shared state, and each is tested against its own contract in isolation, without the rest of the workspace assembled. The governing check: an unfamiliar author can implement the module from its contract alone, never reading a sibling's source. This is narrower and more procedural than <code>dependencies-point-inward</code> (G10, import direction) or <code>component-isolation</code> (G11, ownership) — it adds the written, versioned contract, the skeleton-before-implementation order, and per-module test isolation those do not state. The outward interface is narrow and frozen; the module behind it may be deep, and the spine it contributes additive cases into stays open for extension (<a class=\"x\" href=\"#system-map-ports\">7.9</a>). <strong>The failure this catches that <a class=\"x\" href=\"#enforced-constraints\">G10</a> and <a class=\"x\" href=\"#enforced-constraints\">G11</a> do not:</strong> a block that <em>ships its body before its port is frozen</em>, leaving a sibling nothing stable to depend on, so it couples to internals that then change underneath it &mdash; import direction (G10) and ownership (G11) both hold at that instant; only contract-<em>first</em> ordering prevents it. What the gate mechanically keys on is a <em>snapshot</em>: a published contract <em>exists</em>, the implementation <em>conforms</em> to it, and the module <em>compiles and tests in isolation</em> against that contract alone &mdash; so a block that <em>imports</em> a sibling's internals fails its own isolation build, whatever the authoring order &mdash; while shape-coupling through the shared <code>State</code> is caught not here but by <a class=\"x\" href=\"#enforced-constraints\">G11</a>, since that coupling rides a type both blocks may legitimately import. Contract-<em>first</em> ordering is itself a temporal property a tree-snapshot gate cannot read &mdash; it is the authoring discipline those structural checks make cheap to follow, enforceable directly only by a history-aware CI check and never claimed of the snapshot gate, with the fresh-author criterion as the heuristic behind it."
+
+[[laws.checks]]
+port = "typescript"
+id = "C11"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C11"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C11"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C11"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C11"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C11"
+
+[[laws]]
+id = "G14"
+name = "spine-swapped-only-by-contract"
+layers = ["denying-check", "discipline"]
+headline = "Discipline, with one denied precondition."
+note = "The tier check keeps the spine liftable; whether a change swaps-by-contract or forks is a review judgment no snapshot rule reads."
+guarantee = "A spine component — the bus, the fold, replay, the mailbox, or the gate — is replaced only by supplying a new adapter behind its published <a class=\"x\" href=\"#system-map-ports\">contract</a>, never forked, bypassed, or weakened. The swap seams are a closed, named set; the laws (<a class=\"x\" href=\"#enforced-constraints\">G1</a>–G13, <a class=\"x\" href=\"#enforced-constraints\">G15</a>–G16) hold across every spine, default or custom. A spine change that needs more than one adapter, or that weakens an invariant, has left the architecture (<a class=\"x\" href=\"#runtime-vs-you\">8.5</a>)."
+
+[[laws.checks]]
+port = "typescript"
+id = "C15"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C15"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C15"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C15"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C15"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C15"
+
+[[laws]]
+id = "G15"
+name = "context-is-a-pure-projection"
+layers = ["behavioral"]
+headline = "Behavioral."
+note = "The committed digest is re-derived and compared on replay (the golden trace); the purity check keeps the projections pure. No rule denies a mutable accumulator shape statically."
+guarantee = "The reasoner's input <code>Context</code> is a pure projection of the committed <code>State</code> plus the input staged for this turn — <code>projectContext(state, staged, bounds) -&gt; Context</code> — assembled at the one root from each block's own <code>contextLines</code>. It is <strong>never a mutable accumulator</strong>: it is recomputed every step, never appended to. Its size is bounded by declaration independent of session length, and the rendered digest plus the active prompt version are captured on the timeline as an ordered fixture, then re-derived and compared on replay (<a class=\"x\" href=\"#stateless-reducer-agent\">6.11</a>, <a class=\"x\" href=\"#replay-and-recovery\">14.7</a>)."
+
+[[laws.checks]]
+port = "typescript"
+id = "C8"
+home = "eslint"
+pair = "on-disk"
+violating = "examples/typescript/test/gate/fixtures/violating/C8"
+compliant = "examples/typescript/test/gate/fixtures/compliant/C8"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C8"
+home = "konsist"
+pair = "on-disk"
+violating = "examples/kotlin/src/test/fixtures/konsist/violating/C8"
+compliant = "examples/kotlin/src/test/fixtures/konsist/compliant/C8"
+
+[[laws]]
+id = "G16"
+name = "artifact-is-a-folded-slice"
+layers = ["behavioral"]
+headline = "Behavioral."
+note = "The artifact re-derives in the recovery tests and diffs by value in the block tests. No rule denies an effect-assembled artifact statically."
+guarantee = "The generated artifact is a slice of the one folded <code>State</code>, one line per fold arm. It is <strong>never assembled by performed effects</strong>, so it re-derives from the recorded timeline, diffs by value, and survives a crash for free. Delivery is a <em>single</em> irreversible effect emitted at seal time and gated by <a class=\"x\" href=\"#enforced-constraints\">G6</a> — never one effect per line performed as the session goes, and never stubbed into invisibility on replay (<a class=\"x\" href=\"#the-inversion\">2.2</a>, <a class=\"x\" href=\"#concurrency-barge-in\">12.2</a>)."

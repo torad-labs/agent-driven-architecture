@@ -1,0 +1,7 @@
+{
+  "name": "@adr/block-notes",
+  "private": true,
+  "type": "module",
+  "exports": { "./register": "./register.ts" },
+  "dependencies": { "@adr/spine": "*" }
+}

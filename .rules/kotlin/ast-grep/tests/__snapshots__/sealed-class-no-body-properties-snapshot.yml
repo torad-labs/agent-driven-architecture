@@ -1,0 +1,64 @@
+id: sealed-class-no-body-properties
+snapshots:
+  ? |
+    package bad
+
+    sealed class Notice {
+        val at: Timestamp
+    }
+  : labels:
+    - source: 'val at: Timestamp'
+      style: primary
+      start: 39
+      end: 56
+    - source: |-
+        {
+            val at: Timestamp
+        }
+      style: secondary
+      start: 33
+      end: 58
+    - source: val
+      style: secondary
+      start: 39
+      end: 42
+    - source: |-
+        sealed class Notice {
+            val at: Timestamp
+        }
+      style: secondary
+      start: 13
+      end: 58
+  ? |
+    package bad
+
+    sealed class Recall {
+        data object Empty : Recall() {
+            override val text: String = ""
+        }
+    }
+  : labels:
+    - source: 'override val text: String = ""'
+      style: primary
+      start: 78
+      end: 108
+    - source: |-
+        {
+                override val text: String = ""
+            }
+      style: secondary
+      start: 68
+      end: 114
+    - source: val
+      style: secondary
+      start: 87
+      end: 90
+    - source: |-
+        sealed class Recall {
+            data object Empty : Recall() {
+                override val text: String = ""
+            }
+        }
+      style: secondary
+      start: 13
+      end: 116

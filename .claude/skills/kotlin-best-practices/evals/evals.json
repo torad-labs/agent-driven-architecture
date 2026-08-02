@@ -1,0 +1,41 @@
+{
+  "skill_name": "kotlin-best-practices",
+  "evals": [
+    {
+      "id": 1,
+      "name": "write-streaming-client-core",
+      "mode": "writing",
+      "tier": "0 (core / app)",
+      "prompt": "I'm building a Kotlin price-watch feature for our trading app. Write a class that connects to our SSE price stream at https://gw.acme.trading/v1/stream/{symbol}, exposes incoming price ticks to the UI as they arrive, retries on transient network errors, and shuts down cleanly when the user leaves the screen. We use Ktor for HTTP. I want it to be unit-testable.",
+      "expected_output": "Idiomatic Kotlin: a non-suspend function returning a cold Flow for the stream; cancellation handled correctly (CancellationException rethrown / not swallowed; no GlobalScope); injected dispatcher + HttpClient/engine for testability; retry that gates on transient errors with jittered/capped backoff rather than a bare while(true) catch-all; incremental framing rather than re-splitting an accumulating buffer; no per-call Json. Should NOT drown the app-level task in published-API/ABI/publishing rules.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "write-kmp-published-api",
+      "mode": "writing",
+      "tier": "0 + 1 + 2 (+3)",
+      "prompt": "I'm starting a small Kotlin Multiplatform library (JVM + iOS) that wraps a weather REST API. It'll be published to Maven Central and called from both Android and Swift. Design the public surface for me: the main client entry point, the result type for a forecast, and how errors are represented. I want it to age well and not break binary compatibility down the line.",
+      "expected_output": "A public surface designed for binary stability: explicit return/property types (explicitApi mindset); errors as a sealed hierarchy (not a growable data class / not bare exceptions); read-only collections in signatures; awareness that public-ABI dependency types must be api() not implementation(); avoids a public data class that will grow; commonMain stays platform-free; notes the iOS/Swift interop + publishing considerations (XCFramework/SKIE, single-macOS publish) at least briefly. Tiers 0+1+2 visibly applied.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "review-finds-core-bugs",
+      "mode": "review",
+      "tier": "0 (core)",
+      "prompt": "Can you review PriceStreamRepository.kt before I merge it? It works in my own testing but a teammate said the streaming felt off and prices sometimes freeze on the watchlist. Anything you'd flag?",
+      "expected_output": "A review that catches the planted Tier-0 smells: (a) runCatching wrapping a suspend call swallows CancellationException; (b) catch(e: Exception){} in the stream loop swallows everything incl. cancellation; (c) Json{} constructed per call; (d) returning the cached/0.0 value on failure masks the outage (fake success); (e) GlobalScope.launch in prefetch; (f) hardcoded Dispatchers.IO (untestable); (g) accumulated += chunk + re-split per iteration is O(n^2) and re-emits old lines; (h) bare while(true) with no backoff/cancellation. Each finding should explain the why and the fix. Should be framed at Tier 0 (this is app data code) — not demand explicitApi/ABI.",
+      "files": ["evals/files/PriceStreamRepository.kt"]
+    },
+    {
+      "id": 4,
+      "name": "review-respects-tiers",
+      "mode": "review",
+      "tier": "0 only (negative control for tiering)",
+      "prompt": "Quick review of SettingsViewModel.kt? It's an internal screen in our Android app — nothing outside the app module touches it. Just want a sanity check before I commit: is it idiomatic, anything sloppy?",
+      "expected_output": "Recognizes this is internal app code (Tier 0 only), so it does NOT raise published-API / binary-compatibility / ABI / explicitApi / @since / data-class-evolution / Maven-publishing concerns. The data class for UI state is correctly treated as fine (not flagged as a 'growable public data class'). Any findings stay at Tier 0 and are proportionate — e.g. the hardcoded Dispatchers.IO could be injected for testability — and the overall verdict is that the code is basically solid. A review that imposes library/ABI rules here is a failure.",
+      "files": ["evals/files/SettingsViewModel.kt"]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+# NORMALIZE: Prefer shorthand array types.
+# Rationale: Array<T> and T[] are equivalent for ordinary array types; T[] is
+# the house style and is a purely syntactic normalization.
+id: array-type-to-shorthand
+language: typescript
+severity: hint
+kind: astgrep-fix
+message: "Use T[] instead of Array<T>."
+rule:
+  pattern:
+    context: type __ToradArray = Array<$T>;
+    selector: generic_type
+fix: "$T[]"

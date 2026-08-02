@@ -1,0 +1,9 @@
+id: no-compose-in-core
+snapshots:
+  ? |
+    import androidx.compose.runtime.Composable
+  : labels:
+    - source: import androidx.compose.runtime.Composable
+      style: primary
+      start: 0
+      end: 42

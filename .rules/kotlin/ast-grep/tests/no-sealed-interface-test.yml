@@ -1,0 +1,43 @@
+id: no-sealed-interface
+valid:
+  # The doctrine: a sealed CLASS holds the shared state in its constructor as `open val`,
+  # so a variant carries it by construction and the parent's own members can read it.
+  - |
+    package good
+
+    sealed class Command(open val tool: ToolName, open val sig: Signature) {
+        data class Refused(
+            override val tool: ToolName,
+            override val sig: Signature,
+            val reason: String,
+        ) : Command(tool, sig)
+    }
+  # A sealed class with no shared state is still a class.
+  - |
+    package good
+
+    sealed class Gating {
+        data object Ungated : Gating()
+    }
+  # An ordinary interface is untouched — this rule is about SEALED hierarchies.
+  - |
+    package good
+
+    interface Clock {
+        fun now(): Timestamp
+    }
+invalid:
+  # An interface can only DECLARE that a property exists; the parent holds nothing, so
+  # "every Command carries a signature" is a promise each variant keeps separately.
+  - |
+    package bad
+
+    sealed interface Command {
+        val tool: ToolName
+    }
+  # Even with no members, the sealed root should be a class so shared state can be
+  # added later without a breaking change to every variant.
+  - |
+    package bad
+
+    sealed interface Gating

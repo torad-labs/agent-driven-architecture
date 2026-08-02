@@ -1,0 +1,13 @@
+id: no-runblocking-in-common
+snapshots:
+  ? |
+    package bad
+
+    import kotlinx.coroutines.runBlocking
+
+    fun work(): Int = runBlocking { 1 }
+  : labels:
+    - source: runBlocking { 1 }
+      style: primary
+      start: 70
+      end: 87

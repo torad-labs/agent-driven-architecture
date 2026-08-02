@@ -1,0 +1,28 @@
+# TENET: No mutable module-level state.
+# Rationale: Module-level let creates hidden global state.
+# Use const for module-level, manage state in stores/context.
+id: no-module-state
+language: typescript
+severity: error
+message: "No module-level let. Use const or manage state in stores/context."
+files:
+  - "**/*.ts"
+ignores:
+  - "**/test/**"
+rule:
+  kind: lexical_declaration
+  all:
+    - regex: "^let\\s"
+    - not:
+        inside:
+          # stopBy: end is LOAD-BEARING. Without it `inside` checks only the immediate
+          # parent — a `let` in a function body has `statement_block` as its parent, not
+          # the function — so every function-local `let` was reported as module state.
+          # Measured: 9 of 9 hits in examples/typescript were function-local
+          # (refold's accumulator, movingClock's counter). All false.
+          stopBy: end
+          any:
+            - kind: function_declaration
+            - kind: arrow_function
+            - kind: method_definition
+            - kind: function_expression

@@ -1,0 +1,22 @@
+[
+  {"query": "i've got a kotlin class that opens a websocket and pushes incoming messages into a SharedFlow, and a viewmodel collecting it — can you look it over before I ship? a teammate said it feels race-y and sometimes leaks after the screen closes", "should_trigger": true},
+  {"query": "starting a small kotlin library that other teams in our company will compile against. how should I shape the public API and error types so I don't break their builds when I add features in a few months?", "should_trigger": true},
+  {"query": "review my retry helper please — it's a suspend fun that wraps the ktor call in runCatching and loops 3 times on any exception", "should_trigger": true},
+  {"query": "i need to read a streaming newline-delimited JSON response from our pricing service in kotlin and expose each row to the UI as a flow, without buffering the whole thing in memory. what's the right structure?", "should_trigger": true},
+  {"query": "we keep getting NoSuchMethodError in a downstream app every time we ship a new version of our kotlin sdk. what are we doing wrong with our public api and how do we lock it down?", "should_trigger": true},
+  {"query": "can you review this kotlinx.serialization model? it's polymorphic (a sealed Message type) and I'm worried the wire format breaks when the backend adds new message kinds or fields", "should_trigger": true},
+  {"query": "write me a cancellation-safe, unit-testable coroutine rate limiter in kotlin — N permits per second, suspends callers when over budget", "should_trigger": true},
+  {"query": "our KMP module's commonMain stopped compiling for the iOS target after someone added a java.time.Instant call. what's the right way to structure this so it works on all platforms?", "should_trigger": true},
+  {"query": "going to publish my kotlin multiplatform library to maven central and have it consumed from swift on iOS. what do I need to get right so the swift API isn't garbage and the publish doesn't fail?", "should_trigger": true},
+  {"query": "is it idiomatic to model the result of my parser as a sealed interface with a when over it, or should I just throw exceptions? this is for a library others use", "should_trigger": true},
+  {"query": "convert this Java service class to idiomatic Kotlin — it's a Spring @Service with a bunch of Lombok @Data and constructor injection", "should_trigger": false},
+  {"query": "our KMP build broke after upgrading to AGP 9.0 — the com.android.kotlin.multiplatform.library plugin is conflicting with the old kotlin-android setup. how do I migrate?", "should_trigger": false},
+  {"query": "migrate our iOS interop from cocoapods (the kotlin native.cocoapods block) over to swift package manager / swiftPMDependencies", "should_trigger": false},
+  {"query": "my Hibernate @Entity is a kotlin data class and equals/hashCode is acting weird, plus I'm hitting LazyInitializationException on the orders relation", "should_trigger": false},
+  {"query": "can you explain how kotlin coroutines actually work under the hood — like what is a Continuation and how does suspend get compiled?", "should_trigger": false},
+  {"query": "what's the difference between val and var in kotlin, and when should I use lateinit?", "should_trigger": false},
+  {"query": "review my Jetpack Compose screen — recomposition is janky, the @Composable re-renders the whole list on every keystroke and scrolling drops frames", "should_trigger": false},
+  {"query": "help me write a custom Gradle plugin in Kotlin that registers a task to stamp the build number into a resource file", "should_trigger": false},
+  {"query": "write a SQL query to find duplicate orders in our postgres table grouped by customer and day", "should_trigger": false},
+  {"query": "set up a github actions workflow yaml to run ./gradlew check and cache the gradle and konan dirs on every PR", "should_trigger": false}
+]

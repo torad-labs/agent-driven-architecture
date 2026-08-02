@@ -1,0 +1,11 @@
+id: no-unsafe-bang-bang
+valid:
+  - |
+    package good
+
+    fun length(value: String?): Int = value?.length ?: 0
+invalid:
+  - |
+    package bad
+
+    fun length(value: String?): Int = value!!.length

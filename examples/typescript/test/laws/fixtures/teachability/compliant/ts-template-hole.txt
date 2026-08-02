@@ -1,0 +1,14 @@
+// A READER-SHAPE fixture. The first member's value is a template literal whose
+// interpolation hole contains a backtick. A scanner that treats the backtick
+// inside the hole as the string's end reads the rest of the file one kind of
+// text out of phase and DROPS the two members after it — and fewer members is a
+// better score, which is the direction this census refuses.
+
+import { alphaArm } from "./fold";
+import { alphaView } from "./project";
+
+export const alpha = {
+  name: `alpha${"`"}suffix`,
+  arm: alphaArm,
+  view: alphaView,
+} as const;

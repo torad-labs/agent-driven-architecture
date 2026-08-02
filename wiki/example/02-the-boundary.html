@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Seam 02 · The boundary adapter — the one impure ring</title>
-<meta name="description" content="The boundary adapter: the single place the pure core touches the world, and the only object in the system allowed to be impure. It mints identity, reads the clock, stamps the Actor, commits to the bus, and performs effects — and nothing else does." />
+<title>Seam 02 · The boundary adapter — the one impure object</title>
+<meta name="description" content="The boundary adapter: the single place the pure core touches the world, and the only object in the system allowed to be impure. It reads the clock, projects the context, resolves an open Action to a sealed ToolResult, stamps the Signature, gates irreversible actions on Authority, mints identity, commits the step, and keys and performs effects — and nothing else does any of it." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="agentd.css" />
@@ -46,41 +46,52 @@
     </div>
 
     <header class="hero" style="padding-top:34px">
-      <span class="kicker">Seam 02 · The one impure ring</span>
+      <span class="kicker">Seam 02 · The one impure object</span>
       <h1>The <span class="em">boundary</span> adapter.</h1>
-      <p class="stand">The single place the pure core touches the world — and the <b>only object in the system allowed to be impure</b>. It mints identity, reads the clock, stamps the <code class="i">Actor</code>, commits to the bus, and performs effects. Nothing else does any of those things.</p>
+      <p class="stand">The single place the pure core touches the world — and the <b>only object in the system allowed to be impure</b>. It reads the clock, projects the context, resolves an open <code class="i">Action</code> into a sealed <code class="i">ToolResult</code>, stamps the <code class="i">Signature</code>, gates the irreversible, mints identity, commits the step, and keys and performs the effects. Nothing else does any of those things.</p>
     </header>
 
     <section id="slots" class="rv">
       <div class="sec-head"><span class="num">▸</span><h2>The seam at a glance</h2></div>
       <p class="lede">The eight slots, the same shape as every other seam. Read these, then the deep-dive below.</p>
       <div class="slots">
-        <div class="slot"><div class="k">The seam</div><div class="v">The membrane between the pure core and the impure world. Its job: turn a finished agent step into <em>committed, signed, performed</em> reality.</div></div>
-        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> the <a class="x" href="01-state-and-fold.html">fold</a> and <code>State</code> decide what is true. <strong>Outer:</strong> the clock, the id source, the append-only log, the effect sinks. The boundary is the one thing that touches both.</div></div>
-        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> a finished <code>step</code> (tool calls + <code>ToolResult</code> payloads). <strong>Out:</strong> signed <code>Command</code>s to the bus, and <code>Effect</code> descriptors performed on the world. <strong>Forbidden:</strong> the fold never receives the clock, an id, or a live sink; a tool never performs an effect.</div></div>
-        <div class="slot"><div class="k">Direction</div><div class="v">Source dependency points <em>inward</em> — the boundary names the fold; the fold names nothing out here. Control flows <em>outward</em> — the boundary drives the world only after the fold has decided.</div></div>
-        <div class="slot"><div class="k">The inversion</div><div class="v">The fold returns <code>Effect</code> <em>descriptors</em> (plain data); the boundary is the adapter that knows how to <code>perform</code> them. The core reaches the world through data it returns, never through a reference to a sink it holds.</div></div>
-        <div class="slot"><div class="k">Why it exists</div><div class="v">To confine <em>all</em> impurity — identity, clock, actor-stamping, commit, effects — to one auditable place, so everything else is pure and the whole session replays deterministically.</div></div>
-        <div class="slot"><div class="k">What breaks</div><div class="v">Mint an id, read the clock, or perform an effect anywhere else and re-fold stops being deterministic — <code>replayTest</code> diverges. Stamp the <code>Actor</code> anywhere else and it can be forged.</div></div>
-        <div class="slot"><div class="k">The test</div><div class="v">The boundary is the <em>one</em> object you test with doubles: a fake clock, a fake id-sequence, a recording sink — then assert the order <em>commit → perform</em>. Everything else is pure and needs none.</div></div>
+        <div class="slot"><div class="k">The seam</div><div class="v">The membrane between the pure core and the impure world. Its job: turn a finished step — a list of open <code>Action</code>s — into <em>resolved, gated, committed, signed, performed</em> reality, in a fixed order.</div></div>
+        <div class="slot"><div class="k">Each side</div><div class="v"><strong>Inner:</strong> the <a class="x" href="01-state-and-fold.html">fold</a> and <code>State</code> decide what is true; the registry's verbs and <code>projectContext</code> are pure and are called from here. <strong>Outer:</strong> the clock, the id source, the append-only bus, the authorization seam, the effect sinks. The boundary is the one thing that touches both.</div></div>
+        <div class="slot crosses"><div class="k">What crosses</div><div class="v"><strong>In:</strong> a <code>FinishedStep</code> — the staged input and a list of <code>Action</code>s: open <code>(name, rawInput)</code> pairs. It arrives on one of the boundary's three submission channels, and who acted is the channel's answer, never the step's. <strong>Out:</strong> one <code>StepRecord</code> to the bus, and <code>KeyedEffect</code>s performed on the world. <strong>Forbidden:</strong> the fold never receives the clock, an id, or a live sink; a verb never performs an effect; nothing upstream of the stamp may name an <code>Actor</code>.</div></div>
+        <div class="slot"><div class="k">Direction</div><div class="v">Source dependency points <em>inward</em> — the boundary names the fold; the fold names nothing out here. Control flows <em>outward</em> — the boundary drives the world only after the fold has decided and the bus has accepted.</div></div>
+        <div class="slot"><div class="k">The inversion</div><div class="v">The fold returns <code>Effect</code> <em>descriptors</em> (plain data, unkeyed); the boundary is the adapter that keys them from the committed index and knows how to <code>perform</code> them. The core reaches the world through data it returns, never through a reference to a sink it holds.</div></div>
+        <div class="slot"><div class="k">Why it exists</div><div class="v">To confine <em>all</em> impurity — clock, identity, the stamp, authority, commit, effects — to one auditable place, so everything else is pure and a live session re-derives exactly from its own committed bytes.</div></div>
+        <div class="slot"><div class="k">What breaks</div><div class="v">Mint an id, read the clock, or perform an effect anywhere else and the re-fold stops matching the live run — <code>replayTest</code> diverges. Let anything upstream carry an <code>Actor</code> and authorship becomes forgeable at its source.</div></div>
+        <div class="slot"><div class="k">The test</div><div class="v">The boundary is the <em>one</em> object you test with doubles: a fake clock, a fake id-sequence, a scripted authority, a recording sink — then assert the order <em>gate → fold → commit → perform</em>, and that a refused action committed a <code>Refused</code> result and fired nothing. Everything else is pure and needs none.</div></div>
       </div>
     </section>
 
     <section id="what" class="rv">
       <div class="sec-head"><span class="num">A</span><h2>What it is</h2></div>
-      <p>When an agent step finishes, the runtime hands the boundary one thing: the <code class="i">step</code> — the tool calls the model made and the <code class="i">ToolResult</code> payloads they returned. The boundary turns that into reality, in a fixed order, and this is the whole of it:</p>
+      <p>When a step finishes, the runtime hands the boundary one thing: a <code class="i">FinishedStep</code> — what was staged for the turn, and a list of <code class="i">Action</code>s. It does <em>not</em> say who acted: that is decided by which of the boundary's three channels the step arrived on, and a caller holds one. An <code class="i">Action</code> is deliberately weak: a tool <em>name</em> and a raw input, both open, both possibly nonsense. It is the only open input in the system, and this is the seam that closes it. The boundary turns that into reality, in a fixed order, and this is the whole of it:</p>
 
       <div class="code"><div class="bar"><span class="path">the one impure seam — verbatim from the assembled program</span><span class="lang">pseudocode</span></div>
-<pre><code class="language-plaintext">boundary.onStepFinish(step):
-  now     = clock.read()                                   // (1) injected clock — G9
-  results = step.toolResults
-  (s, fx) = fold(state, results, now)                      // (2) pure call — decide
-  signed  = step.calls.map(c -&gt; sign(c, by = Actor.Agent, id = nextId()))  // (3) mint id + stamp the literal actor
-  append(bus, signed, results)                             // (4) COMMIT to the append-only log
-  state   = s                                              // (5) adopt the new truth
-  for f in fx: perform(f, mode = LIVE, key = f.id)         // (6) the only place effects run</code></pre></div>
+<pre><code class="language-plaintext">boundary.&lt;channel&gt;(step: FinishedStep):                  // human | agent | spine
+  by      = the channel's own Actor                        // (0) NOT a field of the step
+  now     = clock.now()                                    // (1) the ONLY clock read in the system (G9)
+  ctx     = Ctx(state, projectContext(state, step.staged, bounds)) // (2) the third pure projection
+  results = step.actions.map(a -&gt; resolveAction(registry, a, ctx))   // (3) the ONE name → ToolResult map
+  sig     = Signature(by = by,                             // (4) the stamp — WHO, and under whose permission
+                      authority = authz.authorityOf(by, session))
+  gated   = results.map(r -&gt; gate(r, sig, state, registry, authz))   // (5) PRE-FOLD, so the verdict commits
+  (s, fx) = fold(state, gated, now, sig)                   // (6) pure call — decide
+  index   = append(bus, StepRecord {                       // (7) COMMIT the step, not the pair
+              schemaVersion, now, sig,                     //     the envelope rides the record (14.7)
+              staged: step.staged, actions: step.actions, results: gated,
+              commands: gated.map(r -&gt; sign(registry, r, sig, nextId())),   // EVERY verb signs
+              context:  ContextFixture(promptVersion, render(ctx.context)) })
+  state   = s                                              // (8) adopt the new truth
+  for (i, f) in fx:                                        // (9) the only place effects run —
+    perform(KeyedEffect(EffectKey(index, i), f), mode = LIVE)   //     keyed from the COMMITTED index</code></pre></div>
 
-      <p>Six lines, and every impure capability in the system is in them: the <em>clock</em> (1), <em>identity</em> and the <em>actor stamp</em> (3), the <em>commit</em> (4), and <em>effects</em> (6). Step (2) — the decision — is a call into the pure <a class="x" href="01-state-and-fold.html">fold</a>, which touches none of those things. The boundary is the adapter; the fold is the policy.</p>
+      <p>Nine steps, and every impure capability in the system is in them: the <em>clock</em> (1), the <em>stamp</em> and the <em>authority lookup</em> (4), the <em>gate</em> (5), <em>identity</em> and the <em>commit</em> (7), and <em>effects</em> (9). Steps (2), (3) and (6) are calls into pure code — <code class="i">projectContext</code>, the registry's verbs, and the <a class="x" href="01-state-and-fold.html">fold</a> — none of which touches any of those things. The boundary is the adapter; the fold is the policy.</p>
+
+      <p><strong>The order is not a style choice; three of the pairings are load-bearing.</strong> The results are produced at (3), <em>before</em> the signature exists at (4) — so nothing downstream can learn who acted except through <code class="i">sig</code>, and there is exactly one such value per step rather than two that might disagree. The gate runs at (5), <em>before</em> the fold at (6) and before the commit at (7) — so what gets committed is already the verdict, and a re-fold reproduces the refusal without calling the authorization seam a second time. And the effect key at (9) is built from the index that (7) returned — so step (9) <em>cannot</em> run before step (7) has, not by convention but because the value it needs does not exist yet.</p>
 
       <figure>
         <div class="diagram"><pre class="mermaid">
@@ -90,44 +101,61 @@ flowchart LR
   end
   CLK["clock"] -. now .-> B
   IDS["id source"] -. id .-> B
-  B["boundary adapter"] --> F
-  F -. "(state', effects)" .-> B
-  B --> BUS["command bus<br/>(append-only)"]
-  B --> SINK["effect sinks<br/>(world)"]
+  AUZ["authorization"] -. authority .-> B
+  B["boundary adapter<br/>resolve · stamp · gate"] --> F
+  F -. "(state', unkeyed effects)" .-> B
+  B --> BUS["command bus<br/>(append-only StepRecords)"]
+  BUS -. "committed index" .-> B
+  B --> SINK["effect sinks<br/>(world) — KeyedEffect only"]
   style PURE fill:#14161d,stroke:#f23a48,color:#e7e8ec
   style F fill:#1a1012,stroke:#f23a48,color:#ffd7da
   style B fill:#0c0e13,stroke:#7c8aa0,color:#e7e8ec
         </pre></div>
-        <figcaption><b>Figure.</b> The clock and the id source feed <b>only</b> the boundary. The fold is called with <code>now</code> already read — it never reaches for it.</figcaption>
+        <figcaption><b>Figure.</b> The clock, the id source and the authorization seam feed <b>only</b> the boundary. The fold is called with <code>now</code> and <code>sig</code> already read — it never reaches for them — and returns effects with no key. The key comes back <em>from the bus</em>, as the committed index, which is why perform cannot precede commit.</figcaption>
       </figure>
     </section>
 
     <section id="crosses" class="rv">
       <div class="sec-head"><span class="num">B</span><h2>What crosses it — and the rule that makes a human override free</h2></div>
-      <p>Two data structures leave the boundary, and both are plain data — never an entity, never a live handle. Outbound to the bus: a <strong>signed <code class="i">Command</code></strong>. Outbound to the world: <strong><code class="i">Effect</code> descriptors</strong>, performed. The <code class="i">Command</code> is where identity and authorship are minted:</p>
+      <p>Two data structures leave the boundary, and both are plain data — never an entity, never a live handle. Outbound to the bus: one <strong><code class="i">StepRecord</code></strong>, carrying the signed <code class="i">Command</code>s. Outbound to the world: <strong><code class="i">KeyedEffect</code>s</strong>, performed. The <code class="i">Command</code> is where identity and authorship are minted:</p>
 
-      <div class="code"><div class="bar"><span class="path">the signed action — what crosses to the bus</span><span class="lang">pseudocode</span></div>
-<pre><code class="language-plaintext">enum Actor { Human, Agent }
-sealed Command(by: Actor) {
-  SetPriority(by, id: CmdId, ticket: TicketId, level: Priority)
-  RequestEscalation(by, id: CmdId, ticket: TicketId)    // a request — reversible
-  ConfirmEscalation(by, id: CmdId, ticket: TicketId)    // irreversible — pages only when by is a separate authority (host), never the requesting agent
+      <div class="code"><div class="bar"><span class="path">the stamp and the signed action — what crosses to the bus</span><span class="lang">pseudocode</span></div>
+<pre><code class="language-plaintext">enum Actor    { Human, Agent, Spine }           // WHO acted — grows only at architecture revision
+value Authority(id: Text)                       // UNDER WHOSE permission — an opaque principal, not a variant set
+value Signature(by: Actor, authority: Authority)             // minted at the boundary, and nowhere else — one
+                                                             // production site in the app: a stamp a tool or a fold
+                                                             // conjures for itself is a forged stamp (book 5.3)
+sealed Command(tool: ToolName, sig: Signature, id: CmdId) {  // the parent declares all three
+  SetPriority(ticket: TicketId, level: Priority)
+  RequestEscalation(ticket: TicketId)                 // a request — reversible
+  ConfirmEscalation(ticket: TicketId)                 // irreversible — gated at the boundary, on AUTHORITY
+  FocusTicket(ticket: TicketId)                       // presentation — an authored act, so it signs
+  SetPanel(panel: PanelId, visible: Bool)             // presentation — likewise
+  Unhandled(note: Text) | Refused(reason: Text)       // a refusal is a decision; it signs too
 }</code></pre></div>
 
-      <p><strong>The <code class="i">Actor</code> is stamped here, at the boundary, and nowhere else.</strong> This is the rule that makes the architecture's headline move real: because a human tap and an agent tool-call both become a <code class="i">Command</code> at this one seam — identical but for <code class="i">by: Human</code> vs. <code class="i">by: Agent</code> — they flow through the <em>same</em> bus, the <em>same</em> fold, the <em>same</em> replay path. Letting a human do what the agent does is therefore not new code; it is the same command with a different stamp. In <em>A Typical Scenario</em>, swap step 4's <code class="i">Actor.Agent</code> for <code class="i">Actor.Human</code> and every other step is byte-for-byte identical.</p>
+      <p><strong>The stamp is minted here — and, more to the point, it is <em>unrepresentable</em> anywhere else.</strong> That distinction is the difference between a convention and a mechanism, and only the second one holds. Look back at line (3): the results are produced <em>before</em> line (4) has minted a signature, and no <code class="i">ToolResult</code> case and no <code class="i">Ctx</code> field has a type that could hold an <code class="i">Actor</code> or an <code class="i">Authority</code> in the first place. So a verb cannot report who is asking — not because it has been asked not to, but because there is no field to write it into and no value in scope to copy. There is exactly one authorship value per step, it is created after the work has been described, and everything downstream reads it from the same place.</p>
 
-      <p>The bus the command lands on is append-only and observable — a committed, replayable record. &ldquo;Commit&rdquo; at line (4) means exactly this: the signed command and its results are durably appended <em>before</em> any effect fires at line (6). That ordering is not cosmetic; it is what guarantees no effect is ever performed for a decision that was not recorded.</p>
+      <p>This is what makes the architecture's headline move real: a human tap and an agent tool-call both arrive as an <code class="i">Action</code>, both enter at this one call, and both become a <code class="i">Command</code> here — identical but for the <code class="i">Signature</code>. They flow through the <em>same</em> gate, the <em>same</em> fold, the <em>same</em> bus, the <em>same</em> replay path. Letting a human do what the agent does is therefore not new code; it is the same action with a different stamp. In <em>A Typical Scenario</em>, swap step 4's <code class="i">by = Agent</code> for <code class="i">by = Human</code> and every other field of the committed record is byte-for-byte identical.</p>
+
+      <div class="note steel">
+        <span class="lab">Two questions, two fields — and the gate reads the second one</span>
+        <p><code class="i">Actor</code> answers <em>who acted</em>. It is a closed set — <code class="i">Human</code>, <code class="i">Agent</code>, <code class="i">Spine</code> — that grows only at an architecture revision, never per application; that fixed contract is why the surface and the loop can both be described in one sentence. <code class="i">Authority</code> answers <em>under whose permission</em>, and it is an opaque principal id resolved at line (4) through the authorization port — a seam the product owns, not the architecture. The two come apart exactly where it matters. An agent re-confirming its own escalation is truthfully <code class="i">by = Agent</code> with the <em>same</em> authority that raised the request, and the gate refuses it. A policy tier approving that same escalation against rules is <em>also</em> truthfully <code class="i">by = Agent</code> — it acted through the agent's stream, and a confirming Command always stamps its Actor honestly — but its authority is a different principal, so the gate grants it. Keying the gate on the <code class="i">Actor</code> would collapse those two into one; keying it on the <code class="i">Authority</code> is what makes an unattended promotion representable without a human in the room, and without a second bus.</p>
+      </div>
+
+      <p>The bus the record lands on is append-only and observable — a committed, replayable log. &ldquo;Commit&rdquo; at line (7) means exactly this: the whole step — <code class="i">now</code>, the signature, the staged input, what was <em>asked</em>, what was <em>folded</em>, the signed commands, and the digest of the context the reasoner saw — is durably appended <em>before</em> any effect fires at line (9). Committing the step rather than the pair is what makes the record re-foldable: drop <code class="i">now</code> from it and a re-fold reproduces the decisions but not the timestamps, which is a recording that agrees with the run about everything except when it happened.</p>
     </section>
 
     <section id="why" class="rv">
       <div class="sec-head"><span class="num">C</span><h2>Why exactly one impure seam</h2></div>
       <p>Clean Architecture puts impurity all around its outer ring: the controller talks to the web, the presenter to the screen, the gateway to the database. Each is a separate place where the world leaks in. This architecture makes a sharper promise: collapse every one of those into a <em>single</em> object, and make it the <em>only</em> impure object in the system.</p>
 
-      <p>The payoff is that purity becomes a property you can state in one sentence and check at one place. Identity and time — the two things most likely to make a program non-reproducible — are <em>injected into</em> the boundary (the clock is read at line 1, ids are minted at line 3) and <em>passed into</em> the fold as ordinary values. The fold cannot reach for a clock or a random id because it was never handed the means to. That single discipline is what lets the recorded command stream re-fold to a bit-identical state every time.</p>
+      <p>The payoff is that purity becomes a property you can state in one sentence and check at one place. Identity and time — the two things most likely to make a program non-reproducible — are <em>injected into</em> the boundary (the clock is read at line 1, ids are minted at line 7) and <em>passed into</em> the fold as ordinary values. The fold cannot reach for a clock or a random id because it was never handed the means to. That single discipline is what lets a live session re-derive exactly from the step records it committed.</p>
 
       <div class="note">
         <span class="lab">The order is the contract</span>
-        <p>Read lines (4)→(5)→(6) again: <strong>commit, then adopt, then perform</strong>. If a crash happens between commit and perform, recovery re-reads the committed stream, re-folds to the same state, and re-issues the same effects — which the sinks dedupe by <code class="i">key = f.id</code>. The boundary's job is not just to be the one impure place; it is to be impure <em>in a fixed, recoverable order</em>.</p>
+        <p>Read lines (7)→(8)→(9) again: <strong>commit, then adopt, then perform</strong>. If a crash happens between commit and perform, recovery re-reads the committed records, re-folds to the same state, and re-issues the same effects — which the sinks dedupe on <code class="i">KeyedEffect.key</code>. That key is <code class="i">EffectKey(committed step index, position within the step)</code>: derived, deterministic, and identical on every pass, which is what makes a retry idempotent rather than a second page at 3 a.m.</p>
+        <p>Notice where the key is <em>not</em>. It is not a field on <code class="i">Effect</code>, so the fold has nothing to mint it into — and could not mint it correctly anyway, since the index it is built from does not exist until <code class="i">append</code> has returned. The wrapper is what makes the ordering structural: <code class="i">perform</code> accepts only a <code class="i">KeyedEffect</code>, a <code class="i">KeyedEffect</code> needs an index, and an index only comes from a completed commit. The boundary's job is not just to be the one impure place; it is to be impure <em>in an order the type system will not let you scramble</em>.</p>
       </div>
     </section>
 
@@ -137,35 +165,58 @@ sealed Command(by: Actor) {
 
       <div class="note bad">
         <span class="lab">Collapsed — the tool performs the effect</span>
-        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">DOMAIN_TOOL setPriority {<br>
+        <p style="font-family:var(--mono);font-size:12.5px;line-height:1.7;color:var(--text-dim);margin-top:4px">VERB setPriority = Reversible {<br>
         &nbsp;&nbsp;run(input, ctx) -&gt; { db.write(input); pager.page(input) }&nbsp;&nbsp;<span style="color:var(--accent)">// impure!</span><br>
         }</p>
-        <p>It looks shorter and it works on the happy path. But the tool now performs an effect, so it is no longer a pure function of its input. <strong>The test that dies:</strong> <code class="i">replayTest</code> can no longer run off-target — re-folding the recorded stream re-hits <code class="i">db</code> and <code class="i">pager</code>, double-writing and re-paging, and the &ldquo;fold twice, assert identical&rdquo; check is meaningless because folding now has side effects. You have not saved code; you have deleted replay.</p>
+        <p>It looks shorter and it works on the happy path. But the tool now performs an effect, so it is no longer a pure function of its input. <strong>The test that dies:</strong> <code class="i">replayTest</code> can no longer run off-target — the harness is supposed to re-derive a live run from committed bytes alone, and this tool reaches the world every time it is asked anything, double-writing and re-paging on each pass. You have not saved code; you have deleted replay.</p>
       </div>
 
       <div class="note bad">
-        <span class="lab">Collapsed — the surface stamps the actor</span>
-        <p>If the UI mints <code class="i">Command.SetPriority(by = Agent, ...)</code> for an action a person took — or vice-versa — the <code class="i">Actor</code> is now forgeable. The audit log says &ldquo;the agent did this&rdquo; when the host did, replay reconstructs the wrong authorship, and the &ldquo;human override is free&rdquo; guarantee collapses into &ldquo;human override is a second, untrusted code path.&rdquo; Stamping at one seam is what keeps authorship honest.</p>
+        <span class="lab">Collapsed — something upstream carries the actor</span>
+        <p>The tempting version is not a lying surface; it is a helpful one. Give the verb's context an <code class="i">actor</code> field so a tool can &ldquo;record who confirmed&rdquo;, let the result carry it as <code class="i">by: Actor</code>, and gate on that field in the fold. Every step of that looks reasonable, and the result is two authorship values per step that nothing reconciles: the one the tool copied, and the one the boundary stamps a line later. The gate reads the first; the audit log records the second. When they disagree — and a bad inference or an injected instruction is all it takes — the log says the agent did it while the gate was told a host had, so the audit is truthful about a decision that was made on a forged premise. <strong>What dies is not a test.</strong> Replay stays green, because replay faithfully re-folds the forged value. What dies is the meaning of the record.</p>
+        <p>The fix is not vigilance, it is arithmetic on the order of lines. The results exist at (3); the signature does not exist until (4). If nothing upstream of (4) has a field of type <code class="i">Actor</code>, <code class="i">Authority</code> or <code class="i">Signature</code>, then the second value cannot be constructed, and there is only ever one. Then move the gate to where the one value lives — line (5), at the boundary, before the fold — and key it on the <code class="i">Authority</code>, comparing the confirming principal against the requesting principal the state already recorded. An agent acting through its own step is stamped with its own run's authority and is refused by that comparison, not by a rule about the word &ldquo;Human&rdquo;. That is a mechanism. &ldquo;The tool should copy the right actor&rdquo; is a hope.</p>
       </div>
 
-      <p>Both failures share a shape: a capability that belongs to the boundary leaked somewhere it can be neither audited nor replayed. The seam exists precisely to make that leak impossible to write by accident.</p>
+      <p>Both failures share a shape: a capability or a fact that belongs to the boundary appeared somewhere upstream of it, where it can be neither audited nor reconciled. The seam exists precisely to make that unwritable rather than merely discouraged — the first by giving pure code no sink to reach, the second by giving it no field to fill.</p>
     </section>
 
     <section id="test" class="rv">
       <div class="sec-head"><span class="num">E</span><h2>The test that the seam makes possible</h2></div>
-      <p>Because the boundary is the only impure object, it is also the only one you ever test with doubles. Inject a fake clock, a fake id-sequence, and a recording sink, then assert the <em>order</em> of what came out:</p>
+      <p>Because the boundary is the only impure object, it is also the only one you ever test with doubles. Inject a fake clock, a fake id-sequence, a scripted authority and a recording sink, then assert the <em>order</em> of what came out — and, separately, what a refused action leaves behind:</p>
 
       <div class="code"><div class="bar"><span class="path">testing the one impure object</span><span class="lang">pseudocode</span></div>
-<pre><code class="language-plaintext">test "commit precedes perform, actor is stamped once":
+<pre><code class="language-plaintext">test "commit precedes perform, and the effect key comes from the committed index":
   clock = FakeClock(t0); ids = FakeIds([c1]); sink = RecordingSink()
-  boundary.onStepFinish(step = oneCall(setPriority, ticket = 4118, level = High,
-                                       actor = Agent))
+  authz = ScriptedAuthority(Agent -&gt; "agent-run-7f")
+  boundary.agent(FinishedStep(staged = [],
+    actions = [ Action("setPriority", { ticket: 4118, level: "High" }) ]))
   assert sink.log == [
-    Append(Command.SetPriority(by = Agent, id = c1, ticket = 4118, level = High), result = PrioritySet(4118, High)),  // commit = command + its result
-    Perform(Effect.Log("priority", 4118, High, at = t0))      // commit BEFORE perform
-  ]</code></pre></div>
+    Append(StepRecord(schemaVersion = 2,                            // the envelope (14.7)
+                      now = t0, sig = Signature(Agent, "agent-run-7f"),
+                      actions  = [ Action("setPriority", …) ],       // what was ASKED
+                      results  = [ SetPriority(4118, High) ],        // what was FOLDED
+                      commands = [ Command.SetPriority(sig, id = c1, 4118, High) ])),
+    Perform(KeyedEffect(EffectKey(step = 0, index = 0),              // commit BEFORE perform —
+                        Effect.LogDecision(at = t0, 4118, High)))    //   and the key proves it
+  ]
 
-      <p>Everything else in the program — the <a class="x" href="01-state-and-fold.html">fold</a>, the <a class="x" href="03-tools-and-context.html">tools</a>, the <a class="x" href="04-projection-and-surface.html">projection</a> — is pure and is tested by direct call, with no doubles at all. That asymmetry is the whole point: <strong>one object is hard to test, so it is made small and tested carefully; everything else is made pure, so it is trivial to test.</strong> That is the Humble Object pattern, and the boundary adapter is its sharpest instance in this architecture.</p>
+test "an agent cannot confirm its own escalation":
+  drive(requestEscalation(4118), by = Agent, authority = "agent-run-7f")
+  drive(confirmEscalation(4118), by = Agent, authority = "agent-run-7f")   // same principal
+  assert bus.last().results.last() is ToolResult.Refused                   // the verdict is COMMITTED
+  assert bus.last().commands.last().sig.by == Actor.Agent                  // stamped truthfully anyway
+  assert sink.performed.none(it.effect is Effect.PageOncall)               // nothing fired
+  assert state.statusOf(4118) is Escalating                                // and nothing moved
+
+test "a different authority may":
+  drive(confirmEscalation(4118), by = Agent, authority = "policy-tier-v3") // unattended, no human
+  assert sink.performed.any(it.effect is Effect.PageOncall)</code></pre></div>
+
+      <p>The first test pins the order, and it pins it with evidence rather than with a comment: <code class="i">EffectKey(step = 0, …)</code> is a number that only exists because the append returned it, so an implementation that performed first could not produce this log at all. It also shows why the record carries both <code class="i">actions</code> and <code class="i">results</code> — here they agree, and in the second test they do not.</p>
+
+      <p>The last two are the gate, and they are the reason the boundary is worth testing carefully. Nothing about the refusal is a special case: it is a <code class="i">ToolResult.Refused</code> that gets folded, signed and committed like any other decision, so the audit answers &ldquo;why did nobody get paged?&rdquo; from the record instead of from a missing entry. And nothing about the grant requires a person — the third test promotes an escalation with no human in the room, because the comparison the gate makes is between <em>principals</em>, not between an actor and the word <code class="i">Human</code>.</p>
+
+      <p>Everything else in the program — the <a class="x" href="01-state-and-fold.html">fold</a>, the <a class="x" href="03-tools-and-context.html">verbs</a>, the <a class="x" href="04-projection-and-surface.html">projection</a> — is pure and is tested by direct call, with no doubles at all. That asymmetry is the whole point: <strong>one object is hard to test, so it is made small and tested carefully; everything else is made pure, so it is trivial to test.</strong> That is the Humble Object pattern, and the boundary adapter is its sharpest instance in this architecture.</p>
 
       <div class="pager">
         <a class="prev" href="01-state-and-fold.html"><span class="d">← Seam 01</span>State &amp; the fold</a>

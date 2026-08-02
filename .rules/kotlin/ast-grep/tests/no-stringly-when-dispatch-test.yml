@@ -1,0 +1,19 @@
+id: no-stringly-when-dispatch
+valid:
+  - |
+    fun route(verb: ManifestVerb): Int = when (verb) {
+        ManifestVerb.LIST -> 1
+        ManifestVerb.GET -> 2
+    }
+  - |
+    fun classify(n: Int): String = when {
+        n > 0 -> "positive"
+        else -> "other"
+    }
+invalid:
+  - |
+    fun route(verb: String): Int = when (verb) {
+        "list" -> 1
+        "get" -> 2
+        else -> 0
+    }

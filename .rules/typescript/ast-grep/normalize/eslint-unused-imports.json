@@ -1,0 +1,5 @@
+{
+  "kind": "delegate",
+  "delegate": "eslint",
+  "message": "Delegate true dataflow unused-import cleanup to eslint --fix."
+}

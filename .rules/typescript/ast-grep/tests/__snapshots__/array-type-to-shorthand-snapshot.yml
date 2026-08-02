@@ -1,0 +1,16 @@
+id: array-type-to-shorthand
+snapshots:
+  'export const xs: Array<string> = [];':
+    fixed: 'export const xs: string[] = [];'
+    labels:
+    - source: Array<string>
+      style: primary
+      start: 17
+      end: 30
+  'export const xs: Array<unknown> = [];':
+    fixed: 'export const xs: unknown[] = [];'
+    labels:
+    - source: Array<unknown>
+      style: primary
+      start: 17
+      end: 31

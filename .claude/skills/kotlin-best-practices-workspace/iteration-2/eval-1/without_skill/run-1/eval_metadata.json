@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "write-kmp-published-api",
+  "prompt": "Small KMP library (JVM + iOS) wrapping a weather REST API, published to Maven Central, called from Android and Swift. Design the public surface: client entry point, forecast result type, error representation. Age well, don't break binary compatibility.",
+  "assertions": [
+    "Public surface uses explicit return/property types throughout (no inferred public return types)",
+    "Errors modeled as a sealed hierarchy (not a growable public data class, not a bare RuntimeException/IllegalStateException)",
+    "Forecast result type is NOT a growable public `data class` (interface, regular class, or sealed) to preserve binary compatibility",
+    "Construction goes through a factory or builder; NO public constructor whose JVM descriptor will move as config grows (no public defaulted-param constructor planned to gain params) -- the binary-compat trap",
+    "commonMain stays platform-free: no java.*/android.*/platform.Foundation.* in the public surface",
+    "Names a CONCRETE publishing/iOS-interop mechanism (api() for ABI-visible deps, single-macOS publish, XCFramework, or SKIE) -- not just generic Swift-bridging prose"
+  ]
+}

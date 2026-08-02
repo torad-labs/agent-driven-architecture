@@ -1,0 +1,5 @@
+id: negated-equals-to-not-equals
+valid:
+  - "fun changed(old: String, new: String): Boolean = old != new"
+invalid:
+  - "fun changed(old: String, new: String): Boolean = !(old == new)"

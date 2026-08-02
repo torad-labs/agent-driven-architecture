@@ -1,0 +1,36 @@
+{
+  "summary": {"total": 6, "passed": 6, "failed": 0, "pass_rate": 1.0},
+  "expectations": [
+    {
+      "text": "Public surface uses explicit return/property types throughout (no inferred public return types).",
+      "passed": true,
+      "evidence": "Every public declaration carries an explicit type, e.g. WeatherClient.kt: 'public suspend fun currentForecast(location: Location): Forecast', 'public fun forecastUpdates(location: Location): Flow<Forecast>', 'public fun create(...): WeatherClient', 'public val latitude: Double'. WeatherError.kt: 'public abstract val isRetryable: Boolean'. Transcript reports compiling under '-Xexplicit-api=strict ... exit 0, zero warnings' which mechanically rejects inferred public return types."
+    },
+    {
+      "text": "Errors modeled as a sealed hierarchy (not a growable public data class, not a bare RuntimeException/IllegalStateException).",
+      "passed": true,
+      "evidence": "WeatherError.kt: 'public sealed class WeatherError(message: String, cause: Throwable?) : Exception(message, cause)' with closed subtypes Network/Timeout/Http/Authentication/Decoding/Unexpected, each with internal constructor. Not a data class, not a bare RuntimeException."
+    },
+    {
+      "text": "Forecast result type is NOT a public data class that will grow — interface, regular class, or sealed — to preserve binary compatibility.",
+      "passed": true,
+      "evidence": "Forecast.kt: 'public class Forecast internal constructor(...)' — a regular class with an internal constructor, explicitly NOT a data class. KDoc: 'Deliberately a regular class with a private constructor, not a public data class ... adding a field changes its synthesized constructor and copy(...) descriptors (a binary break).'"
+    },
+    {
+      "text": "Signatures use read-only collections; construction via factory/builder, not a public constructor whose descriptor moves when config grows.",
+      "passed": true,
+      "evidence": "No public mutable collections in signatures; the API surface uses scalar/value types and Flow<Forecast> (no exposed MutableList etc.). Construction is via factory/builder throughout: WeatherClient via 'create(apiKey, configure: WeatherClientConfig.() -> Unit = {})', Location via 'ofCoordinates(...)'. Config growth point is WeatherClientConfig (internal constructor, public mutable knobs added as new properties) — create()'s descriptor stays frozen. KDoc: 'new knobs are added as new builder methods, never as new parameters on this factory.'"
+    },
+    {
+      "text": "commonMain stays platform-free: no java.*/android.*/platform.Foundation.* in the public surface.",
+      "passed": true,
+      "evidence": "Imports across files are kotlinx.coroutines.flow.Flow, kotlinx.serialization.*, kotlin.time.Instant, kotlin.time.Duration, kotlin.concurrent.atomics.* — zero java.*/android.*/platform.Foundation.*. Transcript: 'commonMain-clean: no java.* / platform.* / System.*. Time is kotlin.time.Instant; the close flag is a kotlin.concurrent atomic, not a JVM synchronized block.'"
+    },
+    {
+      "text": "Surfaces at least one publishing or iOS-interop consideration (api() vs implementation(), single-macOS publish, XCFramework, or SKIE).",
+      "passed": true,
+      "evidence": "Multiple. Transcript 'Notes for the build wiring': 'Declare kotlinx-coroutines-core and kotlinx-serialization-* as api(), not implementation() — their types (Flow, @Serializable) are in the public ABI.' Also mentions XCFramework, SKIE ('apply SKIE in the framework-producing module only'), and Central Portal publishing. SKIE referenced in source KDoc too (currentForecast surfaces as Swift async, forecastUpdates as AsyncSequence)."
+    }
+  ],
+  "grader_notes": "All six assertions pass on strong, specific evidence; this run exceeds the bar (also compiled under -Xexplicit-api=strict, kotlinx.serialization wire contracts with @SerialName discriminators, Logger seam, idempotent AutoCloseable). Assertion 4 conflates two checks (read-only collections AND factory/builder construction) — the read-only-collections half is trivially satisfied here because the API simply exposes no collections at all, so it tests nothing in this eval; the factory/builder half is the discriminating part and is genuinely met. Assertion 6 is a low bar (any single publishing mention passes); this run cleared it many times over. Timing: 426.1s / 127036 tokens — notably slower and more expensive than without_skill (180.7s / 82291 tokens), the cost of loading reference blocks and compiling."
+}

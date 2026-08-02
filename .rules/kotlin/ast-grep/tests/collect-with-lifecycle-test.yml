@@ -1,0 +1,7 @@
+id: collect-with-lifecycle
+valid:
+  - |
+    @Composable fun S(flow: StateFlow<Int>) { val v by flow.collectAsStateWithLifecycle() }
+invalid:
+  - |
+    @Composable fun S(flow: StateFlow<Int>) { val v by flow.collectAsState() }

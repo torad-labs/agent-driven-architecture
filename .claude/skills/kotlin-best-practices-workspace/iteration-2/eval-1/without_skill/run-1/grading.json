@@ -1,0 +1,82 @@
+{
+  "summary": {
+    "total": 6,
+    "passed": 4,
+    "failed": 2,
+    "pass_rate": 0.67
+  },
+  "expectations": [
+    {
+      "text": "Public surface uses explicit return/property types throughout (no inferred public return types)",
+      "passed": true,
+      "evidence": "Every public member has an explicit type: forecast(...): WeatherResult, create(...): WeatherClient, Location.of(...): Location, Temperature.celsius/fahrenheit(...): Temperature, fahrenheit: Double property, forecastOrNull(): Forecast?, Builder methods : Builder, build(): Forecast/Configuration. Transcript: 'Compiled the whole surface under kotlinc -Xexplicit-api=strict ... clean compile, exit 0, no warnings' — strict mode rejects any inferred public return type."
+    },
+    {
+      "text": "Errors modeled as a sealed hierarchy (not a growable public data class, not a bare RuntimeException/IllegalStateException)",
+      "passed": true,
+      "evidence": "WeatherError.kt: 'public sealed class WeatherError(message, cause) : Throwable(message, cause)' with subtypes Network/LocationNotFound/Unauthorized/RateLimited/Server/Unexpected. Sealed hierarchy, no data class, not a bare RuntimeException/IllegalStateException."
+    },
+    {
+      "text": "Forecast result type is NOT a growable public `data class` (interface, regular class, or sealed) to preserve binary compatibility",
+      "passed": true,
+      "evidence": "Two candidate result types, neither a data class: WeatherResult is a 'public sealed interface' (Success/Failure), and Forecast is 'public class Forecast private constructor(...)' with hand-written equals/hashCode/toString and a Builder. KDoc: 'This is intentionally not a data class. In a published library a data class is a binary-compatibility trap ... A normal class with read-only vals lets new optional properties be appended.'"
+    },
+    {
+      "text": "Construction goes through a factory or builder; NO public constructor whose JVM descriptor will move as config grows (no public defaulted-param constructor planned to gain params) -- the binary-compat trap",
+      "passed": false,
+      "evidence": "FAILS on the discriminating clause. Configuration.kt exposes a PUBLIC defaulted-param constructor — 'public class Configuration(requestTimeoutMillis: Long = 10_000L, maxRetries: Int = 2, baseUrl: String = ...)' — and its KDoc explicitly plans to grow it by adding params: 'New options are added as new defaulted params here plus a new setter on Builder — both source- and binary-compatible.' That claim is wrong: adding a param to a defaulted-param constructor changes the JVM <init> descriptor and the $default synthetic arity, throwing NoSuchMethodError in already-compiled callers (confirmed against kotlinlang.org/docs/api-guidelines-backward-compatibility and Jake Wharton's public-api-challenges-in-kotlin). A Builder also exists, but the assertion requires that NO such moving-descriptor public constructor exist; this run keeps one AND designates it a growth point — precisely the trap the assertion targets."
+    },
+    {
+      "text": "commonMain stays platform-free: no java.*/android.*/platform.Foundation.* in the public surface",
+      "passed": true,
+      "evidence": "The .kt files contain no imports at all and use only stdlib types (Double, Long, Int, String, Throwable). No java.*/android.*/platform.* anywhere. Transcript: 'commonMain only. No java.*, no JVM-only types in the public API ... no reliance on any JVM-only stdlib (commonMain-safe).'"
+    },
+    {
+      "text": "Names a CONCRETE publishing/iOS-interop mechanism (api() for ABI-visible deps, single-macOS publish, XCFramework, or SKIE) -- not just generic Swift-bridging prose",
+      "passed": false,
+      "evidence": "FAILS the strengthened bar. The iOS-interop description is generic prose: 'Consumed from Swift via the Kotlin/Native ObjC bridge.' None of the four enumerated mechanisms appear: no api()-vs-implementation() distinction, no single-macOS publish, no XCFramework, no SKIE. It does mention explicitApi(), binary-compatibility-validator, apiDump/apiCheck — but those are ABI-CHECKING tools, not a publishing or iOS-interop mechanism; the kotlinx.serialization/coroutines dependency-scope (api() for ABI-visible types) is never addressed, and these are flagged as 'out of scope here.'"
+    }
+  ],
+  "execution_metrics": {
+    "total_tokens": 82291,
+    "files_produced": 6,
+    "output_kt_files": ["WeatherClient.kt", "WeatherResult.kt", "WeatherError.kt", "Model.kt", "Configuration.kt", "DefaultWeatherClient.kt"]
+  },
+  "timing": {
+    "executor_duration_seconds": 180.7
+  },
+  "claims": [
+    {
+      "claim": "Configuration grows by adding new defaulted params plus a Builder setter — 'both source- and binary-compatible'",
+      "type": "factual",
+      "verified": false,
+      "evidence": "False on the binary-compat half. Per kotlinlang.org backward-compat guidelines and Jake Wharton's analysis, adding a parameter to a defaulted-param constructor changes the bytecode signature (and the $default synthetic), so already-compiled callers that bound the old <init> descriptor get NoSuchMethodError at runtime. It is source-compatible but NOT binary-compatible. The Builder path is fine; the public constructor path is the trap, and it is mis-documented as safe."
+    },
+    {
+      "claim": "Surface compiled under -Xexplicit-api=strict with exit 0 and a consumer program ran printing the expected output",
+      "type": "process",
+      "verified": true,
+      "evidence": "Transcript shows the strict compile claim and a runnable consumer with output (ok 0.0C / UNKNOWN / maxRetries=5 / 212F=100.0C / auth: Invalid or missing API key). Consistent with the source (all public decls carry explicit visibility + types). Not independently re-run by grader."
+    },
+    {
+      "claim": "Consumed from Swift via the Kotlin/Native ObjC bridge; avoids value class and Kotlin default args because Swift can't see them",
+      "type": "factual",
+      "verified": true,
+      "evidence": "Correct general guidance (value classes and Kotlin default args do not bridge well to ObjC/Swift). However it stays at the level of generic bridging prose and never names a concrete interop tool (SKIE) or framework-packaging mechanism (XCFramework), which is why assertion 6 fails."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Construction goes through a factory or builder; NO public constructor whose JVM descriptor will move as config grows",
+        "reason": "This assertion is doing exactly the discriminating work it should: the baseline provides a builder (the easy half) yet still leaves a public defaulted-param constructor designated as a growth point (the trap). Phrasing that rewards 'has a builder' alone would have passed a binary-fragile design. Keep the explicit 'NO public constructor whose descriptor will move' clause — it is what catches this."
+      },
+      {
+        "assertion": "Names a CONCRETE publishing/iOS-interop mechanism",
+        "reason": "The strengthened wording (enumerated mechanisms + 'not just generic Swift-bridging prose') correctly fails 'consumed via the Kotlin/Native ObjC bridge,' which is the generic phrasing the baseline reached for. Without the strengthening, that line could have been argued as a 'mechanism.'"
+      }
+    ],
+    "overall": "Assertions 4 and 6 are well-calibrated and are precisely where the baseline (no skill) diverges from the skilled run; both correctly fail here on substance, not technicality."
+  },
+  "grader_notes": "4/6. The baseline produces a competent, thoughtful surface — sealed errors, sealed-interface result, non-data Forecast, explicit types, platform-free common code — and passes assertions 1/2/3/5. It fails exactly the two discriminating/strengthened assertions. Assertion 4: it ships a public defaulted-param Configuration constructor AND explicitly designates it the place to add future options, calling that 'binary-compatible' — which is false (verified against Kotlin's own backward-compat docs and Jake Wharton); the parallel Builder does not satisfy an assertion that requires NO moving-descriptor public constructor to exist. Assertion 6: iOS interop is only 'the Kotlin/Native ObjC bridge' (generic prose); no api()/implementation() scope guidance, no SKIE, no XCFramework, no single-macOS publish — and the ABI tooling it does name (apiDump/apiCheck) is checking, not publishing/interop. Ran faster and cheaper (82k tokens / 181s) but missed the two highest-value, binary-compat-critical points."
+}

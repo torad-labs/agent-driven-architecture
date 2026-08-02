@@ -1,0 +1,7 @@
+id: no-compose-in-core
+valid:
+  - |
+    import ai.torad.fleet.domain.db.Operation
+invalid:
+  - |
+    import androidx.compose.runtime.Composable

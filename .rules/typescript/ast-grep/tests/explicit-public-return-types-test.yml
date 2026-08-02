@@ -1,0 +1,18 @@
+id: explicit-public-return-types
+valid:
+  # REGRESSION: a TYPE PREDICATE is a return type — it is just not a `type_annotation`
+  # node. Without it the rule flagged all 7 type-guard exports in examples/typescript,
+  # every one of which is explicitly typed.
+  - |
+    export function isAnalysisResult(r: ToolResultBase): r is AnalysisResult {
+      return r.tool === "publishAnalysis";
+    }
+  - |
+    export function withType(a: number): string {
+      return String(a);
+    }
+invalid:
+  - |
+    export function missingType(a: number) {
+      return a;
+    }

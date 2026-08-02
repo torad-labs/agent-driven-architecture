@@ -1,0 +1,28 @@
+# TENET: No loose exported functions — behavior belongs on a type.
+# Rationale: Loose module exports create implicit coupling.
+# Use classes, factory functions returning objects, or namespace objects.
+# EXCEPTIONS: index.ts re-exports, type guards (is X), main entry points
+id: no-loose-function
+language: typescript
+severity: error
+message: "Export functions via a class/object/namespace, not as loose module exports."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/index.ts"
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+  - "**/test/**"
+rule:
+  kind: export_statement
+  has:
+    kind: function_declaration
+  not:
+    any:
+      - has:
+          kind: function_declaration
+          regex: "^function\\s+is[A-Z]"  # Type guards
+      - has:
+          kind: function_declaration
+          regex: "^function\\s+main"

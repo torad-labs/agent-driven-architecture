@@ -1,0 +1,72 @@
+id: no-promise-unit-then-coercion
+snapshots:
+  ? |
+    package bad
+
+    fun drainQueue(items: List<Int>, work: (Int) -> Promise<Unit>) {
+        var chain: Promise<Unit> = Promise.resolve(Unit)
+        for (item in items) {
+            chain = chain.then { work(item) }
+        }
+    }
+  : labels:
+    - source: chain = chain.then { work(item) }
+      style: primary
+      start: 165
+      end: 198
+  ? |
+    package bad
+
+    fun spawnAndWake(seat: String): Promise<Unit> =
+        client.spawn(seat).then { result -> sendWakeTurn(result) }
+  : labels:
+    - source: |-
+        fun spawnAndWake(seat: String): Promise<Unit> =
+            client.spawn(seat).then { result -> sendWakeTurn(result) }
+      style: primary
+      start: 13
+      end: 123
+  ? |
+    package bad
+
+    fun spawnAndWake(seat: String): Promise<Unit> {
+        writeProvisionTicket(seat)
+        return client.spawn(seat).then { result -> sendWakeTurn(result) }
+    }
+  : labels:
+    - source: |-
+        fun spawnAndWake(seat: String): Promise<Unit> {
+            writeProvisionTicket(seat)
+            return client.spawn(seat).then { result -> sendWakeTurn(result) }
+        }
+      style: primary
+      start: 13
+      end: 163
+  ? |
+    package bad
+
+    internal fun handleKillVerbSeatd(seat: String): Promise<Unit> {
+        journalKillAttempt(seat)
+        return ptyBackend.kill(seat).then { result -> recordKillResult(seat, result) }
+    }
+  : labels:
+    - source: |-
+        internal fun handleKillVerbSeatd(seat: String): Promise<Unit> {
+            journalKillAttempt(seat)
+            return ptyBackend.kill(seat).then { result -> recordKillResult(seat, result) }
+        }
+      style: primary
+      start: 13
+      end: 190
+  ? |
+    package bad
+
+    private fun handleSpawnVerbSeatd(seat: String): Promise<Unit> =
+        ptyBackend.spawn(seat).then { handle -> registerHandle(seat, handle) }
+  : labels:
+    - source: |-
+        private fun handleSpawnVerbSeatd(seat: String): Promise<Unit> =
+            ptyBackend.spawn(seat).then { handle -> registerHandle(seat, handle) }
+      style: primary
+      start: 13
+      end: 151

@@ -1,0 +1,9 @@
+id: lazy-items-need-key
+snapshots:
+  ? |
+    fun L(rows: List<Row>) { items(rows) { Render(it) } }
+  : labels:
+    - source: items(rows) { Render(it) }
+      style: primary
+      start: 25
+      end: 51

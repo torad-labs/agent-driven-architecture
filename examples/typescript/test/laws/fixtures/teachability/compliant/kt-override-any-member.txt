@@ -1,0 +1,22 @@
+// A READER-SHAPE fixture. `toString` is an override of `Any`, which every class
+// inherits without declaring anything — so the keyword is present and the block
+// contract taught nothing. It stays a MEMBER (an implementer sees it) with the
+// contract credit withheld, because the credit is a claim about what a fresh
+// author could have learned from the contract alone.
+
+package adr.blocks.alpha
+
+import adr.spine.pure.ArmOut
+import adr.spine.pure.Block
+import adr.spine.pure.BlockRegistration
+import adr.spine.pure.Lens
+
+class AlphaBlock : Block<AlphaSlice, AlphaResult, AlphaView> {
+
+    fun <S> register(lens: Lens<S, AlphaSlice>): BlockRegistration<S> =
+        BlockRegistration(block = "alpha", verbs = AlphaTools(lens).verbs())
+
+    override fun arm(slice: AlphaSlice): ArmOut<AlphaSlice> = ArmOut(slice)
+
+    override fun toString(): String = "AlphaBlock"
+}

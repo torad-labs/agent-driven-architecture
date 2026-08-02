@@ -2,21 +2,39 @@
   "name": "agent-driven-architecture-ts",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "src/spine",
+    "src/blocks/*",
+    "src/blocks/*/adapter",
+    "src/app"
+  ],
+  "//workspaces": "Fourteen packages, none published — the spine, a PAIR per block (pure unit and adapter leaf, both inside the block's own folder) and the composition root. The blocks are the wall; the spine is the vendored template packaged internally for it. `npm install` links them all into the single root node_modules, which is exactly why one cross-block route stays open - recorded above C2 in eslint.config.js.",
   "type": "module",
   "description": "Functional TypeScript reference implementation of the Agent-Driven Architecture, on the Vercel AI SDK.",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "demo": "tsx src/demo.ts"
+    "typecheck": "tsc --noEmit && npm run typecheck:wall",
+    "lint": "eslint .",
+    "test": "npm run typecheck && npm run lint && npm run biome && vitest run",
+    "demo": "tsx src/app/main.ts",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "biome": "biome check .",
+    "laws:regenerate": "tsx test/laws/regenerate.ts",
+    "typecheck:wall": "node scripts/wall.mjs"
   },
+  "//typecheck": "TWO checks, both blocking. `tsc --noEmit` is the whole-tree program - src, test and the gate itself still cohere. `typecheck:wall` builds the fourteen package programs - the spine, a PAIR per block and the composition root - where rootDir is the package folder and `references` is the permission list; that is the run in which a cross-block reach is a resolution error rather than a lint message. It runs through scripts/wall.mjs rather than calling tsc directly because `tsc -b` is a BUILD: on the RED path it emits beside the source, and a failed run must not be able to change the verdict of the next one.",
   "dependencies": {
+    "@valibot/to-json-schema": "^1.7.1",
     "ai": "^6.0.208",
-    "zod": "^4.4.3"
+    "valibot": "^1.4.2"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
     "@types/node": "^26.0.0",
+    "eslint": "^10.8.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.9"
   }
 }

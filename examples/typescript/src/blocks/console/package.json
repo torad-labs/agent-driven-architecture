@@ -1,0 +1,14 @@
+{
+  "name": "@adr/block-console",
+  "private": true,
+  "//private": "Never published: the workspace is a vendored template, so every package in it is private, none carries a publishConfig, and none carries a version.",
+  "type": "module",
+  "//exports": "THE REGISTRATION, and nothing else - the ratified decision's wording, taken literally: one published subpath per block. Everything else in this unit (contract, slice, tools, fold, project, view-state, port, the co-located test) is unreachable by any bare specifier, as a resolution error rather than a lint message. The block's IMPURE unit is the sibling package in `adapter/`, and it publishes nothing at all: the composition root binds a live client by reaching `../blocks/<x>/adapter/adapter` relatively, which resolves because the root REFERENCES that project. Publishing a subpath for it here would widen the one route the wall cannot close from one bare specifier to two.",
+  "//sunset": "The hand-rolled import checks C1, C2 and C15 survive one release past this wall and are deleted at `spine-2`. What each of them still owns that this package boundary does not is recorded above its definition in eslint.config.js.",
+  "exports": {
+    "./register": "./register.ts"
+  },
+  "dependencies": {
+    "@adr/spine": "*"
+  }
+}

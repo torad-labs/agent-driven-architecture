@@ -1,0 +1,13 @@
+id: jsexport-boundary-shape
+valid:
+  - |
+    package good
+
+    @JsExport
+    fun clean(x: Int): Int = x
+invalid:
+  - |
+    package bad
+
+    @JsExport
+    fun riskyReturn(x: String): List<String> = listOf(x)

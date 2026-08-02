@@ -1,0 +1,133 @@
+# ALLOW-TEST for the registry check: the idiomatic shape, which must pass
+# untouched — including the two shapes a naive rule would wrongly deny, a
+# value check carrying its pair inside the checker and a law that legitimately
+# names no check at all. It also carries a law held at the CONFIGURATION-TIME
+# rung with resolving edge evidence on BOTH ports, so the floor rule has a
+# positive half and not only the five block halves next door. Every field
+# spelled the way laws.toml spells it.
+#
+# THE VALUE CHECKS NAME THEIR TWO TEST SITES, in every spelling a real author
+# would write: a double-quoted TypeScript title, a BACKTICKED one, a
+# single-quoted one whose title carries a double quote — which is the exact
+# declaration biome's own `quoteStyle` produces for such a title, and which the
+# first cut of this checker wrongly REJECTED — and a backticked Kotlin function
+# name carrying `@Test`. Every one sits inside an ordinary `describe`, so the
+# suite-is-switched-off rule is proven not to trip on the ordinary shape. An
+# allow half covering one spelling would leave the others unmeasured, and a
+# checker is as narrow as its positive half lets it be.
+
+vocabulary = ["configuration-time", "denying-check", "compiler-proof", "behavioral", "discipline", "structural-untested"]
+
+[[laws]]
+id = "G1"
+name = "an-example-law"
+layers = ["denying-check"]
+headline = "Denying check."
+note = "One denying check holds the violating shape, on both ports."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G2"
+name = "a-value-law"
+layers = ["compiler-proof", "behavioral"]
+headline = "Behavioral + compiler proof."
+note = "A value check, so its pair is two inputs to one checker."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/live.test.ts::DENIES a thinned registry"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"
+
+[[laws]]
+id = "G3"
+name = "a-law-held-by-a-build-edge"
+layers = ["configuration-time", "denying-check"]
+headline = "Configuration-time build edge + denying check."
+note = "The module graph refuses the crossing half before either module compiles, on EVERY port; the check owns what stays inside one module."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.edges]]
+port = "typescript"
+path = "fixtures/edge/package.json"
+token = "\"./register\": \"./register.ts\""
+
+[[laws.edges]]
+port = "kotlin"
+path = "fixtures/edge/build.gradle.kts"
+token = "denyProjectEdgesExcept"
+
+[[laws.checks]]
+port = "typescript"
+id = "C1"
+home = "eslint"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C1"
+home = "konsist"
+pair = "on-disk"
+violating = "fixtures/violating/C1"
+compliant = "fixtures/compliant/C1"
+
+[[laws]]
+id = "G4"
+name = "an-un-denied-law"
+layers = ["discipline"]
+headline = "Discipline."
+note = "No machine holds it, and it names no check."
+guarantee = "the fixture's guarantee cell"
+
+[[laws]]
+id = "G5"
+name = "a-value-law-whose-title-carries-a-quote"
+layers = ["behavioral"]
+headline = "Behavioral."
+note = "A second value check, whose block half is titled the way the formatter writes a title containing a quote."
+guarantee = "the fixture's guarantee cell"
+
+[[laws.checks]]
+port = "typescript"
+id = "C13"
+home = "vitest"
+pair = "in-checker"
+blockTest = "fixtures/site/live.test.ts::DENIES a registry with \"confirmSeal\" pulled out of it"
+allowTest = "fixtures/site/live.test.ts::ALLOWS the shipped registry"
+
+[[laws.checks]]
+port = "kotlin"
+id = "C13"
+home = "junit-reflection"
+pair = "in-checker"
+blockTest = "fixtures/site/Totality.kt::a registry with a verb pulled out is DENIED"
+allowTest = "fixtures/site/Totality.kt::every declared verb is registered"

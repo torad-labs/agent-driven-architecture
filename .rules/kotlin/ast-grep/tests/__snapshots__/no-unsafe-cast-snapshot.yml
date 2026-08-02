@@ -1,0 +1,9 @@
+id: no-unsafe-cast
+snapshots:
+  ? |
+    fun f(x: Any): String = x as String
+  : labels:
+    - source: x as String
+      style: primary
+      start: 24
+      end: 35

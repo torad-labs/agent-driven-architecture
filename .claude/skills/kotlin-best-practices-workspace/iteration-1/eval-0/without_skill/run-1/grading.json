@@ -1,0 +1,81 @@
+{
+  "summary": {
+    "total": 7,
+    "passed": 6,
+    "failed": 1,
+    "pass_rate": 0.86
+  },
+  "expectations": [
+    {
+      "text": "Stream is exposed as a cold Flow returned from a NON-suspend function (not a `suspend fun` returning Flow), so collection stays lazy and cancellable",
+      "passed": true,
+      "evidence": "PriceWatchClient.kt:129-148 `public fun stream(symbol: String, onState): Flow<PriceTick>` — non-suspend, returns a cold `flow{}` (private `ticks`, l.151-163) wrapped in `.retryWhen{}`. KDoc l.104-106 states 'stream returns a cold Flow: nothing connects until a collector starts.'"
+    },
+    {
+      "text": "Cancellation is correct: no swallowed CancellationException; clean shutdown happens via scope cancellation; no GlobalScope is used",
+      "passed": true,
+      "evidence": "PriceWatchClient.kt:194-196 `is CancellationException -> false` is the FIRST arm of `isTransient()`, so retryWhen's predicate returns false for cancellation and rethrows it (never retried/swallowed). No GlobalScope (grep clean). ViewModel collects with `launchIn(scope)` (PriceWatchViewModel.kt:38) so scope cancellation tears the stream down."
+    },
+    {
+      "text": "Retries ONLY transient failures (timeouts/5xx/transport) with capped + jittered exponential backoff; does not retry terminal 4xx; not a bare `while(true)` catch-all with no delay",
+      "passed": true,
+      "evidence": "PriceWatchClient.kt:137-147 uses `Flow.retryWhen` whose predicate calls `isTransient()` (l.194-215): 5xx (ServerResponseException / SSEClientException w/ 5xx status), HttpRequestTimeoutException, IOException => retry; 4xx (ClientRequestException, non-5xx SSEClientException) and SerializationException => give up. Backoff (ExponentialBackoff l.86-96) = `random.nextDouble() * min(base*2^(n-1), maxDelay)` — capped full jitter via injected delay. Test `does not retry permanent 4xx` asserts 404 => 1 call. No while(true). (Minor: 408/429 are treated as terminal since isTransientStatus is only 500..599, but the assertion's named transient cases — timeouts/5xx/transport — are all retried and 4xx is not retried.)"
+    },
+    {
+      "text": "The HttpClient/engine and the dispatcher are INJECTED (constructor params) so the class is unit-testable (and any Clock/Random too)",
+      "passed": false,
+      "evidence": "PriceWatchClient.kt:116-122 constructor injects `httpClient`, `decoder`, `backoff`, `maxRetries` — but NO CoroutineDispatcher param. grep for 'dispatcher|flowOn|Dispatchers' across all without_skill outputs returns ZERO hits. The class never sets a dispatcher (no flowOn), so it cannot be pinned/swapped for testing on a TestDispatcher; tests rely solely on runTest's ambient scheduler. The assertion explicitly requires the dispatcher to be an injected constructor param, which it is not. (Random IS injectable via ExponentialBackoff; HttpClient is injected — but the dispatcher requirement is unmet.)"
+    },
+    {
+      "text": "Does NOT return a fake or last-known value on failure that masks the outage (no silent fallback that fakes success)",
+      "passed": true,
+      "evidence": "PriceWatchClient.kt:140 retryWhen returns `false` on terminal/exhausted failure => rethrows to the collector; no fallback tick is emitted. ViewModel (PriceWatchViewModel.kt:37) routes the failure to `_error` StateFlow rather than synthesizing a price. No last-known/default value substituted."
+    },
+    {
+      "text": "Avoids constructing Json per-call and frames the stream incrementally (does not re-split an ever-growing accumulated buffer)",
+      "passed": true,
+      "evidence": "PriceWatchClient.kt:176-178 `JsonPriceTickDecoder(private val json: Json = Json { ignoreUnknownKeys = true })` — the Json is a field built once per decoder instance, not constructed per decode() call. Framing is incremental via the Ktor SSE plugin `incoming.collect { event: ServerSentEvent -> event.data }` (l.158-161); the plugin yields discrete events, no accumulated-buffer re-split."
+    },
+    {
+      "text": "Stays at Tier 0 for this app-level task: does NOT impose published-API/ABI/explicitApi/publishing rules that don't apply",
+      "passed": true,
+      "evidence": "The deliverable imposes no ABI dump, no explicitApi() gating, no Maven Central/publishing requirements. transcript.md l.93-94 only NOTES 'public/explicitApi modifiers are present so this drops cleanly into a library module... harmless in an app module' — it volunteers compatibility rather than imposing publishing rules on the task. No binary-compat hazards flagged against the app code."
+    }
+  ],
+  "execution_metrics": {
+    "total_tokens": 94713,
+    "output_files": 3,
+    "output_chars": 16862
+  },
+  "timing": {
+    "total_duration_seconds": 238.6
+  },
+  "claims": [
+    {
+      "claim": "Ktor surfaces a failed SSE handshake as SSEClientException carrying the HttpResponse",
+      "type": "factual",
+      "verified": true,
+      "evidence": "PriceWatchClient.kt:204 `is SSEClientException -> response?.status?.isTransientStatus()`; transcript notes this was confirmed against Ktor docs after an initial mistaken custom exception."
+    },
+    {
+      "claim": "All transient failures (timeouts/5xx/transport) are retried",
+      "type": "quality",
+      "verified": false,
+      "evidence": "PriceWatchClient.kt:217 `isTransientStatus = value in 500..599` excludes 408 Request Timeout and 429 Too Many Requests, which are conventionally retryable rate-limit/timeout statuses. These are classified terminal. The named cases (5xx, HttpRequestTimeoutException, IOException) ARE retried, but the broader 'transient HTTP status' coverage is narrower than the with_skill version (which adds 408/425/429)."
+    }
+  ],
+  "user_notes_summary": {
+    "uncertainties": [],
+    "needs_review": ["No CoroutineDispatcher is injected; the class is testable only via runTest's ambient scheduler, not by swapping a dispatcher."],
+    "workarounds": []
+  },
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "The HttpClient/engine and the dispatcher are INJECTED (constructor params) so the class is unit-testable (and any Clock/Random too)",
+        "reason": "This assertion is the single discriminating one between the two configs — without_skill injects HttpClient and Random but omits the dispatcher entirely. Good, sharp assertion. Worth keeping the 'and the dispatcher' clause explicit so a config that only injects the HttpClient cannot pass."
+      }
+    ],
+    "overall": "6/7 pass. The one failure (dispatcher not injected) is genuine and discriminating. A secondary uncaught weakness: 408/429 are misclassified as terminal here (no assertion penalizes incomplete transient-status coverage), which a stricter retry-correctness assertion would catch."
+  }
+}

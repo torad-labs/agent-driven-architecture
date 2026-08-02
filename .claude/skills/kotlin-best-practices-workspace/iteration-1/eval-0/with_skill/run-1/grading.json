@@ -1,0 +1,76 @@
+{
+  "summary": {
+    "total": 7,
+    "passed": 7,
+    "failed": 0,
+    "pass_rate": 1.0
+  },
+  "expectations": [
+    {
+      "text": "Stream is exposed as a cold Flow returned from a NON-suspend function (not a `suspend fun` returning Flow), so collection stays lazy and cancellable",
+      "passed": true,
+      "evidence": "PriceStreamClient.kt:74 `public fun ticks(symbol: Symbol): Flow<PriceTick> = channelFlow {` — a non-suspend fun returning a cold Flow. KDoc (lines 60-73) states 'Returning a non-suspend function over a cold Flow (rather than a suspend fun) keeps connection setup lazy: nothing happens until a collector subscribes.'"
+    },
+    {
+      "text": "Cancellation is correct: no swallowed CancellationException; clean shutdown happens via scope cancellation; no GlobalScope is used",
+      "passed": true,
+      "evidence": "PriceStreamClient.kt:114-118 `catch (e: CancellationException) { ... throw e }` is the FIRST catch and rethrows; the broad `catch (e: Throwable)` at 119-120 calls `coroutineContext.ensureActive()` as its first statement. No GlobalScope anywhere (grep clean). Shutdown is via collector/scope cancellation tearing down the SSE session; test `collectorCancellationTearsDownStream` (Test l.160-175) verifies job.cancel() leaks no exception."
+    },
+    {
+      "text": "Retries ONLY transient failures (timeouts/5xx/transport) with capped + jittered exponential backoff; does not retry terminal 4xx; not a bare `while(true)` catch-all with no delay",
+      "passed": true,
+      "evidence": "PriceModels.kt:123-145 `toPriceStreamError` classifies transport (status==null) + 408/425/429 + 500..599 as retryable, all other 4xx as terminal. backoffFor (l.110-114) = `random.nextDouble(0.0, min(maxDelay, base*2^attempt))` — capped FULL jitter. The while(true) loop (Client l.109) is NOT a bare catch-all: it rethrows immediately on `!isRetryable || attempt>=maxRetries || deadlineExceeded` (l.125-139) and `delay(backoff)` (l.145) before retrying. Test `terminalErrorIsNotRetriedAndPropagates` asserts 401 => 1 call, no retry."
+    },
+    {
+      "text": "The HttpClient/engine and the dispatcher are INJECTED (constructor params) so the class is unit-testable (and any Clock/Random too)",
+      "passed": true,
+      "evidence": "PriceStreamClient.kt:45-52 constructor injects `client: HttpClient`, `dispatcher: CoroutineDispatcher = Dispatchers.Default`, `clock: Clock = Clock.System`, AND `random: Random = Random.Default`. `flowOn(dispatcher)` applied as last operator (l.153). Tests substitute a Ktor MockEngine, StandardTestDispatcher, Random(0) and a RetryPolicy."
+    },
+    {
+      "text": "Does NOT return a fake or last-known value on failure that masks the outage (no silent fallback that fakes success)",
+      "passed": true,
+      "evidence": "PriceStreamClient.kt:127-139 on exhaustion/terminal it `throw PriceStreamError(...)` with comment 'Never substitute a fake/last-known tick here — that would turn an outage into silent stale data on a trading screen.' Sample (PriceStreamSamples.kt:28) surfaces the typed error via `.catch` to onStreamFailed, not a stale price."
+    },
+    {
+      "text": "Avoids constructing Json per-call and frames the stream incrementally (does not re-split an ever-growing accumulated buffer)",
+      "passed": true,
+      "evidence": "PriceStreamClient.kt:58 `private val json: Json = Json { isLenient = false }` built once per client with comment explaining a per-frame `Json {}` would discard descriptor cache. Framing is incremental via Ktor SSE plugin `session.incoming.collect { event -> ... event.data }` (l.100-106) — the plugin delivers discrete ServerSentEvent objects, no accumulated-buffer re-split."
+    },
+    {
+      "text": "Stays at Tier 0 for this app-level task: does NOT impose published-API/ABI/explicitApi/publishing rules that don't apply",
+      "passed": true,
+      "evidence": "transcript.md 'Tier classification' section: 'Tier 0 (Core) only. I deliberately did not raise Tier 1 (ABI dumps, explicitApi() strict, overload-don't-append)... the skill explicitly says imposing those on an app class is noise.' It writes `public`/explicit return types but does not gate on an ABI dump or treat data-class evolution as a binary-compat hazard. No publishing/Maven Central rules imposed in the deliverable."
+    }
+  ],
+  "execution_metrics": {
+    "total_tokens": 133224,
+    "output_files": 4,
+    "output_chars": 22756
+  },
+  "timing": {
+    "total_duration_seconds": 349.0
+  },
+  "claims": [
+    {
+      "claim": "Failures throw SSEClientException (an IllegalStateException, not a ResponseException) carrying response",
+      "type": "factual",
+      "verified": true,
+      "evidence": "PriceModels.kt:127 reads status from BOTH `(this as? SSEClientException)?.response?.status?.value ?: (this as? ResponseException)?.response?.status?.value` — handling both transport paths; transcript notes this was confirmed via live Exa search."
+    },
+    {
+      "claim": "A single malformed frame is skipped, not fatal to the session",
+      "type": "process",
+      "verified": true,
+      "evidence": "parseTick (l.156-166) returns null on SerializationException/IllegalArgumentException; collect skips null. Test `skipsMalformedFrameButKeepsReading` confirms a bad frame is skipped and the next good tick still arrives."
+    }
+  ],
+  "eval_feedback": {
+    "suggestions": [
+      {
+        "assertion": "Avoids constructing Json per-call and frames the stream incrementally (does not re-split an ever-growing accumulated buffer)",
+        "reason": "Both configs use the Ktor SSE plugin, which frames events for them, so the 'no ever-growing buffer re-split' half of this assertion is satisfied by the framework rather than by a deliberate choice. The assertion would be more discriminating against a hand-rolled SSE parser (which the host repo actually uses per the with_skill transcript). Consider an eval variant that forbids the SSE plugin to force the buffering decision into the candidate's own code."
+      }
+    ],
+    "overall": "All 7 assertions pass on genuine, specific code evidence. The with_skill output is notably more rigorous than the assertions strictly require (full attempts history, overall deadline via withTimeout, attempt-reset on healthy tick, value class Symbol, @sample target)."
+  }
+}

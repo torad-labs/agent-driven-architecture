@@ -1,0 +1,26 @@
+# TENET: Prefer readonly arrays in function signatures.
+# Rationale: readonly T[] prevents accidental mutation of array parameters.
+# Makes function contracts clearer and enables better optimizations.
+id: prefer-readonly-array
+language: typescript
+severity: error
+message: "Use readonly T[] for array parameters to prevent mutation."
+files:
+  - "**/*.ts"
+ignores:
+  - "**/test/**"
+rule:
+  # stopBy at each level. `has` reads DIRECT children, and a parameter's array type sits
+  # under a `type_annotation` — so `xs: string[]` was invisible and the rule never fired
+  # on any parameter in examples/typescript.
+  kind: formal_parameters
+  has:
+    kind: required_parameter
+    stopBy: end
+    has:
+      kind: array_type
+      stopBy: end
+      not:
+        inside:
+          kind: readonly_type
+          stopBy: end

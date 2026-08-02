@@ -1,0 +1,7 @@
+id: no-coroutine-scope-factory
+valid:
+  - |
+    class A(private val scope: CoroutineScope) { fun go() = scope.launch { work() } }
+invalid:
+  - |
+    class A { private val scope = CoroutineScope(Dispatchers.Default) }

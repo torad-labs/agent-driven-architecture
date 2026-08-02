@@ -1,0 +1,15 @@
+# TENET: Prefer async/await over callback chains.
+# Rationale: Nested callbacks create "callback hell" that's hard to read and debug.
+# Use async/await for sequential operations, Promise.all for parallel.
+id: no-callback-hell
+language: typescript
+severity: error
+message: "Consider async/await instead of nested callbacks for better readability."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/test/**"
+  - "**/*.test.ts"
+rule:
+  pattern: $FN($$$ARGS, ($ERR, $RES) => { $$$BODY })

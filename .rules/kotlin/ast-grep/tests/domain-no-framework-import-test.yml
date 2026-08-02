@@ -1,0 +1,16 @@
+id: domain-no-framework-import
+valid:
+  - |
+    package good
+
+    import kotlinx.serialization.Serializable
+
+    @Serializable
+    data class Good(val id: String)
+invalid:
+  - |
+    package bad
+
+    import java.sql.Connection
+
+    class Bad(val connection: Connection)

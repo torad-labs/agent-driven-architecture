@@ -1,0 +1,18 @@
+id: no-raw-json-op-payload
+snapshots:
+  ? |
+    fun send(repo: StateRepo, nowMs: Long): Long =
+        repo.enqueue(OperationKind.PASTE, null, buildJsonObject { put("session", "s") }, nowMs)
+  : labels:
+    - source: repo.enqueue(OperationKind.PASTE, null, buildJsonObject { put("session", "s") }, nowMs)
+      style: primary
+      start: 51
+      end: 138
+  ? |
+    suspend fun call(host: HostClient) =
+        host.request("manifestCall", buildJsonObject { put("verb", "list") })
+  : labels:
+    - source: host.request("manifestCall", buildJsonObject { put("verb", "list") })
+      style: primary
+      start: 41
+      end: 110

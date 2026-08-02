@@ -1,0 +1,17 @@
+{
+  "eval_id": 3,
+  "eval_name": "review-finds-core-bugs",
+  "prompt": "Review PriceStreamRepository.kt before merge. Works in testing but a teammate said streaming felt off and prices sometimes freeze on the watchlist. Anything to flag?",
+  "assertions": [
+    "Flags that `runCatching` wraps a suspend call and therefore swallows CancellationException",
+    "Flags the empty `catch (e: Exception) {}` in stream() that swallows everything including cancellation",
+    "Flags constructing `Json {}` per call instead of reusing one instance",
+    "Flags returning cached/0.0 on failure as masking the outage (fake price = fake success); calls the 0.0 sentinel dangerous",
+    "Flags `GlobalScope.launch` in prefetch() as unstructured/leaky",
+    "Flags the hardcoded `Dispatchers.IO` as hurting testability (should be injected) -- NOT praising it",
+    "Flags `accumulated += chunk` + re-`split` as O(n^2) and/or re-emitting old/duplicate lines -- connects it to the freeze symptom",
+    "Flags the bare `while (true)` loop with no delay/backoff (request storm / dispatcher starvation)",
+    "Frames the review EXPLICITLY at Tier 0 (states it's app/internal code and that library tiers don't apply) -- DISCRIMINATING",
+    "Raises NO explicitApi/ABI/publishing concerns (no tier-confusion false positives)"
+  ]
+}

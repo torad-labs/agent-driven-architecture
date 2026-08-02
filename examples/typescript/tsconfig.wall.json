@@ -1,0 +1,49 @@
+{
+  "//": "THE WALL, as a solution file: no files of its own, one reference per workspace package — fourteen of them, a PAIR per block. `npm run typecheck:wall` builds it with --force, which is what makes a cross-block reach a RESOLUTION error instead of a lint message. --force rather than incremental on purpose: a gate that can be satisfied by a stale .tsbuild is not a gate.",
+  "//references": "This list is DERIVED-AND-CHECKED, not trusted: test/gate/gate.test.ts expands the workspaces globs in package.json and requires exactly these references back, so a package added without a wall is a red diff rather than a silently unchecked folder.",
+  "files": [],
+  "references": [
+    {
+      "path": "src/spine"
+    },
+    {
+      "path": "src/blocks/analysis"
+    },
+    {
+      "path": "src/blocks/analysis/adapter"
+    },
+    {
+      "path": "src/blocks/artifact"
+    },
+    {
+      "path": "src/blocks/artifact/adapter"
+    },
+    {
+      "path": "src/blocks/console"
+    },
+    {
+      "path": "src/blocks/console/adapter"
+    },
+    {
+      "path": "src/blocks/escalation"
+    },
+    {
+      "path": "src/blocks/escalation/adapter"
+    },
+    {
+      "path": "src/blocks/inbox"
+    },
+    {
+      "path": "src/blocks/inbox/adapter"
+    },
+    {
+      "path": "src/blocks/triage"
+    },
+    {
+      "path": "src/blocks/triage/adapter"
+    },
+    {
+      "path": "src/app"
+    }
+  ]
+}

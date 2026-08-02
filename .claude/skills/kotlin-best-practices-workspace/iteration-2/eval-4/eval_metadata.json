@@ -1,0 +1,12 @@
+{
+  "eval_id": 5,
+  "eval_name": "write-serialization-wire-models",
+  "prompt": "Wire models for a chat API in Kotlin (kotlinx.serialization). Messages are polymorphic (text/tool_call/tool_result); server keeps adding new types + fields. Design the @Serializable types + Json config so old clients don't crash on new fields, polymorphic types round-trip, and class renames don't break the wire. Shared between an Android app and a KMP module.",
+  "assertions": [
+    "Polymorphic messages are a sealed hierarchy with @JsonClassDiscriminator on the base and explicit @SerialName on each subtype (wire decoupled from class names)",
+    "Forward-compat for new server fields via per-class @JsonIgnoreUnknownKeys rather than the global ignoreUnknownKeys flag (or at minimum scopes leniency deliberately and notes the trade) -- DISCRIMINATING",
+    "Uses a single reused Json instance (top-level/object val), not a per-call Json {}",
+    "Handles unknown polymorphic subtypes gracefully (polymorphic defaultDeserializer / fallback type) rather than throwing 'Serializer for subclass not found'",
+    "Encodes/decodes through the base type so the discriminator is written, and demonstrates that a class/property rename does not change the JSON (via @SerialName)"
+  ]
+}

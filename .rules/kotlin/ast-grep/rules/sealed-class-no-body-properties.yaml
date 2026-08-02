@@ -1,0 +1,25 @@
+# LAW (promoted from rules-style, this repo):  No val/var directly in sealed class/interface body.
+# Rationale: Shared properties belong in the sealed class constructor as open val.
+# Variants override them in their constructors. Body properties break exhaustive matching.
+id: sealed-class-no-body-properties
+language: kotlin
+severity: error
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/src/test/fixtures/**"
+message: "Put shared properties in the sealed class constructor, not in the body. Variants override them."
+rule:
+  kind: class_body > property_declaration
+  all:
+    - has: {kind: binding_pattern_kind, regex: "^(val|var)$"}
+    - inside:
+        kind: class_declaration
+        # ANCHORED. `regex` matches the whole class_declaration node text, comments
+        # included, so an unanchored \bsealed\b flagged every property of any class
+        # whose body merely MENTIONED "sealed class" in a comment. Measured: it fired
+        # on GateTest, which is not sealed and never was.
+        regex: "^(public |internal |private |abstract )*sealed\\s+(class|interface)\\b"
+        stopBy: {kind: class_declaration}

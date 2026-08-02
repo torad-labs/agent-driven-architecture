@@ -1,0 +1,144 @@
+id: no-promise-unit-then-coercion
+valid:
+  # Self-reassignment, bridged via the two-arg (onFulfilled, onRejected) form — both branches
+  # return a plain value, never a nested Promise (the S2-4 killSessionViaSeatd shape).
+  - |
+    package good
+
+    fun drainQueue(items: List<Int>, work: (Int) -> Promise<Unit>) {
+        var chain: Promise<Unit> = Promise.resolve(Unit)
+        for (item in items) {
+            chain = chain.then({ work(item) }, { error -> Promise.reject<Unit>(error) })
+        }
+    }
+  # Self-reassignment, bridged via a trailing identity passthrough.
+  - |
+    package good
+
+    fun drainQueue(items: List<Int>, work: (Int) -> Promise<Unit>) {
+        var chain: Promise<Unit> = Promise.resolve(Unit)
+        for (item in items) {
+            chain = chain.then { work(item) }.then { it }
+        }
+    }
+  # Return position (expression body), bridged via the two-arg form.
+  - |
+    package good
+
+    fun spawnAndWake(seat: String): Promise<Unit> =
+        client.spawn(seat).then({ result -> sendWakeTurn(result) }, { error -> Promise.reject<Unit>(error) })
+  # Return position (expression body), bridged via a trailing identity passthrough.
+  - |
+    package good
+
+    fun spawnAndWake(seat: String): Promise<Unit> =
+        client.spawn(seat).then { result -> sendWakeTurn(result) }.then { it }
+  # Return position, an empty .then {} deliberately discarding the resolved value — no nested
+  # Promise possible with nothing to return (the SeatdClient.kt write/resize/signal shape).
+  - |
+    package good
+
+    fun write(seat: String, bytes: String): Promise<Unit> =
+        sendVerb("write", args).then {}
+  # Self-reassignment with an empty .then {} — same discard-on-purpose shape, loop context.
+  - |
+    package good
+
+    fun killEach(seats: List<String>) {
+        var chain: Promise<Unit> = Promise.resolve(Unit)
+        for (seat in seats) {
+            chain = chain.then { kill(seat) }.then {}
+        }
+    }
+  # Return position (block body with a preceding statement), bridged via a trailing passthrough.
+  - |
+    package good
+
+    fun spawnAndWake(seat: String): Promise<Unit> {
+        writeProvisionTicket(seat)
+        return client.spawn(seat).then { result -> sendWakeTurn(result) }.then { it }
+    }
+  # A completely unchained Promise<Unit> — nothing to coerce.
+  - |
+    package good
+
+    fun noop(): Promise<Unit> = Promise.resolve(Unit)
+  # SP-12: the widened glob's own real compliant case — SP-4's Attach.kt chainWrite, byte-for-byte
+  # (private fun, multi-line trailing-comma params, the unsafeCast<Promise<Unit>>() bridge before
+  # a non-trivial trailing .then{} whose body returns no Promise). This is also the case that
+  # found SP-12's second gap: without the private/internal/protected pattern variants added here,
+  # this function was invisible to the rule ENTIRELY (not exempted — never even matched as
+  # suspicious), which would have made "seatd is footgun-free" a false assurance the moment a
+  # REAL violation showed up in a private helper, the most common real shape.
+  - |
+    package good
+
+    private fun chainWrite(
+        state: Attachment,
+        screen: Screen,
+        data: String,
+        seat: String,
+        episodeLabel: String?,
+    ): Promise<Unit> =
+        state.writeChain
+            .then { screen.write(data) }
+            .unsafeCast<Promise<Unit>>()
+            .then {
+                if (!state.disposed) {
+                    val frame = screen.frame()
+                    if (frame.hash != state.lastHash) {
+                        state.lastHash = frame.hash
+                        publish(seat, SeatEvent.ScreenHashChange(seat, frame.hash, episodeLabel))
+                    }
+                }
+            }
+  # SP-12: an internal-visibility variant of the two-arg bridge, proving the modifier-tolerant
+  # patterns cover internal (not just private) — the seatd port's own common visibility (S1-5's
+  # server dispatch verbs are internal fun, not private).
+  - |
+    package good
+
+    internal fun killSessionViaSeatd(seat: String): Promise<Unit> =
+        resolveActuationClient().then({ client -> client.kill(seat) }, { error -> Promise.reject<Unit>(error) })
+invalid:
+  # SP-12: THE SEATD VERIFY CASE — a synthetic backend/seatd Promise<Unit> .then-coercion in a
+  # private fun (the realistic shape a seatd helper actually takes, e.g. a dispatch.mjs-derived
+  # verb handler) — must be caught now that the glob covers backend/seatd AND the modifier gap is
+  # closed. Before SP-12: invisible twice over (wrong glob, then wrong modifier-anchoring).
+  - |
+    package bad
+
+    private fun handleSpawnVerbSeatd(seat: String): Promise<Unit> =
+        ptyBackend.spawn(seat).then { handle -> registerHandle(seat, handle) }
+  # SP-12: the same coercion in an internal fun block-body return, one more realistic seatd shape.
+  - |
+    package bad
+
+    internal fun handleKillVerbSeatd(seat: String): Promise<Unit> {
+        journalKillAttempt(seat)
+        return ptyBackend.kill(seat).then { result -> recordKillResult(seat, result) }
+    }
+  # THE VERIFY CASE: a synthetic Promise<Unit> chained-assignment (S2-3's exact shape).
+  - |
+    package bad
+
+    fun drainQueue(items: List<Int>, work: (Int) -> Promise<Unit>) {
+        var chain: Promise<Unit> = Promise.resolve(Unit)
+        for (item in items) {
+            chain = chain.then { work(item) }
+        }
+    }
+  # Return position, expression body (S2-1's exact shape).
+  - |
+    package bad
+
+    fun spawnAndWake(seat: String): Promise<Unit> =
+        client.spawn(seat).then { result -> sendWakeTurn(result) }
+  # Return position, block body with a preceding statement.
+  - |
+    package bad
+
+    fun spawnAndWake(seat: String): Promise<Unit> {
+        writeProvisionTicket(seat)
+        return client.spawn(seat).then { result -> sendWakeTurn(result) }
+    }

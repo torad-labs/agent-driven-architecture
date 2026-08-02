@@ -1,0 +1,32 @@
+id: tmux-test-socket-isolation-kotlin
+language: Kotlin
+# SEC-9 walls-first: enable as error only after SEC-9-MIG-KT and SEC-9-MIG-PY land.
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "tmux-test-socket-isolation-kotlin: test tmux must carry explicit -L NAME or -S PATH on every invocation. TMUX_TMPDIR alone is non-isolating and a default-socket kill can target the production fleet."
+rule:
+  all:
+    - any:
+        - pattern: run("tmux", $$$ARGS)
+        - pattern: execFileSync("tmux", $$$ARGS)
+        - pattern: execFile("tmux", $$$ARGS)
+        - pattern: spawnSync("tmux", $$$ARGS)
+        - pattern: spawn("tmux", $$$ARGS)
+        - pattern: ProcessBuilder("tmux", $$$ARGS)
+    - not:
+        has:
+          kind: string_content
+          regex: "^-(L|S)$"
+          stopBy: end

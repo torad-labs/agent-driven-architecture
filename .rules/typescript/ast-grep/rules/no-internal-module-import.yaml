@@ -1,0 +1,18 @@
+# TENET: No private/internal dependency reach-through.
+# Rationale: Imports from another package's internal or private module bypass its
+# public contract and make upgrades brittle. Depend on the public entry point.
+id: no-internal-module-import
+language: typescript
+severity: error
+message: "Do not import another package's internal/private modules; depend on the public API."
+files:
+  - "**/*.ts"
+rule:
+  any:
+    - pattern: import $IMPORTS from "$SOURCE"
+    - pattern: import "$SOURCE"
+    - pattern: export { $$$EXPORTS } from "$SOURCE"
+    - pattern: export * from "$SOURCE"
+constraints:
+  SOURCE:
+    regex: '(^|/)(internal|private)(/|$)'

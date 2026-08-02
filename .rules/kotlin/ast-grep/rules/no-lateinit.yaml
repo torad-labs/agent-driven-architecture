@@ -1,0 +1,29 @@
+# TENET: Avoid lateinit var in production code.
+# Rationale: lateinit defers initialization without compile-time safety.
+# Use constructor injection, lazy delegation, or make the property nullable.
+# Grammar note: the lateinit modifier nests inside a `modifiers` child, so a
+# direct `has: property_modifier` on property_declaration never matched
+# (proof harness 2026-07-03: dead rule). Pattern form matches reliably.
+id: no-lateinit
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/test/**"
+  - "**/*Test/**"
+  - "**/testFixtures/**"
+  - "**/*Test.kt"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "Avoid `lateinit var`. Use constructor injection, `by lazy`, or nullable types."
+rule:
+  pattern: 'lateinit var $NAME: $TYPE'

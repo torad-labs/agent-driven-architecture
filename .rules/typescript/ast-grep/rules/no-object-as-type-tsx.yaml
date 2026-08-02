@@ -1,0 +1,22 @@
+# TSX TWIN — ast-grep parses .tsx with a SEPARATE grammar, so a rule declaring
+# `language: typescript` is silent on every .tsx file no matter what its `files:`
+# globs say. 20 rules in this pack targeted **/*.tsx under the typescript grammar
+# and could never fire; the UI surface was entirely unenforced. This twin carries
+# the same matcher under `language: tsx`.
+# TENET: Don't use object or Object as a type.
+# Rationale: object is too broad — use Record<string, unknown> or specific types.
+# Object includes primitives via autoboxing.
+id: no-object-as-type-tsx
+language: tsx
+severity: error
+message: "Don't use `object` type. Use Record<string, unknown> or specific types."
+files:
+  - "**/*.tsx"
+rule:
+  # lowercase `object` is a PREDEFINED_TYPE node; only capital `Object` is a
+  # type_identifier. Matching one kind caught half the rule's own stated target.
+  any:
+    - kind: type_identifier
+      regex: "^(object|Object)$"
+    - kind: predefined_type
+      regex: "^object$"

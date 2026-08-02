@@ -1,0 +1,14 @@
+{
+  "eval_id": 1,
+  "eval_name": "write-streaming-client-core",
+  "prompt": "Price-watch feature. Gateway streams quotes over a long-lived plain HTTP GET (newline-delimited `price:<number>` lines, never closes; NOT standard SSE — read the body channel yourself and frame the lines). Expose ticks to the UI as they arrive, retry transient errors, shut down cleanly on screen leave. Ktor. Unit-testable.",
+  "assertions": [
+    "Stream is exposed as a cold Flow returned from a NON-suspend function (lazy, cancellable)",
+    "Cancellation correct: CancellationException not swallowed; clean shutdown via scope cancellation; no GlobalScope",
+    "Retries ONLY transient failures with capped + jittered backoff; not a bare while(true) with no delay; does not retry terminal 4xx",
+    "HttpClient/engine AND dispatcher injected (constructor) for unit-testability",
+    "Does NOT return a fake/last-known value on failure that masks the outage",
+    "Frames the stream incrementally by reading the body channel line-by-line over a retained buffer; does NOT accumulate the whole response and re-split per read (no O(n^2)/re-emit) -- DISCRIMINATING now that manual framing is forced",
+    "Stays Tier 0 for the app task: no explicitApi/ABI/publishing noise"
+  ]
+}

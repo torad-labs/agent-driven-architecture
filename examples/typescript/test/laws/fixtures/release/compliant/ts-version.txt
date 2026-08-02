@@ -1,0 +1,2 @@
+// the compliant TypeScript marker: one declaration, on its own line.
+export const SPINE_VERSION = "spine-1";

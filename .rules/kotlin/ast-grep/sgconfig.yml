@@ -1,0 +1,30 @@
+# ast-grep configuration for Torad Kotlin rules
+# Install: copy to project root or .rules/kotlin/ast-grep/
+# Run: ast-grep scan --config .rules/kotlin/ast-grep/sgconfig.yml
+#
+# SCOPE LAW (promoted from torad-fleet control-room campaign CR-TOOLKIT-PROMOTE, 2026-07-13):
+# every rule scopes by EXCLUSION (ignores:), never inclusion (files:) — new files and new
+# folders are inside every law by default until consciously classified into a declared zone
+# or fixed. Enumerated ignore entries are grandfathered legacy debt to burn down, never a
+# place to hide new code. Installs append their own per-repo grandfather entries on top of
+# each rule's minimal canonical ignores list.
+#
+# `rules-style/` is opt-in reference/house-tenet material — deliberately outside ruleDirs
+# below, so it is never part of the default LAW scan.
+#
+# Conformance gate (rule<->test cross-check the taxonomy tests below do not cover): run
+# `node scripts/astgrep-conformance.mjs resources/configs/kotlin-rules/ast-grep` from the
+# toolkit root — verifies every rules/ and rules-style/ id has a matching tests/<id>-test.yml
+# with an invalid: case, and that every test has a matching rule (no orphaned tests).
+
+ruleDirs:
+  - rules
+  - codemods
+  - normalize
+
+utilDirs:
+  - utils
+
+testConfigs:
+  - testDir: tests
+    snapshotDir: __snapshots__

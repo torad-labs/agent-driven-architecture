@@ -1,0 +1,9 @@
+id: collect-with-lifecycle
+snapshots:
+  ? |
+    @Composable fun S(flow: StateFlow<Int>) { val v by flow.collectAsState() }
+  : labels:
+    - source: flow.collectAsState()
+      style: primary
+      start: 51
+      end: 72

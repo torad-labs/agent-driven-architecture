@@ -1,0 +1,9 @@
+id: no-global-scope
+snapshots:
+  ? |
+    fun go() { GlobalScope.launch { work() } }
+  : labels:
+    - source: GlobalScope
+      style: primary
+      start: 11
+      end: 22

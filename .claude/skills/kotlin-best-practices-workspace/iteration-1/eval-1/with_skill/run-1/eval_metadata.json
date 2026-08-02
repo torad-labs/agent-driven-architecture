@@ -1,0 +1,13 @@
+{
+  "eval_id": 2,
+  "eval_name": "write-kmp-published-api",
+  "prompt": "I'm starting a small Kotlin Multiplatform library (JVM + iOS) that wraps a weather REST API. It'll be published to Maven Central and called from both Android and Swift. Design the public surface for me: the main client entry point, the result type for a forecast, and how errors are represented. I want it to age well and not break binary compatibility down the line.",
+  "assertions": [
+    "Public surface uses explicit return/property types throughout (no inferred public return types) — the explicitApi mindset",
+    "Errors are modeled as a sealed hierarchy (not a growable public data class, not a bare RuntimeException/IllegalStateException)",
+    "The forecast result type is NOT a public `data class` that will grow — it's an interface, regular class, or sealed type — to preserve binary compatibility",
+    "Signatures use read-only collections; construction goes through a factory or builder rather than a public constructor whose descriptor will move when config grows",
+    "commonMain stays platform-free: no java.*/android.*/platform.Foundation.* in the public surface",
+    "Surfaces at least one publishing or iOS-interop consideration (api() vs implementation() for ABI-visible deps, single-macOS publish, XCFramework, or SKIE)"
+  ]
+}

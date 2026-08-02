@@ -1,0 +1,9 @@
+id: tests-no-runblocking
+snapshots:
+  ? |
+    class T { @Test fun t() = runBlocking { assertEquals(1, f()) } }
+  : labels:
+    - source: runBlocking { assertEquals(1, f()) }
+      style: primary
+      start: 26
+      end: 62

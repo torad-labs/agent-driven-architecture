@@ -1,0 +1,74 @@
+# TENET (G60, PE-scoped design): a catch of Exception/Throwable inside a suspend fun that
+# neither rethrows, checks `is CancellationException`, nor calls ensureActive() silently
+# swallows coroutine cancellation — the caller's structured-concurrency contract is broken and
+# the coroutine keeps running past its own cancellation point. detekt's own
+# SuspendFunSwallowedCancellation (G59) targets the same footgun but does not currently fire in
+# this project (detekt 1.23.8 predates that rule's K2/Analysis-API migration, PR #8512) — this
+# tenet is the ONLY mechanical guard for this pattern until the project upgrades detekt.
+#
+# SUSPEND-SCOPED (deliberately): fires only on catch blocks whose nearest enclosing function is
+# itself `suspend` — it must NOT fire on the ~113 synchronous JS-interop catches that pervade the
+# Promise-based backend modules (host/persistence/platform/seatd), so those existing suppressions
+# stay untouched (fixable/deletable later on their own timeline, not conflated with this rule).
+#
+# SCOPED TO :mcp per operator direction: mcp is the only module with real, non-test suspend-fun
+# coroutine usage right now (38 hits) — domain/application's own handful of suspend hits are
+# effectively zero-match here (application's is test-only, domain's single hit doesn't match this
+# shape). host/persistence/platform/seatd are Promise-based (zero suspend funs) — a correct
+# zero-match there, not a gap. Widen the files: list the day another module grows real coroutine
+# usage.
+#
+# A two-catch-block idiom (catch CancellationException + rethrow FIRST, catch Exception/Throwable
+# SECOND) is SAFE — Kotlin's own catch-clause ordering means the second clause can never actually
+# receive a CancellationException — so a catch_block is exempted when a PRECEDING sibling catch
+# already handles CancellationException specifically (the `follows` relational check below).
+id: suspend-catch-rethrows-cancellation
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: >-
+  suspend-catch-rethrows-cancellation: this catch (inside a suspend fun) can swallow
+  CancellationException, breaking structured concurrency. Rethrow it explicitly (catch
+  CancellationException first and `throw e`), check `is CancellationException` and rethrow, or
+  call ensureActive() before handling the rest.
+rule:
+  all:
+    - kind: catch_block
+    - has:
+        kind: user_type
+        regex: "^(Exception|Throwable)$"
+    - inside:
+        kind: function_declaration
+        stopBy: end
+        has:
+          kind: modifiers
+          has:
+            kind: function_modifier
+            regex: "^suspend$"
+    - not:
+        has:
+          stopBy: end
+          any:
+            - pattern: "throw $E"
+            - pattern: "$SCOPE.ensureActive()"
+            - pattern: "ensureActive()"
+            - pattern: "$E is CancellationException"
+    - not:
+        follows:
+          kind: catch_block
+          stopBy: end
+          has:
+            kind: user_type
+            regex: "CancellationException"

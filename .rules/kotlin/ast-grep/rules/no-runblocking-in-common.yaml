@@ -1,0 +1,31 @@
+id: no-runblocking-in-common
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  - "**/src/jvmMain/kotlin/**"
+  # This rule's own message names the exception and then does not implement it:
+  # "runBlocking belongs only at composition roots or tests". An entry point IS the
+  # composition root's front door, and its sibling no-runblocking-in-production
+  # already encodes exactly this carve-out by the same two filenames. Matching them
+  # makes the rule enforce what it says rather than something stricter.
+  - "**/Main.kt"
+  - "**/*Application.kt"
+  - "**/src/*Test/kotlin/**"
+  - "**/src/test/kotlin/**"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "no-runblocking-in-common: common domain/application code must preserve suspend discipline; runBlocking belongs only at composition roots or tests."
+rule:
+  any:
+    - pattern: 'runBlocking { $$$ }'
+    - pattern: 'runBlocking($$$A) { $$$ }'

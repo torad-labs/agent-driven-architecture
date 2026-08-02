@@ -1,0 +1,182 @@
+// ── app/assemble — the THREE total dispatchers (G12) ────────────────────────
+//   foldApp            results → (state, effects)     the decision
+//   projectApp         state   → AppView              what a human reads (6.9)
+//   projectContextApp  state   → Context              what the reasoner reads (G15)
+//
+// Three, not one, because they consume different things and 6.9 forbids fusing the
+// fold with the projections.
+//
+// Every dispatcher is an EXHAUSTIVE match with NO else arm. Adding a block adds one
+// branch to each, and the compiler names every one. Adding a VERB adds nothing here
+// at all — that edit lands entirely inside the block (§11.1).
+//
+// THE BLOCKS ARE CONSTRUCTED HERE, per call. A block used to be a loose `object`, so
+// there was nothing to build and nothing that could be built in a test; now each
+// dispatcher stands its blocks up itself.
+//
+// `context` TAKES THE ROOT'S WINDOW as a third, DEFAULTED parameter
+// (docs/DECISIONS.md:174). It rides the call rather than the Assembly constructor for
+// two reasons: `Assembly()::context` is still exactly `ProjectContext<S>`, so the seam
+// is untouched; and the twenty-five `Assembly()` sites cost nothing, because a defaulted
+// parameter is inherited explicitly rather than threaded. The bound the boundary commits
+// under is the Boundary's own `contextBounds` — it is passed IN, never looked up here.
+
+package adr.app
+
+import adr.blocks.analysis.AnalysisBlock
+import adr.blocks.artifact.ArtifactBlock
+import adr.blocks.console.ConsoleBlock
+import adr.blocks.escalation.EscalationBlock
+import adr.blocks.inbox.InboxBlock
+import adr.blocks.triage.Ticket
+import adr.blocks.triage.TriageBlock
+import adr.contract.AnalysisResult
+import adr.contract.ArtifactResult
+import adr.contract.ConsoleResult
+import adr.contract.Effect
+import adr.contract.EscalationResult
+import adr.contract.InboxResult
+import adr.contract.ToolResult
+import adr.contract.TriageResult
+import adr.spine.pure.Attributed
+import adr.spine.pure.Context
+import adr.spine.pure.ContextBounds
+import adr.spine.pure.DEFAULT_CONTEXT_BOUNDS
+import adr.spine.pure.Notice
+import adr.spine.pure.PanelId
+import adr.spine.pure.Signature
+import adr.spine.pure.SpineArms
+import adr.spine.pure.SpineProjection
+import adr.spine.pure.StagedInput
+import adr.spine.pure.TicketId
+import adr.spine.pure.Timestamp
+
+/**
+ * THE APP'S OWN THREE ROLES, on one constructed type — the app-level counterparts of a
+ * block's arm/view/contextLines, composing the six blocks into one fold and two
+ * projections.
+ *
+ * These were top-level so that `Assembly()::fold` and `Assembly()::context` could be handed to
+ * the Boundary as `Fold<S>` / `ProjectContext<S>`. A bound member reference —
+ * `Assembly()::fold` — has exactly that type, so nothing about the seam needed the
+ * functions to be loose; only the habit did.
+ */
+class Assembly {
+
+    fun fold(
+        state: State,
+        results: List<ToolResult>,
+        now: Timestamp,
+        sig: Signature,
+    ): Pair<State, List<Attributed>> {
+        val triage = TriageBlock()
+        val escalation = EscalationBlock()
+        val console = ConsoleBlock()
+        val artifact = ArtifactBlock()
+        val analysis = AnalysisBlock()
+        val inbox = InboxBlock()
+
+        var s = state
+        // PER-EFFECT PROVENANCE (docs/DECISIONS.md:85). Each effect rides the result
+        // it came from, so the licence checked before `perform` is that result's own
+        // and not that of some other result that happened to survive in the same step.
+        val effects = mutableListOf<Attributed>()
+        val notices = mutableListOf<Notice>()
+
+        for (result in results) {
+            when (result) {
+                is TriageResult -> triage.arm(s.triage, result, now, sig).let {
+                    s = s.copy(triage = it.slice)
+                    effects += it.effects.map { e -> Attributed(result, e) }
+                    notices += it.notices
+                }
+
+                is EscalationResult -> escalation.arm(s.escalation, result, now, sig).let {
+                    s = s.copy(escalation = it.slice)
+                    effects += it.effects.map { e -> Attributed(result, e) }
+                    notices += it.notices
+                }
+
+                is ConsoleResult -> console.arm(s.console, result, now, sig).let {
+                    s = s.copy(console = it.slice)
+                    effects += it.effects.map { e -> Attributed(result, e) }
+                    notices += it.notices
+                }
+
+                is ArtifactResult -> artifact.arm(s.artifact, result, now, sig).let {
+                    s = s.copy(artifact = it.slice)
+                    effects += it.effects.map { e -> Attributed(result, e) }
+                    notices += it.notices
+                }
+
+                is AnalysisResult -> analysis.arm(s.analysis, result, now, sig).let {
+                    s = s.copy(analysis = it.slice)
+                    effects += it.effects.map { e -> Attributed(result, e) }
+                    notices += it.notices
+                }
+
+                is InboxResult -> inbox.arm(s.inbox, result, now, sig).let {
+                    s = s.copy(inbox = it.slice)
+                    effects += it.effects.map { e -> Attributed(result, e) }
+                    notices += it.notices
+                }
+
+                // The spine's own two arms. Identical everywhere (§7).
+                is ToolResult.Unhandled -> SpineArms().unhandled(s.spine, result, now).let {
+                    effects += it.effects.map { e -> Attributed(result, e) }
+                    notices += it.notices
+                }
+
+                is ToolResult.Refused -> SpineArms().refused(s.spine, result, now).let {
+                    effects += it.effects.map { e -> Attributed(result, e) }
+                    notices += it.notices
+                }
+            }
+        }
+
+        // Per-item notices land in the spine's slice. RunStatus is NEVER touched here (12.4).
+        return s.copy(spine = s.spine.withNotices(notices)) to effects.toList()
+    }
+
+    fun view(state: State): AppView = AppView(
+        root = SpineProjection().view(state.spine),
+        triage = TriageBlock().view(state.triage),
+        escalation = EscalationBlock().view(state.escalation),
+        console = ConsoleBlock().view(state.console),
+        artifact = ArtifactBlock().view(state.artifact),
+        analysis = AnalysisBlock().view(state.analysis),
+        inbox = InboxBlock().view(state.inbox),
+    )
+
+    /**
+     * The THIRD pure projection (G15). Recomputed from committed State every step, never
+     * appended to, and bounded by declaration — so |Context| is O(1) in timeline
+     * length. The artifact contributes a COUNT, never its lines.
+     */
+    fun context(
+        state: State,
+        staged: List<StagedInput>,
+        bounds: ContextBounds = DEFAULT_CONTEXT_BOUNDS,
+    ): Context = Context(
+        staged = staged,
+        lines = TriageBlock().contextLines(state.triage, bounds.linesPerBlock) +
+            EscalationBlock().contextLines(state.escalation, bounds.linesPerBlock) +
+            ConsoleBlock().contextLines(state.console, bounds.linesPerBlock) +
+            AnalysisBlock().contextLines(state.analysis, bounds.linesPerBlock) +
+            InboxBlock().contextLines(state.inbox, bounds.linesPerBlock),
+        notices = state.spine.notices
+            .takeLast(bounds.notices)
+            .map { "${it.tool.value}: ${it.reason}" },
+        artifactLineCount = ArtifactBlock().lineCount(state.artifact),
+    )
+
+    /** Only the blocks that start non-empty are seeded; the rest take their own defaults. */
+    fun initialState(
+        tickets: List<Ticket> = emptyList(),
+        panels: List<PanelId> = listOf(PanelId("queue"), PanelId("detail"), PanelId("audit")),
+    ): State = State(
+        triage = TriageBlock().slice(tickets),
+        escalation = EscalationBlock().slice(tickets.map { it.id }),
+        console = ConsoleBlock().slice(panels),
+    )
+}

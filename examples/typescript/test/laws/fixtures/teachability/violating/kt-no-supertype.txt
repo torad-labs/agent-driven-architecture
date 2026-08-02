@@ -1,0 +1,16 @@
+// The Kotlin facade dropped its supertype list. Nothing is `override` any more,
+// so nothing is contract-pinned — and the port's score would silently fall to
+// zero rather than say what happened.
+
+package adr.blocks.alpha
+
+class AlphaBlock {
+
+    fun <S> register(lens: Lens<S, AlphaSlice>): BlockRegistration<S> =
+        BlockRegistration(block = "alpha", verbs = AlphaTools(lens).verbs())
+
+    fun arm(slice: AlphaSlice, result: AlphaResult, now: Timestamp, sig: Signature): ArmOut<AlphaSlice> =
+        armImpl.arm(slice, result, now, sig)
+
+    fun view(slice: AlphaSlice): AlphaView = projection.view(slice)
+}

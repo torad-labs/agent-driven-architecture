@@ -1,0 +1,7 @@
+id: tests-no-hardcoded-dispatchers
+valid:
+  - |
+    class T { @Test fun t() = runTest { subject(dispatcher).go() } }
+invalid:
+  - |
+    class T { @Test fun t() = runTest { withContext(Dispatchers.IO) { subject.go() } } }

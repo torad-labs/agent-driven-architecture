@@ -1,0 +1,20 @@
+# TENET: State types use discriminated unions with explicit kind field.
+# Rationale: Discriminated unions enable exhaustive switch checks.
+# Every state variant should have a `kind` or `type` discriminator.
+id: state-must-be-discriminated
+language: typescript
+severity: error
+message: "State types should use discriminated unions with a 'kind' field."
+files:
+  - "**/*State.ts"
+  - "**/*State.tsx"
+  - "**/state/*.ts"
+rule:
+  kind: type_alias_declaration
+  all:
+    - has:
+        kind: type_identifier
+        regex: "State$"
+    - not:
+        has:
+          kind: union_type

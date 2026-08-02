@@ -1,0 +1,15 @@
+# TENET: Prefer nullish coalescing (??) over logical OR (||) for defaults.
+# Rationale: || treats falsy values (0, '', false) as missing.
+# ?? only triggers on null/undefined, which is usually the intent.
+id: prefer-nullish-coalescing
+language: typescript
+severity: error
+message: "Consider ?? instead of || for defaults (|| treats 0, '', false as missing)."
+files:
+  - "**/*.ts"
+  - "**/*.tsx"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+rule:
+  pattern: $X || $DEFAULT

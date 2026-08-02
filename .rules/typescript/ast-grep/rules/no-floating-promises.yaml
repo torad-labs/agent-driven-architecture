@@ -1,0 +1,25 @@
+# TENET: No floating promises — always handle or explicitly void.
+# Rationale: Unhandled promise rejections crash Node.js and cause silent failures.
+# Either await, .catch(), or explicitly void with `void promise` if fire-and-forget.
+id: no-floating-promises
+language: typescript
+severity: error
+message: "Handle this promise with await, .catch(), or explicitly void it."
+files:
+  - "**/*.ts"
+ignores:
+  - "**/*.test.ts"
+  - "**/test/**"
+rule:
+  kind: expression_statement
+  has:
+    kind: call_expression
+    has:
+      kind: member_expression
+      has:
+        kind: property_identifier
+        regex: "^(then|catch|finally)$"
+  not:
+    any:
+      - has: { kind: await_expression }
+      - regex: "^void\\s+"

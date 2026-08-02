@@ -1,0 +1,577 @@
+{
+  "metadata": {
+    "skill_name": "kotlin-best-practices",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-06-05T08:26:16Z",
+    "evals_run": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "runs_per_configuration": 3
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 795.2,
+        "tokens": 143130,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Stream exposed as a cold Flow from a NON-suspend function.",
+          "passed": true,
+          "evidence": "PriceWatch.kt:143 `public fun priceTicks(symbol: Symbol): Flow<PriceTick> = channelFlow { ... }` \u2014 non-suspend fun returning a cold channelFlow; collection starts the GET (KDoc line 127-130)."
+        },
+        {
+          "text": "Cancellation correct: CancellationException not swallowed; clean shutdown via scope cancellation; no GlobalScope.",
+          "passed": true,
+          "evidence": "PriceWatch.kt:167-170 `catch (e: CancellationException) { throw e }` is FIRST in the catch chain; line 180 `coroutineContext.ensureActive()` re-checks in the broad catch. ViewModel.kt:37 uses injected `CoroutineScope(SupervisorJob())` and line 64 `scope.cancel()` for clean shutdown; no GlobalScope anywhere."
+        },
+        {
+          "text": "Retries ONLY transient failures with capped + jittered backoff; not a bare while(true) with no delay; doesn't retry terminal 4xx.",
+          "passed": true,
+          "evidence": "PriceWatch.kt:77-82 `delayForAttempt` returns `random.nextLong(ceiling+1)` with `ceiling = min(maxDelayMs, baseDelayMs shl exp)` \u2014 full jitter, capped, exponent capped at 32 to avoid overflow. isRetryable (266-267) = 408/425/429/5xx only; terminal 4xx throws (171-175). delay(backoff) at line 192 inside the loop. Test fails_fast_on_terminal_status asserts `calls == 1` for a 403."
+        },
+        {
+          "text": "HttpClient/engine AND dispatcher injected for testability.",
+          "passed": true,
+          "evidence": "PriceWatch.kt:118-125 constructor injects `client: HttpClient`, `streamDispatcher: CoroutineDispatcher = Dispatchers.Default`, plus retryPolicy/logger/random. Pinned via `.flowOn(streamDispatcher)` (line 194). Test gatewayWith swaps MockEngine client AND `Dispatchers.Unconfined` (PriceWatchGatewayTest.kt:47-55)."
+        },
+        {
+          "text": "No fake/last-known value returned on failure that masks the outage.",
+          "passed": true,
+          "evidence": "Terminal status re-throws GatewayStreamException (PriceWatch.kt:171-175); exhausted retries throw (184-189). ViewModel.catch maps to `PriceWatchUiState.Failed`, never a stale price (ViewModel.kt:50-55). No sentinel/default-tick emission on the failure path."
+        },
+        {
+          "text": "Frames incrementally by reading the body channel line-by-line over a retained buffer; does NOT accumulate the whole response and re-split per read (no O(n^2)/re-emit).",
+          "passed": true,
+          "evidence": "PriceWatch.kt:225-232 `val channel = response.bodyAsChannel(); while(true){ val line = channel.readLine() ?: break; ... onTick(tick) }` \u2014 one allocation per complete line off the channel's own buffer. KDoc explicitly avoids `bodyAsText()` on success path (line 206-208) to prevent O(n) buffering of the infinite body."
+        },
+        {
+          "text": "Stays Tier 0: no explicitApi/ABI/publishing noise.",
+          "passed": true,
+          "evidence": "No explicitApi{} DSL, no api.dump/ABI file, no Maven coordinates or publishing block in any of the 3 .kt deliverables (grep confirmed none). `public` modifiers on types are ordinary Kotlin, not publishing config. Transcript tier table marks Tier 1/3 = No."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 426.1,
+        "tokens": 127036,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Public surface uses explicit return/property types throughout (no inferred public return types)",
+          "passed": true,
+          "evidence": "Every public member carries an explicit type: WeatherClient.create(...): WeatherClient, currentForecast(...): Forecast, forecastUpdates(...): Flow<Forecast>, Location.ofCoordinates(...): Location, all WeatherError vals (isRetryable: Boolean, status: Int, retryAfterSeconds: Long?), config vars (baseUrl: String, requestTimeout: Duration, maxRetries: Int, logger: Logger). Transcript confirms compile under '-Xexplicit-api=strict ... exit 0, zero warnings', the gate that fails on any inferred public return type."
+        },
+        {
+          "text": "Errors modeled as a sealed hierarchy (not a growable public data class, not a bare RuntimeException/IllegalStateException)",
+          "passed": true,
+          "evidence": "WeatherError.kt: 'public sealed class WeatherError(message, cause) : Exception(message, cause)' with subtypes Network/Timeout/Http/Authentication/Decoding/Unexpected. Sealed (not open), no data class, not a bare RuntimeException/IllegalStateException; carries machine-readable isRetryable + Http.status fields."
+        },
+        {
+          "text": "Forecast result type is NOT a growable public `data class` (interface, regular class, or sealed) to preserve binary compatibility",
+          "passed": true,
+          "evidence": "Forecast.kt: 'public class Forecast internal constructor(...)' \u2014 a regular class with an internal constructor, not a data class. KDoc: 'Deliberately a regular class with a private constructor, not a public data class ... so it is modelled to grow additively: future fields arrive as new vals with the constructor staying internal.'"
+        },
+        {
+          "text": "Construction goes through a factory or builder; NO public constructor whose JVM descriptor will move as config grows (no public defaulted-param constructor planned to gain params) -- the binary-compat trap",
+          "passed": true,
+          "evidence": "WeatherClientConfig has an 'internal constructor(apiKey)'; all config knobs are public 'var' properties that grow additively (the 'designated growth point'), never new params on a public constructor. create(apiKey, configure: WeatherClientConfig.() -> Unit = {}) is documented as having a frozen descriptor: 'new knobs are added as new builder methods, never as new parameters on this factory ... appending a parameter here (even a defaulted one) would move the descriptor and throw NoSuchMethodError.' No public defaulted-param constructor is planned to gain params; the builder is the explicit growth mechanism. Verified against Kotlin docs (api-guidelines-backward-compatibility) and Jake Wharton's public-api-challenges: this is the correct way to dodge the trap."
+        },
+        {
+          "text": "commonMain stays platform-free: no java.*/android.*/platform.Foundation.* in the public surface",
+          "passed": true,
+          "evidence": "All imports across the 5 files are multiplatform-common: kotlinx.coroutines.flow.*, kotlinx.serialization.*, kotlin.time.{Instant,Duration}, kotlin.concurrent.atomics.*. No java.*/android.*/platform.* anywhere. The only NSLog/os_log/Log.d strings are in doc comments naming sinks the library deliberately avoids, not code. Transcript: 'commonMain-clean [multiplatform \u00a72]: no java.* / platform.* / System.*. Time is kotlin.time.Instant; the close flag is a kotlin.concurrent atomic.'"
+        },
+        {
+          "text": "Names a CONCRETE publishing/iOS-interop mechanism (api() for ABI-visible deps, single-macOS publish, XCFramework, or SKIE) -- not just generic Swift-bridging prose",
+          "passed": true,
+          "evidence": "Names ALL FOUR enumerated mechanisms and more. api(): 'Declare kotlinx-coroutines-core and kotlinx-serialization-* as api(), not implementation() \u2014 their types (Flow, @Serializable) are in the public ABI, so an implementation() scope makes them runtime in the POM and breaks consumer resolution.' SKIE: repeatedly, with specific bridging ('suspend -> Swift async throws', 'cold Flow -> AsyncSequence'). XCFramework + single-macOS publish: 'reserve the macOS leg for the XCFramework + Darwin engine.' Also Central Portal + com.vanniktech.maven.publish (OSSRH sunset), binary-compatibility-validator/abiValidation, Dokka -javadoc jar. Far beyond generic Swift-bridging prose."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 10,
+        "failed": 0,
+        "total": 10,
+        "time_seconds": 117.1,
+        "tokens": 90817,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "`runCatching` around a suspend call swallows CancellationException.",
+          "passed": true,
+          "evidence": "Finding #5: \"runCatching around a suspend call captures CancellationException into Result.failure \u2014 so a cancelled latest() looks like a failed network call instead of propagating. The skill names this exactly ('Never wrap a suspend call in stdlib runCatching').\""
+        },
+        {
+          "text": "Empty `catch (e: Exception) {}` in stream() swallows cancellation.",
+          "passed": true,
+          "evidence": "Finding #3: \"catch (e: Exception) swallows CancellationException \u2014 the watchlist Flow cannot be cancelled... CancellationException is an Exception, so this catch eats it and the loop keeps going... the loop never stops \u2014 a leaked coroutine still polling the gateway.\""
+        },
+        {
+          "text": "Per-call `Json {}` instead of reusing one.",
+          "passed": true,
+          "evidence": "Finding #6: \"a fresh Json { ... } builder is allocated on every latest() invocation. Each Json {} discards the per-class serializer/descriptor cache... Hoist one reused Json to a top-level/object val (or inject it).\""
+        },
+        {
+          "text": "Returning cached/0.0 on failure masks the outage; 0.0 sentinel dangerous.",
+          "passed": true,
+          "evidence": "Finding #5: \"Returning a default on failure masks outages. On a real network error this returns the stale cached price, or 0.0 if the symbol was never cached. A 0.0 price silently flowing into a trading watchlist / alerts service is a correctness-and-money bug... the alerts service could fire on a fake zero.\""
+        },
+        {
+          "text": "`GlobalScope.launch` in prefetch().",
+          "passed": true,
+          "evidence": "Finding #4: \"GlobalScope.launch in prefetch() \u2014 orphaned, uncancellable, untestable work... GlobalScope work has no parent, is never cancelled, and outlives any caller.\""
+        },
+        {
+          "text": "Hardcoded `Dispatchers.IO` hurts testability (should be injected) -- NOT praising it.",
+          "passed": true,
+          "evidence": "Finding #8: \"Hardcoded Dispatchers.IO inside the class... Nondeterministic and untestable \u2014 runTest's virtual time can't drive it, and you can't substitute a test dispatcher. The skill requires injecting the dispatcher with a prod default. Fix: Constructor-inject private val io: CoroutineDispatcher = Dispatchers.IO.\" Treated as a defect, not praised."
+        },
+        {
+          "text": "`accumulated += chunk` + re-split as O(n^2) / re-emitting old lines (freeze symptom).",
+          "passed": true,
+          "evidence": "Finding #2: \"accumulated += chunk then for (line in accumulated.split('\\n'))... every loop re-splits and re-emits all prices seen since the stream opened... O(n\u00b2) re-scan + unbounded memory... += on a String accumulator inside the loop is the GC-pressure anti-pattern.\""
+        },
+        {
+          "text": "Bare `while (true)` with no delay/backoff.",
+          "passed": true,
+          "evidence": "Finding #1: \"stream() busy-loops with no delay, hammering the endpoint and starving the dispatcher... while (true) { http.get(...).bodyAsText(); ... } with no delay() and no backoff... a polling loop needs a paced delay() and, on error, jittered capped backoff \u2014 never a free-running while(true).\""
+        },
+        {
+          "text": "Frames the review EXPLICITLY at Tier 0 (states it's app/internal code, library tiers don't apply).",
+          "passed": true,
+          "evidence": "\"Tier classification: Internal app data-layer class (com.acme.trading.data)... No published API surface, no commonMain/expect/actual, no publishing block. \u2192 Tier 0 (Core) only. I am deliberately not raising ABI / explicitApi / multiplatform / publishing concerns; they don't apply here.\" Explicit Tier-0 clause stating library tiers do not apply."
+        },
+        {
+          "text": "Raises NO explicitApi/ABI/publishing concerns (no tier-confusion false positives).",
+          "passed": true,
+          "evidence": "explicitApi/ABI/multiplatform/publishing are mentioned only to explicitly EXCLUDE them as not applicable ('I am deliberately not raising ABI / explicitApi / multiplatform / publishing concerns'). No tier-confusion false positives raised."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 95.2,
+        "tokens": 98649,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Correctly identifies the code as internal/app-module (Tier 0) and scopes the review accordingly.",
+          "passed": true,
+          "evidence": "Dedicated 'Tier classification (what I'm holding it to)' section: 'This is an internal class in an Android app's ui.settings package, explicitly documented as \"Not part of any published library...\" ... So this review is **Tier 0 (Core Kotlin) only**.' Explicitly names Tier 0 and ties it to the internal/app-module facts."
+        },
+        {
+          "text": "Does NOT raise published-API/binary-compat/ABI/explicitApi/@since/Maven-publishing concerns. [absence: PASS = not raised; if raised, FAIL]",
+          "passed": true,
+          "evidence": "No such concern is raised as a finding. The review names these topics only to WITHHOLD them: 'I am deliberately **not** raising: explicitApi() / explicit public return types \u2014 Tier 1... KMP source-set / Native-dispatcher rules \u2014 Tier 2... Publishing / api() vs implementation() / Dokka \u2014 Tier 3.' The 3 actual Findings are Tier 0 only (hardcoded Dispatchers.IO, unordered persist writes, missing error handling). Withholding is the opposite of raising."
+        },
+        {
+          "text": "Does NOT flag the `data class SettingsUiState` as a 'growable public data class' problem. [absence]",
+          "passed": true,
+          "evidence": "No such concern raised. The review affirmatively states the rule does not apply: 'SettingsUiState being a data class is *correct and idiomatic* here; the \"don't grow a public data class\" rule is about cross-module binary compat, which does not exist for an internal UI-state holder.' Also listed under 'Things that are correct \u2014 explicitly not findings'."
+        },
+        {
+          "text": "Findings stay proportionate (e.g. inject Dispatchers.IO) and verdict is basically solid / commit-ready.",
+          "passed": true,
+          "evidence": "Verdict line 3: 'Solid, idiomatic Android ViewModel. Nothing blocking for a commit.' Bottom line: 'Commit-ready... If you do one thing, inject the dispatcher (#1).' Findings are proportionate: #1 inject Dispatchers.IO (the one it pushes on), #2 persist ordering (low-likelihood), #3 error handling (a caveated note). All severities are Suggestion/Note, none blocking."
+        },
+        {
+          "text": "Explicitly NAMES the tier AND enumerates which higher-tier rules are being withheld and why (auditable tier scoping, not just an implicit one-liner). [discriminating \u2014 likely only with_skill]",
+          "passed": true,
+          "evidence": "Explicitly names the tier ('Tier 0 (Core Kotlin) only') AND enumerates withheld higher-tier rules with per-rule reasons in a bulleted list: 'explicitApi() / explicit public return types \u2014 Tier 1, published surfaces only. Nothing here is compiled against by a caller you don't control.' / 'data class evolution / copy()-ABI / overload-vs-append \u2014 Tier 1...' / 'KMP source-set / Native-dispatcher rules \u2014 Tier 2. Single platform.' / 'Publishing / api() vs implementation() / Dokka \u2014 Tier 3.' Closes with 'Applying any of those would be noise on app code.' This is auditable, itemized tier scoping, not a one-liner."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 5,
+        "failed": 0,
+        "total": 5,
+        "time_seconds": 250.6,
+        "tokens": 113036,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Polymorphic messages are a sealed hierarchy with @JsonClassDiscriminator on the base and explicit @SerialName on each subtype (wire decoupled from class names).",
+          "passed": true,
+          "evidence": "ChatWireModels.kt:54-56 `@Serializable @JsonClassDiscriminator(\"type\") public sealed interface Message`. Each subtype carries an explicit @SerialName pinned to the wire value: TextMessage `@SerialName(\"text\")` (l.85), ToolCallMessage `@SerialName(\"tool_call\")` (l.101), ToolResultMessage `@SerialName(\"tool_result\")` (l.122). KDoc states the default discriminator is the FQ class name and 'every subtype gets an explicit @SerialName' so a rename leaves '\"type\":\"text\"' untouched (l.66-69)."
+        },
+        {
+          "text": "Forward-compat for new server fields via per-class @JsonIgnoreUnknownKeys rather than the GLOBAL ignoreUnknownKeys flag (or at minimum scopes leniency deliberately and notes the trade).",
+          "passed": true,
+          "evidence": "Per-class @JsonIgnoreUnknownKeys is applied on every inbound model (6 occurrences: ChatWireModels.kt:86,102,123,146,168 + the enums-free wrapper). ChatWireJson.kt:27-32 deliberately documents the choice and the trade: 'Forward-compat for *unknown fields* is handled per-class with @JsonIgnoreUnknownKeys on each inbound model, NOT with the global ignoreUnknownKeys = true flag. The global flag would also make our request/strict models swallow typos; the per-class annotation keeps leniency scoped' and explicitly marks '(Deliberately NOT set: ignoreUnknownKeys = true)'. This is the exact per-class behavior the assertion privileges over the global flag."
+        },
+        {
+          "text": "Single reused Json instance (top-level/object val), not a per-call Json {}.",
+          "passed": true,
+          "evidence": "ChatWireJson.kt:19 `public val WireJson: Json = Json { ... }` \u2014 a single top-level val. KDoc (l.13-18): 'Built **once** into a top-level `val` and reused for every encode/decode call... constructing Json { } inside a response handler throws that cache away.' All usage in ChatWireUsage.kt references this one instance (e.g. `WireJson.encodeToString<Message>`)."
+        },
+        {
+          "text": "Unknown polymorphic subtypes handled gracefully (polymorphic defaultDeserializer / fallback type) rather than throwing.",
+          "passed": true,
+          "evidence": "ChatWireJson.kt:57-61 registers `serializersModule = SerializersModule { polymorphic(Message::class) { defaultDeserializer { UnknownMessage.serializer() } } }`. UnknownMessage (ChatWireModels.kt:147-152) captures the raw discriminator via `@SerialName(\"type\") rawType: String?`. Runtime harness in transcript confirmed: unknown type `tool_call_v2` decoded to `UnknownMessage(rawType=tool_call_v2)` instead of throwing."
+        },
+        {
+          "text": "Encodes/decodes through the base type so the discriminator is written, AND demonstrates a class/property rename doesn't change the JSON (via @SerialName).",
+          "passed": true,
+          "evidence": "ChatWireUsage.kt encodes through the static base: `WireJson.encodeToString<Message>(message)` (l.24) and `encodeToString<List<Message>>` (l.28), with KDoc warning that serializing through a concrete subtype omits the discriminator (l.10-15). Rename safety is established via @SerialName on every subtype and constant; ChatWireModels.kt:66-69 documents that renaming TextMessage to PlainTextMessage 'leaves the JSON contract (\"type\":\"text\") untouched'. Transcript confirms the discriminator '\"type\":\"text\"' was present in the run output."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.71,
+        "passed": 5,
+        "failed": 2,
+        "total": 7,
+        "time_seconds": 569.8,
+        "tokens": 131493,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Stream exposed as a cold Flow from a NON-suspend function.",
+          "passed": true,
+          "evidence": "PriceWatch.kt:150 `public fun stream(symbol: String): Flow<PriceTick> = channelFlow { ... }` \u2014 non-suspend fun returning a cold channelFlow; KDoc line 128-129 'Returns a cold flow ... Each collector opens its own connection on collection'."
+        },
+        {
+          "text": "Cancellation correct: CancellationException not swallowed; clean shutdown via scope cancellation; no GlobalScope.",
+          "passed": true,
+          "evidence": "PriceWatch.kt:173-174 `catch (ce: CancellationException) { throw ce }` placed BEFORE the broad `catch (t: Throwable)`; isTransient(CancellationException)=false (line 103) as a second guard. No GlobalScope; clean shutdown relies on collector-scope cancellation unwinding the suspended readUTF8Line through execute{} (KDoc 139-143). Note: no ViewModel/scope-owner deliverable, but the cold-Flow contract delegates shutdown to the collector's scope, which is correct."
+        },
+        {
+          "text": "Retries ONLY transient failures with capped + jittered backoff; not a bare while(true) with no delay; doesn't retry terminal 4xx.",
+          "passed": false,
+          "evidence": "Backoff is capped exponential but NOT jittered: PriceWatch.kt:183 `nextDelay = (nextDelay * 2).coerceAtMost(reconnect.maxDelayMs)` is deterministic \u2014 no Random/jitter anywhere in the file (grep confirmed). The assertion explicitly requires 'capped + JITTERED backoff'. Transient-only classification (isTransient, terminal 4xx not retried) is correct and tested (http_error_status_is_terminal_and_not_retried asserts attempt==1), and delay() is present \u2014 but the jitter requirement is unmet, so a thundering-herd reconnect of synchronized clients is possible."
+        },
+        {
+          "text": "HttpClient/engine AND dispatcher injected for testability.",
+          "passed": false,
+          "evidence": "Constructor `PriceWatchClient(httpClient, baseUrl, reconnect)` (PriceWatch.kt:122-126) injects the HttpClient but NOT a dispatcher \u2014 no CoroutineDispatcher parameter and no `.flowOn(...)` operator anywhere (grep confirmed none). The assertion requires BOTH HttpClient AND dispatcher injected; dispatcher injection is absent. Tests stay deterministic via MockEngine + runTest, but the dispatcher seam itself is missing."
+        },
+        {
+          "text": "No fake/last-known value returned on failure that masks the outage.",
+          "passed": true,
+          "evidence": "Terminal PriceStreamHttpException re-thrown (PriceWatch.kt:202-206); exhausted budget re-throws via `if (!isTransient(t) || consecutiveFailures >= maxRetries) throw t` (line 176); empty-stream throws EmptyStreamException (171). No sentinel/default tick emitted on failure \u2014 the error propagates to the collector."
+        },
+        {
+          "text": "Frames incrementally by reading the body channel line-by-line over a retained buffer; does NOT accumulate the whole response and re-split per read (no O(n^2)/re-emit).",
+          "passed": true,
+          "evidence": "PriceWatch.kt:208-214 `val channel = response.bodyAsChannel(); while(true){ val line = channel.readUTF8Line() ?: break; ... onTick(tick) }` \u2014 Ktor's readUTF8Line yields one frame per read off the channel's own buffer; no whole-response accumulation, no re-split. Test streams_incrementally_from_a_live_never_closing_channel writes to a live ByteChannel and awaits each item as it lands."
+        },
+        {
+          "text": "Stays Tier 0: no explicitApi/ABI/publishing noise.",
+          "passed": true,
+          "evidence": "No explicitApi{} DSL, ABI/.api dump, Maven coordinates, or publishing block in the 2 .kt deliverables (grep confirmed none). `public` modifiers are ordinary Kotlin. Transcript stays on app-feature concerns; the explicitApi mention is about the HOST repo's compile check, not added publishing config."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.67,
+        "passed": 4,
+        "failed": 2,
+        "total": 6,
+        "time_seconds": 180.7,
+        "tokens": 82291,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Public surface uses explicit return/property types throughout (no inferred public return types)",
+          "passed": true,
+          "evidence": "Every public member has an explicit type: forecast(...): WeatherResult, create(...): WeatherClient, Location.of(...): Location, Temperature.celsius/fahrenheit(...): Temperature, fahrenheit: Double property, forecastOrNull(): Forecast?, Builder methods : Builder, build(): Forecast/Configuration. Transcript: 'Compiled the whole surface under kotlinc -Xexplicit-api=strict ... clean compile, exit 0, no warnings' \u2014 strict mode rejects any inferred public return type."
+        },
+        {
+          "text": "Errors modeled as a sealed hierarchy (not a growable public data class, not a bare RuntimeException/IllegalStateException)",
+          "passed": true,
+          "evidence": "WeatherError.kt: 'public sealed class WeatherError(message, cause) : Throwable(message, cause)' with subtypes Network/LocationNotFound/Unauthorized/RateLimited/Server/Unexpected. Sealed hierarchy, no data class, not a bare RuntimeException/IllegalStateException."
+        },
+        {
+          "text": "Forecast result type is NOT a growable public `data class` (interface, regular class, or sealed) to preserve binary compatibility",
+          "passed": true,
+          "evidence": "Two candidate result types, neither a data class: WeatherResult is a 'public sealed interface' (Success/Failure), and Forecast is 'public class Forecast private constructor(...)' with hand-written equals/hashCode/toString and a Builder. KDoc: 'This is intentionally not a data class. In a published library a data class is a binary-compatibility trap ... A normal class with read-only vals lets new optional properties be appended.'"
+        },
+        {
+          "text": "Construction goes through a factory or builder; NO public constructor whose JVM descriptor will move as config grows (no public defaulted-param constructor planned to gain params) -- the binary-compat trap",
+          "passed": false,
+          "evidence": "FAILS on the discriminating clause. Configuration.kt exposes a PUBLIC defaulted-param constructor \u2014 'public class Configuration(requestTimeoutMillis: Long = 10_000L, maxRetries: Int = 2, baseUrl: String = ...)' \u2014 and its KDoc explicitly plans to grow it by adding params: 'New options are added as new defaulted params here plus a new setter on Builder \u2014 both source- and binary-compatible.' That claim is wrong: adding a param to a defaulted-param constructor changes the JVM <init> descriptor and the $default synthetic arity, throwing NoSuchMethodError in already-compiled callers (confirmed against kotlinlang.org/docs/api-guidelines-backward-compatibility and Jake Wharton's public-api-challenges-in-kotlin). A Builder also exists, but the assertion requires that NO such moving-descriptor public constructor exist; this run keeps one AND designates it a growth point \u2014 precisely the trap the assertion targets."
+        },
+        {
+          "text": "commonMain stays platform-free: no java.*/android.*/platform.Foundation.* in the public surface",
+          "passed": true,
+          "evidence": "The .kt files contain no imports at all and use only stdlib types (Double, Long, Int, String, Throwable). No java.*/android.*/platform.* anywhere. Transcript: 'commonMain only. No java.*, no JVM-only types in the public API ... no reliance on any JVM-only stdlib (commonMain-safe).'"
+        },
+        {
+          "text": "Names a CONCRETE publishing/iOS-interop mechanism (api() for ABI-visible deps, single-macOS publish, XCFramework, or SKIE) -- not just generic Swift-bridging prose",
+          "passed": false,
+          "evidence": "FAILS the strengthened bar. The iOS-interop description is generic prose: 'Consumed from Swift via the Kotlin/Native ObjC bridge.' None of the four enumerated mechanisms appear: no api()-vs-implementation() distinction, no single-macOS publish, no XCFramework, no SKIE. It does mention explicitApi(), binary-compatibility-validator, apiDump/apiCheck \u2014 but those are ABI-CHECKING tools, not a publishing or iOS-interop mechanism; the kotlinx.serialization/coroutines dependency-scope (api() for ABI-visible types) is never addressed, and these are flagged as 'out of scope here.'"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.7,
+        "passed": 7,
+        "failed": 3,
+        "total": 10,
+        "time_seconds": 88.4,
+        "tokens": 74371,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "`runCatching` around a suspend call swallows CancellationException.",
+          "passed": false,
+          "evidence": "Finding #4 only treats runCatching as a scoping issue: \"runCatching only guards the fetch + parse. Everything after if (result.isFailure) runs unguarded.\" It never states that runCatching around a suspend call captures/swallows CancellationException. The cancellation-swallowing bug is only attributed to the catch(Exception) in stream() (#2), not to runCatching in latest(). Not mentioned."
+        },
+        {
+          "text": "Empty `catch (e: Exception) {}` in stream() swallows cancellation.",
+          "passed": true,
+          "evidence": "Finding #2: \"catch (Exception) swallows CancellationException -> the flow can't be cancelled... CancellationException IS an Exception... This catch eats it and the while (true) loop keeps running \u2014 the flow refuses to die.\""
+        },
+        {
+          "text": "Per-call `Json {}` instead of reusing one.",
+          "passed": true,
+          "evidence": "Finding #8: \"A new Json instance is constructed per call inside the hot path. Json is designed to be created once and reused. Hoist it to a top-level/companion private val json = Json { ignoreUnknownKeys = true }.\""
+        },
+        {
+          "text": "Returning cached/0.0 on failure masks the outage; 0.0 sentinel dangerous.",
+          "passed": true,
+          "evidence": "Finding #5: \"0.0 as a 'no data' sentinel is dangerous for prices... In a trading app, 0.0 is a real, catastrophic price \u2014 it can trip alerts, show a free instrument, or feed a P&L calc as a 100% loss. A sentinel that collides with a legitimate value is a latent incident.\""
+        },
+        {
+          "text": "`GlobalScope.launch` in prefetch().",
+          "passed": true,
+          "evidence": "Finding #6: \"GlobalScope.launch in prefetch() \u2014 leaked, uncancellable work... GlobalScope is unbounded and not tied to any lifecycle... GlobalScope should essentially never appear in app/library code.\""
+        },
+        {
+          "text": "Hardcoded `Dispatchers.IO` hurts testability (should be injected) -- NOT praising it.",
+          "passed": false,
+          "evidence": "The review does NOT flag hardcoded Dispatchers.IO as a testability defect; it instead PRAISES it. Finding #10: \"latest() correctly wraps its IO in withContext(Dispatchers.IO)\" and finding #7 mentions injecting only as one of several cache-fix options. No recommendation to inject the dispatcher for testability. The assertion's 'NOT praising it' condition is violated."
+        },
+        {
+          "text": "`accumulated += chunk` + re-split as O(n^2) / re-emitting old lines (freeze symptom).",
+          "passed": true,
+          "evidence": "Finding #1: \"accumulated is never cleared. It grows without bound (a memory leak), and every iteration re-splits the whole buffer. Every price: line ever received is re-emitted on every iteration. Poll 1 emits [a]. Poll 2 appends and re-emits [a, b]... This is exactly 'the streaming felt off.'\" Re-emission and re-split/unbounded-growth both identified."
+        },
+        {
+          "text": "Bare `while (true)` with no delay/backoff.",
+          "passed": true,
+          "evidence": "Finding #3: \"while (true) with no delay -> busy-loop hot spin (CPU burn, connection storm)... this loop spins as fast as the CPU allows, firing back-to-back HTTP requests. On error... immediately re-loops with zero backoff \u2014 a tight retry storm. Fix: add delay(...) between polls and a backoff on failure.\""
+        },
+        {
+          "text": "Frames the review EXPLICITLY at Tier 0 (states it's app/internal code, library tiers don't apply).",
+          "passed": false,
+          "evidence": "The review uses CRITICAL/HIGH/MEDIUM severity buckets and never frames findings at a tier. There is no statement that the file is internal/app code or that library-tier rules (ABI/explicitApi/publishing) do not apply. The explicit tier-framing clause is absent. Not mentioned."
+        },
+        {
+          "text": "Raises NO explicitApi/ABI/publishing concerns (no tier-confusion false positives).",
+          "passed": true,
+          "evidence": "The review raises no explicitApi/ABI/binary-compatibility/publishing/multiplatform concerns anywhere. No tier-confusion false positives present (absence check satisfied)."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 4,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.8,
+        "passed": 4,
+        "failed": 1,
+        "total": 5,
+        "time_seconds": 67.7,
+        "tokens": 72379,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Correctly identifies the code as internal/app-module (Tier 0) and scopes the review accordingly.",
+          "passed": true,
+          "evidence": "Context line: 'Internal app-module ViewModel backing the Settings screen. Not a published library, no external consumers. This is the right framing \u2014 it means binary-compatibility / public-API concerns... do **not** apply here. I'm reviewing it as ordinary app code.' Correctly identifies internal/app-module and scopes to app-code review. (Does not use the literal word 'Tier 0', but the identification and scoping intent is present.)"
+        },
+        {
+          "text": "Does NOT raise published-API/binary-compat/ABI/explicitApi/@since/Maven-publishing concerns. [absence: PASS = not raised; if raised, FAIL]",
+          "passed": true,
+          "evidence": "No such concern raised as a finding. The only mention is to dismiss them: 'binary-compatibility / public-API concerns (explicit API mode, ABI stability, @PublishedApi, deprecation cycles) do **not** apply here.' All six numbered findings are app-level idioms/lifecycle/nits (debounce, withContext placement, _state.update, load() lifecycle, naming, default-flash). None impose published-library rules."
+        },
+        {
+          "text": "Does NOT flag the `data class SettingsUiState` as a 'growable public data class' problem. [absence]",
+          "passed": true,
+          "evidence": "No such concern raised. The data class is listed under 'What's already good': 'data class SettingsUiState with sensible defaults.' No growable/ABI/copy()-evolution objection anywhere."
+        },
+        {
+          "text": "Findings stay proportionate (e.g. inject Dispatchers.IO) and verdict is basically solid / commit-ready.",
+          "passed": true,
+          "evidence": "Verdict: 'Solid, idiomatic Android ViewModel... no correctness landmines.' Closing: 'Nothing here blocks a commit. The file is fundamentally sound; these are polish items.' Findings are proportionate app-level items (raises the dispatcher-injection/testability point in #2, plus update{}, debounce, lifecycle, naming nits). Verdict is commit-ready."
+        },
+        {
+          "text": "Explicitly NAMES the tier AND enumerates which higher-tier rules are being withheld and why (auditable tier scoping, not just an implicit one-liner). [discriminating \u2014 likely only with_skill]",
+          "passed": false,
+          "evidence": "Does NOT name a tier (no 'Tier 0/1/2/3' anywhere) and does NOT enumerate withheld higher-tier rules with reasons. The entire tier-scoping is a single inline parenthetical: 'binary-compatibility / public-API concerns (explicit API mode, ABI stability, @PublishedApi, deprecation cycles) do not apply here.' That is exactly the 'implicit one-liner' the assertion excludes \u2014 it lists a few example concerns in passing but provides no per-rule reasoning, no tier labels, and no auditable section. Contrast with_skill's bulleted Tier 1/2/3 enumeration each with its own justification."
+        }
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 5,
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.6,
+        "passed": 3,
+        "failed": 2,
+        "total": 5,
+        "time_seconds": 201.8,
+        "tokens": 85764,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "text": "Polymorphic messages are a sealed hierarchy with @JsonClassDiscriminator on the base and explicit @SerialName on each subtype (wire decoupled from class names).",
+          "passed": false,
+          "evidence": "Sealed hierarchy and per-subtype @SerialName are present (ChatWireModels.kt:36 `sealed interface ChatMessage`; @SerialName(\"text\")/(\"tool_call\")/(\"tool_result\") on l.42,50,65), but the discriminator is NOT set with @JsonClassDiscriminator on the base. grep finds NO @JsonClassDiscriminator anywhere in outputs; instead the key is pinned via the Json-builder flag `classDiscriminator = \"type\"` (ChatJson.kt:50). The assertion conjunctively requires @JsonClassDiscriminator on the base (the class-bound, @InheritableSerialInfo approach that travels with the type independent of which Json instance decodes it); the builder-flag approach does not satisfy it. Note ChatMessage also adds a stray empty `companion object` (l.37) that serves no purpose here."
+        },
+        {
+          "text": "Forward-compat for new server fields via per-class @JsonIgnoreUnknownKeys rather than the GLOBAL ignoreUnknownKeys flag (or at minimum scopes leniency deliberately and notes the trade).",
+          "passed": false,
+          "evidence": "Uses the GLOBAL flag `ignoreUnknownKeys = true` (ChatJson.kt:49) and calls it 'the single most important forward-compat switch' (ChatJson.kt:25-28). No @JsonIgnoreUnknownKeys appears on any model (grep: NONE). The escape clause ('or at minimum scopes leniency deliberately and notes the trade') is not met: leniency is applied globally to the single shared ChatJson used for BOTH encode and decode of all types, so it is not scoped, and the trade-off (a global flag also makes strict/request models silently swallow typos) is never noted \u2014 it is instead framed as an unqualified positive."
+        },
+        {
+          "text": "Single reused Json instance (top-level/object val), not a per-call Json {}.",
+          "passed": true,
+          "evidence": "ChatJson.kt:48 `public val ChatJson: Json = Json { ... }` \u2014 a single top-level val, with KDoc: 'the only object that should be used to encode/decode... Keep it as one shared instance \u2014 Json is thread-safe and caches serializers, so reusing it is both correct and faster than constructing one per call' (l.17-24). All helpers (encodeToWire, decodeChatMessage, encodeConversation, decodeConversation) route through this one instance."
+        },
+        {
+          "text": "Unknown polymorphic subtypes handled gracefully (polymorphic defaultDeserializer / fallback type) rather than throwing.",
+          "passed": true,
+          "evidence": "ChatJson.kt:55-62 registers `polymorphic(ChatMessage::class) { defaultDeserializer { discriminator -> UnknownDelegateSerializer(discriminator ?: \"\") } }`. The custom UnknownDelegateSerializer (l.72-86) re-reads the body as a JsonObject and wraps it in UnknownMessage(type, raw=obj), preserving the full raw JSON. Transcript run output confirms: future `image` type decoded to `UnknownMessage(type=image, raw={...})` with no crash."
+        },
+        {
+          "text": "Encodes/decodes through the base type so the discriminator is written, AND demonstrates a class/property rename doesn't change the JSON (via @SerialName).",
+          "passed": true,
+          "evidence": "Encoding goes through the base serializer: `ChatJson.encodeToString(ChatMessage.serializer(), this)` (ChatJson.kt:92) and `ListSerializer(ChatMessage.serializer())` (l.100-103), so the discriminator is emitted \u2014 transcript output shows `{\"type\":\"text\",...}` etc. Rename safety is established via @SerialName on every tag and field key; the transcript records a concrete rename proof: 'renamed the class TextMessage -> ChatText AND the property text -> body, kept @SerialName(\"text\") on both -> out={\"text\":\"hi\"}', confirming wire bytes bind to @SerialName strings, not Kotlin identifiers."
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 336.84,
+        "stddev": 288.1727,
+        "min": 95.2,
+        "max": 795.2
+      },
+      "tokens": {
+        "mean": 114533.6,
+        "stddev": 21160.7215,
+        "min": 90817,
+        "max": 143130
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.696,
+        "stddev": 0.0723,
+        "min": 0.6,
+        "max": 0.8
+      },
+      "time_seconds": {
+        "mean": 221.68,
+        "stddev": 202.9381,
+        "min": 67.7,
+        "max": 569.8
+      },
+      "tokens": {
+        "mean": 89259.6,
+        "stddev": 24243.8948,
+        "min": 72379,
+        "max": 131493
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.30",
+      "time_seconds": "+115.2",
+      "tokens": "+25274"
+    }
+  },
+  "notes": []
+}

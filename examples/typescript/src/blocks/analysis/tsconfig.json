@@ -1,0 +1,23 @@
+{
+  "//adapter": "`adapter/**` is EXCLUDED because it is the block's OTHER build unit, not part of this one. This project does not reference it either, so a pure file naming its own block's live IO is TS6307 — the purity boundary held by the module graph rather than by a rule reading file names.",
+  "//": "THE WALL. `composite` defaults rootDir to this directory, so a relative reach into a sibling block or into the spine is a resolution error, not a lint message. `references` names the one project this block may see. `*.test.ts` is excluded because the co-located test is a RESIDENT of the folder rather than part of the shipped package: it is type-checked by the root program, which is what lets it drive the shared test rig while the package itself stays walled - and it is what keeps the wall from compiling a test into `.tsbuild`, where vitest would execute it.",
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "../../../.tsbuild/block-analysis",
+    "tsBuildInfoFile": "../../../.tsbuild/block-analysis.tsbuildinfo"
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "adapter/**"
+  ],
+  "references": [
+    {
+      "path": "../../spine"
+    }
+  ]
+}

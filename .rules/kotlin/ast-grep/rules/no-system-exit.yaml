@@ -1,0 +1,25 @@
+# TENET (G60, imported+adapted from torad-toolkit resources/configs/kotlin-rules/ast-grep):
+# System.exit()/exitProcess() bypasses cleanup, finally blocks, and shutdown hooks — a hard
+# process kill instead of a graceful shutdown. Throw an exception and let the caller (or the
+# application's own top-level entry point) decide how to shut down.
+id: no-system-exit
+language: kotlin
+severity: error
+# Scope law: exclude-based only — new files/folders are inside this law by default.
+# Promoted from torad-fleet (2026-07-13, CR-TOOLKIT-PROMOTE); this pack is the clean
+# canonical form — see sgconfig.yml for the full exclude-scope doctrine banner.
+ignores:
+  - "**/build/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/*.gradle.kts"
+  # grandfather entries are per-repo; installs append their own
+  # per-repo: src/test/fixtures/ is HARNESS DATA, not source — detekt/konsist read it
+  # as text and Gradle never compiles it (no srcDir declares it). violating/ fixtures
+  # exist in order to violate; scanning them is a category error.
+  - "**/src/test/fixtures/**"
+message: "no-system-exit: don't call System.exit()/exitProcess(). Throw an exception for graceful shutdown."
+rule:
+  any:
+    - pattern: System.exit($CODE)
+    - pattern: exitProcess($CODE)

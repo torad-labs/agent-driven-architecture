@@ -1,0 +1,7 @@
+id: main-no-hardcoded-dispatchers
+valid:
+  - |
+    suspend fun f(io: CoroutineDispatcher) = withContext(io) { g() }
+invalid:
+  - |
+    suspend fun f() = withContext(Dispatchers.IO) { g() }
