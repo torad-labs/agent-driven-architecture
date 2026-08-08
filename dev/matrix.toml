@@ -1,0 +1,123 @@
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+# AGENT-DRIVEN ARCHITECTURE — READINESS MATRIX (the PRESENT tense)
+#
+# One row per unit. Status advances ONLY when the named proof exists — fail-closed, enforced by
+# dev/matrix.ts. Raw edits are hook-blocked; `validate` additionally catches a row hand-edited to
+# claim a status it never earned.
+#
+#   bun dev/matrix.ts dev/matrix.toml list
+#   bun dev/matrix.ts dev/matrix.toml prove <ID> --host <pointer>
+#   bun dev/matrix.ts dev/matrix.toml set <ID> ready
+#
+# THE LADDER
+#   todo       declared in a manifest, nothing built
+#   in_flight  someone is building it
+#   blocked    needs a ruling — see the campaign item
+#   ready      HOST PROOF exists: it builds and passes its gate on this machine
+#   verified   TARGET PROOF exists: proven on the environment of record, provenance recorded
+#
+# For THIS project "environment of record" means: `npm test` green in examples/typescript (which
+# chains typecheck + typecheck:wall + eslint + biome + vitest), AND the law registry in
+# laws.toml still asserting against the book. `ready` and `verified` are separate rungs because
+# "the SDK call compiles" and "the book's claim about the port is true again" are different
+# claims, and collapsing them is exactly how the embarrassing version shipped.
+#
+# CONSUMERS READ THIS FILE. `bun dev/matrix.ts dev/matrix.toml unproven` lists what must be
+# treated as absent. A capability stays invisible until its row is earned.
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+[[rows]]
+id = "VERB-SURFACE"
+layer = "foundation"
+descriptor = "VerbSpec carries the SDK tool surface — toModelOutput, inputExamples, strict, per-tool context — so a block can declare them without a spine edit"
+status = "ready"
+host_proof = "test/spine/verb-surface.test.ts 4/4 incl. a new verb declaring the surface with zero spine edits + npm test 43 files/493 PASS @ 2026-08-08"
+target_proof = ""
+# 2026-08-07 GATES THE CAMPAIGN. Until this row is at least `ready`, SDK-3/4/5/6 are cosmetics
+# 2026-08-07 layered over a six-slot IR. See campaign item SDK-1.
+
+[[rows]]
+id = "MODEL-PORT"
+layer = "foundation"
+descriptor = "The cognition seam exposes the SDK result rather than {steps, text} — usage, finishReason, toolCalls, warnings survive the boundary"
+status = "ready"
+host_proof = "test/spine/turn-outcome.test.ts 4/4 + npm test 41 files/487 tests PASS @ 2026-08-08"
+target_proof = ""
+
+[[rows]]
+id = "AGENT-LOOP"
+layer = "adapter"
+descriptor = "ToolLoopAgent holds the declared agent; the tool set is built once, and stopWhen is root-owned"
+status = "ready"
+host_proof = "test/spine/declared-agent.test.ts 4/4 + npm test 39 files/480 tests PASS @ working tree 2026-08-08"
+target_proof = ""
+
+[[rows]]
+id = "STEP-CONTROL"
+layer = "adapter"
+descriptor = "prepareStep + activeTools express the tier allowlist; context bounds ride prepareStep rather than a closure"
+status = "ready"
+host_proof = "test/spine/step-control.test.ts 3/3 (1 RED, measured by reverting the wiring) + npm test 40 files/483 tests PASS @ 2026-08-08"
+target_proof = ""
+
+[[rows]]
+id = "TOOL-LIFECYCLE"
+layer = "adapter"
+descriptor = "The boundary hooks the tool input lifecycle; the pure body runs ONCE per agent action"
+status = "blocked"
+host_proof = ""
+target_proof = ""
+# block-evidence symptom=the pure tool body runs twice per agent action; loop.ts:13-17 states the price and ratifies it unblocks=an operator ruling: change step granularity (relitigates 14.6) or add a boundary seam returning the produced SealedResult to the tool probe=grep -c 'readonly actions: readonly Action\[\]' examples/typescript/src/spine/pure/step-record.ts result=exit=0 2 
+
+[[rows]]
+id = "APPROVAL-SEAM"
+layer = "composite"
+descriptor = "toolApproval routes into the boundary gate; the different-principal rule and the committed refusal both survive"
+status = "ready"
+host_proof = "test/spine/approval.test.ts 3/3 incl. the self-confirm refusal still committed + npm test 46 files/502 PASS @ 2026-08-08; needsApproval is the version-correct API at 6.0.208, toolApproval is v7-only"
+target_proof = ""
+# 2026-08-07 BLOCKED pending an operator ruling — the request/confirm gate is a book law and the
+# 2026-08-07 SDK approval flow carries no principal identity. See campaign item SDK-6.
+# block-evidence symptom=toolApproval cannot express the different-principal rule: the SDK approval flow carries no principal identity, so 'a policy tier may confirm, this run may not' is unrepresentable in it — and both are truthfully Agent unblocks=an operator ruling on whether toolApproval routes INTO the boundary gate (gate stays authoritative) or the gate is replaced (loses the authority distinction and the committed refusal) probe=grep -n 'mayConfirm' examples/typescript/src/app/wire.ts && bun dev/campaigns/ledger.ts dev/campaigns/sdk.toml get SDK-6 result=exit=0 189:  readonly mayConfirm?: (by: Authority) => boolean; 195:    mayConfirm: (sig) => config.mayConfirm?.(sig.authority) ?? true, · SDK-6  [todo]  phase=fork    APPROVAL: toolApproval NOT needsApproval
+
+[[rows]]
+id = "CANCELLATION"
+layer = "composite"
+descriptor = "The consumer's cancel deadline aborts the underlying model call — abortSignal and timeout reach the SDK"
+status = "ready"
+host_proof = "test/spine/cancellation.test.ts 3/3 (2 RED before) + npm test 38 files/476 tests PASS @ working tree 2026-08-08; scope caveat in ledger SDK-7"
+target_proof = ""
+
+[[rows]]
+id = "PROVIDER"
+layer = "surface"
+descriptor = "A real @ai-sdk provider is a declared dependency; the scripted offline path remains the keyless default"
+status = "ready"
+host_proof = "test/spine/provider.test.ts 2/2 (gateway string + mock on one seam) + npm test 42 files/489 PASS @ 2026-08-08; offline remains the keyless default"
+target_proof = ""
+# 2026-08-08 2026-08-07 DESCRIPTOR PRE-JUDGES THE FIX. It reads 'a real @ai-sdk provider is a declared dependency'. SDK-8 was reframed after this row was written: the AI Gateway is the default global provider, so a plain model string needs NO @ai-sdk package at all, and that is likely the better answer for a reference implementation. Earning this row must not be read as requiring a provider dependency.
+
+[[rows]]
+id = "TELEMETRY"
+layer = "composite"
+descriptor = "totalUsage (not usage) and finishReason cross the seam and are observable by a consumer"
+status = "ready"
+host_proof = "test/spine/turn-outcome.test.ts 4/4 (usage/finishReason/warnings cross the seam) + npm test 41 files/487 PASS @ 2026-08-08; totalUsage-vs-usage inverts at v7 - see ledger SDK-9"
+target_proof = ""
+# 2026-08-08 2026-08-07 DESCRIPTOR PRE-JUDGES AN OPEN DECISION. It reads 'totalUsage (not usage)'. That is correct at v6 and INVERTED at v7, where result.totalUsage is deprecated and top-level usage accumulates across all steps with final-step data under finalStep. The row cannot be earned until SDK-0 rules the version; whichever way it goes, the descriptor's parenthetical must be re-read, not trusted.
+
+[[rows]]
+id = "CONTEXT-PROVENANCE"
+layer = "foundation"
+descriptor = "The committed context digest is the text the model actually received - render(context) reaches generateText, not only the boundary and the tool bodies"
+status = "ready"
+host_proof = "test/spine/context-provenance.test.ts 3/3 (RED on unmodified HEAD: 'expected ticket 4118 looks urgent to contain staged[inbox]: caller says the refund…') + examples/typescript npm test 36 files/470 tests PASS incl. typecheck+wall+eslint+biome @ working tree 2026-08-08"
+target_proof = ""
+
+[[rows]]
+id = "PROMPT-BOUNDARY"
+layer = "adapter"
+descriptor = "Instructions and untrusted staged content occupy structurally different fields, so a Perceived body cannot become an instruction"
+status = "ready"
+host_proof = "test/spine/prompt-boundary.test.ts 3/3 (2 RED before) + npm test 37 files/473 tests PASS @ working tree 2026-08-08"
+target_proof = ""

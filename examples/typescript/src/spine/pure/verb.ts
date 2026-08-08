@@ -73,6 +73,51 @@ export interface VerbSpec<S, I, R extends ToolResultBase, C extends CommandBase>
   readonly run: (input: I, ctx: Ctx<S>) => R;
   /** the name→Command entry (6.8) */
   readonly sign: (result: R, sig: Signature, id: CommandId) => C;
+
+  // ── THE MODEL-FACING SURFACE A BLOCK MAY DECLARE (SDK-1) ──────────────────
+  // Until these existed, `VerbSpec` had slots for six things and the adapter was
+  // a generic converter that knew nothing about any specific tool. A block
+  // therefore COULD NOT express model-facing behaviour the runtime supports —
+  // not because the spine forbade it, but because the type had nowhere to put
+  // it. The Verb was a lossy intermediate representation over the runtime's own
+  // tool definition, and every downstream absence followed from that one fact.
+  //
+  // ALL OPTIONAL, so no existing block moves. And all stated in the BLOCK'S OWN
+  // vocabulary, never the runtime's: a block still names no SDK type, so the
+  // "only one spine module imports the runtime" confinement is untouched. The
+  // adapter translates — which is exactly the job it already had for schemas.
+
+  /** Concrete inputs that show the reasoner what a good call looks like. Worth
+   *  more than prose for a schema with a discriminated union or a format the
+   *  description can only gesture at. */
+  readonly examples?: readonly I[];
+
+  /** Ask the provider to enforce the schema rather than merely advertise it,
+   *  where the provider supports it. */
+  readonly strict?: boolean;
+
+  /** WHAT THE MODEL SEES, as distinct from what the boundary RECORDS.
+   *
+   *  The recorded truth is produced at the boundary from the raw input and is
+   *  not negotiable (C7). This is the other half: a result that is large, or
+   *  noisy, or carries a field the reasoner should not be steered by, can be
+   *  summarised for the model without touching what the timeline commits.
+   *
+   *  Returns a plain string BY DESIGN — a block names no runtime type, and the
+   *  adapter wraps it. */
+  readonly toModelOutput?: (result: R) => string;
+
+  /** Pause for a human BEFORE this verb executes (SDK-6).
+   *
+   *  It does NOT replace the gate. `Irreversible` already forces the
+   *  request/confirm decision at registration, and the boundary refuses a
+   *  self-confirm pre-fold with a COMMITTED refusal. This is the other kind of
+   *  caution — "ask a person first" — which the gate has never expressed and
+   *  which is a deployment's call, not a law's.
+   *
+   *  A boolean or a predicate over the decoded input, so "only when the amount
+   *  is large" is sayable. Absent, nothing changes. */
+  readonly needsApproval?: boolean | ((input: I) => boolean);
 }
 
 // ── The type-erased registry entry ──────────────────────────────────────────
@@ -88,6 +133,12 @@ export interface VerbBase<S> {
   readonly decode: (raw: RawInput) => DecodeResult;
   readonly run: (input: unknown, ctx: Ctx<S>) => ToolResultBase;
   readonly sign: (result: ToolResultBase, sig: Signature, id: CommandId) => CommandBase;
+  /** SDK-1's model-facing surface, erased alongside the rest. Opaque to the
+   *  spine; only the model-facing adapter interprets them. */
+  readonly examples?: readonly unknown[];
+  readonly strict?: boolean;
+  readonly toModelOutput?: (result: ToolResultBase) => string;
+  readonly needsApproval?: boolean | ((input: unknown) => boolean);
 }
 
 export interface ReversibleVerb<S> extends VerbBase<S> {
@@ -122,6 +173,13 @@ function erase<S, I, R extends ToolResultBase, C extends CommandBase>(
     },
     run: (input, ctx) => spec.run(input as I, ctx),
     sign: (result, sig, id) => spec.sign(result as R, sig, id),
+    examples: spec.examples,
+    strict: spec.strict,
+    toModelOutput: spec.toModelOutput as ((result: ToolResultBase) => string) | undefined,
+    // Same erasure the registry already owns for `run` and `sign`: a block
+    // writes the predicate over its OWN input type, and the registry holds every
+    // verb behind one base type. The cast stays confined to this file.
+    needsApproval: spec.needsApproval as boolean | ((input: unknown) => boolean) | undefined,
   };
 }
 
@@ -187,4 +245,37 @@ export interface Dispatchers<S> {
 export interface BlockRegistration<S> {
   readonly block: string;
   readonly verbs: readonly Verb<S>[];
+}
+
+// ── SDK-1's DECLARED SURFACE, translated to neutral shapes ──────────────────
+// These live here rather than in the model-facing adapter for one reason, and
+// the gate is what supplied it: C14 refuses a decision inside
+// `spine/agent/loop` — "the loop is a declaration, not a program". Deciding what
+// an ABSENT declaration means is a decision, so it belongs beside the type that
+// declares it.
+//
+// Neither function names a runtime type. They return neutral shapes the adapter
+// hands straight over, so the "one module imports the runtime" confinement is
+// untouched.
+
+/** `undefined` in means `undefined` out. Handing the runtime an empty override
+ *  instead of NO override would silently replace its own JSON serialisation with
+ *  an empty string for every verb that never opted in. */
+export function modelOutput<S>(
+  verb: Verb<S>,
+): ((options: { output: unknown }) => { type: "text"; value: string }) | undefined {
+  const declared = verb.toModelOutput;
+  if (declared === undefined) return undefined;
+  return ({ output }) => ({ type: "text", value: declared(output as ToolResultBase) });
+}
+
+/** The runtime wants `[{ input }]`; a block writes the inputs themselves. */
+export function inputExamples<S>(verb: Verb<S>): { input: never }[] | undefined {
+  const declared = verb.examples;
+  if (declared === undefined) return undefined;
+  // The runtime types the example input against the tool's own INPUT type. The
+  // registry is type-erased by construction (see `VerbBase` above), so the cast
+  // is the same erasure this file already owns for `run` and `sign` — and it is
+  // still confined to this one file.
+  return declared.map((input) => ({ input })) as { input: never }[];
 }
