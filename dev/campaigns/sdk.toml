@@ -152,6 +152,8 @@ claimed_at = "2026-08-08T15:33:20.397Z"
 # 2026-08-09 2026-08-09 WITHDRAWN UNDER REVIEW — BLOCKER, and the reviewer was right. Reproduced before touching anything: one approval-gated setPriority call moved recordsBefore=0 to recordsAfter=1 and committed outcome=ok while the verb body's own counter stayed at 0. The mechanism is SDK-5 biting: the runtime withheld the call, but resolveAction re-runs the PURE body at the boundary and C7 cannot see that the runtime declined, so the timeline invented a truth. My 'additive, never a replacement' claim was false the moment any block actually declared it.
 # 2026-08-09 2026-08-09 THE REASONING ERROR, named so it does not recur: I justified needsApproval with the same 'make it expressible' argument as toModelOutput (SDK-1) and repairToolCall (SDK-14). It does not transfer. Those two are PURE PASSTHROUGHS; approval is a STATE MACHINE - request, decide, resume - and this port has no resume path. run() accepts no prior messages and TurnOutcome discards the approval request, so there was nothing to resume with. A pause primitive without a resume is not caution, it is a silent action-dropper. needsApproval is removed from VerbSpec entirely; the boundary gate is the only approval this port has, which is the one the book specifies.
 # 2026-08-09 2026-08-09 KEPT AS DEFENCE-IN-DEPTH: admittedCalls() in spine/agent/loop filters any call the runtime withheld out of the boundary submit. It filters on the tool-approval-request CONTENT PART, not on toolResults as suggested - correlating against toolResults would also drop calls whose execute THREW, and those must still reach the boundary because their recorded truth comes from the pure re-run. That would have traded a silent commit for a silent omission. Three unit cases pin withheld-dropped, errored-kept, and normal-path-unaffected.
+# 2026-08-09 2026-08-09 SECOND ROUND: the admission rule and the callback adapter MOVED to spine/boundary/action. C14 refused them in the loop for the fourth time this session - the providerExecuted filter is a logical chain, and deciding which calls a step may commit IS a decision. action.ts already owns FinishedStep, StepChannel and the one name-to-ToolResult map, so the admission rule now sits beside the shape it admits into. Nothing moved names the runtime.
+# 2026-08-09 2026-08-09 MY FIRST WIRING FIX WAS INCOMPLETE, and the mutation harness caught it rather than review. Testing submitFinishedStep directly proves the ADAPTER filters; it does not prove onStepFinish CALLS it. Measured: with only that case, reverting the seam to a direct toolCalls.map left the file 10/10 green while the bypass was live. Added an end-to-end turn with a provider-executed call asserting the bus is unchanged - the revert is now 1 failed / 10 passed.
 
 [[items]]
 id = "SDK-7"
@@ -379,3 +381,21 @@ files = []
 status = "done"
 verify = "5 consecutive full suite runs green; .work appears in gate.test.ts's walker skip set"
 # 2026-08-09 2026-08-09 The race fix is SKIP, not tolerate-ENOENT. .work is generated output and was never in that sweep's remit - test/laws/roster-count and test/laws/dependency-rule already skip it, and this walker was the odd one out. Tolerating ENOENT would have papered over a genuinely missing tree elsewhere. Verified with 5 consecutive full runs: 507/507 each.
+# 2026-08-09 2026-08-09 SECOND ROUND: the .work skip is now OBSERVABLE. Previously, with an empty .work tree, deleting the skip entry stayed green unless the quickstart cleanup happened to land inside the readdirSync window - the assertion depended on ambient scheduling to expose its own regression. A controlled emitted pair is created under .work and removed in finally; deleting the skip now fails deterministically (1 failed / 58 passed). Also removed an unconditional .catch(() => undefined) from the repair test, which converted every unrelated rejection into success.
+
+[[items]]
+id = "SDK-28"
+phase = "leverage"
+title = "resolveAction WAS NOT TOTAL — second-round blocker. A throwing verb body propagated out of the SINGLE production site, through Boundary.submit, into the loop's onStepFinish, where the runtime's callback notification swallowed it - so the turn resolved with the record NEVER APPENDED. No ok, no refusal, no Unhandled: the action was simply absent from the timeline, the one outcome this architecture does not permit. The file's OWN header already promised 'the spine never throws at a seam'; it was false. Measured at the seam: 'resolveAction THREW: Error: verb body exploded'."
+files = []
+status = "done"
+verify = "a throwing verb body yields seal(unhandled(tool, 'tool body failed')); mutation-checked - removing the try/catch turns the case red"
+# 2026-08-09 2026-08-09 A throwing body is a DEFECT, and a defect is still a decision someone may need to ask about - so it commits as Unhandled and travels the same single path as everything else rather than being special-cased into silence. A second case pins that the catch does NOT swallow success into a blanket Unhandled.
+
+[[items]]
+id = "SDK-29"
+phase = "leverage"
+title = "PROVIDER-EXECUTED CALLS WERE RECORDED AS LOCAL REFUSALS — second-round blocker. StepResult.toolCalls also carries calls the PROVIDER executed, whose local execute is deliberately skipped. admittedCalls ignored the providerExecuted ownership bit, so a provider-owned call reached the local registry and committed Unhandled('no registered verb'). Measured verbatim before the fix: {outcome:unhandled, tool:providerSearch, note:'no registered verb'}. That is subtler than dropping it - the timeline CLAIMS the local system saw and refused something that was never its business."
+files = []
+status = "done"
+verify = "a provider-executed call leaves the bus unchanged through a real turn; mutation-checked"

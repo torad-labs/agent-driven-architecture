@@ -382,7 +382,11 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // translators cite C7 (the recorded truth toModelOutput must not touch) and
   // G11; the block's own declaration and the verb-surface test banner cite them
   // again. Net +1 after the banners that MOVED out of the loop under C14.
-  "examples/typescript": 531,
+  // +1 (531 -> 532): the second review round. `resolveAction` gains its totality
+  // note citing 6.10, the admission rule moves into spine/boundary/action under
+  // C14, and `needsApproval` is withdrawn from spine/pure/verb — the withdrawal
+  // note cites C7. Net +1 after the banners that moved.
+  "examples/typescript": 532,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the

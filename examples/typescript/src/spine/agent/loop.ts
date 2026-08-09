@@ -27,6 +27,7 @@ import {
   tool,
 } from "ai";
 import type { Registry, StepChannel } from "../boundary/action";
+import { submitFinishedStep } from "../boundary/action";
 import type { TurnOutcome } from "../ports/model-provider";
 import type { ContextBounds } from "../pure/context";
 import { render } from "../pure/context";
@@ -182,23 +183,6 @@ const CALL_OPTIONS_SCHEMA = jsonSchema<TurnScope>({ type: "object" });
 /** The tool calls a step may commit: every call the runtime ATTEMPTED, minus any
  *  it withheld pending approval. Exported so the refusal is testable on its own
  *  rather than only through a whole turn. */
-export function admittedCalls(
-  toolCalls: readonly { toolCallId: string; toolName: string; input: unknown }[],
-  content: readonly unknown[],
-): readonly { tool: string; input: unknown }[] {
-  const withheld = new Set(
-    content
-      .filter(
-        (part): part is { type: string; toolCall: { toolCallId: string } } =>
-          (part as { type?: string }).type === "tool-approval-request",
-      )
-      .map((part) => part.toolCall.toolCallId),
-  );
-  return toolCalls
-    .filter((call) => !withheld.has(call.toolCallId))
-    .map((call) => ({ tool: call.toolName, input: call.input }));
-}
-
 /** One turn's inputs. Everything that varies; nothing that does not. */
 export interface Turn {
   readonly prompt: string;
@@ -292,10 +276,7 @@ export function declareAgent<S>(declaration: AgentDeclaration<S>): DeclaredAgent
         // trade one silent commit for one silent omission. This excludes
         // exactly what was withheld and nothing else.
         onStepFinish: ({ toolCalls, content }) =>
-          void boundary.agent.submit({
-            staged,
-            actions: admittedCalls(toolCalls, content),
-          }),
+          void submitFinishedStep(boundary.agent, staged, toolCalls, content),
       });
       // WHAT THE SEAM USED TO THROW AWAY. `{ steps, text }` discarded usage,
       // finishReason, warnings and every other field the runtime returned, so a

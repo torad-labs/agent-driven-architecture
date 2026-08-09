@@ -8,7 +8,7 @@
 // `npm run lint` and the tests below run the SAME rule objects over the same
 // path globs. There is no second implementation to drift.
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, relative } from "node:path";
 import { ESLint } from "eslint";
 import { describe, expect, it } from "vitest";
@@ -493,6 +493,17 @@ describe("the workspace wall covers every package", () => {
     // commits no such pair; this is the assertion that keeps it true, so a
     // hand-written `foo.d.ts` beside `foo.ts` is a red test rather than a file
     // the wall silently eats.
+    // THE SKIP IS MADE OBSERVABLE. Review finding: with an empty `.work` tree,
+    // deleting `.work` from the list below stayed GREEN unless the quickstart
+    // cleanup happened to land inside the narrow `readdirSync` window — the
+    // assertion depended on ambient scheduling to expose its own regression.
+    // A controlled emitted pair under `.work` makes that deletion fail
+    // deterministically, and `finally` keeps the tree clean either way.
+    const skipFixture = join(ROOT, ".work", "gate-skip-fixture");
+    mkdirSync(skipFixture, { recursive: true });
+    writeFileSync(join(skipFixture, "generated.ts"), "export {};\n");
+    writeFileSync(join(skipFixture, "generated.js"), "export {};\n");
+
     const emitted: string[] = [];
     const walkTree = (dir: string): void => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -532,8 +543,15 @@ describe("the workspace wall covers every package", () => {
         }
       }
     };
-    walkTree(REPO_ROOT);
-    expect(emitted).toEqual([]);
+    try {
+      walkTree(REPO_ROOT);
+      // The fixture pair under `.work` is emitted-looking on purpose. If `.work`
+      // leaves the skip set, `walkTree` finds `generated.js` beside
+      // `generated.ts` and this fails on the spot.
+      expect(emitted).toEqual([]);
+    } finally {
+      rmSync(skipFixture, { recursive: true, force: true });
+    }
   });
 
   it("publishes NONE of them — the spine is a vendored template, not a package", () => {
