@@ -134,7 +134,16 @@ export async function main(out: Narrator): Promise<void> {
     registry: app.registry,
     dispatchers: app.dispatchers,
   });
-  out.say(`\n[agent] ran ${turn.steps} steps, said: "${turn.text}"`);
+  // IT PRINTS WHY GENERATION STOPPED, not only what came back. Review finding:
+  // this line reported `turn.text` as the answer regardless of `finishReason`,
+  // so a TRUNCATED response (`length`) rendered identically to a complete one —
+  // the very confusion SDK-2 widened the seam to end. Surfacing usage alongside
+  // it is the other half: a demo that teaches the seam should show what the seam
+  // now carries.
+  out.say(
+    `\n[agent] ran ${turn.steps} steps, finished '${turn.finishReason}'` +
+      ` (${turn.usage.totalTokens} tokens), said: "${turn.text}"`,
+  );
   out.say("[state] triage:", project(app.boundary.state).triage.rows[0]);
   out.say("[state] panels:", project(app.boundary.state).console.panels);
 

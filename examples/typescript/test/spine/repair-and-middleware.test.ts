@@ -66,34 +66,109 @@ describe("SDK-17 — middleware needs no new seam", () => {
   });
 });
 
-describe("SDK-14 — repair is expressible and stays before the boundary", () => {
-  it("carries a root-supplied repair strategy onto the declaration", () => {
-    const h = harness();
+describe("SDK-14 — repair runs through the declared agent", () => {
+  // REVIEW FINDING. The first version of these two cases supplied
+  // `repairToolCall` and then asserted only `Object.keys(declared.tools).length`,
+  // while the refusal case called `boundary.agent.submit` directly. Deleting
+  // `experimental_repairToolCall: declaration.repairToolCall` from the agent left
+  // BOTH green, because neither ever invoked the hook. They tested that a field
+  // could be passed, not that it did anything.
+  //
+  // Both now drive the real path: a malformed call from the model, through the
+  // declared agent, to what the boundary commits.
 
-    const declared = declareAgent({
-      model: plain(),
+  /** Emits one malformed `setPriority` call, then stops. */
+  function modelCalling(input: string): MockLanguageModelV3 {
+    let call = 0;
+    return new MockLanguageModelV3({
+      doGenerate: async () => {
+        call += 1;
+        if (call === 1) {
+          return {
+            content: [
+              {
+                type: "tool-call" as const,
+                toolCallId: "t1",
+                toolName: "setPriority",
+                input,
+              },
+            ],
+            finishReason: { unified: "tool-calls" as const, raw: undefined },
+            usage,
+            warnings: [],
+          };
+        }
+        return {
+          content: [{ type: "text" as const, text: "done" }],
+          finishReason: { unified: "stop" as const, raw: undefined },
+          usage,
+          warnings: [],
+        };
+      },
+    });
+  }
+
+  const MALFORMED = JSON.stringify({ ticket: 4118, level: "NotALevel" });
+
+  /** The last step that actually committed something. A turn ends with a
+   *  text-only step, which submits zero actions and therefore lands an EMPTY
+   *  record — so `records().at(-1)` reads that empty tail, not the tool step.
+   *  (My first draft of these assertions did exactly that and read `undefined`.) */
+  function lastCommitted(h: ReturnType<typeof harness>) {
+    return h.app.bus
+      .records()
+      .filter((r) => r.results.length > 0)
+      .at(-1)
+      ?.results.at(-1);
+  }
+
+  it("runs the root's strategy and the REPAIRED input is what commits", async () => {
+    const h = harness();
+    let repaired = 0;
+
+    await declareAgent({
+      model: modelCalling(MALFORMED),
       boundary: h.app.boundary,
       registry: h.app.registry,
       dispatchers: h.app.dispatchers,
-      repairToolCall: async () => null,
-    });
+      maxSteps: 2,
+      repairToolCall: async ({ toolCall }) => {
+        repaired += 1;
+        return { ...toolCall, input: JSON.stringify({ ticket: "4118", level: "High" }) };
+      },
+    }).run({ prompt: "go" });
 
-    // Constructed with the strategy attached; the table is unaffected.
-    expect(Object.keys(declared.tools).length).toBe(h.app.registry.size);
+    // The hook ran …
+    expect(repaired).toBe(1);
+    // … and the repaired input, not the malformed one, is the committed truth.
+    expect(lastCommitted(h)).toMatchObject({
+      outcome: "ok",
+      ticket: "4118",
+      level: "High",
+    });
   });
 
-  it("leaves the committed-refusal path intact when no strategy is supplied", async () => {
+  it("an UNREPAIRABLE call still commits `unhandled` — the law repair must not swallow", async () => {
     const h = harness();
+    let attempted = 0;
 
-    // A tool call the registry cannot decode still travels the ONE existing
-    // path — resolveAction → gate → fold → commit — and lands as a committed
-    // refusal rather than vanishing. Repair must never be able to swallow this.
-    h.app.boundary.agent.submit({
-      staged: [],
-      actions: [{ tool: "setPriority", input: { ticket: 12345, level: "NotALevel" } }],
-    });
+    await declareAgent({
+      model: modelCalling(MALFORMED),
+      boundary: h.app.boundary,
+      registry: h.app.registry,
+      dispatchers: h.app.dispatchers,
+      maxSteps: 2,
+      // Returning null means "I cannot fix this" — the runtime gives up and the
+      // action travels the one existing path to a COMMITTED refusal.
+      repairToolCall: async () => {
+        attempted += 1;
+        return null;
+      },
+    })
+      .run({ prompt: "go" })
+      .catch(() => undefined);
 
-    const last = h.app.bus.records().at(-1);
-    expect(last?.results.at(-1)).toMatchObject({ outcome: "unhandled" });
+    expect(attempted).toBe(1);
+    expect(lastCommitted(h)).toMatchObject({ outcome: "unhandled" });
   });
 });

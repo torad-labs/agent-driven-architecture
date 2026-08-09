@@ -33,7 +33,7 @@ import { render } from "../pure/context";
 import type { StagedInput } from "../pure/staged";
 import { scopeOf, type TurnScope } from "../pure/staged";
 import type { Ctx, Dispatchers, Verb } from "../pure/verb";
-import { inputExamples, modelOutput } from "../pure/verb";
+import { inputExamples, modelFacingValidate, modelOutput } from "../pure/verb";
 
 type FlexibleInputSchema = Parameters<typeof tool>[0]["inputSchema"];
 
@@ -78,9 +78,14 @@ export function buildTools<S>(
       // runtime wants JSON Schema for the model-facing tool definition. The SDK reads
       // `~standard.jsonSchema.input`, an extension Valibot 1.4 does not ship, so the
       // conversion happens HERE rather than by constraining what a block may write.
-      inputSchema: jsonSchema(
-        toJsonSchema(verb.schema as Parameters<typeof toJsonSchema>[0]),
-      ) as FlexibleInputSchema,
+      // The second argument is what makes the runtime actually CHECK. Without
+      // it the schema is advertised and never enforced, which left
+      // `repairToolCall` wired to a condition that could not occur. The
+      // validator is the block's own decoder, so the runtime and the boundary
+      // agree by construction (spine/pure/verb).
+      inputSchema: jsonSchema(toJsonSchema(verb.schema as Parameters<typeof toJsonSchema>[0]), {
+        validate: modelFacingValidate(verb),
+      }) as FlexibleInputSchema,
       // runs the PURE body so the model has something to reason over; the
       // recorded truth is produced again at the boundary, from the raw input.
       // The turn's staged input arrives through the CALL's context, which is
@@ -91,18 +96,6 @@ export function buildTools<S>(
       // The block wrote these in its own vocabulary and named no runtime type.
       // This is the same job the adapter already does for schemas: the spine
       // never interprets them, and this file is the only place that may.
-      // ── SDK-6: HUMAN-IN-THE-LOOP, IN FRONT OF THE GATE — NEVER INSTEAD ──────
-      // The request/confirm rule (an Irreversible verb needs a pending request
-      // raised by a DIFFERENT principal) is a book law, enforced pre-fold at the
-      // boundary, and its refusal is COMMITTED. The runtime's approval flow
-      // carries no principal identity, so it cannot express "a policy tier may
-      // confirm, this run may not" where both are truthfully `Agent`. Adopting
-      // it as the MECHANISM would lose the authority distinction, the committed
-      // refusal and the pre-fold ordering together.
-      //
-      // So it is additive and defaults to absent: a block that declares nothing
-      // behaves byte-identically and the boundary decides alone.
-      needsApproval: verb.needsApproval,
       inputExamples: inputExamples(verb),
       strict: verb.strict,
       toModelOutput: modelOutput(verb),
@@ -186,6 +179,26 @@ export interface AgentDeclaration<S> {
  *  what `prepareStep` and every tool's `execute` then read. */
 const CALL_OPTIONS_SCHEMA = jsonSchema<TurnScope>({ type: "object" });
 
+/** The tool calls a step may commit: every call the runtime ATTEMPTED, minus any
+ *  it withheld pending approval. Exported so the refusal is testable on its own
+ *  rather than only through a whole turn. */
+export function admittedCalls(
+  toolCalls: readonly { toolCallId: string; toolName: string; input: unknown }[],
+  content: readonly unknown[],
+): readonly { tool: string; input: unknown }[] {
+  const withheld = new Set(
+    content
+      .filter(
+        (part): part is { type: string; toolCall: { toolCallId: string } } =>
+          (part as { type?: string }).type === "tool-approval-request",
+      )
+      .map((part) => part.toolCall.toolCallId),
+  );
+  return toolCalls
+    .filter((call) => !withheld.has(call.toolCallId))
+    .map((call) => ({ tool: call.toolName, input: call.input }));
+}
+
 /** One turn's inputs. Everything that varies; nothing that does not. */
 export interface Turn {
   readonly prompt: string;
@@ -263,10 +276,25 @@ export function declareAgent<S>(declaration: AgentDeclaration<S>): DeclaredAgent
         // of the TYPE (`AgentSeam`) and not only of the payload: the step carries
         // no Actor field to forge, and the other two channels are not even named
         // on what this path holds.
-        onStepFinish: ({ toolCalls }) =>
+        // WITHHELD CALLS MUST NOT COMMIT — review finding, reproduced before
+        // fixing. `toolCalls` includes calls the runtime DECLINED to execute
+        // pending approval. Submitting them anyway committed `outcome: ok` for
+        // an action nobody authorised and nothing ran: measured
+        // recordsBefore=0 -> recordsAfter=1 with the verb body's own counter
+        // still at 0. `resolveAction` re-runs the PURE body at the boundary
+        // (C7), so it cannot tell that the runtime withheld the call — which is
+        // precisely why the filter has to happen HERE, on the way in.
+        //
+        // IT FILTERS ON THE APPROVAL PART, NOT ON `toolResults`. Correlating
+        // against `toolResults` also drops calls whose `execute` THREW, and
+        // those must still reach the boundary: their recorded truth comes from
+        // the pure re-run, not from the runtime's copy, and dropping them would
+        // trade one silent commit for one silent omission. This excludes
+        // exactly what was withheld and nothing else.
+        onStepFinish: ({ toolCalls, content }) =>
           void boundary.agent.submit({
             staged,
-            actions: toolCalls.map((call) => ({ tool: call.toolName, input: call.input })),
+            actions: admittedCalls(toolCalls, content),
           }),
       });
       // WHAT THE SEAM USED TO THROW AWAY. `{ steps, text }` discarded usage,

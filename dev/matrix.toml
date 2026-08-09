@@ -73,12 +73,14 @@ target_proof = ""
 id = "APPROVAL-SEAM"
 layer = "composite"
 descriptor = "toolApproval routes into the boundary gate; the different-principal rule and the committed refusal both survive"
-status = "ready"
+status = "blocked"
 host_proof = "test/spine/approval.test.ts 3/3 incl. the self-confirm refusal still committed + npm test 46 files/502 PASS @ 2026-08-08; needsApproval is the version-correct API at 6.0.208, toolApproval is v7-only"
 target_proof = "CI run 31284161862 @ commit e40b8e9 — TypeScript npm test PASS 1m3s (typecheck + typecheck:wall + eslint + biome + vitest, incl. the laws registry asserting against the book) AND Kotlin ./gradlew check PASS 1m59s, on GitHub-hosted runners (not the author's machine)"
 # 2026-08-07 BLOCKED pending an operator ruling — the request/confirm gate is a book law and the
 # 2026-08-07 SDK approval flow carries no principal identity. See campaign item SDK-6.
 # block-evidence symptom=toolApproval cannot express the different-principal rule: the SDK approval flow carries no principal identity, so 'a policy tier may confirm, this run may not' is unrepresentable in it — and both are truthfully Agent unblocks=an operator ruling on whether toolApproval routes INTO the boundary gate (gate stays authoritative) or the gate is replaced (loses the authority distinction and the committed refusal) probe=grep -n 'mayConfirm' examples/typescript/src/app/wire.ts && bun dev/campaigns/ledger.ts dev/campaigns/sdk.toml get SDK-6 result=exit=0 189:  readonly mayConfirm?: (by: Authority) => boolean; 195:    mayConfirm: (sig) => config.mayConfirm?.(sig.authority) ?? true, · SDK-6  [todo]  phase=fork    APPROVAL: toolApproval NOT needsApproval
+# block-evidence symptom=declaring needsApproval committed outcome=ok for an action the runtime withheld and never executed (recordsBefore=0 -> recordsAfter=1, verb counter 0) unblocks=the full approval lifecycle: run() accepting prior messages, TurnOutcome surfacing the approval request, and a second generate to resume probe=grep -c needsApproval examples/typescript/src/spine/pure/verb.ts result=exit=0 1 
+# 2026-08-09 2026-08-09 was ready, now BLOCKED. The seam it certified was withdrawn under review; the earlier target proof described a capability that fabricated history. Re-earning it requires the lifecycle, not another passthrough.
 
 [[rows]]
 id = "CANCELLATION"

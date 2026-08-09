@@ -52,7 +52,59 @@ function run(h: ReturnType<typeof harness>, m: MockLanguageModelV3) {
   }).run({ prompt: "go" });
 }
 
+/** Two steps with DISTINCT usage: a tool-call step, then a text step.
+ *
+ *  REVIEW FINDING. The single-step fixture this replaced could not tell
+ *  `totalUsage` from `usage`, because on one step they are the same number. A
+ *  regression from whole-turn to final-step accounting would have kept every
+ *  assertion green while under-billing every turn that used a tool — which is
+ *  the exact trap the mapper's own comment warns about. */
+function twoStepModel(): MockLanguageModelV3 {
+  let call = 0;
+  return new MockLanguageModelV3({
+    doGenerate: async () => {
+      call += 1;
+      if (call === 1) {
+        return {
+          content: [
+            {
+              type: "tool-call" as const,
+              toolCallId: "t1",
+              toolName: "setPriority",
+              input: JSON.stringify({ ticket: "4118", level: "High" }),
+            },
+          ],
+          finishReason: { unified: "tool-calls" as const, raw: undefined },
+          usage: {
+            inputTokens: { total: 11, noCache: 11, cacheRead: undefined, cacheWrite: undefined },
+            outputTokens: { total: 7, text: 7, reasoning: undefined },
+          },
+          warnings: [],
+        };
+      }
+      return {
+        content: [{ type: "text" as const, text: "partial answer" }],
+        finishReason: { unified: "stop" as const, raw: undefined },
+        usage: {
+          inputTokens: { total: 13, noCache: 13, cacheRead: undefined, cacheWrite: undefined },
+          outputTokens: { total: 5, text: 5, reasoning: undefined },
+        },
+        warnings: [],
+      };
+    },
+  });
+}
+
 describe("SDK-2/SDK-9 — the turn outcome carries what the runtime produced", () => {
+  it("sums usage across the WHOLE turn, not just the final step", async () => {
+    const out = await run(harness(), twoStepModel());
+
+    // 11+13 in, 7+5 out. Final-step accounting would report 13/5/18 and this
+    // fails; that is the whole point of the fixture.
+    expect(out.steps).toBe(2);
+    expect(out.usage).toEqual({ inputTokens: 24, outputTokens: 12, totalTokens: 36 });
+  });
+
   it("reports token usage instead of discarding it", async () => {
     const out = await run(harness(), model("stop", 11, 7));
 

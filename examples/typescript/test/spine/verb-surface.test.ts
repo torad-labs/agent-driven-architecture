@@ -105,4 +105,42 @@ describe("SDK-1 — a Verb can carry the model-facing surface", () => {
       note: "an example the block chose",
     });
   });
+
+  it("propagates toModelOutput for a NEWLY declared verb, not just the shipped one", async () => {
+    // REVIEW FINDING. The case above declared a distinctive `toModelOutput` and
+    // never invoked it. If the adapter preserved the mapper only for the shipped
+    // registry and dropped it for newly declared verbs, every assertion above —
+    // and the shipped-verb test earlier in this file — still passed. The
+    // zero-spine-edit claim rests on GENERIC propagation, so the generic case
+    // has to be the one exercised.
+    const h = harness();
+    const invented = reversible<
+      unknown,
+      { note: string },
+      { outcome: "ok"; tool: "setPriority"; ticket: string; level: "Low"; reason: null },
+      never
+    >({
+      name: "setPriority",
+      describe: "invented for this test",
+      schema: object({ note: string() }),
+      run: () => ({ outcome: "ok", tool: "setPriority", ticket: "x", level: "Low", reason: null }),
+      sign: () => {
+        throw new Error("not signed in this test");
+      },
+      toModelOutput: (result) => `shaped:${result.ticket}`,
+    });
+
+    const tools = buildTools(
+      new Map([["setPriority", invented]]),
+      h.app.boundary,
+      h.app.dispatchers,
+    );
+    const shaped = await tools.setPriority?.toModelOutput?.({
+      toolCallId: "invented-1",
+      input: { note: "an example the block chose" },
+      output: { outcome: "ok", tool: "setPriority", ticket: "x", level: "Low", reason: null },
+    });
+
+    expect(shaped).toEqual({ type: "text", value: "shaped:x" });
+  });
 });

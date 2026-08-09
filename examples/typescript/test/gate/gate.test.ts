@@ -497,7 +497,23 @@ describe("the workspace wall covers every package", () => {
     const walkTree = (dir: string): void => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (
-          ["node_modules", ".tsbuild", ".git", "build", ".gradle", ".claude"].includes(entry.name)
+          // `.work` JOINS THE SKIP SET — review finding, and it fixes a real
+          // intermittent. `test/laws/quickstart.test.ts` builds and then removes
+          // `.work/quickstart-walk` in its `afterAll`; vitest runs suites
+          // concurrently, so this walker could descend into that tree in the
+          // instant between `readdirSync` and the removal and die on ENOENT.
+          // Observed once as 501/502 with an immediate rerun at 502/502 — the
+          // signature of a race, not a failure.
+          //
+          // `.work` is generated output, so it was never in this sweep's remit:
+          // the sibling censuses (`test/laws/roster-count`,
+          // `test/laws/dependency-rule`) already skip it for exactly that reason
+          // and this walker was the odd one out. Skipping is therefore the
+          // consistent fix rather than a tolerate-ENOENT workaround, which would
+          // paper over a genuinely missing tree elsewhere.
+          ["node_modules", ".tsbuild", ".git", "build", ".gradle", ".claude", ".work"].includes(
+            entry.name,
+          )
         ) {
           continue;
         }
