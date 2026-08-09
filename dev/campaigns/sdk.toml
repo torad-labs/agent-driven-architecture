@@ -354,3 +354,12 @@ title = "THE verified RUNG IS NOT MINE TO SET. All ten rows now carry BOTH proof
 files = []
 status = "blocked"
 verify = "an independent reviewer re-reads the diff against each row's verify line, then MATRIX_ORCHESTRATOR=1 bun dev/matrix.ts dev/matrix.toml set <ROW> verified"
+
+[[items]]
+id = "SDK-26"
+phase = "env"
+title = "GITLEAKS HAD NEVER SCANNED. Once the billing lock cleared and the org workflow suite could finally run, gitleaks went red - not on a finding, but on 'unable to load gitleaks config: open /repo/.gitleaks.toml: no such file'. The org workflow passes --config explicitly so repo allowlists apply, and this repo has never had that file. PRE-EXISTING, verified: absent on origin/main, absent on this branch, and this branch deletes nothing gitleaks-related. Fixed here rather than deferred because a green merge is the bar and the fix is three lines."
+files = []
+status = "done"
+verify = "docker run gitleaks git /repo --config /repo/.gitleaks.toml --exit-code 1  exits 0"
+# 2026-08-09 2026-08-08 THE FILE ADDS NO ALLOWLIST, deliberately - it only turns the default ruleset on, which is strictly stronger than a job that failed before scanning. Measured before landing: gitleaks v8.21.2 over the full history, 86 commits scanned, NO LEAKS FOUND. So the green is a measurement rather than a suppression. Worth noting what the red was hiding: a check that has never looked at the code still reports as 'secret scanning' on every PR.
