@@ -1,0 +1,28 @@
+# ── gitleaks configuration ───────────────────────────────────────────────────
+# The org's secret-scan workflow invokes gitleaks with `--config /repo/.gitleaks.toml`
+# so that repo-level allowlists apply. This file did not exist, so the job failed
+# before scanning anything:
+#
+#   FTL unable to load gitleaks config, err: open /repo/.gitleaks.toml: no such file
+#
+# That is a red check that had never once looked at the code — the worst kind,
+# because it reads as "secret scanning runs here" while scanning nothing.
+#
+# THERE IS NO ALLOWLIST BELOW, AND THAT IS THE POINT. An empty config that merely
+# turns the default ruleset on is strictly stronger than the previous state, and
+# it cannot be mistaken for a weakening later: adding a path or a regex here means
+# adding it deliberately, in a diff, next to this comment.
+#
+# Verified before landing: gitleaks v8.21.2 with these exact rules over the full
+# history — 86 commits scanned, no leaks found. So the scan going green is a
+# measurement, not a suppression.
+#
+# If a future finding is a genuine false positive, allowlist the NARROWEST thing
+# that clears it (a specific path, or a specific rule on a specific path) and say
+# why in a comment. Never a bare `paths` wildcard, and never `stopwords`.
+
+title = "agent-driven-architecture"
+
+[extend]
+# The upstream ruleset, unmodified. Everything gitleaks ships is in force.
+useDefault = true

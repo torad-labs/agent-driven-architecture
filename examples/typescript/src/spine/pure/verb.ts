@@ -73,6 +73,57 @@ export interface VerbSpec<S, I, R extends ToolResultBase, C extends CommandBase>
   readonly run: (input: I, ctx: Ctx<S>) => R;
   /** the name→Command entry (6.8) */
   readonly sign: (result: R, sig: Signature, id: CommandId) => C;
+
+  // ── THE MODEL-FACING SURFACE A BLOCK MAY DECLARE (SDK-1) ──────────────────
+  // Until these existed, `VerbSpec` had slots for six things and the adapter was
+  // a generic converter that knew nothing about any specific tool. A block
+  // therefore COULD NOT express model-facing behaviour the runtime supports —
+  // not because the spine forbade it, but because the type had nowhere to put
+  // it. The Verb was a lossy intermediate representation over the runtime's own
+  // tool definition, and every downstream absence followed from that one fact.
+  //
+  // ALL OPTIONAL, so no existing block moves. And all stated in the BLOCK'S OWN
+  // vocabulary, never the runtime's: a block still names no SDK type, so the
+  // "only one spine module imports the runtime" confinement is untouched. The
+  // adapter translates — which is exactly the job it already had for schemas.
+
+  /** Concrete inputs that show the reasoner what a good call looks like. Worth
+   *  more than prose for a schema with a discriminated union or a format the
+   *  description can only gesture at. */
+  readonly examples?: readonly I[];
+
+  /** Ask the provider to enforce the schema rather than merely advertise it,
+   *  where the provider supports it. */
+  readonly strict?: boolean;
+
+  /** WHAT THE MODEL SEES, as distinct from what the boundary RECORDS.
+   *
+   *  The recorded truth is produced at the boundary from the raw input and is
+   *  not negotiable (C7). This is the other half: a result that is large, or
+   *  noisy, or carries a field the reasoner should not be steered by, can be
+   *  summarised for the model without touching what the timeline commits.
+   *
+   *  Returns a plain string BY DESIGN — a block names no runtime type, and the
+   *  adapter wraps it. */
+  readonly toModelOutput?: (result: R) => string;
+
+  // NO `needsApproval` HERE, AND ITS ABSENCE IS DELIBERATE (SDK-6, withdrawn
+  // 2026-08-09 under review). It was added on the same "make it expressible"
+  // reasoning as `toModelOutput` and `repairToolCall`. That reasoning does not
+  // transfer, and shipping it proved so: those two are PURE PASSTHROUGHS, while
+  // approval is a STATE MACHINE — request, decide, resume.
+  //
+  // With no resume path, declaring it did not add caution, it fabricated
+  // history: the runtime withheld the call, `resolveAction` re-ran the pure body
+  // at the boundary anyway (C7 cannot see that the runtime declined), and the
+  // timeline committed `outcome: ok` for an action nobody authorised and nothing
+  // executed. Measured on the shipped code: recordsBefore=0 -> recordsAfter=1
+  // with the verb body's counter still at 0.
+  //
+  // Re-introducing it needs the whole lifecycle: `run` accepting prior messages,
+  // the outcome surfacing the approval request, and a second generate to resume.
+  // Until then the boundary gate is the only approval this port has, and it is
+  // the one the book specifies.
 }
 
 // ── The type-erased registry entry ──────────────────────────────────────────
@@ -88,6 +139,11 @@ export interface VerbBase<S> {
   readonly decode: (raw: RawInput) => DecodeResult;
   readonly run: (input: unknown, ctx: Ctx<S>) => ToolResultBase;
   readonly sign: (result: ToolResultBase, sig: Signature, id: CommandId) => CommandBase;
+  /** SDK-1's model-facing surface, erased alongside the rest. Opaque to the
+   *  spine; only the model-facing adapter interprets them. */
+  readonly examples?: readonly unknown[];
+  readonly strict?: boolean;
+  readonly toModelOutput?: (result: ToolResultBase) => string;
 }
 
 export interface ReversibleVerb<S> extends VerbBase<S> {
@@ -122,6 +178,9 @@ function erase<S, I, R extends ToolResultBase, C extends CommandBase>(
     },
     run: (input, ctx) => spec.run(input as I, ctx),
     sign: (result, sig, id) => spec.sign(result as R, sig, id),
+    examples: spec.examples,
+    strict: spec.strict,
+    toModelOutput: spec.toModelOutput as ((result: ToolResultBase) => string) | undefined,
   };
 }
 
@@ -187,4 +246,67 @@ export interface Dispatchers<S> {
 export interface BlockRegistration<S> {
   readonly block: string;
   readonly verbs: readonly Verb<S>[];
+}
+
+// ── SDK-1's DECLARED SURFACE, translated to neutral shapes ──────────────────
+// These live here rather than in the model-facing adapter for one reason, and
+// the gate is what supplied it: C14 refuses a decision inside
+// `spine/agent/loop` — "the loop is a declaration, not a program". Deciding what
+// an ABSENT declaration means is a decision, so it belongs beside the type that
+// declares it.
+//
+// Neither function names a runtime type. They return neutral shapes the adapter
+// hands straight over, so the "one module imports the runtime" confinement is
+// untouched.
+
+/** `undefined` in means `undefined` out. Handing the runtime an empty override
+ *  instead of NO override would silently replace its own JSON serialisation with
+ *  an empty string for every verb that never opted in. */
+export function modelOutput<S>(
+  verb: Verb<S>,
+): ((options: { output: unknown }) => { type: "text"; value: string }) | undefined {
+  const declared = verb.toModelOutput;
+  if (declared === undefined) return undefined;
+  return ({ output }) => ({ type: "text", value: declared(output as ToolResultBase) });
+}
+
+/** The runtime wants `[{ input }]`; a block writes the inputs themselves. */
+export function inputExamples<S>(verb: Verb<S>): { input: never }[] | undefined {
+  const declared = verb.examples;
+  if (declared === undefined) return undefined;
+  // The runtime types the example input against the tool's own INPUT type. The
+  // registry is type-erased by construction (see `VerbBase` above), so the cast
+  // is the same erasure this file already owns for `run` and `sign` — and it is
+  // still confined to this one file.
+  return declared.map((input) => ({ input })) as { input: never }[];
+}
+
+/** THE BLOCK'S OWN DECODER, in the shape the runtime's schema wants.
+ *
+ *  WHY THIS EXISTS (review finding, 2026-08-09). The adapter built the
+ *  model-facing schema as `jsonSchema(toJsonSchema(verb.schema))` and passed no
+ *  `validate`. A `jsonSchema()` built that way has NO validator — measured:
+ *  `typeof schema.validate === "undefined"`. So the runtime accepted any input
+ *  shape, `InvalidToolInputError` could never be raised, and
+ *  `experimental_repairToolCall` was UNREACHABLE: a hook wired to a condition
+ *  that could not occur. SDK-14 shipped calling it "expressible"; it was dead.
+ *
+ *  SAME CHECKER, TWICE. This returns the verb's own `decode` — the identical
+ *  Standard Schema the BOUNDARY validates with. So the runtime and the boundary
+ *  cannot disagree about what a valid input is, which is the property the port
+ *  already relies on for the digest and the walls. C7 is untouched: the boundary
+ *  still produces every recorded ToolResult from the raw input.
+ *
+ *  Returning `Error` rather than throwing: the runtime treats a failed validate
+ *  as a repairable tool call, which is exactly the seam this restores. */
+export function modelFacingValidate<S>(
+  verb: Verb<S>,
+): (value: unknown) => { success: true; value: unknown } | { success: false; error: Error } {
+  return (value: unknown) => {
+    const decoded = verb.decode(value as RawInput);
+    if (!decoded.ok) {
+      return { success: false, error: new Error(`input failed to decode for ${verb.name}`) };
+    }
+    return { success: true, value: decoded.input };
+  };
 }

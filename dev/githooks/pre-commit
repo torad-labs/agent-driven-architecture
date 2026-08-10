@@ -1,0 +1,8 @@
+#!/bin/sh
+# Staged walls + three-plane validate (HARNESS-5).
+set -e
+ROOT="$(git rev-parse --show-toplevel)"
+bun "$ROOT/dev/gates/staged.ts"
+bun "$ROOT/dev/campaigns/ledger.ts" "$ROOT/dev/campaigns/sdk.toml" validate
+bun "$ROOT/dev/matrix.ts" "$ROOT/dev/matrix.toml" validate
+bun "$ROOT/dev/manifest.ts" "$ROOT/dev/manifests/agent-driven-architecture.toml" validate

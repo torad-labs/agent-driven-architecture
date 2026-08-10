@@ -11,6 +11,7 @@ import { authority } from "@adr/spine/pure/actor";
 import { input, interrupt, isInput } from "@adr/spine/pure/mailbox";
 import { perceived } from "@adr/spine/pure/staged";
 import { refold } from "@adr/spine/replay/replay";
+import type { LanguageModel } from "ai";
 import { MockLanguageModelV3 } from "ai/test";
 import { liveRelay } from "../blocks/analysis/adapter/adapter";
 import { project } from "./assemble";
@@ -36,6 +37,23 @@ const usage = {
   inputTokens: { total: 1, noCache: 1, cacheRead: undefined, cacheWrite: undefined },
   outputTokens: { total: 1, text: 1, reasoning: undefined },
 };
+
+/** THE BINDING, AND IT IS THE ROOT'S TO CHOOSE (G7). Real or faked differ in
+ *  exactly one line, which is the whole point of a composition root.
+ *
+ *  OFFLINE IS THE DEFAULT AND STAYS THE DEFAULT: this README promises "Runnable,
+ *  offline, no API keys", and a reference implementation that needs a key to run
+ *  teaches nothing on first clone. Set ADR_MODEL to reach a real one — no
+ *  @ai-sdk/* package is needed, because the Vercel AI Gateway is the default
+ *  provider and a plain `provider/model` string is a real binding.
+ *
+ *      ADR_MODEL=anthropic/claude-sonnet-4.5 npm run demo
+ */
+function modelBinding(): LanguageModel {
+  const named = process.env["ADR_MODEL"];
+  if (named === undefined) return scriptedModel();
+  return named;
+}
 
 function scriptedModel(): MockLanguageModelV3 {
   let call = 0;
@@ -99,13 +117,33 @@ export async function main(out: Narrator): Promise<void> {
   // 1) An agent turn, scripted offline. The loop forwards ACTIONS; the boundary
   //    resolves them through the one name→ToolResult map and folds the result.
   const turn = await runTurn({
-    model: scriptedModel(),
+    model: modelBinding(),
+    // THE PROMPT ASSET `promptVersion` NAMES (7.3). The root owns it for the same
+    // reason it owns `reducerVersion` and the context bounds: the spine cannot
+    // know which prompt it was handed. Until this line existed, every committed
+    // record carried `promptVersion: "prompt-v1"` over no asset at all.
+    //
+    // It is the INSTRUCTION channel. Nothing a source staged can reach it — the
+    // projected context, which embeds untrusted `Perceived` bodies, travels as a
+    // user message instead (spine/agent/loop).
+    instructions:
+      "You triage support tickets. Set a priority before escalating, " +
+      "and never confirm your own escalation request.",
     prompt: "ticket 4118 looks urgent",
     boundary: app.boundary,
     registry: app.registry,
     dispatchers: app.dispatchers,
   });
-  out.say(`\n[agent] ran ${turn.steps} steps, said: "${turn.text}"`);
+  // IT PRINTS WHY GENERATION STOPPED, not only what came back. Review finding:
+  // this line reported `turn.text` as the answer regardless of `finishReason`,
+  // so a TRUNCATED response (`length`) rendered identically to a complete one —
+  // the very confusion SDK-2 widened the seam to end. Surfacing usage alongside
+  // it is the other half: a demo that teaches the seam should show what the seam
+  // now carries.
+  out.say(
+    `\n[agent] ran ${turn.steps} steps, finished '${turn.finishReason}'` +
+      ` (${turn.usage.totalTokens} tokens), said: "${turn.text}"`,
+  );
   out.say("[state] triage:", project(app.boundary.state).triage.rows[0]);
   out.say("[state] panels:", project(app.boundary.state).console.panels);
 
