@@ -164,9 +164,19 @@ describe("SDK-14 — repair runs through the declared agent", () => {
         attempted += 1;
         return null;
       },
-    })
-      .run({ prompt: "go" })
-      .catch(() => undefined);
+      // AWAITED, NOT SUPPRESSED. The `.catch(() => undefined)` that used to sit
+      // here converted EVERY rejection into success: `run()` could commit
+      // `unhandled` and then reject for an unrelated reason — a later provider
+      // call, a result-construction failure — and both assertions below would
+      // still pass. Measured: the unrepairable path resolves normally, so there
+      // was never anything to suppress.
+      //
+      // Recorded because the first fix MISSED THIS CALL SITE: the previous round
+      // removed the identical catch from the repair case above, reported it as
+      // done, and left this one. The ledger said removed; the tree said
+      // otherwise. That is a claim outrunning its diff, which this campaign's
+      // own honesty law forbids — caught by review, not by me.
+    }).run({ prompt: "go" });
 
     expect(attempted).toBe(1);
     expect(lastCommitted(h)).toMatchObject({ outcome: "unhandled" });
