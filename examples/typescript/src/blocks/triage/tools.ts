@@ -65,6 +65,23 @@ export function triageVerbs<S>(): readonly Verb<S>[] {
       // adopter's existing callers keep working, which is the other half of
       // what 14.7's "optional field" buys.
       schema: object({ ticket: string(), level: priority, reason: optional(string()) }),
+      // ── THE MODEL-FACING SURFACE, DECLARED IN THE BLOCK (SDK-1) ────────────
+      // These cost NOTHING outside this folder. Before the Verb carried them,
+      // no block could express any of it — the adapter was a generic converter
+      // with nowhere to read a per-tool intent from, so the whole model-facing
+      // half of the runtime's tool definition was unreachable by construction.
+      //
+      // `examples` earns its keep on this verb specifically: `level` is a closed
+      // set and `reason` is optional, which a description can only gesture at.
+      examples: [
+        { ticket: "4118", level: "Urgent", reason: "customer reports funds taken twice" },
+        { ticket: "4119", level: "Low" },
+      ],
+      // WHAT THE MODEL SEES, not what the timeline records. The committed result
+      // is produced at the boundary from the raw input and is untouched by this
+      // (C7); this only stops the reasoner re-reading a payload it already knows
+      // it sent, which is the cheapest context there is to not spend.
+      toModelOutput: (result) => `${result.ticket} → ${result.level}`,
       run: (input) => ({
         outcome: "ok",
         tool: "setPriority",

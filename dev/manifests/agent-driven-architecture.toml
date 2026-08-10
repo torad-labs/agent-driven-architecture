@@ -1,0 +1,174 @@
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+# COMPOSITION MANIFEST — agent-driven-architecture (the FUTURE tense)
+#
+# Units declared as DATA before implementation. The manifest lattice IS the todo list: a unit
+# referenced here but missing from dev/matrix.toml is mechanically visible (dev/gates/lattice.ts),
+# never remembered.
+#
+# THE ONE-STEP LAW: a unit references the level DIRECTLY below and no further. When a unit seems
+# to need something two levels down, the missing piece is a unit at the level in between — not a
+# longer reach.
+#
+# SLOT AUTHORING: every unit carries inputs, outputs and NAMED SOURCES. A unit whose sources
+# cannot be named premise-blocks rather than being written from priors. That law has teeth here
+# specifically: the audit that opened this campaign first recommended `needsApproval` from a .d.ts
+# signature, and the published docs reserve it for WorkflowAgent. Every source below is a URL or
+# a path that was actually read.
+#
+# LEVELS, low to high: foundation -> adapter -> composite -> surface
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+[meta]
+package = "agent-driven-architecture"
+intent = "Make the TypeScript reference port earn its subtitle — 'the Agent-Driven Architecture, on the Vercel AI SDK' — by expressing the architecture THROUGH the SDK's own primitives instead of alongside them."
+extraction_seam = "The ADA design (blocks, boundary, fold, gate, one production site) is LOCKED and is not what this campaign touches. The seam is spine/pure/verb.ts: a Verb must be able to carry everything tool() carries, so that a block declares SDK behaviour in its own folder and the spine still never interprets a schema. The moment the spine grows a branch to accommodate an SDK feature, this campaign has gone wrong."
+
+# ── foundation ─────────────────────────────────────────────────────────────────────────────────
+
+[[units]]
+id = "F-verb-surface"
+level = "foundation"
+row = "VERB-SURFACE"
+composes = []
+inputs = ["the six-slot VerbSpec (name, describe, schema, run, sign, kind)", "the Tool type from @ai-sdk/provider-utils"]
+outputs = ["a VerbSpec whose optional fields map 1:1 onto tool(): toModelOutput, inputExamples, strict, needsApproval-or-toolApproval policy, onInputAvailable"]
+sources = [
+  "examples/typescript/src/spine/pure/verb.ts:65-91 — VerbSpec and the erased VerbBase",
+  "node_modules/@ai-sdk/provider-utils/dist/index.d.ts:1148-1200 — Tool: inputSchema, execute, needsApproval, toModelOutput, onInputStart/Delta/Available",
+  "https://ai-sdk.dev/docs/agents/building-agents — tools, contextSchema, runtimeContext",
+]
+note = "THE LEVERAGE POINT. Everything else in this manifest is cosmetics until this lands, because a generic verb->tool converter can only ever emit what the verb type can hold."
+
+[[units]]
+id = "F-model-port"
+level = "foundation"
+row = "MODEL-PORT"
+composes = []
+inputs = ["ModelProvider.runTurn(request) => {steps: number, text: string}"]
+outputs = ["a seam carrying usage/totalUsage, finishReason, toolCalls, toolResults, warnings and providerMetadata"]
+sources = [
+  "examples/typescript/src/spine/ports/model-provider.ts:13-20 — the two-field TurnOutcome",
+  "node_modules/ai/dist/index.d.ts — GenerateTextResult",
+  "https://ai-sdk.dev/docs/reference/ai-sdk-core/tool-loop-agent — generate() returns GenerateTextResult",
+]
+note = "LanguageModel IS the port. C11 (interfaces only) is satisfied by depending on @ai-sdk/provider's abstraction rather than by inventing a narrower one."
+
+# ── adapter ────────────────────────────────────────────────────────────────────────────────────
+
+[[units]]
+id = "F-context-provenance"
+level = "foundation"
+row = "CONTEXT-PROVENANCE"
+composes = []
+inputs = ["render(context) and the ContextFixture the boundary commits"]
+outputs = ["a digest that is provably the text sent to the model"]
+sources = ["examples/typescript/src/spine/pure/context.ts:9 - the claim 'the exact text the model saw'", "examples/typescript/src/spine/boundary/boundary.ts:152 - render(ctx.context) committed as the digest", "examples/typescript/src/spine/agent/loop.ts:95 - prompt: opts.prompt, and nothing else"]
+note = "G15's justification is that 'why did the agent decide this' is unanswerable without the text the model actually read. This port commits that text and never sends it. A correctness bug against the book, not an idiom miss - and the highest-priority foundation unit."
+
+[[units]]
+id = "A-agent-loop"
+level = "adapter"
+row = "AGENT-LOOP"
+composes = ["F-verb-surface", "F-model-port"]
+inputs = ["the widened verb table", "the model seam", "root-owned loop settings"]
+outputs = ["one declared ToolLoopAgent per registry, built once rather than per turn"]
+sources = [
+  "examples/typescript/src/spine/agent/loop.ts:87-108 — runTurn rebuilds the ToolSet every call",
+  "https://ai-sdk.dev/docs/agents/overview — 'the recommended approach for building agents'",
+  "node_modules/ai/dist/index.d.ts:3366-3590 — ToolLoopAgentSettings and the class",
+]
+note = "stopWhen moves to Env alongside promptVersion / reducerVersion / contextBounds — the root owns deployment knobs, and stepCountIs(8) hardcoded in the spine contradicts that rule the port already states."
+
+[[units]]
+id = "A-step-control"
+level = "adapter"
+row = "STEP-CONTROL"
+composes = ["F-verb-surface"]
+inputs = ["the tier allowlists ALL_BLOCKS / FAST_TIER / DEEP_TIER", "ContextBounds"]
+outputs = ["activeTools per step; context compaction expressed as prepareStep rather than a closure over mutable state"]
+sources = [
+  "examples/typescript/src/app/wire.ts:191-215 — three hand-built registries",
+  "https://ai-sdk.dev/docs/agents/loop-control — prepareStep, activeTools, toolChoice, pruneMessages",
+  "node_modules/ai/dist/index.d.ts:1414 — prepareStep exists at the pinned version",
+]
+# 2026-08-08 citation corrected: the three hand-built registries are wire.ts:262/272/282, consumed at 289 - not 191-215 as first recorded
+
+[[units]]
+id = "A-tool-lifecycle"
+level = "adapter"
+row = "TOOL-LIFECYCLE"
+composes = ["F-verb-surface"]
+inputs = ["the boundary's agent StepChannel", "the model's raw tool input"]
+outputs = ["the boundary hooked at the tool input lifecycle; verb.run executes ONCE per agent action"]
+sources = [
+  "examples/typescript/src/spine/agent/loop.ts:13-17 — 'the pure tool body runs TWICE per agent action'",
+  "examples/typescript/src/spine/boundary/action.ts — resolveAction, the single production site (C7)",
+]
+note = "The double-execution is owed only because the boundary hooks onStepFinish. The file's own comment ratifies the cost as a necessary price; onInputAvailable removes it without weakening C7."
+
+# ── composite ──────────────────────────────────────────────────────────────────────────────────
+
+[[units]]
+id = "A-prompt-boundary"
+level = "adapter"
+row = "PROMPT-BOUNDARY"
+composes = ["F-context-provenance"]
+inputs = ["Perceived (untrusted) and Recall staged inputs"]
+outputs = ["instructions separate from untrusted content in the model call"]
+sources = ["examples/typescript/src/spine/pure/staged.ts:108 - 'Untrusted perceived content staged for this turn'", "https://ai-sdk.dev/docs/reference/ai-sdk-core/model-message - system messages in prompt/messages rejected by default; allowSystemInMessages is a prompt-injection risk"]
+note = "Only reachable once F-context-provenance wires context to the model at all - which is why it is the level above rather than the same unit."
+
+[[units]]
+id = "C-approval-seam"
+level = "composite"
+row = "APPROVAL-SEAM"
+composes = ["A-tool-lifecycle"]
+inputs = ["the irreversible-verb classification and its requestedBy", "Authority / mayConfirm"]
+outputs = ["toolApproval that DELEGATES to the boundary gate — the gate stays the sole arbiter"]
+sources = [
+  "https://ai-sdk.dev/docs/agents/tool-approvals — toolApproval statuses; 'Use needsApproval only with WorkflowAgent'",
+  "examples/typescript/src/app/wire.ts:186-196 — mayConfirm keyed on Authority, never Actor",
+]
+note = "BLOCKED pending an operator ruling — see campaign item SDK-6. The SDK approval flow carries no principal identity, so it cannot express 'a policy tier may confirm, this run may not' where both are truthfully Agent."
+
+[[units]]
+id = "C-cancellation"
+level = "composite"
+row = "CANCELLATION"
+composes = ["A-agent-loop"]
+inputs = ["SerialConsumer.cancelDeadlineMs and its CancelDeadlineExceeded event"]
+outputs = ["an AbortSignal that actually reaches the model call"]
+sources = [
+  "examples/typescript/src/spine/agent/loop.ts:78-85 — RunTurn takes no signal",
+  "examples/typescript/src/app/wire.ts — 'cancel deadline exceeded ... turn abandoned, its channel revoked'",
+  "node_modules/ai/dist/index.d.ts:1352 — generateText accepts abortSignal and timeout",
+]
+note = "A real defect, not idiom: the system commits a fault saying the turn was abandoned while the request keeps running."
+
+[[units]]
+id = "C-telemetry"
+level = "composite"
+row = "TELEMETRY"
+composes = ["A-agent-loop"]
+inputs = ["GenerateTextResult.totalUsage, finishReason, warnings"]
+outputs = ["a turn outcome a consumer can bill and debug against"]
+sources = [
+  "https://ai-sdk.dev/docs/agents/building-agents — lifecycle callbacks onStepEnd / onEnd",
+  "node_modules/ai/dist/index.d.ts — usage is the FINAL step; totalUsage is the aggregate",
+]
+note = "usage vs totalUsage is the documented undercounting trap for multi-step calls. The distinction gets a test, not a comment."
+
+# ── surface ────────────────────────────────────────────────────────────────────────────────────
+
+[[units]]
+id = "S-provider"
+level = "surface"
+row = "PROVIDER"
+composes = ["C-telemetry", "C-cancellation"]
+inputs = ["a declared @ai-sdk provider dependency", "the existing scriptedModel() offline path"]
+outputs = ["a demo that can run against a real model while keeping the keyless scripted run as the default"]
+sources = [
+  "dev/campaigns/sdk.toml SDK-8 — measure.sh '=== PROVIDERS ===' is empty",
+  "examples/typescript/src/app/demo.ts:101 — the single production call site, scriptedModel()",
+]
+note = "The offline default is deliberate and stays: a reference implementation that needs an API key to run teaches nothing on first clone. What is missing is that a real provider is not even expressible."

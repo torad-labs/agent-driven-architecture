@@ -177,3 +177,30 @@ function renderRecall(recall: Recall): string {
     }
   }
 }
+
+// ── THE TURN'S SCOPE — what a tool's `execute` is handed by the CALL ─────────
+// `staged` varies per turn; the tool table does not. While the table closed over
+// `staged`, the table had to be rebuilt every turn — which is exactly what kept
+// this port from declaring ONE agent and reusing it (SDK-3), the shape
+// `ToolLoopAgent` exists for. The SDK's answer is to pass per-call values to
+// `execute` through the call's context, so the table stops varying.
+//
+// THE NARROWING LIVES HERE AND NOT IN THE LOOP, and the gate is what said so:
+// C14 refused a ternary in `spine/agent/loop`, on the grounds that "a decision
+// the loop may not make — decisions belong to the fold". It was right. The seam
+// hands `unknown`, so SOMETHING has to decide what an absent scope means; that
+// decision is about staged input, so it belongs to the module that owns staged.
+
+export interface TurnScope {
+  readonly staged: readonly StagedInput[];
+}
+
+const EMPTY_SCOPE: TurnScope = { staged: [] };
+
+/** A call that supplied no scope reads as the EMPTY turn, never as a crash: the
+ *  spine does not throw at a seam (spine/boundary/action states the same rule). */
+export function scopeOf(context: unknown): TurnScope {
+  const staged = (context as { staged?: readonly StagedInput[] } | null)?.staged;
+  if (staged === undefined) return EMPTY_SCOPE;
+  return { staged };
+}

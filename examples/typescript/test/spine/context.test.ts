@@ -271,7 +271,11 @@ describe("the growth bound is wired, not welded (G15)", () => {
         return app.dispatchers.projectContext(state, staged, bounds);
       },
     };
-    const tools = buildTools(app.registry, app.boundary, spy, []);
+    // `staged` left the signature when the tool table became reusable across
+    // turns (SDK-3): it now rides the CALL's context, which is why `execute`
+    // below is handed one. The window under test is unaffected — it still comes
+    // off the boundary, which is the whole point of this case.
+    const tools = buildTools(app.registry, app.boundary, spy);
     await must(tools.recordFinding).execute?.(
       { text: "noted" },
       { toolCallId: "call-1", messages: [] },

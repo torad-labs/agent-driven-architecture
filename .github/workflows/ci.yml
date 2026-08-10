@@ -21,10 +21,22 @@ on:
 permissions:
   contents: read
 
+# T7 (dev/gates/ci-hygiene.ts). A push to a branch with a run already in flight used to leave both
+# running: the older one keeps a runner busy and its verdict lands SECOND, so a red-then-fixed
+# sequence can report red last. Cancelling in-progress runs makes the newest commit the one whose
+# verdict is final. Never cancel on `main` — a cancelled push-to-main leaves the branch with no
+# verdict at all, which reads identically to "not yet run".
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   typescript:
     name: TypeScript — npm test (typecheck + gate + biome + vitest)
     runs-on: ubuntu-latest
+    # T1 (dev/gates/ci-hygiene.ts). Without this a hung step burns the full 6-hour default before
+    # anyone learns the gate never answered — and a gate that has not answered is not a green one.
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: examples/typescript
@@ -41,6 +53,9 @@ jobs:
   kotlin:
     name: Kotlin — ./gradlew check (konsist + detekt + compiler proofs + junit)
     runs-on: ubuntu-latest
+    # Higher than the TypeScript job: a cold Gradle cache plus konsist and detekt is the slow path
+    # here, and a ceiling that trips on an ordinary cold run is a ceiling that gets deleted.
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: examples/kotlin

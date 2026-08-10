@@ -93,7 +93,23 @@ export function resolveAction<S>(registry: Registry<S>, action: Action, ctx: Ctx
   if (verb === undefined) return seal(unhandled(action.tool, "no registered verb"));
   const decoded = verb.decode(action.input);
   if (!decoded.ok) return seal(unhandled(action.tool, "input failed to decode"));
-  return seal(verb.run(decoded.input, ctx));
+  // TOTAL, AND THE FILE HEADER ALREADY PROMISED IT — "the spine never throws at
+  // a seam" was false here until this landed. A verb body that threw propagated
+  // out of the ONE production site, through `Boundary.submit`, into the agent
+  // loop's `onStepFinish`; the runtime's callback notification swallows it, and
+  // the turn resolved with the step's record NEVER APPENDED. The action vanished:
+  // no ok, no refusal, no `Unhandled` — nothing on the timeline at all, which is
+  // the one outcome this architecture does not permit (6.10, and the "nothing
+  // the consumer sheds is silent" rule the mailbox path already holds).
+  //
+  // A throwing body is a DEFECT, and a defect is still a decision someone may
+  // need to ask about — so it commits as `Unhandled` and travels the same single
+  // path as every other result rather than being special-cased into silence.
+  try {
+    return seal(verb.run(decoded.input, ctx));
+  } catch {
+    return seal(unhandled(action.tool, "tool body failed"));
+  }
 }
 
 /** name → Command. The other half of the same registration (6.8). Under it
@@ -177,4 +193,66 @@ export function signResult<S>(
     return seal(refused);
   }
   return seal(cmd);
+}
+
+// ── WHICH CALLS A STEP MAY ADMIT ────────────────────────────────────────────
+// These live HERE and not in `spine/agent/loop` because C14 refused them there,
+// for the fourth time this session and correctly every time: deciding which
+// calls a step may commit IS a decision, and the loop makes none. This module
+// already owns `FinishedStep`, `StepChannel` and the one name->ToolResult map,
+// so the admission rule belongs beside the shape it admits into. Nothing below
+// names the runtime; the parameters are structural.
+
+export interface AdmittedToolCall {
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly input: unknown;
+  /** the runtime's OWNERSHIP BIT — true when the PROVIDER executed the call */
+  readonly providerExecuted?: boolean;
+}
+
+export function admittedCalls(
+  toolCalls: readonly AdmittedToolCall[],
+  content: readonly unknown[],
+): readonly { tool: string; input: unknown }[] {
+  const withheld = new Set(
+    content
+      .filter(
+        (part): part is { type: string; toolCall: { toolCallId: string } } =>
+          (part as { type?: string }).type === "tool-approval-request",
+      )
+      .map((part) => part.toolCall.toolCallId),
+  );
+  return toolCalls
+    .filter(
+      (call) =>
+        // PROVIDER-OWNED CALLS ARE NOT OURS TO RECORD. `toolCalls` also carries
+        // calls the PROVIDER executed, whose local `execute` is deliberately
+        // skipped. Submitting one made the boundary resolve a name its registry
+        // never had and commit `Unhandled("no registered verb")` — a record
+        // describing an action this boundary never owned, which is a subtler lie
+        // than dropping it: the timeline claims the local system saw and refused
+        // something that was never its business.
+        call.providerExecuted !== true &&
+        // WITHHELD PENDING APPROVAL. See the note at the submit seam.
+        !withheld.has(call.toolCallId),
+    )
+    .map((call) => ({ tool: call.toolName, input: call.input }));
+}
+
+/** THE WHOLE CALLBACK-TO-CHANNEL ADAPTER, extracted so the WIRING is testable
+ *  and not just the predicate.
+ *
+ *  Review finding: with only `admittedCalls` exported, reverting `onStepFinish`
+ *  to a direct `toolCalls.map(...)` left every test green while a withheld call
+ *  could commit again. The unsafe bypass has to be a deterministic failure, and
+ *  it cannot be while the seam that must call the filter is unreachable from a
+ *  test. */
+export function submitFinishedStep(
+  channel: StepChannel,
+  staged: readonly StagedInput[],
+  toolCalls: readonly AdmittedToolCall[],
+  content: readonly unknown[],
+): StepIndex {
+  return channel.submit({ staged, actions: admittedCalls(toolCalls, content) });
 }

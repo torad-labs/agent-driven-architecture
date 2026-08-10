@@ -356,7 +356,37 @@ const RESOLVABLE_PIN: Record<string, number> = {
   // +7 (506 -> 513): A10's per-block adapter packages — each new adapter
   // package.json/tsconfig and the pure/impure edge fixtures cite §7.5/§7.8 and
   // G10/G11 as the boundary they now hold by resolution.
-  "examples/typescript": 513,
+  // +2 (513 -> 515): SDK-21 / CONTEXT-PROVENANCE. `spine/agent/loop`'s new G15
+  // banner over the per-step reasoner input, and the banner on the
+  // `context-provenance` test that proves the committed digest is text the model
+  // RECEIVED rather than merely re-derivable. Two banners, two credits; no
+  // citation deleted, and the fix itself is what produced them.
+  // +5 (515 -> 520): SDK-22 / PROMPT-BOUNDARY. The `instructions` field's banner on
+  // RunTurn and the `system` line in the call both cite 7.3/14.7 and the staged
+  // untrusted rule; the `prompt-boundary` test banner cites them again; and the
+  // demo's asset comment cites 7.3. Five banners, five credits, none deleted.
+  // +2 (520 -> 522): SDK-7 / CANCELLATION. The `abortSignal` field's banner on
+  // RunTurn cites 12.4, and the `cancellation` test banner cites it again for the
+  // consumer deadline it makes true. Two banners, two credits, none deleted.
+  // +1 (522 -> 523): SDK-3 / AGENT-LOOP. The `declareAgent` banner cites G3 — the
+  // law that names this file a DECLARATION and the one the per-turn rebuild broke.
+  // The rest of the restructure MOVED banners (runTurn's notes now sit on
+  // declareAgent) and moves cancel exactly; measured, not assumed.
+  // +3 (523 -> 526): SDK-4 / STEP-CONTROL. The `activeTools` field banner cites
+  // 11.4 twice (the registry authority it does NOT relitigate, and the different
+  // question it answers), and the `step-control` test banner cites it again.
+  // +4 (526 -> 530): SDK-8 / PROVIDER. The demo's `modelBinding` banner cites G7
+  // (real vs faked differ in one line at the root), and the `provider` test banner
+  // cites G7 again plus the offline-default promise the README makes.
+  // +1 (530 -> 531): SDK-1 / VERB-SURFACE. The widened `VerbSpec` and its two
+  // translators cite C7 (the recorded truth toModelOutput must not touch) and
+  // G11; the block's own declaration and the verb-surface test banner cite them
+  // again. Net +1 after the banners that MOVED out of the loop under C14.
+  // +1 (531 -> 532): the second review round. `resolveAction` gains its totality
+  // note citing 6.10, the admission rule moves into spine/boundary/action under
+  // C14, and `needsApproval` is withdrawn from spine/pure/verb — the withdrawal
+  // note cites C7. Net +1 after the banners that moved.
+  "examples/typescript": 532,
   // nearly all of it the book's own G-table and cross-references. 137 before
   // §15's inversion merged the separate layer table INTO the invariant table:
   // its sixteen rows were sixteen separately-credited lines and are now the
@@ -493,7 +523,26 @@ const FILE_PIN: Record<string, number> = {
   // +14 (212 -> 226): A10 grew the workspace 8 -> 14 packages; every block
   // gains an adapter package (package.json + tsconfig), and the walk fixture
   // mirrors the shape.
-  "examples/typescript": 226,
+  // +1 (236 -> 237): SDK-6 / APPROVAL-SEAM adds `test/spine/approval.test.ts`.
+  // +1 (235 -> 236): SDK-14 + SDK-17 add `test/spine/repair-and-middleware.test.ts`.
+  // +1 (234 -> 235): SDK-16 adds `test/spine/call-settings.test.ts`.
+  // +1 (233 -> 234): SDK-1 / VERB-SURFACE adds `test/spine/verb-surface.test.ts`.
+  // The widening is fields on the EXISTING spine/pure/verb, so the roster holds.
+  // +1 (232 -> 233): SDK-8 / PROVIDER adds `test/spine/provider.test.ts`.
+  // +1 (231 -> 232): SDK-2 + SDK-9 / MODEL-PORT + TELEMETRY add
+  // `test/spine/turn-outcome.test.ts`. The widening itself is fields on the
+  // EXISTING spine/ports/model-provider, so the spine roster still holds.
+  // +1 (230 -> 231): SDK-4 / STEP-CONTROL adds `test/spine/step-control.test.ts`.
+  // +1 (229 -> 230): SDK-3 / AGENT-LOOP adds `test/spine/declared-agent.test.ts`.
+  // Still no new SOURCE file: declareAgent lives in the existing spine/agent/loop,
+  // so the 37-file spine roster holds.
+  // +1 (228 -> 229): SDK-7 / CANCELLATION adds `test/spine/cancellation.test.ts`.
+  // +1 (227 -> 228): SDK-22 / PROMPT-BOUNDARY adds `test/spine/prompt-boundary.test.ts`.
+  // Again no source file: `instructions` is a field on the existing RunTurn.
+  // +1 (226 -> 227): SDK-21 / CONTEXT-PROVENANCE adds `test/spine/context-provenance.test.ts`.
+  // ONE file, and no source file: the fix is a `prepareStep` inside the existing
+  // `spine/agent/loop`, so the 37-file spine roster does not move either.
+  "examples/typescript": 237,
   wiki: 10,
   // NEWLY PINNED alongside the resolvable bucket above, and +2 in the same
   // breath: CHANGELOG.md and RELEASE-RITUAL.md join laws.toml, README.md and
