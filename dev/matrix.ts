@@ -533,7 +533,7 @@ function renderEdges(edges: readonly Edge[]): string {
 }
 
 const MATRIX_HEADER_V2 = `# ═══════════════════════════════════════════════════════════════════════════════════════════════
-# AGENT-DRIVEN ARCHITECTURE — READINESS MATRIX (the PRESENT tense)
+# READINESS MATRIX (the PRESENT tense)
 #
 # One row per unit. Status advances ONLY when the named proof exists — fail-closed, enforced by
 # dev/matrix.ts. Raw edits are hook-blocked; \`validate\` additionally catches a row hand-edited to
@@ -801,10 +801,25 @@ async function main(): Promise<number> {
      */
     case "migrate": {
       let retiredCount = 0;
+      let demotedCount = 0;
       let headerRewrote = false;
       await mutate(matrixPath, (current) => {
         let next = [...current];
         // Bottom-up so earlier spans stay valid as lines move.
+        for (const block of [...locateRows(next)].reverse()) {
+          if (block.row.status === "verified") {
+            const target = block.row.hostProof.trim() === "" ? "in_flight" : "ready";
+            next = setField(next, block, "status", target);
+            const afterDemote = findRow(locateRows(next), block.row.id);
+            next.splice(
+              afterDemote.end,
+              0,
+              `# ${today()} stored "verified" demoted to ${target} by the derivation migration — ` +
+                `verified is derived now, never stored. Re-earn it: edge + review, then verified ${block.row.id}.`,
+            );
+            demotedCount += 1;
+          }
+        }
         for (const block of [...locateRows(next)].reverse()) {
           const relative = next
             .slice(block.start, block.end)
@@ -835,12 +850,14 @@ async function main(): Promise<number> {
         }
         return next;
       });
-      if (retiredCount === 0 && !headerRewrote) {
+      if (retiredCount === 0 && demotedCount === 0 && !headerRewrote) {
         console.log("migrate: nothing to migrate — already the derivation schema");
         return 0;
       }
       console.log(
-        `migrate: retired ${retiredCount} target proof(s) into dated notes` +
+        `migrate:` +
+          (demotedCount > 0 ? ` demoted ${demotedCount} stored-verified row(s);` : "") +
+          ` retired ${retiredCount} target proof(s) into dated notes` +
           (headerRewrote ? "; header rewritten to the derivation" : ""),
       );
       return 0;
@@ -903,7 +920,7 @@ async function main(): Promise<number> {
         if (block.row.status === "verified") {
           throw new LedgerError(
             `${block.row.id} stores status "verified" — verified is derived, not stored.\n` +
-              `    Demote the row (set ${block.row.id} ready, if its proofs hold) and let the derivation speak.`,
+              `    Run: bun dev/matrix.ts ${matrixPath} migrate (demotes the row with a dated note).`,
           );
         }
 
@@ -1250,9 +1267,33 @@ async function selftest(): Promise<number> {
   await Bun.write(path, storedVerified);
   const storedVerdict = await run(["validate"]);
   check(
-    "a hand-edited STORED verified is refused — derived, not stored",
-    storedVerdict.out.includes("derived, not stored"),
+    "a hand-edited STORED verified is refused — derived, not stored, and migrate is the door",
+    storedVerdict.out.includes("derived, not stored") && storedVerdict.out.includes("migrate"),
     storedVerdict.out.slice(0, 300),
+  );
+  const demoted = await run(["migrate"]);
+  check(
+    "migrate demotes a stored verified to ready (its host proof holds)",
+    demoted.exit === 0 && demoted.out.includes("demoted 1"),
+    demoted.out.slice(0, 200),
+  );
+  const afterDemote = await Bun.file(path).text();
+  check(
+    "the demotion is a dated note, not a silent edit",
+    afterDemote.includes("demoted") && afterDemote.includes(`# ${today()}`),
+  );
+  check("validate passes once the stored claim is demoted", (await run(["validate"])).out.includes("valid"));
+
+  // A stored verified WITHOUT a host proof cannot take ready — it falls to in_flight.
+  const withoutProof = provisioned
+    .replace('status = "ready"', 'status = "verified"')
+    .replace('host_proof = "bun run gate green @ 78f5051"', 'host_proof = ""');
+  if (withoutProof === provisioned) throw new Error("selftest fixture drifted: demote fixture");
+  await Bun.write(path, withoutProof);
+  await run(["migrate"]);
+  check(
+    "a stored verified with no host proof demotes to in_flight, never to ready",
+    (await Bun.file(path).text()).includes('status = "in_flight"'),
   );
   await Bun.write(path, provisioned);
   check("validate passes again once the earned status is restored", (await run(["validate"])).out.includes("valid"));
