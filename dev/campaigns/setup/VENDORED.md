@@ -170,8 +170,13 @@ measurement belongs to SDK-10's hook-chain decision and is noted on that item.
   preserves every old value as a dated note — that note was always the real audit trail.
 
 **Divergence this creates, deliberately:** compose-flow and eli-operator still carry the grant
-system. Whether it dies there too is the operator's call, not this file's. What promotes back
-regardless: the ratchet's `retired` channel (any wall retirement upstream needs it).
+system. Whether it dies there too is the operator's call, not this file's.
+
+**And one that landed by accident, now flagged:** compose-flow executed the same ruling hours
+earlier in a parallel seat, and its ratchet solves the corpus-shrink problem with a per-entry
+`retired: boolean` flag where this repo's uses a separate `retired` list with
+fresh/recorded/dropped rules. Same problem, two shapes, both committed — a reconciliation
+decision for the operator, not something either seat should silently "fix".
 
 ## Changed after vendoring — the matrix `verified` derivation (2026-08-13)
 
