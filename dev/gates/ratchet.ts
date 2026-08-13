@@ -88,9 +88,11 @@ const corpus = parseCorpus(corpusText);
  * failures — a retirement list that can drift is the same hole with a second door.
  */
 type Retirement = { readonly id: string; readonly wall: string };
-const retired: readonly Retirement[] = (
-  (Bun.TOML.parse(corpusText) as { retired?: readonly Record<string, unknown>[] }).retired ?? []
-).map((entry) => ({ id: String(entry["id"] ?? ""), wall: String(entry["wall"] ?? "") }));
+const parseRetired = (text: string): readonly Retirement[] =>
+  ((Bun.TOML.parse(text) as { retired?: readonly Record<string, unknown>[] }).retired ?? []).map(
+    (entry) => ({ id: String(entry["id"] ?? ""), wall: String(entry["wall"] ?? "") }),
+  );
+const retired: readonly Retirement[] = parseRetired(corpusText);
 
 // ── ratchet 2: the corpus may only grow ───────────────────────────────────────────────────────
 
@@ -149,8 +151,16 @@ const committedCount = committed.trim() === "" ? 0 : parseCorpus(committed).leng
 const baselineById = new Map(
   (committed.trim() === "" ? [] : parseCorpus(committed)).map((entry) => [entry.id, entry]),
 );
+const currentIdsBelow = new Set(corpus.map((entry) => entry.id));
 
 const failures: string[] = [];
+
+// A retirement is FRESH (its id is a baseline violation) or RECORDED (its id is already in the
+// baseline's own retired list). Anything else retires nothing. The recorded branch is what lets
+// a lawful retirement stay green forever after its commit — the steady state must not punish
+// its own record.
+const retiredBaseline = parseRetired(committed);
+const retiredBaselineById = new Map(retiredBaseline.map((entry) => [entry.id, entry]));
 
 const retiredIds = new Set<string>();
 for (const entry of retired) {
@@ -158,21 +168,35 @@ for (const entry of retired) {
     failures.push(`${entry.id} is retired TWICE — the list is a record, not a pile`);
   }
   retiredIds.add(entry.id);
-  const before = baselineById.get(entry.id);
-  if (before === undefined) {
+  const fresh = baselineById.get(entry.id);
+  const recorded = retiredBaselineById.get(entry.id);
+  const expectedWall = fresh?.wall ?? recorded?.wall ?? "";
+  if (fresh === undefined && recorded === undefined) {
     failures.push(
-      `${entry.id} is retired but names nothing at ${baselineRef}.\n` +
+      `${entry.id} is retired but names nothing at ${baselineRef} — neither a violation there\n` +
+        `    nor a recorded retirement.\n` +
         `    A retirement that retires nothing is noise, and this list is where a real\n` +
         `    deletion would learn to hide.`,
     );
     continue;
   }
-  if (before.wall !== entry.wall) {
+  if (expectedWall !== entry.wall) {
     failures.push(
-      `${entry.id} retired under wall "${entry.wall}" but belonged to "${before.wall}" at ${baselineRef}.\n` +
+      `${entry.id} retired under wall "${entry.wall}" but belonged to "${expectedWall}" at ${baselineRef}.\n` +
         `    A mislabelled retirement is a mislabelled deletion.`,
     );
   }
+}
+
+// The record is not a scratch pad: a baseline retirement that vanishes from the list without the
+// violation returning is a deleted HISTORY entry — the one removal the count ratchet cannot see.
+for (const entry of retiredBaseline) {
+  if (retiredIds.has(entry.id)) continue;
+  if (currentIdsBelow.has(entry.id)) continue; // reinstated coverage — argued in the diff
+  failures.push(
+    `${entry.id} was a recorded retirement at ${baselineRef} and is gone from the record now.\n` +
+      `    Restore the violation (re-earned coverage) or keep the record — never drop it quietly.`,
+  );
 }
 
 if (corpus.length + retiredIds.size < committedCount) {
@@ -211,7 +235,7 @@ if (corpus.length + retiredIds.size < committedCount) {
  * A pure deletion was caught. A deletion wearing an addition was not. Iterating the BASELINE
  * rather than the current set is what closes it.
  */
-const currentIds = new Set(corpus.map((entry) => entry.id));
+const currentIds = currentIdsBelow;
 for (const id of baselineById.keys()) {
   if (currentIds.has(id)) continue;
   if (retiredIds.has(id)) continue; // a lawful retirement — its validity was checked above

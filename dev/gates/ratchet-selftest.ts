@@ -55,10 +55,10 @@ await Bun.$`sh -c ${`cd '${repo}' && git ls-files -z | tar --null -T - -cf - | t
   .nothrow();
 await Bun.$`mkdir -p ${dir}/dev/walls`.quiet();
 
-async function verdict(corpus: string): Promise<{ exit: number; out: string }> {
+async function verdict(corpus: string, baseline: string = BASE): Promise<{ exit: number; out: string }> {
   // Re-establish the baseline commit, then mutate the worktree. The ratchet compares worktree
   // against `git show HEAD:` outside CI, which is the comparison under test here.
-  writeFileSync(`${dir}/dev/walls/corpus.toml`, BASE);
+  writeFileSync(`${dir}/dev/walls/corpus.toml`, baseline);
   await Bun.$`git -C ${dir} add -A`.quiet().nothrow();
   await Bun.$`git -C ${dir} -c user.name=t -c user.email=t@t commit -q --allow-empty -m base`
     .quiet()
@@ -130,6 +130,22 @@ const retiredUnknown = await verdict(
   withRetired(BASE, 'retired = [ { id = "ZZZ", wall = "02-ledger-channel" } ]'),
 );
 check("a retired entry that retires nothing fails", retiredUnknown.exit === 1 && /retir/i.test(retiredUnknown.out));
+
+const RETIRED_B = 'retired = [ { id = "B", wall = "02-ledger-channel" } ]';
+const steadyBaseline = withRetired(MINUS_B, RETIRED_B);
+const steady = await verdict(steadyBaseline, steadyBaseline);
+check(
+  "a COMMITTED retirement stays green — the steady state must not punish its own record",
+  steady.exit === 0,
+  steady.out.slice(0, 300),
+);
+
+const droppedRecord = await verdict(MINUS_B, steadyBaseline);
+check(
+  "dropping a retired id from the record fails — the list is history, not a scratch pad",
+  droppedRecord.exit === 1 && /retir/i.test(droppedRecord.out),
+  droppedRecord.out.slice(0, 300),
+);
 
 rmSync(dir, { recursive: true, force: true });
 console.log(`${checks - failures}/${checks} checks passed`);

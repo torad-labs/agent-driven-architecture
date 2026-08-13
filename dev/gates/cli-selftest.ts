@@ -129,17 +129,14 @@ layer = "l"
 descriptor = "a row"
 status = "todo"
 host_proof = ""
-target_proof = ""
 # 2026-07-27 a row note that must survive
 `;
 
 async function matrix(...args: string[]): Promise<string> {
-  const env = { ...process.env };
-  delete env["MATRIX_ORCHESTRATOR"]; // the builder's view, so the authority rule is exercised
   const proc = Bun.spawn(["bun", `${repo}/dev/matrix.ts`, matrixPath, ...args], {
     stdout: "pipe",
     stderr: "pipe",
-    env,
+    env: { ...process.env },
   });
   const out = (await new Response(proc.stdout).text()) + (await new Response(proc.stderr).text());
   await proc.exited;
@@ -164,11 +161,11 @@ check(
 await matrix("prove", "R1", "--host", "bun run gate green @ 78f5051");
 check("a resolvable pointer is accepted", (await matrix("get", "R1")).includes("78f5051"));
 
-// The authority rule — this helper deliberately runs WITHOUT MATRIX_ORCHESTRATOR.
-await matrix("prove", "R1", "--target", "device receipt sha256:deadbeef42 2026-07-27");
+// verified is derived, never set — from outside the file that implements it. The rung the old
+// authority rule guarded no longer exists, and no environment variable resurrects it.
 check(
-  "a builder cannot set verified",
-  (await matrix("set", "R1", "verified")).includes("orchestrator's word"),
+  "set verified is a hard error naming the derivation",
+  (await matrix("set", "R1", "verified")).includes("derived, not set"),
 );
 
 // Same checker twice: validate must re-run the proof validator, not just check emptiness.

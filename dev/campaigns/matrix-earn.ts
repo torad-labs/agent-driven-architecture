@@ -32,7 +32,6 @@ export type RowBlock = {
     readonly id: string;
     readonly status: string;
     readonly hostProof: string;
-    readonly targetProof: string;
   };
   readonly start: number;
   readonly end: number;
@@ -395,10 +394,7 @@ export async function handleEarnCommand(
           parseReceipts(notes),
           parseReviews(notes),
         ),
-        [
-          block.row.hostProof ? "" : "host_proof empty",
-          block.row.targetProof ? "" : "target_proof empty",
-        ].filter(Boolean),
+        [block.row.hostProof ? "" : "host_proof empty"].filter(Boolean),
       ),
     );
     return true;
@@ -413,7 +409,6 @@ export function assertStatusMandates(
   status: string,
   notes: readonly string[],
   hostProof: string,
-  targetProof: string,
 ): void {
   if (status === "blocked" && parseBlockEvidence(notes) === null) {
     throw new LedgerError(
@@ -423,9 +418,6 @@ export function assertStatusMandates(
   if (status !== "ready" && status !== "verified") return;
   if (status === "ready" && hostProof.trim() === "") {
     throw new LedgerError(`${id} cannot become ready: host_proof empty`);
-  }
-  if (status === "verified" && targetProof.trim() === "") {
-    throw new LedgerError(`${id} cannot become verified: target_proof empty`);
   }
   const req = parseRequires(notes);
   const want =

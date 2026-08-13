@@ -172,3 +172,20 @@ measurement belongs to SDK-10's hook-chain decision and is noted on that item.
 **Divergence this creates, deliberately:** compose-flow and eli-operator still carry the grant
 system. Whether it dies there too is the operator's call, not this file's. What promotes back
 regardless: the ratchet's `retired` channel (any wall retirement upstream needs it).
+
+## Changed after vendoring — the matrix `verified` derivation (2026-08-13)
+
+`dev/matrix.ts` replaced the `verified` rung's permission model (`MATRIX_ORCHESTRATOR=1` —
+ambient authority guarding a write) with a DERIVATION computed at query time: `verified` is no
+longer a stored status but a verdict over `status == ready` ∧ ≥1 recorded `path+token` edge and
+every edge resolving in the current tree ∧ the latest completed `ci` run on main being green ∧
+that run having tested what main currently is (two just-fetched values — the run's head tree and
+the tip's tree — compared and discarded; nothing sha-shaped is stored, so force-pushes and
+squash-merges cannot flip a verdict) ∧ a shape-valid review pointer. New commands
+`edge` / `review` / `verified` / `migrate`; `set <ID> verified` is a hard error naming the
+replacements; `target_proof`, `prove --target`, and `ORCHESTRATOR_ENV` are gone; `unproven` is
+derivation-based (offline the run leg is *unchecked*, and unchecked is unproven). `validate`
+refuses a stored `verified` and a stray `target_proof` — same checkers at both doors.
+
+This lands with the ratchet `retired` channel as one promotion unit to compose-flow and
+eli-operator per the divergence policy, with `selftest` run at each vendoring.
