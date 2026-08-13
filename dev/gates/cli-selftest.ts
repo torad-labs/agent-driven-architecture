@@ -16,7 +16,6 @@
  */
 import { mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { liveGrant } from "../../.claude/hooks/grant-store.ts";
 
 let failures = 0;
 let checks = 0;
@@ -99,22 +98,16 @@ check(
   (await ledger("set-status", "P1", "verified")).includes("orchestrator's word"),
 );
 
-// The amend channel: grant-gated, and every use must preserve the old value as a dated note.
-// Both branches exercise the real path; which one runs depends on the actual grant state — a
-// verdict hardcoded against one state is not a test (the add-law lesson, from the ledger's own
-// selftest).
-const grantOpen = (await liveGrant(repo)) !== null;
+// The amend channel: every use must preserve the old value as a dated note — the note is the
+// entire audit trail. (Grant-gated until 2026-08-13, when the operator ruled the grant system
+// dead; the deterministic assertions are the grant-live branch, now the only branch.)
 const beforeAmend = readFileSync(ledgerPath, "utf8");
-const amendOut = await ledger("amend", "P1", "--verify", "a witness verify");
-if (grantOpen) {
-  const afterAmend = readFileSync(ledgerPath, "utf8");
-  check("amend (grant live) replaced the field", afterAmend.includes('verify = "a witness verify"'));
-  check("amend preserved the old value as a dated note", afterAmend.includes("verify was"));
-  check("amend preserved unrelated notes", afterAmend.includes("must survive every write"));
-} else {
-  check("amend without a grant is refused", amendOut.includes("needs a grant"));
-  check("the refused amend left the file byte-identical", readFileSync(ledgerPath, "utf8") === beforeAmend);
-}
+await ledger("amend", "P1", "--verify", "a witness verify");
+const afterAmend = readFileSync(ledgerPath, "utf8");
+check("amend replaced the field", afterAmend.includes('verify = "a witness verify"'));
+check("amend preserved the old value as a dated note", afterAmend.includes("verify was"));
+check("amend preserved unrelated notes", afterAmend.includes("must survive every write"));
+check("amend changed the file (the premise — else the assertions above are vacuous)", afterAmend !== beforeAmend);
 
 // Keyed retrieval is the token law: `get` must not dump the whole file.
 const got = await ledger("get", "P1");

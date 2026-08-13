@@ -38,7 +38,7 @@ const LOG = ".claude/.bash-audit.log";
 const NOTEWORTHY: readonly { readonly pattern: RegExp; readonly why: string }[] = [
   { pattern: /\b(sed|perl)\b[^\n]*-i\b/, why: "in-place edit — bypasses the write-path walls" },
   { pattern: /\b(tee|dd)\b/, why: "writes a file without a Write tool call" },
-  { pattern: />\s*[^\s|&;]*\.claude\//, why: "redirect into the hook/grant surface" },
+  { pattern: />\s*[^\s|&;]*\.claude\//, why: "redirect into the hook surface" },
   { pattern: />\s*[^\s|&;]*\.rules\//, why: "redirect into the wall rules" },
   { pattern: />\s*[^\s|&;]*dev\/(gates|walls|campaigns|manifests)\//, why: "redirect into gates or ledger state" },
   // Widened after round 6. The old pattern covered only `.claude/hooks`, so the N14 precondition —

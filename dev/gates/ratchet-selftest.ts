@@ -9,9 +9,8 @@
  *
  * Each case below mutates a corpus in /tmp and asserts the verdict. The tree is never touched.
  */
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { writeTokenFixture } from "../../.claude/hooks/grant-store.ts";
 
 // PORT NOTE (2026-08-07). Upstream these fixtures used 01-no-python with `.py` paths. That wall
 // did not come across — see dev/campaigns/setup/VENDORED.md — so the probe corpus is expressed
@@ -103,55 +102,34 @@ const grown = await verdict(`${BASE}\n[[violations]]\nid = "D"\nwall = "02-ledge
 check("a pure addition is allowed", grown.exit === 0, grown.out.slice(0, 200));
 
 /**
- * N21 — THE RATCHET MUST ASK `liveGrant`, NOT "does a token file exist".
- *
- * It asked the wrong question for ten rounds. `revoke()` deletes the token; expiry does not, so an
- * expired grant left a dead file that blocked the load-bearing gate forever. It failed safe and
- * the token is gitignored, so CI never saw it — but the grant documents itself as a "bounded,
- * self-closing door" and it did not self-close for this one gate.
- *
- * PREMISE FIRST, because the failure mode here is a case that passes for the wrong reason: assert
- * the token FILE IS PRESENT in the expired case. Without that, "expired does not block" would also
- * pass if the fixture simply never wrote the file, which is the exact bug class the sandbox
- * fixtures have produced five times across these rounds.
+ * RETIRED — the only legal way for the corpus to shrink. A wall retirement is an operator ruling
+ * recorded as data: the id leaves `violations` and lands in `retired` with the ruling beside it.
+ * Anything else — an unnamed deletion, a mislabelled retirement, a "retired" id that is still
+ * present, a retirement of nothing — is a weakening wearing a retirement's clothes and fails.
  */
-// The token path is owned by grant-store.ts and named nowhere else (N22) — hardcoding it here is
-// what put it in three files and re-opened the escape by the back door. `writeTokenFixture` exists
-// because `issue()` clamps on write and therefore cannot produce the expired token this needs.
-let tokenPath = "";
-const writeToken = async (expiresAt: string): Promise<void> => {
-  mkdirSync(`${dir}/.claude`, { recursive: true });
-  tokenPath = await writeTokenFixture(dir, {
-    expiresAt,
-    reason: "selftest",
-    grantedBy: "selftest",
-    sessionId: "selftest",
-  });
-};
+const MINUS_B = BASE.split("[[violations]]").slice(0, 2).join("[[violations]]");
+const withRetired = (corpus: string, retired: string): string =>
+  corpus.replace("[[violations]]", `${retired}\n\n[[violations]]`);
 
-await writeToken(new Date(Date.now() + 10 * 60_000).toISOString());
-const withLive = await verdict(BASE);
-// Flipped 2026-08-02 (operator ruling): the ratchet measures the resting state HERMETICALLY
-// (GRANT_STORE_ASSUME_REST), so a live grant neither blocks the run nor opens the walls it
-// measures — the corpus must still be fully refused underneath an open window.
-check(
-  "a LIVE grant does NOT block the ratchet, and the walls still refuse under it",
-  withLive.exit === 0 && /all refused/.test(withLive.out),
-  withLive.out.slice(0, 300),
+const retiredOk = await verdict(
+  withRetired(MINUS_B, 'retired = [ { id = "B", wall = "02-ledger-channel" } ]'),
 );
+check("a deletion recorded as retired passes", retiredOk.exit === 0, retiredOk.out.slice(0, 300));
 
-await writeToken(new Date(Date.now() - 60_000).toISOString());
-check("the expired token file is actually present (the premise)", existsSync(tokenPath));
-const withExpired = await verdict(BASE);
-check("an EXPIRED grant does NOT block the ratchet (N21)", withExpired.exit === 0, withExpired.out.slice(0, 300));
+const retiredWrongWall = await verdict(
+  withRetired(MINUS_B, 'retired = [ { id = "B", wall = "01-no-python" } ]'),
+);
+check("a retired entry naming the wrong wall fails", retiredWrongWall.exit === 1 && /RETIR/i.test(retiredWrongWall.out));
 
-// A hand-edited expiry beyond the clamp is not a grant either — liveGrant rejects it, so the
-// ratchet must run rather than treat it as an open door it should stand down for.
-await writeToken(new Date(Date.now() + 365 * 24 * 3_600_000).toISOString());
-const withClamped = await verdict(BASE);
-check("an expiry past the clamp does not block either", withClamped.exit === 0, withClamped.out.slice(0, 300));
+const retiredStillPresent = await verdict(
+  withRetired(BASE, 'retired = [ { id = "B", wall = "02-ledger-channel" } ]'),
+);
+check("a retired id still present in the corpus fails", retiredStillPresent.exit === 1 && /retir/i.test(retiredStillPresent.out));
 
-rmSync(tokenPath, { force: true });
+const retiredUnknown = await verdict(
+  withRetired(BASE, 'retired = [ { id = "ZZZ", wall = "02-ledger-channel" } ]'),
+);
+check("a retired entry that retires nothing fails", retiredUnknown.exit === 1 && /retir/i.test(retiredUnknown.out));
 
 rmSync(dir, { recursive: true, force: true });
 console.log(`${checks - failures}/${checks} checks passed`);

@@ -136,3 +136,39 @@ observation that the leading-copy note in the operating doctrine is stale.
 
 Run `selftest` at every re-vendoring. A ledger CLI nobody has watched preserve a comment is a
 ledger CLI that will one day eat the memory.
+
+## Removed after vendoring — THE GRANT SYSTEM (operator ruling, 2026-08-13)
+
+**"The grant system is dead."** Deleted from this tree on that ruling:
+
+- `.claude/hooks/modules/03-grant-gate.ts` — the PreToolUse gate
+- `.claude/hooks/grant-store.ts` — the guarded set, the token store, `liveGrant()`
+- `.claude/hooks/modules/20-grant-issue.ts` — `/grant` issuance
+- `.claude/commands/grant.md` — the operator command
+- `dev/gates/grant-status.ts` and `dev/gates/grant-path-wall.ts` — the status card and the
+  token-path backstop
+
+**Measured at deletion, for the record.** The gate WAS armed here: a synthetic Edit payload
+against `dev/matrix.ts` replayed through the vendored runner exited 2 that same morning. But the
+issuance channel was never wired in this repo — `userpromptsubmit.py` dispatches to a
+`modules/userpromptsubmit/` directory that does not exist, so no `/grant` could ever have issued
+a token here. A gate that fires but can never open is not a control; it is a trap. That
+measurement belongs to SDK-10's hook-chain decision and is noted on that item.
+
+**What replaced it, mechanically:**
+
+- `dev/walls/corpus.toml` gained the **`retired` channel** in `dev/gates/ratchet.ts`: the corpus
+  may still only grow, and the one lawful shrink is moving an id to `retired` with the dated
+  ruling — before this, ANY corpus shrink was red forever, which made an operator-ordered wall
+  retirement unlandable. 28 of 33 entries retired with the wall; 5 (`02-ledger-channel`) remain.
+- `dev/gates/deletion-guard.ts` inlined the guarded list. The escape is no longer a grant but a
+  same-commit list edit: remove the path from GUARDED in the commit that deletes it, so the
+  policy change and the deletion are one diff. This is enforcement by visibility, and it IS
+  weaker than an operator-only door — that is the trade the ruling implies, stated here rather
+  than discovered later.
+- `ledger.ts` `add-law` / `amend-header` / `amend` are ordinary commands again. Amend still
+  preserves every old value as a dated note — that note was always the real audit trail.
+
+**Divergence this creates, deliberately:** compose-flow and eli-operator still carry the grant
+system. Whether it dies there too is the operator's call, not this file's. What promotes back
+regardless: the ratchet's `retired` channel (any wall retirement upstream needs it).

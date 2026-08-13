@@ -20,6 +20,10 @@
  *      machine. Comparing against git rather than a baseline file matters: a plain baseline is one
  *      more file to edit in the same breath, whereas history has to be rewritten and force-pushed.
  *
+ * The one lawful shrink is a RETIREMENT: the id moves from `violations` to `retired` with the
+ * operator's dated ruling beside it (the grant-system entries, 2026-08-13, are the first).
+ * Anything else that shrinks the corpus is red, on this machine and in CI.
+ *
  * HONEST LIMIT. An agent with root can delete corpus entries, commit, and force-push. Nothing
  * here prevents that. What it buys is that the bypass stops being a quiet flag and becomes three
  * self-incriminating edits — a weakened rule, deleted synthetic violations, and a history rewrite
@@ -66,7 +70,27 @@ function parseCorpus(text: string): Violation[] {
   }));
 }
 
-const corpus = parseCorpus(await Bun.file(`${root}/dev/walls/corpus.toml`).text());
+const corpusText = await Bun.file(`${root}/dev/walls/corpus.toml`).text();
+const corpus = parseCorpus(corpusText);
+
+/**
+ * RETIREMENTS — the only lawful way for the corpus to shrink.
+ *
+ * The ratchet's own refusal text always said retiring a wall is "an operator decision with a
+ * note", but offered no channel for the note: every deletion was red forever, even one the
+ * operator had just ordered out loud. That gap made the grant-system removal (operator ruling
+ * 2026-08-13) impossible to land green, which is the ratchet blocking its own maintenance.
+ *
+ * So a retirement is DATA: `retired = [ { id, wall }, ... ]` beside the violations, carrying the
+ * removed id and the wall it belonged to, with the dated ruling in a comment. A deletion named
+ * here is lawful; one that is not remains red. The list is checked just as hard as the corpus:
+ * retiring nothing, retiring twice, a mislabelled wall, or a "retired" id still present are all
+ * failures — a retirement list that can drift is the same hole with a second door.
+ */
+type Retirement = { readonly id: string; readonly wall: string };
+const retired: readonly Retirement[] = (
+  (Bun.TOML.parse(corpusText) as { retired?: readonly Record<string, unknown>[] }).retired ?? []
+).map((entry) => ({ id: String(entry["id"] ?? ""), wall: String(entry["wall"] ?? "") }));
 
 // ── ratchet 2: the corpus may only grow ───────────────────────────────────────────────────────
 
@@ -122,13 +146,40 @@ const committed = await Bun.$`git show ${`${baselineRef}:dev/walls/corpus.toml`}
 // against, and neither does a repository's root commit. Both are honestly unprotected.
 const committedCount = committed.trim() === "" ? 0 : parseCorpus(committed).length;
 
+const baselineById = new Map(
+  (committed.trim() === "" ? [] : parseCorpus(committed)).map((entry) => [entry.id, entry]),
+);
+
 const failures: string[] = [];
 
-if (corpus.length < committedCount) {
+const retiredIds = new Set<string>();
+for (const entry of retired) {
+  if (retiredIds.has(entry.id)) {
+    failures.push(`${entry.id} is retired TWICE — the list is a record, not a pile`);
+  }
+  retiredIds.add(entry.id);
+  const before = baselineById.get(entry.id);
+  if (before === undefined) {
+    failures.push(
+      `${entry.id} is retired but names nothing at ${baselineRef}.\n` +
+        `    A retirement that retires nothing is noise, and this list is where a real\n` +
+        `    deletion would learn to hide.`,
+    );
+    continue;
+  }
+  if (before.wall !== entry.wall) {
+    failures.push(
+      `${entry.id} retired under wall "${entry.wall}" but belonged to "${before.wall}" at ${baselineRef}.\n` +
+        `    A mislabelled retirement is a mislabelled deletion.`,
+    );
+  }
+}
+
+if (corpus.length + retiredIds.size < committedCount) {
   failures.push(
-    `the corpus SHRANK: ${committedCount} entries at ${baselineRef}, ${corpus.length} now.\n` +
-      `    Synthetic violations are only removed when a wall is being weakened. If a rule genuinely\n` +
-      `    changed shape, rewrite the entry rather than deleting it.`,
+    `the corpus SHRANK: ${committedCount} entries at ${baselineRef}, ${corpus.length} now (${retiredIds.size} retired).\n` +
+      `    Synthetic violations leave only as retirements: move the id to \`retired\` with the\n` +
+      `    operator's ruling in a dated comment. A bare deletion is a weakening until argued otherwise.`,
   );
 }
 
@@ -146,10 +197,6 @@ if (corpus.length < committedCount) {
  *
  * `why` and `content` stay mutable: sharpening the explanation of a violation is not weakening it.
  */
-const baselineById = new Map(
-  (committed.trim() === "" ? [] : parseCorpus(committed)).map((entry) => [entry.id, entry]),
-);
-
 /**
  * RATCHET 3a — the id SET may only grow. This is the clause the first version missed.
  *
@@ -167,14 +214,24 @@ const baselineById = new Map(
 const currentIds = new Set(corpus.map((entry) => entry.id));
 for (const id of baselineById.keys()) {
   if (currentIds.has(id)) continue;
+  if (retiredIds.has(id)) continue; // a lawful retirement — its validity was checked above
   failures.push(
-    `${id} was DELETED from the corpus (present at ${baselineRef}, absent now).\n` +
+    `${id} was DELETED from the corpus (present at ${baselineRef}, absent now, not retired).\n` +
       `    The id set may only grow. A deletion paired with an addition keeps the count flat and\n` +
       `    leaves nothing for the retarget check to compare — which is exactly how a wall's\n` +
       `    coverage gets retired without anything going red.\n` +
-      `    If this wall genuinely no longer applies, that is an operator decision with a note,\n` +
-      `    not a silent line removal.`,
+      `    If this wall genuinely no longer applies, that is an operator ruling recorded in\n` +
+      `    \`retired\` with a date and a reason — never a silent line removal.`,
   );
+}
+
+for (const entry of retired) {
+  if (currentIds.has(entry.id)) {
+    failures.push(
+      `${entry.id} is retired AND still present in the corpus — a retirement is the removal\n` +
+        `    of the entry, not a label over it.`,
+    );
+  }
 }
 
 for (const entry of corpus) {
@@ -197,23 +254,6 @@ for (const entry of corpus) {
 }
 
 // ── ratchet 1: every entry is still refused ───────────────────────────────────────────────────
-
-/**
- * HERMETIC AT-REST MEASUREMENT (operator ruling 2026-08-02; replaces refuse-while-a-grant-is-live,
- * promote upstream). The old shape made every grant window an outage: no seat could run the full
- * gate until a human revoked or the clock ran out — operator babysitting as a load-bearing step,
- * and idle agents waiting on an expiry. The ratchet asks what the walls do in their DEFAULT state,
- * so it now CONSTRUCTS that state instead of demanding it: GRANT_STORE_ASSUME_REST forces
- * liveGrant() to answer "no grant" for this process and its children, and the corpus is measured
- * against the walls' resting logic no matter what windows are open anywhere.
- *
- * Why this cannot be a bypass: forcing "no grant" can only make every consumer of liveGrant()
- * block MORE, never less. The flag opens nothing. An attacker setting it gets stricter walls.
- *
- * N21's lesson survives underneath: grant state is read through liveGrant(), the one shared
- * checker — never through "does the token file exist".
- */
-process.env["GRANT_STORE_ASSUME_REST"] = "1";
 
 const walls = new Map(registry.filter((m) => m.events.includes("PreToolUse")).map((m) => [m.name, m]));
 
