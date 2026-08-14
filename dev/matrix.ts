@@ -201,6 +201,19 @@ function setField(lines: readonly string[], block: RowBlock, key: string, value:
   return next;
 }
 
+/**
+ * The note insertion point for the block STARTING at `start`, re-derived from the lines — never
+ * by id re-lookup. Single-quoted TOML ids scan as "" and duplicated ids collide, and the note a
+ * migration files IS the memory: misfiled memory is worse than none.
+ */
+function noteInsertionPoint(lines: readonly string[], start: number): number {
+  let end = start + 1;
+  while (end < lines.length && !TABLE_HEADER.test(lines[end] ?? "")) end += 1;
+  let last = end;
+  while (last > start + 1 && (lines[last - 1] ?? "").trim() === "") last -= 1;
+  return last;
+}
+
 /** setField for non-scalar values (the edges array) — same splice, no quoting. */
 function setRawField(lines: readonly string[], block: RowBlock, key: string, raw: string): string[] {
   const next = [...lines];
@@ -302,6 +315,9 @@ function repoRootOf(matrixPath: string): string {
  * (`validate`) — one checker, three doors.
  */
 async function resolveEdge(root: string, edge: Edge): Promise<string | null> {
+  if (edge.token.trim() === "") {
+    return `its token is empty — an empty token occurs in every file, which is no proof at all`;
+  }
   if (edge.path.includes("..")) {
     return `path "${edge.path}" climbs out of the repository — edges are repo-relative`;
   }
@@ -329,28 +345,48 @@ async function deriveRepo(root: string): Promise<{ readonly owner: string; reado
   return owner === "" || repo === "" ? null : { owner, repo };
 }
 
-/**
- * The review pointer's shape: a GitHub pull URL — and, when the matrix's own remote is
- * derivable, one naming THIS repository. Shape only, deliberately: existence is a network
- * question, and the offline legs of this design are offline by construction.
- */
-async function rejectReview(url: string, root: string): Promise<string | null> {
-  const match = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/pull\/(\d+)([/?#]\S*)?$/.exec(url);
-  if (match === null) {
+const REVIEW_PATTERN = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\/pull\/(\d+)([/?#]\S*)?$/;
+
+/** Shape only: a GitHub pull URL. Existence is a network question — deliberately never asked. */
+function reviewShapeError(url: string): string | null {
+  if (REVIEW_PATTERN.exec(url) === null) {
     return (
       `"${url}" is not a GitHub pull URL — the review pointer names a review a later reader ` +
       `can open: https://github.com/<owner>/<repo>/pull/<number>`
     );
   }
+  return null;
+}
+
+/** Null when the repo cannot be derived (the caller decides how loud that is), else the verdict. */
+async function reviewRepoError(url: string, root: string): Promise<string | null> {
+  const match = REVIEW_PATTERN.exec(url);
+  if (match === null) return reviewShapeError(url);
   const repo = await deriveRepo(root);
-  if (repo !== null && (match[1] !== repo.owner || match[2] !== repo.repo)) {
+  if (repo === null) return null;
+  if (match[1] !== repo.owner || match[2] !== repo.repo) {
     return `the review points at ${match[1]}/${match[2]}, but this matrix belongs to ${repo.owner}/${repo.repo}`;
   }
   return null;
 }
 
+/**
+ * The write door: shape, plus repo-match when the matrix's own remote is derivable. The QUERY
+ * door (derive) is stricter — an underivable remote is an unchecked clause there, never a
+ * quiet pass.
+ */
+async function rejectReview(url: string, root: string): Promise<string | null> {
+  return await reviewRepoError(url, root);
+}
+
 type RunLeg =
-  | { readonly kind: "fetched"; readonly conclusion: string; readonly treeMatches: boolean; readonly label: string }
+  | {
+      readonly kind: "fetched";
+      readonly conclusion: string;
+      readonly treeMatches: boolean;
+      readonly label: string;
+      readonly source: "fixture" | "github";
+    }
   | { readonly kind: "unchecked"; readonly why: string };
 
 /**
@@ -359,9 +395,11 @@ type RunLeg =
  * main tip's tree. The comparison is CONTENT, not identity: rewrite the branch and the trees
  * still match; change the content and they do not.
  *
- * The two test seams are both fail-closed — they can only weaken the verdict, never strengthen
- * it: MATRIX_FORGE_OFFLINE=1 simulates no network; MATRIX_FORGE_FIXTURE=<file> substitutes a
- * recorded forge state for the live API.
+ * THE TWO TEST SEAMS ARE NOT SYMMETRIC, and this comment used to claim they were. OFFLINE=1 can
+ * only WEAKEN the verdict (everything unchecked, and unchecked is unproven). FIXTURE=<file> can
+ * manufacture a GREEN — it exists so the pass path is testable offline at all — so every command
+ * that reads a fixture marks its output as fixture-derived. An ambient FIXTURE leaking into a
+ * real read is a forged green; the marker is what keeps the leak visible.
  */
 async function runLeg(root: string): Promise<RunLeg> {
   if ((process.env["MATRIX_FORGE_OFFLINE"] ?? "") === "1") {
@@ -386,6 +424,7 @@ async function runLeg(root: string): Promise<RunLeg> {
       conclusion: run["conclusion"] ?? "",
       treeMatches: (run["tree"] ?? "") === mainTree,
       label: `run ${run["headSha"] ?? "?"} (fixture)`,
+      source: "fixture",
     };
   }
 
@@ -438,6 +477,7 @@ async function runLeg(root: string): Promise<RunLeg> {
       conclusion: run.conclusion ?? "",
       treeMatches: runTree === tipTree,
       label: `run ${run.id ?? "?"} on ${(run.head_sha ?? "?").slice(0, 9)}`,
+      source: "github",
     };
   } catch (error) {
     return {
@@ -504,12 +544,27 @@ async function derive(
   if (row.review === "") {
     clauses.push({ name: "review", state: "fail", detail: "no review pointer recorded" });
   } else {
-    const rejection = await rejectReview(row.review, root);
-    clauses.push(
-      rejection === null
-        ? { name: "review", state: "pass", detail: row.review }
-        : { name: "review", state: "fail", detail: rejection },
-    );
+    const shapeError = reviewShapeError(row.review);
+    if (shapeError !== null) {
+      clauses.push({ name: "review", state: "fail", detail: shapeError });
+    } else {
+      const repo = await deriveRepo(root);
+      if (repo === null) {
+        // Same precondition as an unreachable forge, same answer: unchecked is not a pass.
+        clauses.push({
+          name: "review",
+          state: "unchecked",
+          detail: "shape-valid; repo-match unchecked (no github remote derivable)",
+        });
+      } else {
+        const mismatch = await reviewRepoError(row.review, root);
+        clauses.push(
+          mismatch === null
+            ? { name: "review", state: "pass", detail: row.review }
+            : { name: "review", state: "fail", detail: mismatch },
+        );
+      }
+    }
   }
 
   return { verified: clauses.every((clause) => clause.state === "pass"), clauses };
@@ -520,8 +575,12 @@ const CLAUSE_MARK: Record<Clause["state"], string> = { pass: "✓", fail: "✗",
 function renderVerdict(
   id: string,
   verdict: { readonly verified: boolean; readonly clauses: readonly Clause[] },
+  fixtureDerived: boolean,
 ): string {
-  const headline = verdict.verified ? `● ${id} — verified` : `■ ${id} — NOT verified`;
+  const verdict_word = verdict.verified ? "verified" : "NOT verified";
+  const headline = fixtureDerived
+    ? `${verdict.verified ? "●" : "■"} ${id} — ${verdict_word}  [FIXTURE-DERIVED — test data, not the forge]`
+    : `${verdict.verified ? "●" : "■"} ${id} — ${verdict_word}`;
   const lines = verdict.clauses.map(
     (clause) => `  ${CLAUSE_MARK[clause.state]} ${clause.name.padEnd(6)} : ${clause.detail}`,
   );
@@ -656,6 +715,9 @@ async function main(): Promise<number> {
     case "unproven": {
       const root = repoRootOf(matrixPath);
       const leg = await runLeg(root);
+      if (leg.kind === "fetched" && leg.source === "fixture") {
+        console.log("(forge: FIXTURE — every verdict below is test data, not the forge)");
+      }
       const absent: string[] = [];
       for (const block of blocks) {
         const verdict = await derive(root, block.row, leg);
@@ -788,8 +850,9 @@ async function main(): Promise<number> {
       if (id === "") throw new LedgerError("verified: usage verified <ID>");
       const block = findRow(blocks, id);
       const root = repoRootOf(matrixPath);
-      const verdict = await derive(root, block.row, await runLeg(root));
-      console.log(renderVerdict(id, verdict));
+      const leg = await runLeg(root);
+      const verdict = await derive(root, block.row, leg);
+      console.log(renderVerdict(id, verdict, leg.kind === "fetched" && leg.source === "fixture"));
       return verdict.verified ? 0 : 1;
     }
 
@@ -810,9 +873,8 @@ async function main(): Promise<number> {
           if (block.row.status === "verified") {
             const target = block.row.hostProof.trim() === "" ? "in_flight" : "ready";
             next = setField(next, block, "status", target);
-            const afterDemote = findRow(locateRows(next), block.row.id);
             next.splice(
-              afterDemote.end,
+              noteInsertionPoint(next, block.start),
               0,
               `# ${today()} stored "verified" demoted to ${target} by the derivation migration — ` +
                 `verified is derived now, never stored. Re-earn it: edge + review, then verified ${block.row.id}.`,
@@ -829,9 +891,8 @@ async function main(): Promise<number> {
           next.splice(block.start + relative, 1);
           retiredCount += 1;
           if (value.trim() !== "") {
-            const after = findRow(locateRows(next), block.row.id);
             next.splice(
-              after.end,
+              noteInsertionPoint(next, block.start),
               0,
               `# ${today()} target proof retired by the derivation migration — prose that named ` +
                 `a run; the run leg is derived fresh at query time now: ${value}`,
@@ -914,7 +975,21 @@ async function main(): Promise<number> {
         }
       }
 
+      const seenIds = new Set<string>();
       for (const block of blocks) {
+        if (block.row.id === "") {
+          throw new LedgerError(
+            `a row at line ${block.start + 1} has an id the scanner cannot read (single-quoted or ` +
+              `missing) — a row the CLI cannot name is a row it cannot govern`,
+          );
+        }
+        if (seenIds.has(block.row.id)) {
+          throw new LedgerError(
+            `two rows scan with id "${block.row.id}" — lookups by id would silently pick one`,
+          );
+        }
+        seenIds.add(block.row.id);
+
         // verified is DERIVED. A row storing it is the old permission model wearing the new
         // schema — demote it and let the derivation speak.
         if (block.row.status === "verified") {
@@ -1032,6 +1107,12 @@ async function selftest(): Promise<number> {
   const dir = mkdtempSync(`${tmpdir()}/eli-matrix-selftest-`);
   mkdirSync(`${dir}/dev`, { recursive: true });
   mkdirSync(`${dir}/examples/typescript/test/spine`, { recursive: true });
+  // The fixture is a git repo whose origin names THIS repository: without one, deriveRepo returns
+  // null and the review clause's repo-match half is dead code under the suite.
+  await Bun.$`git init -q ${dir}`.quiet().nothrow();
+  await Bun.$`git -C ${dir} remote add origin https://github.com/torad-labs/agent-driven-architecture.git`
+    .quiet()
+    .nothrow();
 
   const path = `${dir}/dev/matrix.toml`;
   const PROBE_RELPATH = "examples/typescript/test/spine/probe.test.ts";
@@ -1258,8 +1339,42 @@ async function selftest(): Promise<number> {
     onlineUnproven.out.slice(0, 300),
   );
 
+  // The review clause's repo-match half, exercised: a mismatched github remote is refused at
+  // the door, and an underivable remote is an UNCHECKED clause at query time — never a quiet pass.
+  await Bun.$`git -C ${dir} remote set-url origin https://github.com/someone-else/their-repo.git`
+    .quiet()
+    .nothrow();
+  check(
+    "a review pointing at another repository is refused",
+    (await run(["review", "R1", REVIEW_URL])).out.includes("this matrix belongs to"),
+  );
+  await Bun.$`git -C ${dir} remote remove origin`.quiet().nothrow();
+  const noRemote = await run(["verified", "R1"], { MATRIX_FORGE_FIXTURE: FORCEPUSH });
+  check(
+    "an underivable remote leaves the review clause unchecked — and unchecked is NOT verified",
+    noRemote.exit !== 0 && noRemote.out.includes("□ review"),
+    noRemote.out.slice(0, 300),
+  );
+  await Bun.$`git -C ${dir} remote add origin https://github.com/torad-labs/agent-driven-architecture.git`
+    .quiet()
+    .nothrow();
+
+  // The fixture seam must mark everything it touches: a fixture-derived green is test data,
+  // and the marker is what keeps an ambient fixture leak visible.
+  check(
+    "verified under a fixture says so on the verdict line",
+    (await run(["verified", "R1"], { MATRIX_FORGE_FIXTURE: FORCEPUSH })).out.includes("FIXTURE-DERIVED"),
+  );
+  check(
+    "unproven under a fixture says so before listing anything",
+    (await run(["unproven"], { MATRIX_FORGE_FIXTURE: FORCEPUSH })).out.includes("FIXTURE"),
+  );
+
   // VALIDATE — the same checkers, at the back door too.
-  check("validate passes on the provisioned matrix", (await run(["validate"])).out.includes("valid"));
+  {
+    const v = await run(["validate"]);
+    check("validate passes on the provisioned matrix", v.exit === 0 && v.out.includes(": valid ·"), v.out.slice(0, 200));
+  }
 
   const provisioned = await Bun.file(path).text();
   const storedVerified = provisioned.replace('status = "ready"', 'status = "verified"');
@@ -1282,7 +1397,10 @@ async function selftest(): Promise<number> {
     "the demotion is a dated note, not a silent edit",
     afterDemote.includes("demoted") && afterDemote.includes(`# ${today()}`),
   );
-  check("validate passes once the stored claim is demoted", (await run(["validate"])).out.includes("valid"));
+  {
+    const v = await run(["validate"]);
+    check("validate passes once the stored claim is demoted", v.exit === 0 && v.out.includes(": valid ·"), v.out.slice(0, 200));
+  }
 
   // A stored verified WITHOUT a host proof cannot take ready — it falls to in_flight.
   const withoutProof = provisioned
@@ -1296,7 +1414,10 @@ async function selftest(): Promise<number> {
     (await Bun.file(path).text()).includes('status = "in_flight"'),
   );
   await Bun.write(path, provisioned);
-  check("validate passes again once the earned status is restored", (await run(["validate"])).out.includes("valid"));
+  {
+    const v = await run(["validate"]);
+    check("validate passes again once the earned status is restored", v.exit === 0 && v.out.includes(": valid ·"), v.out.slice(0, 200));
+  }
 
   // MIGRATE — target_proof was the old plane's prose receipt; the derivation stores nothing of
   // the sort. A row still carrying one is the old schema, and the door forward is migrate.
@@ -1318,7 +1439,10 @@ async function selftest(): Promise<number> {
   check("the target_proof line is gone", !afterMigrate.includes("target_proof"));
   check("the receipt survives as a dated note", afterMigrate.includes("31284161862") && afterMigrate.includes(`# ${today()}`));
   check("migrate is idempotent", (await run(["migrate"])).out.includes("nothing to migrate"));
-  check("validate passes after migration", (await run(["validate"])).out.includes("valid"));
+  {
+    const v = await run(["validate"]);
+    check("validate passes after migration", v.exit === 0 && v.out.includes(": valid ·"), v.out.slice(0, 200));
+  }
 
   // The old fail-closed behaviours that have nothing to do with the derivation.
   const emptyHost = afterMigrate.replace('host_proof = "bun run gate green @ 78f5051"', 'host_proof = ""');
@@ -1326,9 +1450,32 @@ async function selftest(): Promise<number> {
   await Bun.write(path, emptyHost);
   check("validate catches a hand-edited EMPTY host proof", (await run(["validate"])).out.includes("edited outside the CLI"));
   await Bun.write(path, afterMigrate);
-  check("validate passes with the earned proof restored", (await run(["validate"])).out.includes("valid"));
+  {
+    const v = await run(["validate"]);
+    check("validate passes with the earned proof restored", v.exit === 0 && v.out.includes(": valid ·"), v.out.slice(0, 200));
+  }
 
   check("pre-existing notes survive every write", (await Bun.file(path).text()).includes("must survive"));
+
+  // An empty-token edge resolves in EVERY file ("".includes("")) — a corrupted row must not
+  // read as proven. The write door refuses empty tokens; this is the back door.
+  const emptyToken = (await Bun.file(path).text()).replace(
+    `token = ${toml(PROBE_TOKEN)}`,
+    `token = ""`,
+  );
+  if (emptyToken === (await Bun.file(path).text())) throw new Error("selftest fixture drifted: edge token not found");
+  await Bun.write(path, emptyToken);
+  const emptyTokenVerdict = await run(["validate"]);
+  check(
+    "an empty-token edge is refused at validate — never reads as resolving",
+    emptyTokenVerdict.out.includes("token is empty"),
+    emptyTokenVerdict.out.slice(0, 300),
+  );
+  await Bun.write(path, (await Bun.file(path).text()).replace(`token = ""`, `token = ${toml(PROBE_TOKEN)}`));
+  {
+    const v = await run(["validate"]);
+    check("validate passes with the real token restored", v.exit === 0 && v.out.includes(": valid ·"), v.out.slice(0, 200));
+  }
 
   // earned-row v2 (the unchanged plane, still witnessed here)
   check(
@@ -1341,6 +1488,11 @@ async function selftest(): Promise<number> {
     (await run(["set-proof", "R1", "unit", "bun run gate green @ abcdef12"])).out.includes("refused"),
   );
   check("earn unit ok", (await run(["earn", "R1", "unit"])).out.includes("exit=0"));
+  const { existsSync } = await import("node:fs");
+  check(
+    "the earn artifact lands in the MATRIX's tree, not the caller's repo",
+    existsSync(`${dir}/dev/earn-artifacts/earn/R1-unit.txt`),
+  );
   await run(["require", "R1", "ready", "unit"]);
   await run(["set", "R1", "in_flight"]);
   await run(["prove", "R1", "--host", "bun run gate green @ 78f5051"]);
@@ -1350,6 +1502,69 @@ async function selftest(): Promise<number> {
     "block with probe",
     (await run(["block", "R1", "--symptom", "x", "--unblocks", "y", "--probe", "true"])).out.includes("blocked"),
   );
+
+  // migrate must attribute receipts by POSITION. Single-quoted TOML ids scan as "" — an id
+  // re-lookup would file every note on the first row. The receipts are the memory; misfiled
+  // memory is worse than none.
+  const malformed = [
+    `# malformed fixture`,
+    ``,
+    `[[rows]]`,
+    `id = 'TOP'`,
+    `layer = "l"`,
+    `descriptor = "top"`,
+    `status = "ready"`,
+    `host_proof = ""`,
+    `target_proof = "receipt-TOP 2026-08-13"`,
+    ``,
+    `[[rows]]`,
+    `id = 'BOTTOM'`,
+    `layer = "l"`,
+    `descriptor = "bottom"`,
+    `status = "ready"`,
+    `host_proof = ""`,
+    `target_proof = "receipt-BOTTOM 2026-08-13"`,
+    ``,
+  ].join("\n");
+  await Bun.write(path, malformed);
+  check(
+    "validate refuses a row whose id the scanner cannot read",
+    (await run(["validate"])).out.includes("scanner cannot read"),
+  );
+  await run(["migrate"]);
+  const migratedText = await Bun.file(path).text();
+  const topAt = migratedText.indexOf('descriptor = "top"');
+  const bottomAt = migratedText.indexOf('descriptor = "bottom"');
+  const topNoteAt = migratedText.indexOf("receipt-TOP");
+  const bottomNoteAt = migratedText.indexOf("receipt-BOTTOM");
+  check(
+    "migrate files each receipt under its own row, by position",
+    topAt !== -1 && bottomAt !== -1 && topNoteAt > topAt && topNoteAt < bottomAt && bottomNoteAt > bottomAt,
+  );
+
+  await Bun.write(
+    path,
+    [
+      `# duplicate fixture`,
+      ``,
+      `[[rows]]`,
+      `id = "DUP"`,
+      `layer = "l"`,
+      `descriptor = "one"`,
+      `status = "todo"`,
+      `host_proof = ""`,
+      ``,
+      `[[rows]]`,
+      `id = "DUP"`,
+      `layer = "l"`,
+      `descriptor = "two"`,
+      `status = "todo"`,
+      `host_proof = ""`,
+      ``,
+    ].join("\n"),
+  );
+  check("validate refuses duplicated row ids", (await run(["validate"])).out.includes("two rows scan with id"));
+
 
   rmSync(dir, { recursive: true, force: true });
 

@@ -55,7 +55,11 @@ await Bun.$`sh -c ${`cd '${repo}' && git ls-files -z | tar --null -T - -cf - | t
   .nothrow();
 await Bun.$`mkdir -p ${dir}/dev/walls`.quiet();
 
-async function verdict(corpus: string, baseline: string = BASE): Promise<{ exit: number; out: string }> {
+async function verdict(
+  corpus: string,
+  baseline: string = BASE,
+  env: Record<string, string> = {},
+): Promise<{ exit: number; out: string }> {
   // Re-establish the baseline commit, then mutate the worktree. The ratchet compares worktree
   // against `git show HEAD:` outside CI, which is the comparison under test here.
   writeFileSync(`${dir}/dev/walls/corpus.toml`, baseline);
@@ -69,12 +73,27 @@ async function verdict(corpus: string, baseline: string = BASE): Promise<{ exit:
     cwd: dir,
     stdout: "pipe",
     stderr: "pipe",
+    env: { ...process.env, ...env },
   });
   const out = (await new Response(proc.stdout).text()) + (await new Response(proc.stderr).text());
   return { exit: await proc.exited, out };
 }
 
 console.log("ratchet selftest");
+
+// THE CI BASELINE ORACLE — must run FIRST, while the sandbox has a single commit and HEAD~1 does
+// not resolve. A garbage push base plus an unresolvable fallback is the shallow-checkout failure:
+// before the fix, the baseline read as an empty string and ratchets 2/3/3a silently examined
+// nothing while printing success.
+const ciUnresolvable = await verdict(BASE, BASE, {
+  CI: "true",
+  GITHUB_EVENT_BEFORE: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+});
+check(
+  "an unresolvable CI baseline fails closed (exit 2, loud)",
+  ciUnresolvable.exit === 2 && /CANNOT RESOLVE/.test(ciUnresolvable.out),
+  ciUnresolvable.out.slice(0, 300),
+);
 
 const unchanged = await verdict(BASE);
 check("unchanged corpus passes", unchanged.exit === 0, unchanged.out.slice(0, 200));
@@ -119,17 +138,29 @@ check("a deletion recorded as retired passes", retiredOk.exit === 0, retiredOk.o
 const retiredWrongWall = await verdict(
   withRetired(MINUS_B, 'retired = [ { id = "B", wall = "01-no-python" } ]'),
 );
-check("a retired entry naming the wrong wall fails", retiredWrongWall.exit === 1 && /RETIR/i.test(retiredWrongWall.out));
+check(
+  "a retired entry naming the wrong wall fails",
+  retiredWrongWall.exit === 1 && /belonged to/.test(retiredWrongWall.out),
+  retiredWrongWall.out.slice(0, 300),
+);
 
 const retiredStillPresent = await verdict(
   withRetired(BASE, 'retired = [ { id = "B", wall = "02-ledger-channel" } ]'),
 );
-check("a retired id still present in the corpus fails", retiredStillPresent.exit === 1 && /retir/i.test(retiredStillPresent.out));
+check(
+  "a retired id still present in the corpus fails",
+  retiredStillPresent.exit === 1 && /still present/.test(retiredStillPresent.out),
+  retiredStillPresent.out.slice(0, 300),
+);
 
 const retiredUnknown = await verdict(
   withRetired(BASE, 'retired = [ { id = "ZZZ", wall = "02-ledger-channel" } ]'),
 );
-check("a retired entry that retires nothing fails", retiredUnknown.exit === 1 && /retir/i.test(retiredUnknown.out));
+check(
+  "a retired entry that retires nothing fails",
+  retiredUnknown.exit === 1 && /names nothing/.test(retiredUnknown.out),
+  retiredUnknown.out.slice(0, 300),
+);
 
 const RETIRED_B = 'retired = [ { id = "B", wall = "02-ledger-channel" } ]';
 const steadyBaseline = withRetired(MINUS_B, RETIRED_B);
@@ -143,7 +174,7 @@ check(
 const droppedRecord = await verdict(MINUS_B, steadyBaseline);
 check(
   "dropping a retired id from the record fails — the list is history, not a scratch pad",
-  droppedRecord.exit === 1 && /retir/i.test(droppedRecord.out),
+  droppedRecord.exit === 1 && /gone from the record/.test(droppedRecord.out),
   droppedRecord.out.slice(0, 300),
 );
 

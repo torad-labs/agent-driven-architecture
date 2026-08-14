@@ -3,6 +3,7 @@
  * Loaded by matrix.ts when present — keeps diary-marker logic out of the base CLI core.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
 import {
   LedgerError,
   mutate,
@@ -217,9 +218,10 @@ export async function handleEarnCommand(
     const id = rest[0] ?? "";
     const only = rest[1];
     if (!id) throw new LedgerError("earn: usage earn <ID> [slug]");
-    const root = (
-      await Bun.$`git rev-parse --show-toplevel`.text()
-    ).trim();
+    // The matrix's own repository root — never the caller's cwd. The selftest's fixture tree
+    // proves the difference: a cwd-derived root writes artifacts into whatever repo the suite
+    // happened to run from, leaving tracked debris behind.
+    const root = dirname(dirname(resolve(matrixPath)));
     const dir = artifactDir(root, "earn");
     mkdirSync(dir, { recursive: true });
     const linesNow = await readLines(matrixPath);
@@ -341,7 +343,7 @@ export async function handleEarnCommand(
     }
     let probeResult = result ?? "";
     if (probe) {
-      const root = (await Bun.$`git rev-parse --show-toplevel`.text()).trim();
+      const root = dirname(dirname(resolve(matrixPath)));
       const proc = Bun.spawn(["bash", "-lc", probe], {
         cwd: root,
         stdout: "pipe",

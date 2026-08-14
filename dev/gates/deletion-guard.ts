@@ -95,6 +95,27 @@ const deleted =
   requestedRange !== null && range === null ? [] : await deletionsIn(root, range);
 const guarded = deleted.filter(isLoadBearing);
 
+/**
+ * ROSTER COMPLETENESS. The list is enumerated — a glob cannot be shrunk in the same commit as a
+ * legitimate retirement, and the same-commit list edit IS the visibility — so a NEW gate is
+ * invisible to this guard until someone adds it here. A tracked gate file no entry covers fails
+ * the run whether or not anything is being deleted: the second edit is forced, in the open.
+ */
+const gateFiles = (await Bun.$`git -C ${root} ls-files -- "dev/gates/*.ts"`.quiet().nothrow().text())
+  .split("\n")
+  .filter((path) => path !== "");
+const uncovered = gateFiles.filter((path) => !isLoadBearing(path));
+if (uncovered.length > 0) {
+  console.error(
+    `deletion guard: ${uncovered.length} tracked gate(s) are not in the guarded list:\n` +
+      uncovered.map((path) => `  ${path}`).join("\n") +
+      `\n\nThe list is enumerated, so a new gate is not covered until it is added. Add it to the\n` +
+      `list in the same commit as the gate itself — the second edit is the visibility this guard\n` +
+      `exists to force.`,
+  );
+  process.exit(1);
+}
+
 if (guarded.length === 0) {
   console.log(
     `deletion guard: clean · ${deleted.length} deletion(s), none guarded${range === null ? "" : ` (${range})`}`,
@@ -295,6 +316,15 @@ async function selftest(): Promise<void> {
   await Bun.$`git -C ${dir} rm -q dev/scratch.txt`.quiet().nothrow();
   check("an ordinary deletion passes", (await run()) === 0);
   await Bun.$`git -C ${dir} -c user.name=t -c user.email=t@t commit -qm rm-scratch`.quiet().nothrow();
+
+  // THE ROSTER HOLE. The list is enumerated, so a gate nobody added to it is invisible to this
+  // guard — the run must fail and name it, forcing the second edit into the open.
+  writeFileSync(`${dir}/dev/gates/a-new-gate.ts`, "// a gate nobody listed\n");
+  await Bun.$`git -C ${dir} add -A`.quiet().nothrow();
+  check("a tracked gate missing from the guarded list fails the run", (await run()) === 1);
+  await Bun.$`rm -f ${dir}/dev/gates/a-new-gate.ts`.quiet().nothrow();
+  await Bun.$`git -C ${dir} add -A`.quiet().nothrow();
+  check("the guard is clean once the unlisted gate is gone", (await run()) === 0);
 
   // THE N18 CASE.
   await Bun.$`git -C ${dir} rm -q dev/gates/ratchet.ts`.quiet().nothrow();

@@ -134,18 +134,55 @@ async function resolveBaseline(): Promise<string> {
     .quiet()
     .nothrow()
     .text();
-  return resolved.trim() === "" ? "HEAD~1" : pushBase;
+  if (resolved.trim() !== "") return pushBase;
+  console.warn(
+    `ratchet: push base ${pushBase.slice(0, 12)} does not resolve in this checkout — falling back\n` +
+      `  to HEAD~1, which covers the last commit ONLY. Anything earlier in this push is unexamined.`,
+  );
+  return "HEAD~1";
 }
 
 const baselineRef = await resolveBaseline();
 
-const committed = await Bun.$`git show ${`${baselineRef}:dev/walls/corpus.toml`}`
+/**
+ * THE BASELINE ORACLE, FAIL-CLOSED. `git show <ref>:<path>` failing is NOT the same as "the
+ * corpus is absent at a resolved ref": a push base a shallow checkout lacks, or a force-pushed
+ * base, both read as an empty string under nothrow — and ratchets 2/3/3a then examine NOTHING
+ * while the report prints full success. So the ref is verified first: unresolvable in CI is a
+ * hard failure (exit 2), because a backstop that cannot ask its question must not report clean.
+ * Locally an unverifiable HEAD is the honest root-commit case — nothing precedes it.
+ */
+const refCheck = await Bun.$`git rev-parse --verify --quiet ${`${baselineRef}^{commit}`}`
   .quiet()
-  .nothrow()
-  .text();
+  .nothrow();
+let committed = "";
+if (refCheck.exitCode !== 0) {
+  if (inCI) {
+    console.error(
+      `ratchet: CANNOT RESOLVE the baseline ${JSON.stringify(baselineRef)} in this checkout.\n\n` +
+        `  This is not a clean result. The growth and immutability ratchets compare against the\n` +
+        `  push base; a checkout that lacks it (shallow clone, force-pushed base) makes every one\n` +
+        `  of those checks a silent no-op that prints success. Give the checkout fetch-depth 0.`,
+    );
+    process.exit(2);
+  }
+  const headCheck = await Bun.$`git rev-parse --verify --quiet HEAD`.quiet().nothrow();
+  if (headCheck.exitCode === 0) {
+    console.warn(
+      `ratchet: baseline ${baselineRef} does not resolve locally — treating the corpus as unbaselined.\n` +
+        `  (The growth/immutability ratchets examine nothing this run. This line exists so that is never silent.)`,
+    );
+  }
+} else {
+  const show = await Bun.$`git show ${`${baselineRef}:dev/walls/corpus.toml`}`.quiet().nothrow();
+  // Exit != 0 here means the PATH is absent at a resolved ref — the corpus's own first commit,
+  // an honestly unprotected state the comment below describes.
+  committed = show.exitCode === 0 ? show.text() : "";
+}
 
 // A missing baseline is not a failure: the corpus's own first commit has no parent to compare
-// against, and neither does a repository's root commit. Both are honestly unprotected.
+// against, and neither does a repository's root commit. Both are honestly unprotected — and
+// both are PRINTED now, not inferred from an empty string that could also mean "git failed".
 const committedCount = committed.trim() === "" ? 0 : parseCorpus(committed).length;
 
 const baselineById = new Map(
