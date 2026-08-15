@@ -25,10 +25,52 @@
  *   bun dev/gates/deletion-guard.ts --range A..B # CI backstop: a pushed range
  *   bun dev/gates/deletion-guard.ts --selftest
  *
- * A guarded deletion is not forbidden — it is GATED, exactly like a guarded modification. Retiring
- * a gate is a real thing to want; doing it silently is not.
+ * A guarded deletion is refused unless the path leaves the guarded list in the same commit —
+ * retiring a gate is a real thing to want; doing it silently is not. (Until 2026-08-13 the list
+ * lived in grant-store.ts and a live operator grant was the escape; the grant system was deleted
+ * on an operator ruling, and the same-commit list edit is what replaced it.)
  */
-import { isLoadBearing, liveGrant } from "../../.claude/hooks/grant-store.ts";
+/**
+ * THE GUARDED LIST LIVES HERE NOW.
+ *
+ * Until 2026-08-13 it was `grant-store.ts`'s GUARDED array and the escape hatch was a live
+ * operator grant. The grant system is dead (operator ruling, recorded in
+ * dev/campaigns/setup/VENDORED.md), so the list is inlined and the escape is gone: the way to
+ * retire a guarded path is to remove it from this list IN THE SAME COMMIT as the deletion, so
+ * the policy change and the deletion are one diff that anyone can read. The criterion for
+ * membership is unchanged: a path is listed when weakening it is SILENT — nothing else goes red.
+ */
+const GUARDED: readonly { readonly pattern: RegExp; readonly label: string }[] = [
+  { pattern: /(^|\/)sgconfig\.yml$/, label: "sgconfig.yml" },
+  { pattern: /(^|\/)\.rules\/[^/]+\/ast-grep\/rules\//, label: ".rules/<lang>/ast-grep/rules/**" },
+  { pattern: /(^|\/)\.claude\/settings\.json$/, label: ".claude/settings.json" },
+  { pattern: /(^|\/)\.claude\/hooks\/registry\.ts$/, label: ".claude/hooks/registry.ts" },
+  { pattern: /(^|\/)\.claude\/hooks\/runner\.ts$/, label: ".claude/hooks/runner.ts" },
+  { pattern: /(^|\/)\.claude\/hooks\/selftest\.ts$/, label: ".claude/hooks/selftest.ts" },
+  // The gates directory is enumerated, not globbed: a glob cannot be shrunk in the same commit
+  // as a legitimate retirement, and the same-commit list edit IS the visibility this guard
+  // exists to force. Adding a gate means adding it here — one line, same commit, in the open.
+  { pattern: /(^|\/)dev\/gates\/beacon-check\.ts$/, label: "dev/gates/beacon-check.ts" },
+  { pattern: /(^|\/)dev\/gates\/ci-hygiene\.ts$/, label: "dev/gates/ci-hygiene.ts" },
+  { pattern: /(^|\/)dev\/gates\/cli-selftest\.ts$/, label: "dev/gates/cli-selftest.ts" },
+  { pattern: /(^|\/)dev\/gates\/deletion-guard\.ts$/, label: "dev/gates/deletion-guard.ts" },
+  { pattern: /(^|\/)dev\/gates\/hookpath\.ts$/, label: "dev/gates/hookpath.ts" },
+  { pattern: /(^|\/)dev\/gates\/lattice\.ts$/, label: "dev/gates/lattice.ts" },
+  { pattern: /(^|\/)dev\/gates\/ratchet\.ts$/, label: "dev/gates/ratchet.ts" },
+  { pattern: /(^|\/)dev\/gates\/ratchet-selftest\.ts$/, label: "dev/gates/ratchet-selftest.ts" },
+  { pattern: /(^|\/)dev\/gates\/staged\.ts$/, label: "dev/gates/staged.ts" },
+  { pattern: /(^|\/)dev\/matrix\.ts$/, label: "dev/matrix.ts" },
+  { pattern: /(^|\/)dev\/campaigns\/ledger\.ts$/, label: "dev/campaigns/ledger.ts" },
+  { pattern: /(^|\/)dev\/campaigns\/ledger-core\.ts$/, label: "dev/campaigns/ledger-core.ts" },
+  { pattern: /(^|\/)dev\/manifest\.ts$/, label: "dev/manifest.ts" },
+  { pattern: /(^|\/)package\.json$/, label: "package.json (the gate chain)" },
+  { pattern: /(^|\/)settings\.gradle\.kts$/, label: "settings.gradle.kts" },
+  { pattern: /(^|\/)build\.gradle\.kts$/, label: "build.gradle.kts" },
+];
+
+function isLoadBearing(path: string): boolean {
+  return GUARDED.some((entry) => entry.pattern.test(path));
+}
 
 const argv = Bun.argv.slice(2);
 if (argv.includes("--selftest")) {
@@ -51,7 +93,28 @@ const range = requestedRange === null ? null : await resolveRange(root, requeste
 // A null range from a non-null request means a root commit: nothing precedes it to delete.
 const deleted =
   requestedRange !== null && range === null ? [] : await deletionsIn(root, range);
-const guarded = deleted.filter((path) => isLoadBearing(path, true));
+const guarded = deleted.filter(isLoadBearing);
+
+/**
+ * ROSTER COMPLETENESS. The list is enumerated — a glob cannot be shrunk in the same commit as a
+ * legitimate retirement, and the same-commit list edit IS the visibility — so a NEW gate is
+ * invisible to this guard until someone adds it here. A tracked gate file no entry covers fails
+ * the run whether or not anything is being deleted: the second edit is forced, in the open.
+ */
+const gateFiles = (await Bun.$`git -C ${root} ls-files -- "dev/gates/*.ts"`.quiet().nothrow().text())
+  .split("\n")
+  .filter((path) => path !== "");
+const uncovered = gateFiles.filter((path) => !isLoadBearing(path));
+if (uncovered.length > 0) {
+  console.error(
+    `deletion guard: ${uncovered.length} tracked gate(s) are not in the guarded list:\n` +
+      uncovered.map((path) => `  ${path}`).join("\n") +
+      `\n\nThe list is enumerated, so a new gate is not covered until it is added. Add it to the\n` +
+      `list in the same commit as the gate itself — the second edit is the visibility this guard\n` +
+      `exists to force.`,
+  );
+  process.exit(1);
+}
 
 if (guarded.length === 0) {
   console.log(
@@ -60,21 +123,17 @@ if (guarded.length === 0) {
   process.exit(0);
 }
 
-// A live grant authorises a guarded deletion the same way it authorises a guarded modification.
-if ((await liveGrant(root)) !== null) {
-  console.log(`deletion guard: ${guarded.length} guarded deletion(s), permitted by a live grant`);
-  for (const path of guarded) console.log(`  ${path}`);
-  process.exit(0);
-}
-
 console.error(`deletion guard: ${guarded.length} guarded path(s) being DELETED\n`);
 for (const path of guarded) console.error(`  ${path}`);
 console.error(
-  `\nDeleting a guarded path removes a check, and until now nothing anywhere observed it:\n` +
-    `the write-time walls never see a deletion, the staged gate filters D out by design, and the\n` +
+  `\nDeleting a guarded path removes a check, and nothing else anywhere observes it: the\n` +
+    `write-time walls never see a deletion, the staged gate filters D out by design, and the\n` +
     `corpus runs against an intact tree. Once the deletion is committed the path is absent from\n` +
     `HEAD, so re-creating it — weakened — reads as an ordinary new file and goes free.\n\n` +
-    `Retiring a gate is legitimate. Doing it silently is not. Ask the operator for a grant.`,
+    `Retiring a gate is legitimate. Doing it silently is not. The grant escape is gone (the grant\n` +
+    `system was deleted 2026-08-13, operator ruling); the sanctioned route now is to remove the\n` +
+    `path from this gate's GUARDED list IN THE SAME COMMIT as the deletion — the policy change\n` +
+    `and the deletion land as one diff, argued in the open.`,
 );
 process.exit(1);
 
@@ -257,6 +316,15 @@ async function selftest(): Promise<void> {
   await Bun.$`git -C ${dir} rm -q dev/scratch.txt`.quiet().nothrow();
   check("an ordinary deletion passes", (await run()) === 0);
   await Bun.$`git -C ${dir} -c user.name=t -c user.email=t@t commit -qm rm-scratch`.quiet().nothrow();
+
+  // THE ROSTER HOLE. The list is enumerated, so a gate nobody added to it is invisible to this
+  // guard — the run must fail and name it, forcing the second edit into the open.
+  writeFileSync(`${dir}/dev/gates/a-new-gate.ts`, "// a gate nobody listed\n");
+  await Bun.$`git -C ${dir} add -A`.quiet().nothrow();
+  check("a tracked gate missing from the guarded list fails the run", (await run()) === 1);
+  await Bun.$`rm -f ${dir}/dev/gates/a-new-gate.ts`.quiet().nothrow();
+  await Bun.$`git -C ${dir} add -A`.quiet().nothrow();
+  check("the guard is clean once the unlisted gate is gone", (await run()) === 0);
 
   // THE N18 CASE.
   await Bun.$`git -C ${dir} rm -q dev/gates/ratchet.ts`.quiet().nothrow();

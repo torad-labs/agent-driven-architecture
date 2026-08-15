@@ -12,7 +12,6 @@
  * number of campaigns.
  */
 
-import { liveGrant } from "../../.claude/hooks/grant-store.ts";
 import {
   findBlock,
   headerLines,
@@ -61,7 +60,7 @@ write
   add-law "text"                    append a law to the header
   amend-header <old> <new>          replace a line in the header
   amend <ID> [--title T] [--verify V] [--files a,b]
-                                    rewrite dispatch fields (grant-gated; old values auto-noted)
+                                    rewrite dispatch fields (old values auto-noted)
 
 check
   validate                          parse the ledger and report item counts
@@ -310,58 +309,6 @@ async function main(): Promise<number> {
     );
   }
 
-  /**
-   * THE LAW CHANNEL IS GRANT-GATED.
-   *
-   * `10-law-injection` splices every `# LAW:` line from the header into every future session,
-   * introduced there as "not advice". Left open, `add-law` is an unauthenticated cross-session
-   * prompt-injection channel: any seat appends a line, and every later session — the
-   * orchestrator's included — ingests it as binding law. `book-laws` only checks name parity, and
-   * only when someone runs it.
-   *
-   * The file wall cannot cover this, because the CLI is the SANCTIONED writer. So the check lives
-   * at the one door that is allowed through.
-   *
-   * What it buys, precisely: on a NOPASSWD host the header stays writable by other means. This
-   * stops the law channel from being the CONVENIENT path, and makes a law change something the
-   * operator authorised rather than something that simply appeared.
-   */
-  if (command === "add-law" || command === "amend-header" || command === "amend") {
-    const repoRoot = (await Bun.$`git rev-parse --show-toplevel`.quiet().nothrow().text()).trim();
-    const grant = await liveGrant(repoRoot === "" ? "." : repoRoot);
-    if (grant === null) {
-      // `amend` sits behind the same gate for the same reason in a different plane: the packet
-      // renders title/verify/files verbatim as the brief and the definition of done, so an open
-      // amend lets a seat weaken its own done-bar — the self-grant shape with a field for a wall.
-      const what =
-        command === "amend"
-          ? `rewrites dispatch fields the packet renders verbatim — the writable fence and the ` +
-            `definition of done`
-          : `writes the law header, which is injected into every future session as binding law`;
-      throw new LedgerError(
-        `"${command}" ${what}. That needs a grant.\n\n` +
-          `Ask the operator to type:  /grant <why this is changing>`,
-      );
-    }
-    /**
-     * THIS CHECK IS NOT SESSION-BOUND, AND CANNOT BE.
-     *
-     * The PreToolUse grant gate compares `payload.session_id`, so a grant issued to one seat does
-     * not open another. This door has no equivalent: the CLI runs under Bash, and a Bash process
-     * carries no session identity for the check to compare against. So while a grant is open, ANY
-     * seat's `add-law` is authorised by it — including a concurrent builder the operator was not
-     * thinking about when they typed it.
-     *
-     * That is a real weakening of the session-binding property, and it is announced on every use
-     * rather than left for someone to discover in the source. Keep law-changing windows short.
-     */
-    console.error(
-      `note: this grant is NOT session-bound. The CLI runs under Bash, which carries no session\n` +
-        `      id, so while the grant is open any concurrent seat's add-law/amend-header is also\n` +
-        `      authorised by it. Grant expires ${grant.expiresAt}. Keep the window short.`,
-    );
-  }
-
   const lines = await readLines(ledgerPath);
   const blocks = locateItems(lines);
 
@@ -542,7 +489,7 @@ async function main(): Promise<number> {
         }
         // The old values are the audit trail: an amend that leaves no trace of what it replaced
         // is a rewrite of history, which is exactly what this CLI exists to prevent.
-        return withNote(next, block, `amend (grant window): ${audit.join("; ")}`);
+        return withNote(next, block, `amend: ${audit.join("; ")}`);
       });
       console.log(`${id}: amended — old values preserved as a dated note`);
       return 0;
@@ -681,46 +628,21 @@ async function selftest(): Promise<number> {
   check("add created the item", (await run("get", "H3")).includes("third"));
   check("duplicate ids are refused", (await run("add", "--id", "H3", "--phase", "p", "--title", "t")).includes("already exists"));
 
-  // THE LAW CHANNEL. `10-law-injection` splices every `# LAW:` line into every future session as
-  // binding law, so `add-law` is a cross-session injection channel and now requires a grant.
-  //
-  // The assertion is written against the ACTUAL grant state rather than assuming one. Hardcoding
-  // "add-law is refused" would pass or fail depending on whether a grant happened to be open when
-  // the suite ran — a test whose verdict depends on ambient state is not a test. Both branches
-  // exercise the real code path; neither is a skip.
-  const repoRoot = (await Bun.$`git rev-parse --show-toplevel`.quiet().nothrow().text()).trim();
-  const grantOpen = (await liveGrant(repoRoot === "" ? "." : repoRoot)) !== null;
-  const lawAttempt = await run("add-law", "silence-is-a-system-bug");
-
-  if (grantOpen) {
-    check("with a grant live, add-law appends to the header", (await run("laws")).includes("silence-is-a-system-bug"));
-    check("add-law did not disturb existing laws", (await run("laws")).includes("verified-commits-immediately"));
-  } else {
-    check("without a grant, add-law is REFUSED", lawAttempt.includes("needs a grant"));
-    check(
-      "the refusal wrote nothing — fails closed, not half-applied",
-      !(await run("laws")).includes("silence-is-a-system-bug"),
-    );
-    check(
-      "amend-header is gated by the same rule",
-      (await run("amend-header", "manifest-is-memory", "tampered")).includes("needs a grant"),
-    );
-    check("existing laws are untouched by a refused attempt", (await run("laws")).includes("verified-commits-immediately"));
-  }
+  // THE LAW AND AMEND CHANNELS. Grant-gated until 2026-08-13, when the operator ruled the grant
+  // system dead; both are ordinary commands now, and what keeps them honest is what always kept
+  // the ledger honest: every use lands as a dated, attributed note in the file itself.
+  await run("add-law", "silence-is-a-system-bug");
+  check("add-law appends to the header", (await run("laws")).includes("silence-is-a-system-bug"));
+  check("add-law did not disturb existing laws", (await run("laws")).includes("verified-commits-immediately"));
 
   // THE AMEND CHANNEL. `amend` rewrites what a packet renders verbatim — the fence and the
-  // definition of done — so it sits behind the same grant as the law channel, and every use must
-  // preserve the old value as a dated note. Same both-branches pattern as add-law above.
-  const amendAttempt = await run("amend", "H1", "--verify", "a brand new verify gate");
-  if (grantOpen) {
-    check("with a grant live, amend replaces the verify field", (await run("get", "H1")).includes("a brand new verify gate"));
-    check("amend preserved the old value as a dated note", (await run("get", "H1")).includes("verify was"));
-    check("amend did not eat prior notes", (await run("get", "H1")).includes("must survive"));
-    check("amend with no field flags is refused", (await run("amend", "H1")).includes("at least one of"));
-  } else {
-    check("without a grant, amend is REFUSED", amendAttempt.includes("needs a grant"));
-    check("the refused amend wrote nothing", !(await run("get", "H1")).includes("a brand new verify gate"));
-  }
+  // definition of done — so every use MUST preserve the old value as a dated note. That note is
+  // the entire audit trail: an amend that leaves no trace is a rewrite of history.
+  await run("amend", "H1", "--verify", "a brand new verify gate");
+  check("amend replaces the verify field", (await run("get", "H1")).includes("a brand new verify gate"));
+  check("amend preserved the old value as a dated note", (await run("get", "H1")).includes("verify was"));
+  check("amend did not eat prior notes", (await run("get", "H1")).includes("must survive"));
+  check("amend with no field flags is refused", (await run("amend", "H1")).includes("at least one of"));
 
   check("validate passes", (await run("validate")).includes("valid"));
   check("unknown ids are refused", (await run("get", "NOPE")).includes("no item with id"));
