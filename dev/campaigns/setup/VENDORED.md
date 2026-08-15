@@ -136,3 +136,61 @@ observation that the leading-copy note in the operating doctrine is stale.
 
 Run `selftest` at every re-vendoring. A ledger CLI nobody has watched preserve a comment is a
 ledger CLI that will one day eat the memory.
+
+## Removed after vendoring — THE GRANT SYSTEM (operator ruling, 2026-08-13)
+
+**"The grant system is dead."** Deleted from this tree on that ruling:
+
+- `.claude/hooks/modules/03-grant-gate.ts` — the PreToolUse gate
+- `.claude/hooks/grant-store.ts` — the guarded set, the token store, `liveGrant()`
+- `.claude/hooks/modules/20-grant-issue.ts` — `/grant` issuance
+- `.claude/commands/grant.md` — the operator command
+- `dev/gates/grant-status.ts` and `dev/gates/grant-path-wall.ts` — the status card and the
+  token-path backstop
+
+**Measured at deletion, for the record.** The gate WAS armed here: a synthetic Edit payload
+against `dev/matrix.ts` replayed through the vendored runner exited 2 that same morning. But the
+issuance channel was never wired in this repo — `userpromptsubmit.py` dispatches to a
+`modules/userpromptsubmit/` directory that does not exist, so no `/grant` could ever have issued
+a token here. A gate that fires but can never open is not a control; it is a trap. That
+measurement belongs to SDK-10's hook-chain decision and is noted on that item.
+
+**What replaced it, mechanically:**
+
+- `dev/walls/corpus.toml` gained the **`retired` channel** in `dev/gates/ratchet.ts`: the corpus
+  may still only grow, and the one lawful shrink is moving an id to `retired` with the dated
+  ruling — before this, ANY corpus shrink was red forever, which made an operator-ordered wall
+  retirement unlandable. 28 of 33 entries retired with the wall; 5 (`02-ledger-channel`) remain.
+- `dev/gates/deletion-guard.ts` inlined the guarded list. The escape is no longer a grant but a
+  same-commit list edit: remove the path from GUARDED in the commit that deletes it, so the
+  policy change and the deletion are one diff. This is enforcement by visibility, and it IS
+  weaker than an operator-only door — that is the trade the ruling implies, stated here rather
+  than discovered later.
+- `ledger.ts` `add-law` / `amend-header` / `amend` are ordinary commands again. Amend still
+  preserves every old value as a dated note — that note was always the real audit trail.
+
+**Divergence this creates, deliberately:** compose-flow and eli-operator still carry the grant
+system. Whether it dies there too is the operator's call, not this file's.
+
+**And one that landed by accident, now flagged:** compose-flow executed the same ruling hours
+earlier in a parallel seat, and its ratchet solves the corpus-shrink problem with a per-entry
+`retired: boolean` flag where this repo's uses a separate `retired` list with
+fresh/recorded/dropped rules. Same problem, two shapes, both committed — a reconciliation
+decision for the operator, not something either seat should silently "fix".
+
+## Changed after vendoring — the matrix `verified` derivation (2026-08-13)
+
+`dev/matrix.ts` replaced the `verified` rung's permission model (`MATRIX_ORCHESTRATOR=1` —
+ambient authority guarding a write) with a DERIVATION computed at query time: `verified` is no
+longer a stored status but a verdict over `status == ready` ∧ ≥1 recorded `path+token` edge and
+every edge resolving in the current tree ∧ the latest completed `ci` run on main being green ∧
+that run having tested what main currently is (two just-fetched values — the run's head tree and
+the tip's tree — compared and discarded; nothing sha-shaped is stored, so force-pushes and
+squash-merges cannot flip a verdict) ∧ a shape-valid review pointer. New commands
+`edge` / `review` / `verified` / `migrate`; `set <ID> verified` is a hard error naming the
+replacements; `target_proof`, `prove --target`, and `ORCHESTRATOR_ENV` are gone; `unproven` is
+derivation-based (offline the run leg is *unchecked*, and unchecked is unproven). `validate`
+refuses a stored `verified` and a stray `target_proof` — same checkers at both doors.
+
+This lands with the ratchet `retired` channel as one promotion unit to compose-flow and
+eli-operator per the divergence policy, with `selftest` run at each vendoring.

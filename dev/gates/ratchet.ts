@@ -20,6 +20,10 @@
  *      machine. Comparing against git rather than a baseline file matters: a plain baseline is one
  *      more file to edit in the same breath, whereas history has to be rewritten and force-pushed.
  *
+ * The one lawful shrink is a RETIREMENT: the id moves from `violations` to `retired` with the
+ * operator's dated ruling beside it (the grant-system entries, 2026-08-13, are the first).
+ * Anything else that shrinks the corpus is red, on this machine and in CI.
+ *
  * HONEST LIMIT. An agent with root can delete corpus entries, commit, and force-push. Nothing
  * here prevents that. What it buys is that the bypass stops being a quiet flag and becomes three
  * self-incriminating edits — a weakened rule, deleted synthetic violations, and a history rewrite
@@ -66,7 +70,29 @@ function parseCorpus(text: string): Violation[] {
   }));
 }
 
-const corpus = parseCorpus(await Bun.file(`${root}/dev/walls/corpus.toml`).text());
+const corpusText = await Bun.file(`${root}/dev/walls/corpus.toml`).text();
+const corpus = parseCorpus(corpusText);
+
+/**
+ * RETIREMENTS — the only lawful way for the corpus to shrink.
+ *
+ * The ratchet's own refusal text always said retiring a wall is "an operator decision with a
+ * note", but offered no channel for the note: every deletion was red forever, even one the
+ * operator had just ordered out loud. That gap made the grant-system removal (operator ruling
+ * 2026-08-13) impossible to land green, which is the ratchet blocking its own maintenance.
+ *
+ * So a retirement is DATA: `retired = [ { id, wall }, ... ]` beside the violations, carrying the
+ * removed id and the wall it belonged to, with the dated ruling in a comment. A deletion named
+ * here is lawful; one that is not remains red. The list is checked just as hard as the corpus:
+ * retiring nothing, retiring twice, a mislabelled wall, or a "retired" id still present are all
+ * failures — a retirement list that can drift is the same hole with a second door.
+ */
+type Retirement = { readonly id: string; readonly wall: string };
+const parseRetired = (text: string): readonly Retirement[] =>
+  ((Bun.TOML.parse(text) as { retired?: readonly Record<string, unknown>[] }).retired ?? []).map(
+    (entry) => ({ id: String(entry["id"] ?? ""), wall: String(entry["wall"] ?? "") }),
+  );
+const retired: readonly Retirement[] = parseRetired(corpusText);
 
 // ── ratchet 2: the corpus may only grow ───────────────────────────────────────────────────────
 
@@ -108,27 +134,113 @@ async function resolveBaseline(): Promise<string> {
     .quiet()
     .nothrow()
     .text();
-  return resolved.trim() === "" ? "HEAD~1" : pushBase;
+  if (resolved.trim() !== "") return pushBase;
+  console.warn(
+    `ratchet: push base ${pushBase.slice(0, 12)} does not resolve in this checkout — falling back\n` +
+      `  to HEAD~1, which covers the last commit ONLY. Anything earlier in this push is unexamined.`,
+  );
+  return "HEAD~1";
 }
 
 const baselineRef = await resolveBaseline();
 
-const committed = await Bun.$`git show ${`${baselineRef}:dev/walls/corpus.toml`}`
+/**
+ * THE BASELINE ORACLE, FAIL-CLOSED. `git show <ref>:<path>` failing is NOT the same as "the
+ * corpus is absent at a resolved ref": a push base a shallow checkout lacks, or a force-pushed
+ * base, both read as an empty string under nothrow — and ratchets 2/3/3a then examine NOTHING
+ * while the report prints full success. So the ref is verified first: unresolvable in CI is a
+ * hard failure (exit 2), because a backstop that cannot ask its question must not report clean.
+ * Locally an unverifiable HEAD is the honest root-commit case — nothing precedes it.
+ */
+const refCheck = await Bun.$`git rev-parse --verify --quiet ${`${baselineRef}^{commit}`}`
   .quiet()
-  .nothrow()
-  .text();
+  .nothrow();
+let committed = "";
+if (refCheck.exitCode !== 0) {
+  if (inCI) {
+    console.error(
+      `ratchet: CANNOT RESOLVE the baseline ${JSON.stringify(baselineRef)} in this checkout.\n\n` +
+        `  This is not a clean result. The growth and immutability ratchets compare against the\n` +
+        `  push base; a checkout that lacks it (shallow clone, force-pushed base) makes every one\n` +
+        `  of those checks a silent no-op that prints success. Give the checkout fetch-depth 0.`,
+    );
+    process.exit(2);
+  }
+  const headCheck = await Bun.$`git rev-parse --verify --quiet HEAD`.quiet().nothrow();
+  if (headCheck.exitCode === 0) {
+    console.warn(
+      `ratchet: baseline ${baselineRef} does not resolve locally — treating the corpus as unbaselined.\n` +
+        `  (The growth/immutability ratchets examine nothing this run. This line exists so that is never silent.)`,
+    );
+  }
+} else {
+  const show = await Bun.$`git show ${`${baselineRef}:dev/walls/corpus.toml`}`.quiet().nothrow();
+  // Exit != 0 here means the PATH is absent at a resolved ref — the corpus's own first commit,
+  // an honestly unprotected state the comment below describes.
+  committed = show.exitCode === 0 ? show.text() : "";
+}
 
 // A missing baseline is not a failure: the corpus's own first commit has no parent to compare
-// against, and neither does a repository's root commit. Both are honestly unprotected.
+// against, and neither does a repository's root commit. Both are honestly unprotected — and
+// both are PRINTED now, not inferred from an empty string that could also mean "git failed".
 const committedCount = committed.trim() === "" ? 0 : parseCorpus(committed).length;
+
+const baselineById = new Map(
+  (committed.trim() === "" ? [] : parseCorpus(committed)).map((entry) => [entry.id, entry]),
+);
+const currentIdsBelow = new Set(corpus.map((entry) => entry.id));
 
 const failures: string[] = [];
 
-if (corpus.length < committedCount) {
+// A retirement is FRESH (its id is a baseline violation) or RECORDED (its id is already in the
+// baseline's own retired list). Anything else retires nothing. The recorded branch is what lets
+// a lawful retirement stay green forever after its commit — the steady state must not punish
+// its own record.
+const retiredBaseline = parseRetired(committed);
+const retiredBaselineById = new Map(retiredBaseline.map((entry) => [entry.id, entry]));
+
+const retiredIds = new Set<string>();
+for (const entry of retired) {
+  if (retiredIds.has(entry.id)) {
+    failures.push(`${entry.id} is retired TWICE — the list is a record, not a pile`);
+  }
+  retiredIds.add(entry.id);
+  const fresh = baselineById.get(entry.id);
+  const recorded = retiredBaselineById.get(entry.id);
+  const expectedWall = fresh?.wall ?? recorded?.wall ?? "";
+  if (fresh === undefined && recorded === undefined) {
+    failures.push(
+      `${entry.id} is retired but names nothing at ${baselineRef} — neither a violation there\n` +
+        `    nor a recorded retirement.\n` +
+        `    A retirement that retires nothing is noise, and this list is where a real\n` +
+        `    deletion would learn to hide.`,
+    );
+    continue;
+  }
+  if (expectedWall !== entry.wall) {
+    failures.push(
+      `${entry.id} retired under wall "${entry.wall}" but belonged to "${expectedWall}" at ${baselineRef}.\n` +
+        `    A mislabelled retirement is a mislabelled deletion.`,
+    );
+  }
+}
+
+// The record is not a scratch pad: a baseline retirement that vanishes from the list without the
+// violation returning is a deleted HISTORY entry — the one removal the count ratchet cannot see.
+for (const entry of retiredBaseline) {
+  if (retiredIds.has(entry.id)) continue;
+  if (currentIdsBelow.has(entry.id)) continue; // reinstated coverage — argued in the diff
   failures.push(
-    `the corpus SHRANK: ${committedCount} entries at ${baselineRef}, ${corpus.length} now.\n` +
-      `    Synthetic violations are only removed when a wall is being weakened. If a rule genuinely\n` +
-      `    changed shape, rewrite the entry rather than deleting it.`,
+    `${entry.id} was a recorded retirement at ${baselineRef} and is gone from the record now.\n` +
+      `    Restore the violation (re-earned coverage) or keep the record — never drop it quietly.`,
+  );
+}
+
+if (corpus.length + retiredIds.size < committedCount) {
+  failures.push(
+    `the corpus SHRANK: ${committedCount} entries at ${baselineRef}, ${corpus.length} now (${retiredIds.size} retired).\n` +
+      `    Synthetic violations leave only as retirements: move the id to \`retired\` with the\n` +
+      `    operator's ruling in a dated comment. A bare deletion is a weakening until argued otherwise.`,
   );
 }
 
@@ -146,10 +258,6 @@ if (corpus.length < committedCount) {
  *
  * `why` and `content` stay mutable: sharpening the explanation of a violation is not weakening it.
  */
-const baselineById = new Map(
-  (committed.trim() === "" ? [] : parseCorpus(committed)).map((entry) => [entry.id, entry]),
-);
-
 /**
  * RATCHET 3a — the id SET may only grow. This is the clause the first version missed.
  *
@@ -164,17 +272,27 @@ const baselineById = new Map(
  * A pure deletion was caught. A deletion wearing an addition was not. Iterating the BASELINE
  * rather than the current set is what closes it.
  */
-const currentIds = new Set(corpus.map((entry) => entry.id));
+const currentIds = currentIdsBelow;
 for (const id of baselineById.keys()) {
   if (currentIds.has(id)) continue;
+  if (retiredIds.has(id)) continue; // a lawful retirement — its validity was checked above
   failures.push(
-    `${id} was DELETED from the corpus (present at ${baselineRef}, absent now).\n` +
+    `${id} was DELETED from the corpus (present at ${baselineRef}, absent now, not retired).\n` +
       `    The id set may only grow. A deletion paired with an addition keeps the count flat and\n` +
       `    leaves nothing for the retarget check to compare — which is exactly how a wall's\n` +
       `    coverage gets retired without anything going red.\n` +
-      `    If this wall genuinely no longer applies, that is an operator decision with a note,\n` +
-      `    not a silent line removal.`,
+      `    If this wall genuinely no longer applies, that is an operator ruling recorded in\n` +
+      `    \`retired\` with a date and a reason — never a silent line removal.`,
   );
+}
+
+for (const entry of retired) {
+  if (currentIds.has(entry.id)) {
+    failures.push(
+      `${entry.id} is retired AND still present in the corpus — a retirement is the removal\n` +
+        `    of the entry, not a label over it.`,
+    );
+  }
 }
 
 for (const entry of corpus) {
@@ -197,23 +315,6 @@ for (const entry of corpus) {
 }
 
 // ── ratchet 1: every entry is still refused ───────────────────────────────────────────────────
-
-/**
- * HERMETIC AT-REST MEASUREMENT (operator ruling 2026-08-02; replaces refuse-while-a-grant-is-live,
- * promote upstream). The old shape made every grant window an outage: no seat could run the full
- * gate until a human revoked or the clock ran out — operator babysitting as a load-bearing step,
- * and idle agents waiting on an expiry. The ratchet asks what the walls do in their DEFAULT state,
- * so it now CONSTRUCTS that state instead of demanding it: GRANT_STORE_ASSUME_REST forces
- * liveGrant() to answer "no grant" for this process and its children, and the corpus is measured
- * against the walls' resting logic no matter what windows are open anywhere.
- *
- * Why this cannot be a bypass: forcing "no grant" can only make every consumer of liveGrant()
- * block MORE, never less. The flag opens nothing. An attacker setting it gets stricter walls.
- *
- * N21's lesson survives underneath: grant state is read through liveGrant(), the one shared
- * checker — never through "does the token file exist".
- */
-process.env["GRANT_STORE_ASSUME_REST"] = "1";
 
 const walls = new Map(registry.filter((m) => m.events.includes("PreToolUse")).map((m) => [m.name, m]));
 

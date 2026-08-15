@@ -9,9 +9,8 @@
  *
  * Each case below mutates a corpus in /tmp and asserts the verdict. The tree is never touched.
  */
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync, existsSync } from "node:fs";
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { writeTokenFixture } from "../../.claude/hooks/grant-store.ts";
 
 // PORT NOTE (2026-08-07). Upstream these fixtures used 01-no-python with `.py` paths. That wall
 // did not come across — see dev/campaigns/setup/VENDORED.md — so the probe corpus is expressed
@@ -56,10 +55,14 @@ await Bun.$`sh -c ${`cd '${repo}' && git ls-files -z | tar --null -T - -cf - | t
   .nothrow();
 await Bun.$`mkdir -p ${dir}/dev/walls`.quiet();
 
-async function verdict(corpus: string): Promise<{ exit: number; out: string }> {
+async function verdict(
+  corpus: string,
+  baseline: string = BASE,
+  env: Record<string, string> = {},
+): Promise<{ exit: number; out: string }> {
   // Re-establish the baseline commit, then mutate the worktree. The ratchet compares worktree
   // against `git show HEAD:` outside CI, which is the comparison under test here.
-  writeFileSync(`${dir}/dev/walls/corpus.toml`, BASE);
+  writeFileSync(`${dir}/dev/walls/corpus.toml`, baseline);
   await Bun.$`git -C ${dir} add -A`.quiet().nothrow();
   await Bun.$`git -C ${dir} -c user.name=t -c user.email=t@t commit -q --allow-empty -m base`
     .quiet()
@@ -70,12 +73,27 @@ async function verdict(corpus: string): Promise<{ exit: number; out: string }> {
     cwd: dir,
     stdout: "pipe",
     stderr: "pipe",
+    env: { ...process.env, ...env },
   });
   const out = (await new Response(proc.stdout).text()) + (await new Response(proc.stderr).text());
   return { exit: await proc.exited, out };
 }
 
 console.log("ratchet selftest");
+
+// THE CI BASELINE ORACLE — must run FIRST, while the sandbox has a single commit and HEAD~1 does
+// not resolve. A garbage push base plus an unresolvable fallback is the shallow-checkout failure:
+// before the fix, the baseline read as an empty string and ratchets 2/3/3a silently examined
+// nothing while printing success.
+const ciUnresolvable = await verdict(BASE, BASE, {
+  CI: "true",
+  GITHUB_EVENT_BEFORE: "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+});
+check(
+  "an unresolvable CI baseline fails closed (exit 2, loud)",
+  ciUnresolvable.exit === 2 && /CANNOT RESOLVE/.test(ciUnresolvable.out),
+  ciUnresolvable.out.slice(0, 300),
+);
 
 const unchanged = await verdict(BASE);
 check("unchanged corpus passes", unchanged.exit === 0, unchanged.out.slice(0, 200));
@@ -103,55 +121,62 @@ const grown = await verdict(`${BASE}\n[[violations]]\nid = "D"\nwall = "02-ledge
 check("a pure addition is allowed", grown.exit === 0, grown.out.slice(0, 200));
 
 /**
- * N21 — THE RATCHET MUST ASK `liveGrant`, NOT "does a token file exist".
- *
- * It asked the wrong question for ten rounds. `revoke()` deletes the token; expiry does not, so an
- * expired grant left a dead file that blocked the load-bearing gate forever. It failed safe and
- * the token is gitignored, so CI never saw it — but the grant documents itself as a "bounded,
- * self-closing door" and it did not self-close for this one gate.
- *
- * PREMISE FIRST, because the failure mode here is a case that passes for the wrong reason: assert
- * the token FILE IS PRESENT in the expired case. Without that, "expired does not block" would also
- * pass if the fixture simply never wrote the file, which is the exact bug class the sandbox
- * fixtures have produced five times across these rounds.
+ * RETIRED — the only legal way for the corpus to shrink. A wall retirement is an operator ruling
+ * recorded as data: the id leaves `violations` and lands in `retired` with the ruling beside it.
+ * Anything else — an unnamed deletion, a mislabelled retirement, a "retired" id that is still
+ * present, a retirement of nothing — is a weakening wearing a retirement's clothes and fails.
  */
-// The token path is owned by grant-store.ts and named nowhere else (N22) — hardcoding it here is
-// what put it in three files and re-opened the escape by the back door. `writeTokenFixture` exists
-// because `issue()` clamps on write and therefore cannot produce the expired token this needs.
-let tokenPath = "";
-const writeToken = async (expiresAt: string): Promise<void> => {
-  mkdirSync(`${dir}/.claude`, { recursive: true });
-  tokenPath = await writeTokenFixture(dir, {
-    expiresAt,
-    reason: "selftest",
-    grantedBy: "selftest",
-    sessionId: "selftest",
-  });
-};
+const MINUS_B = BASE.split("[[violations]]").slice(0, 2).join("[[violations]]");
+const withRetired = (corpus: string, retired: string): string =>
+  corpus.replace("[[violations]]", `${retired}\n\n[[violations]]`);
 
-await writeToken(new Date(Date.now() + 10 * 60_000).toISOString());
-const withLive = await verdict(BASE);
-// Flipped 2026-08-02 (operator ruling): the ratchet measures the resting state HERMETICALLY
-// (GRANT_STORE_ASSUME_REST), so a live grant neither blocks the run nor opens the walls it
-// measures — the corpus must still be fully refused underneath an open window.
+const retiredOk = await verdict(
+  withRetired(MINUS_B, 'retired = [ { id = "B", wall = "02-ledger-channel" } ]'),
+);
+check("a deletion recorded as retired passes", retiredOk.exit === 0, retiredOk.out.slice(0, 300));
+
+const retiredWrongWall = await verdict(
+  withRetired(MINUS_B, 'retired = [ { id = "B", wall = "01-no-python" } ]'),
+);
 check(
-  "a LIVE grant does NOT block the ratchet, and the walls still refuse under it",
-  withLive.exit === 0 && /all refused/.test(withLive.out),
-  withLive.out.slice(0, 300),
+  "a retired entry naming the wrong wall fails",
+  retiredWrongWall.exit === 1 && /belonged to/.test(retiredWrongWall.out),
+  retiredWrongWall.out.slice(0, 300),
 );
 
-await writeToken(new Date(Date.now() - 60_000).toISOString());
-check("the expired token file is actually present (the premise)", existsSync(tokenPath));
-const withExpired = await verdict(BASE);
-check("an EXPIRED grant does NOT block the ratchet (N21)", withExpired.exit === 0, withExpired.out.slice(0, 300));
+const retiredStillPresent = await verdict(
+  withRetired(BASE, 'retired = [ { id = "B", wall = "02-ledger-channel" } ]'),
+);
+check(
+  "a retired id still present in the corpus fails",
+  retiredStillPresent.exit === 1 && /still present/.test(retiredStillPresent.out),
+  retiredStillPresent.out.slice(0, 300),
+);
 
-// A hand-edited expiry beyond the clamp is not a grant either — liveGrant rejects it, so the
-// ratchet must run rather than treat it as an open door it should stand down for.
-await writeToken(new Date(Date.now() + 365 * 24 * 3_600_000).toISOString());
-const withClamped = await verdict(BASE);
-check("an expiry past the clamp does not block either", withClamped.exit === 0, withClamped.out.slice(0, 300));
+const retiredUnknown = await verdict(
+  withRetired(BASE, 'retired = [ { id = "ZZZ", wall = "02-ledger-channel" } ]'),
+);
+check(
+  "a retired entry that retires nothing fails",
+  retiredUnknown.exit === 1 && /names nothing/.test(retiredUnknown.out),
+  retiredUnknown.out.slice(0, 300),
+);
 
-rmSync(tokenPath, { force: true });
+const RETIRED_B = 'retired = [ { id = "B", wall = "02-ledger-channel" } ]';
+const steadyBaseline = withRetired(MINUS_B, RETIRED_B);
+const steady = await verdict(steadyBaseline, steadyBaseline);
+check(
+  "a COMMITTED retirement stays green — the steady state must not punish its own record",
+  steady.exit === 0,
+  steady.out.slice(0, 300),
+);
+
+const droppedRecord = await verdict(MINUS_B, steadyBaseline);
+check(
+  "dropping a retired id from the record fails — the list is history, not a scratch pad",
+  droppedRecord.exit === 1 && /gone from the record/.test(droppedRecord.out),
+  droppedRecord.out.slice(0, 300),
+);
 
 rmSync(dir, { recursive: true, force: true });
 console.log(`${checks - failures}/${checks} checks passed`);

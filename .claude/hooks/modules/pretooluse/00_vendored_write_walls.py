@@ -22,8 +22,9 @@ Until this existed, `bun run gate` was green and the CLI-only law was
 DOCUMENTATION: nothing stopped a raw Edit to dev/campaigns/sdk.toml, which skips
 the lock, skips validate-and-rollback, and can strip the `#` notes that are the
 campaign's memory. On PreToolUse the vendored chain runs 02-ledger-channel (the
-CLI-only channel guard) and 03-grant-gate (the enforcement-surface guard); the
-rest of its modules are bound to other events and do not fire here.
+CLI-only channel guard); the rest of its modules are bound to other events and
+do not fire here. (It also ran 03-grant-gate until 2026-08-13, when the grant
+system was deleted on an operator ruling — see dev/campaigns/setup/VENDORED.md.)
 
 FAIL-CLOSED, and deliberately so. A missing `bun`, a crashed runner, or a
 timeout REFUSES the write. A guard that cannot answer must not wave writes

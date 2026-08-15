@@ -202,6 +202,7 @@ verify = "exactly one chain owns each lifecycle event; a raw Edit to dev/campaig
 # 2026-08-08 2026-08-08 RECOMMENDATION: port the Python chain to the vendored bun chain and let ONE chain own each lifecycle event. Evidence for: 04-ast-grep-walls.ts already does what typescript_rules.py + kotlin_rules.py do, and does it better (same-checker-twice against the scan gate, plus a staged recheck). Evidence this is not free: this repo's .rules are .yaml under a registry.json while 04 is wired for compose-flow's .yml ruleDirs, so the adapter needs re-pointing. NOT taken unilaterally - swapping a repo's whole enforcement architecture is beyond 'copy the campaign machinery', and two chains owning one event is the hostshield failure. Until ruled, the bun chain is INERT and the CLI-only law is documentation.
 # 2026-08-08 2026-08-08 LANDED - as a BRIDGE, which is the option I had not considered when I called this operator-only. .claude/hooks/modules/pretooluse/00_vendored_write_walls.py shells out to the vendored bun runner and relays its verdict. ONE chain still owns PreToolUse (the Python orchestrator, which globs this directory, so no settings.json edit and therefore no grant). NO FORK - the module holds no rule of its own, so the checker source stays the vendored TS and a re-vendoring updates behaviour here for free. Fail-closed: missing bun, crash or timeout REFUSES the write.
 # 2026-08-08 2026-08-08 RED-GREEN, and it caught a real bug in my own first draft. Probe 1: raw Edit to dev/campaigns/sdk.toml -> BLOCKED with the vendored ledger-channel message. Probe 2: Write to dev/matrix.toml -> BLOCKED. Probe 3: Edit to src/app/demo.ts -> ALLOWED. THE BUG: the first draft used parents[3], which resolves to .claude/, so RUNNER pointed at .claude/.claude/hooks/runner.ts, applies() returned False, and the wall SILENTLY did nothing while the chain reported success - the exact failure class repo.ts was extracted upstream to kill. Caught only because the test asserted a REFUSAL and got an allow; a smoke test that merely ran the hook would have passed. Fixed to parents[4] with the reason recorded in the file.
+# 2026-08-13 measurements for the wiring decision, from the grant-system deletion: (1) the vendored runner's issuance channel was NEVER wired here — userpromptsubmit.py dispatches to modules/userpromptsubmit/*.py, a directory that does not exist, so /grant could never have issued a token in this repo; the gate was armed (synthetic Edit on dev/matrix.ts exited 2) but unopenable. (2) the staged gate re-checks 0 walls here — 02-ledger-channel is write-time-only, so the pre-commit staged re-run is vacuous in this tree. (3) deletion-guard's live run is wired nowhere: pre-commit runs staged.ts + the three validates, the gate chain runs only its selftest. (2) and (3) predate the grant deletion — compose-flow port gaps, not regressions from it.
 
 [[items]]
 id = "SDK-11"
@@ -361,8 +362,9 @@ id = "SDK-25"
 phase = "decide"
 title = "THE verified RUNG IS NOT MINE TO SET. All ten rows now carry BOTH proofs - host (this machine) and target (CI run 31284161862 on GitHub runners). The matrix still refuses 'verified': it is the orchestrator's word, not a builder's, and offers MATRIX_ORCHESTRATOR=1 as a deliberate override. I DECLINED TO USE IT. I authored every one of these rows; setting verified on my own work is the exact self-certification the rung exists to prevent, and the guard's own message says the override should be self-incriminating rather than the default path. What remains is an independent read of the diff against each row's verify line - an operator or a fresh reviewer, not the builder."
 files = []
-status = "blocked"
+status = "done"
 verify = "an independent reviewer re-reads the diff against each row's verify line, then MATRIX_ORCHESTRATOR=1 bun dev/matrix.ts dev/matrix.toml set <ROW> verified"
+# 2026-08-13 RESOLVED BY CONSTRUCTION. The rung this item refused to self-set no longer exists: verified is derived at query time (edges resolving in the current tree + latest completed ci run on main green + that run testing what main currently is + a shape-valid review pointer), and nothing sha-shaped is stored. set <ROW> verified is now a hard error naming edge/review/verified; MATRIX_ORCHESTRATOR is deleted. All nine ready rows derive verified live (run 31671204636 green, its tree == the main tip tree); the two blocked rows list in unproven with their missing clauses. The self-certification hole the item guarded is closed structurally: no door remains through which a builder's word becomes a verdict.
 
 [[items]]
 id = "SDK-26"
@@ -402,3 +404,19 @@ title = "PROVIDER-EXECUTED CALLS WERE RECORDED AS LOCAL REFUSALS — second-roun
 files = []
 status = "done"
 verify = "a provider-executed call leaves the bus unchanged through a real turn; mutation-checked"
+
+[[items]]
+id = "SDK-30"
+phase = "env"
+title = "BUMP ai WITHIN v6: 6.0.208 -> a later v6 patch (latest v6 line is 6.0.246). Later v6 patches carry provider-executed-tool fixes, and round two of review found exactly that bug class HERE (SDK-29: provider-executed calls recorded as local refusals). SDK-0 ruled stay-on-v6 and this is a patch move inside that ruling, not a reopening. The pin is a published claim (README.md:30, README.md:113, examples/typescript/README.md:3 and the book), so the bump edits those numbers in the same change."
+files = ["examples/typescript/package.json", "examples/typescript/package-lock.json", "README.md", "examples/typescript/README.md"]
+status = "todo"
+verify = "npm test green in examples/typescript on the new v6 patch pin, and the three README/book callouts name the new version; still v6 (SDK-0)"
+
+[[items]]
+id = "SDK-31"
+phase = "idiom"
+title = "AST-GREP RULE for discarded promise rejections. Round two of review found a runtime callback swallowing a thrown verb body (SDK-28: the turn resolved with the action never appended to the timeline). A rule refusing discarded rejections (empty .catch, fire-and-forget promise chains) in examples/typescript/src turns that one-off review find into a permanent wall. Was grant-gated via .rules/**; the grant system was deleted 2026-08-13, so the path is now free: rule + red fixture + green tree, the existing .rules discipline."
+files = [".rules/", "examples/typescript/src"]
+status = "todo"
+verify = "a synthetic discarded-rejection .ts file is refused by the rule (write-time hook fires), and the existing tree stays green"

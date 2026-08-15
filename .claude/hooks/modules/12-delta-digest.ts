@@ -85,7 +85,7 @@ const ENFORCEMENT_AREAS: readonly { readonly key: string; readonly glob: string;
   //   package.json    the gate CHAIN — dropping `gate:ratchet` from one line leaves CI green with
   //                   the load-bearing defence never invoked
   //   sgconfig.yml    which rule directories are scanned
-  // A legitimate, granted edit to any of them is exactly the case where dependent seats most need
+  // A legitimate edit to any of them is exactly the case where dependent seats most need
   // to be told, because nothing about it looks like a weakening in a diff.
   { key: "walls:wiring", glob: "settings.json", cwd: ".claude" },
   { key: "walls:githooks", glob: "*", cwd: "dev/githooks" },
