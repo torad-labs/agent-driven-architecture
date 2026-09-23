@@ -39,3 +39,10 @@ updates:
     commit-message:
       prefix: chore(actions)
     open-pull-requests-limit: 5
+    ignore:
+      # v1.75.0 swapped the linter inside this action from rhysd/actionlint to a
+      # fork (kjanat/actionlint 1.17.0; reviewdog/action-actionlint#234) whose
+      # cache-mode rule upstream actionlint, the org workflow lint, rejects as
+      # a syntax error. Stay upstream until that is resolved on purpose.
+      - dependency-name: reviewdog/action-actionlint
+        versions: ['>=1.75.0']
