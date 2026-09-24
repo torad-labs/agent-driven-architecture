@@ -51,6 +51,6 @@ updates:
       # SHA together with the `harness-ref` it is paired with. A Dependabot bump
       # moves the `uses:` pin alone and splits the pair (kandibuddy#148). The
       # dependency is named by its full path, e.g.
-      # torad-labs/github-operator/.github/workflows/reusable-agent-review.yml,
+      # torad-labs/github-operator/.github/workflows/reusable-secret-scan.yml,
       # hence the trailing wildcard.
       - dependency-name: torad-labs/github-operator/*
