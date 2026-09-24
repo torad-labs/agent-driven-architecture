@@ -46,3 +46,11 @@ updates:
       # a syntax error. Stay upstream until that is resolved on purpose.
       - dependency-name: reviewdog/action-actionlint
         versions: ['>=1.75.0']
+      # The operator's own reusable workflows. github-operator owns these pins
+      # and re-pins every consumer through template-sync, moving each `uses:`
+      # SHA together with the `harness-ref` it is paired with. A Dependabot bump
+      # moves the `uses:` pin alone and splits the pair (kandibuddy#148). The
+      # dependency is named by its full path, e.g.
+      # torad-labs/github-operator/.github/workflows/reusable-agent-review.yml,
+      # hence the trailing wildcard.
+      - dependency-name: torad-labs/github-operator/*
