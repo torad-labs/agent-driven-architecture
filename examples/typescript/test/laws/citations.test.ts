@@ -38,9 +38,11 @@ import {
   ELEMENT_ID,
   EXTERNAL,
   HEAD,
+  isManaged,
   LAW,
   LAW_CELL,
   LAW_LABEL,
+  MANAGED,
   MARKED,
   NAV_LABEL,
   NUMBER_LABEL,
@@ -126,7 +128,9 @@ function walk(dir: string, out: string[]): string[] {
 const liveCorpus: CorpusFile[] = [
   ...ROOTS.flatMap((root) => walk(join(REPO, root), [])),
   ...EXTRA.map((name) => join(REPO, name)),
-].map((full) => ({ path: full.slice(REPO.length + 1), text: readFileSync(full, "utf8") }));
+]
+  .map((full) => ({ path: full.slice(REPO.length + 1), text: readFileSync(full, "utf8") }))
+  .filter((file) => !isManaged(file.text));
 
 const sections = bookSections(readFileSync(join(REPO, "wiki", "index.html"), "utf8"));
 const lawIds = new Set(
@@ -552,7 +556,11 @@ const FILE_PIN: Record<string, number> = {
   // 1 -> 3: main added `.github/dependabot.yml` and
   // `.github/workflows/dependabot-automerge.yml`; both are config that cites
   // nothing, so the FILE count rises while the resolvable count does not.
-  ".github": 3,
+  // 3 -> 1: both of those files carry github-operator's MANAGED FILE header and
+  // are that repository's prose, synced over any local edit, so the corpus
+  // leaves them out by that header (`isManaged`). The CI workflow is ours and
+  // stays. A managed file dropping its header comes back into the count.
+  ".github": 1,
 };
 
 describe("citations resolve — one public namespace", () => {
@@ -594,6 +602,9 @@ describe("citations resolve — one public namespace", () => {
     expect(LAW.source).toBe("\\bG\\d+\\b");
     expect(CID.source).toBe("\\bC\\d{1,2}\\b");
     expect(COMMENT.source).toBe("^\\s*(\\/\\/|\\/\\*|\\*|#)");
+    expect(MANAGED.source).toBe(
+      "^# ---\\n# MANAGED FILE — do not edit here\\.\\n# Source: torad-labs\\/github-operator ",
+    );
     expect([...CODE]).toEqual([".ts", ".kt", ".kts", ".js", ".yml", ".yaml"]);
     expect([...DATA]).toEqual([".json", ".toml"]);
     expect([...PROSE]).toEqual([".md", ".html"]);
@@ -636,6 +647,32 @@ describe("citations resolve — one public namespace", () => {
 
   it("cites no check id as book authority", () => {
     expect(live.bookCid.map((h) => `${h.where}  ${h.text}`)).toEqual([]);
+  });
+
+  it("LEAVES OUT a file github-operator manages, by the header it carries and nothing else", () => {
+    // The hole this closes, measured: github-operator synced `.github/dependabot.yml`
+    // with a comment naming `kjanat/actionlint 1.17.0`, the bare-number rule read
+    // it as §1.17.0, and main went red on a file this repository may not edit.
+    const header = readFileSync(join(REPO, ".github", "dependabot.yml"), "utf8")
+      .split("\n")
+      .slice(0, 5)
+      .join("\n");
+    const body = "# fork (kjanat/actionlint 1.17.0)\nversion: 2\n";
+    expect(isManaged(`${header}\n${body}`)).toBe(true);
+    expect(liveCorpus.map((file) => file.path)).not.toContain(".github/dependabot.yml");
+    expect(liveCorpus.map((file) => file.path)).toContain(".github/workflows/ci.yml");
+    // Without the header the same text is ours, and its version is the phantom it reads as.
+    expect(isManaged(body)).toBe(false);
+    const ours = citationProblems(
+      [{ path: ".github/dependabot.yml", text: body }],
+      sections,
+      lawIds,
+    );
+    expect(ours.phantomSection.map((h) => `${h.where}  ${h.text}`)).toEqual([
+      ".github/dependabot.yml:1  §1.17.0",
+    ]);
+    // The header counts only where the sync writes it, at the top: quoted lower down it is prose.
+    expect(isManaged(`${body}${header}\n`)).toBe(false);
   });
 
   it("EVERY LIVE BUCKET IS PINNED — the loop cannot skip one it has no key for", () => {
