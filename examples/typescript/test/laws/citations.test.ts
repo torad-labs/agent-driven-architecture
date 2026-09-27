@@ -125,12 +125,15 @@ function walk(dir: string, out: string[]): string[] {
   return out;
 }
 
-const liveCorpus: CorpusFile[] = [
+const walked: CorpusFile[] = [
   ...ROOTS.flatMap((root) => walk(join(REPO, root), [])),
   ...EXTRA.map((name) => join(REPO, name)),
-]
-  .map((full) => ({ path: full.slice(REPO.length + 1), text: readFileSync(full, "utf8") }))
-  .filter((file) => !isManaged(file.text));
+].map((full) => ({ path: full.slice(REPO.length + 1), text: readFileSync(full, "utf8") }));
+/** The files github-operator writes (`isManaged`), left out of the corpus. The
+ *  header decides, and the set it decided is pinned as a literal below, so a
+ *  header on any other file is a red diff, never a quiet exclusion. */
+const liveCorpus = walked.filter((file) => !isManaged(file.text));
+const MANAGED_PATHS = walked.filter((file) => !liveCorpus.includes(file)).map((file) => file.path);
 
 const sections = bookSections(readFileSync(join(REPO, "wiki", "index.html"), "utf8"));
 const lawIds = new Set(
@@ -659,8 +662,12 @@ describe("citations resolve — one public namespace", () => {
       .join("\n");
     const body = "# fork (kjanat/actionlint 1.17.0)\nversion: 2\n";
     expect(isManaged(`${header}\n${body}`)).toBe(true);
-    expect(liveCorpus.map((file) => file.path)).not.toContain(".github/dependabot.yml");
-    expect(liveCorpus.map((file) => file.path)).toContain(".github/workflows/ci.yml");
+    // Exactly the two files github-operator's manifest syncs here. A new sync, or the
+    // header pasted onto a file of ours, moves this literal in the same diff.
+    expect([...MANAGED_PATHS].sort()).toEqual([
+      ".github/dependabot.yml",
+      ".github/workflows/dependabot-automerge.yml",
+    ]);
     // Without the header the same text is ours, and its version is the phantom it reads as.
     expect(isManaged(body)).toBe(false);
     const ours = citationProblems(
@@ -673,6 +680,11 @@ describe("citations resolve — one public namespace", () => {
     ]);
     // The header counts only where the sync writes it, at the top: quoted lower down it is prose.
     expect(isManaged(`${body}${header}\n`)).toBe(false);
+    // And only whole: a near miss on any of its three lines is a file of ours.
+    const [rule, notice, source] = header.split("\n");
+    expect(isManaged(`${rule}\n# not managed\n${source}\n${body}`)).toBe(false);
+    expect(isManaged(`${rule}\n${notice}\n# Source: torad-labs/other-repo x\n${body}`)).toBe(false);
+    expect(isManaged(`${notice}\n${source}\n${body}`)).toBe(false);
   });
 
   it("EVERY LIVE BUCKET IS PINNED — the loop cannot skip one it has no key for", () => {

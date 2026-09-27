@@ -125,7 +125,8 @@ export const ROOT_KEYS = ["examples/typescript", "examples/kotlin", "wiki", ".gi
  * repository's prose and never a citation of this book. Judged as ours, a version in one
  * (`kjanat/actionlint 1.17.0`) read as a phantom §1.17.0 and turned main red, and editing the
  * comment here would only be synced away. The corpus leaves such a file out by the header it
- * carries, never by its path: a file this repository writes under `.github/` is always read.
+ * carries, and the census test pins the paths that header dropped, so the header on any other
+ * file is a red diff, never a quiet exclusion.
  */
 export const MANAGED =
   /^# ---\n# MANAGED FILE — do not edit here\.\n# Source: torad-labs\/github-operator /;
