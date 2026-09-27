@@ -119,6 +119,19 @@ export const CID = /\bC\d{1,2}\b/g;
 /** The roots the census counts, in the order the floors are pinned. */
 export const ROOT_KEYS = ["examples/typescript", "examples/kotlin", "wiki", ".github"] as const;
 
+/**
+ * A file another repository writes: github-operator syncs its templates into `.github/` under
+ * this header and overwrites any local edit on the next sync, so its comments are that
+ * repository's prose and never a citation of this book. Judged as ours, a version in one
+ * (`kjanat/actionlint 1.17.0`) read as a phantom §1.17.0 and turned main red, and editing the
+ * comment here would only be synced away. The corpus leaves such a file out by the header it
+ * carries, and the census test pins the paths that header dropped, so the header on any other
+ * file is a red diff, never a quiet exclusion.
+ */
+export const MANAGED =
+  /^# ---\n# MANAGED FILE — do not edit here\.\n# Source: torad-labs\/github-operator /;
+export const isManaged = (text: string): boolean => MANAGED.test(text);
+
 const ext = (path: string): string => {
   const dot = path.lastIndexOf(".");
   return dot < 0 ? "" : path.slice(dot);
