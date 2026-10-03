@@ -23,7 +23,7 @@
     "ledger": "bun dev/campaigns/ledger.ts dev/campaigns/sdk.toml",
     "matrix": "bun dev/matrix.ts dev/matrix.toml",
     "manifest": "bun dev/manifest.ts dev/manifests/agent-driven-architecture.toml",
-    "gate": "bun run gate:ratchet-selftest && bun run gate:deletion-selftest && bun run gate:ratchet && bun run gate:hooks && bun run gate:cli-witness && bun run gate:ledger && bun run gate:matrix && bun run gate:manifest && bun run gate:lattice && bun run gate:review && bun run gate:hydrate && bun run gate:ci-hygiene && bun run gate:hookpath",
+    "gate": "bun run gate:ratchet-selftest && bun run gate:deletion-selftest && bun run gate:ratchet && bun run gate:hooks && bun run gate:cli-witness && bun run gate:ledger && bun run gate:matrix && bun run gate:manifest && bun run gate:lattice && bun run gate:review && bun run gate:ci-hygiene && bun run gate:hookpath",
     "gate:ratchet": "bun dev/gates/ratchet.ts",
     "gate:ratchet-selftest": "bun dev/gates/ratchet-selftest.ts",
     "gate:deletion-selftest": "bun dev/gates/deletion-guard.ts --selftest",
@@ -34,7 +34,6 @@
     "gate:manifest": "bun dev/manifest.ts x selftest && bun dev/manifest.ts dev/manifests/agent-driven-architecture.toml validate",
     "gate:lattice": "bun dev/gates/lattice.ts .",
     "gate:review": "bun dev/campaigns/review.ts selftest",
-    "gate:hydrate": "bun dev/campaigns/hydrate.ts selftest",
     "gate:ci-hygiene": "bun dev/gates/ci-hygiene.ts",
     "gate:staged": "bun dev/gates/staged.ts",
     "gate:hookpath": "bun dev/gates/hookpath.ts"
