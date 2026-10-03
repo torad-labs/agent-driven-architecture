@@ -22,38 +22,16 @@
 # validate-and-rollback, and risks stripping these comments — which are the memory.
 #
 # ── THE LAWS ───────────────────────────────────────────────────────────────────────────────────
-# LAW: the-book-is-the-spec — a demo is judged against the book, never the reverse. A book law is
-# LAW:   never scoped to a platform; where a port diverges, the finding is against the PORT.
-# LAW: sdk-idiom-is-not-architecture — the ADA block/boundary/fold design is LOCKED and is not
-# LAW:   what this campaign touches. What is in scope is the port's use of its runtime. Never
-# LAW:   relitigate a settled architectural decision to make an SDK feature fit.
-# LAW: the-verb-is-the-leverage-point — spine/pure/verb.ts has slots for six things, so no block
-# LAW:   CAN express tool lifecycle, approval policy, per-tool context, examples or model-facing
-# LAW:   output shaping. Every downstream absence follows from that one type. Widen it, or the
-# LAW:   rest is cosmetics.
-# LAW: a-port-is-not-a-two-field-return — ports/model-provider.ts reduces the SDK result to
-# LAW:   {steps, text}, discarding usage, finishReason, toolCalls, reasoning, sources, warnings
-# LAW:   and providerMetadata. LanguageModel IS the port; re-abstracting it is a worse copy of
-# LAW:   the standard the SDK exists to provide.
-# LAW: read-the-docs-not-the-types — this campaign was opened after an audit run off .d.ts files
-# LAW:   recommended `needsApproval`, which the live docs reserve for WorkflowAgent. Every API
-# LAW:   claim cites the published documentation, never inference from a type signature.
-# LAW: verify-against-installed — every "the SDK offers X" claim is checked against the version
-# LAW:   actually in node_modules before it is written down. Docs describe 7.x; this tree runs
-# LAW:   6.0.208, and runtimeContext/toolsContext/isStepCount do not exist here.
-# LAW: walls-before-buildings — a guard is red-green proven against a SYNTHETIC violation before
-# LAW:   the artifact it protects exists. A guard nobody has watched refuse is not known to work.
-# LAW: declare-then-earn — status advances only when the named proof exists. Fail-closed.
-# LAW: expected-delta-instrument — verification is predicted delta vs observed delta, never
-# LAW:   "green". A number that should have moved and did not is a false landing.
-# LAW: honesty-as-control-flow — a claim that outruns its diff poisons the loop. The report
-# LAW:   describes the tree, not the intention.
-# LAW: premise-check-is-load-bearing — a wrong premise in a brief is REPORTED, not obeyed,
-# LAW:   including when the brief came from the orchestrator.
-# LAW: no-self-grants — a seat never widens its own walls. Grants come from the operator, out of
-# LAW:   band. A blocked write is fixed or escalated, never bypassed and never renamed to dodge.
-# LAW: both-ports-or-neither — this repo ships TypeScript and Kotlin reference ports. An SDK
-# LAW:   idiom fix is TS-local by nature, but any BOOK text it changes must hold for both.
+# LAW: the-book-is-the-spec — a demo is judged against the book, never the reverse; a book law is never platform-scoped, and where a port diverges the finding is against the PORT.
+# LAW: sdk-idiom-is-not-architecture — the ADA block/boundary/fold design is LOCKED; change only the port's use of its runtime, never relitigate the architecture to fit an SDK feature.
+# LAW: the-verb-is-the-leverage-point — what a block can tell the model is bounded by VerbSpec in spine/pure/verb.ts; widen that type first, or the downstream SDK fixes are cosmetic.
+# LAW: a-port-is-not-a-two-field-return — TurnOutcome carries finishReason, usage and warnings, never just {steps,text}; the port itself stays SDK-free (C11, locked; see SDK-2).
+# LAW: read-the-docs-not-the-types — every SDK API claim cites the published docs, never a .d.ts signature (a .d.ts audit once recommended needsApproval, which is WorkflowAgent-only).
+# LAW: verify-against-installed — every "the SDK offers X" claim is checked against the ai version in node_modules (6.0.208) before it is written; the docs describe 7.x.
+# LAW: honesty-as-control-flow — a claim that outruns its diff poisons the loop; a report describes the tree, not the intention.
+# LAW: premise-check-is-load-bearing — a wrong premise in a brief is REPORTED, not obeyed, including when the brief came from the orchestrator.
+# LAW: no-self-grants — a seat never widens its own walls: a blocked write is fixed or escalated, never bypassed and never renamed to dodge.
+# LAW: both-ports-or-neither — this repo ships TypeScript and Kotlin reference ports; an SDK idiom fix is TS-local, but any BOOK text it changes must hold for both.
 # ═══════════════════════════════════════════════════════════════════════════════════════════════
 
 [[items]]

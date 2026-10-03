@@ -188,10 +188,6 @@ check(
 
 // review protocol selftest is separate file; witness that the binary exists
 check(
-  "hydrate.ts selftest",
-  (await Bun.spawn(["bun", `${repo}/dev/campaigns/hydrate.ts`, "selftest"], { stdout: "pipe", stderr: "pipe" }).exited) === 0,
-);
-check(
   "review.ts is loadable",
   (await Bun.spawn(["bun", `${repo}/dev/campaigns/review.ts`, "selftest"], { stdout: "pipe", stderr: "pipe" }).exited) === 0,
 );

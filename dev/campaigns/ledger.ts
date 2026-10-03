@@ -28,15 +28,8 @@ import {
   type ItemBlock,
   type ItemStatus,
 } from "./ledger-core.ts";
-import {
-  assertItemMandates,
-  handleLedgerEarn,
-} from "./ledger-earn.ts";
-import {
-  parseDepends,
-  parseRequires,
-  parseReviews,
-} from "./earn-core.ts";
+import { handleLedgerEarn } from "./ledger-earn.ts";
+import { parseDepends } from "./earn-core.ts";
 
 const USAGE = `usage: bun dev/campaigns/ledger.ts <ledger.toml> <command> [args]
 
@@ -52,11 +45,6 @@ write
   set-status <ID> <status>          ${ITEM_STATUSES.join(" | ")}
   note <ID> "text"                  append a dated note (never rewrites history)
   depends <ID> <dep[,…]>
-  require <ID> <done|verified> <slug[,…]>
-  remedy <ID>
-  (hydrate closed items: bun dev/campaigns/hydrate.ts <ledger> <ID>)
-  claim <ID> <seat>                 record ownership with a liveness stamp
-  release-stale [--minutes N]       release claims older than N minutes (default 60)
   add-law "text"                    append a law to the header
   amend-header <old> <new>          replace a line in the header
   amend <ID> [--title T] [--verify V] [--files a,b]
@@ -133,18 +121,7 @@ function renderItem(lines: readonly string[], block: ItemBlock): string {
     body.push(`  claim  : ${item.claimedBy} since ${item.claimedAt ?? "unknown"}`);
   }
   const depends = parseDepends(notes);
-  const req = parseRequires(notes);
-  const reviews = parseReviews(notes);
   if (depends.length > 0) body.push(``, `  depends: ${depends.join(", ")}`);
-  if (req.ready.length || req.verified.length) {
-    body.push(``, `  mandates:`);
-    if (req.ready.length) body.push(`    done/ready : ${req.ready.join(", ")}`);
-    if (req.verified.length) body.push(`    verified   : ${req.verified.join(", ")}`);
-  }
-  if (reviews.length > 0) {
-    body.push(``, `  reviews: ${reviews.length}/3`);
-    for (const r of reviews) body.push(`    · #${r.n} ${r.verdict} ${r.artifact}`);
-  }
   if (notes.length > 0) {
     body.push(``, `  notes (append-only — the construction diary):`);
     for (const note of notes) body.push(`    ${note}`);
@@ -191,36 +168,25 @@ function renderPacket(lines: readonly string[], block: ItemBlock): string {
     ...(() => {
       const notes = notesOf(lines, block);
       const depends = parseDepends(notes);
-      const req = parseRequires(notes);
       const parts: string[] = [];
       if (depends.length) {
         parts.push(`DEPENDS (finish these first):`, ...depends.map((d) => `  ${d}`), ``);
-      }
-      if (req.ready.length || req.verified.length) {
-        parts.push(`MANDATES (earned-row; status refused without receipts):`);
-        if (req.ready.length) parts.push(`  done     : ${req.ready.join(", ")}`);
-        if (req.verified.length) parts.push(`  verified : ${req.verified.join(", ")}`);
-        parts.push(
-          `  review-clean → subagents: bun dev/campaigns/review.ts prepare ${item.id} --diff <range>`,
-          ``,
-        );
       }
       return parts;
     })(),
     `LAWS IN FORCE:`,
     laws.length === 0 ? `  (none in header)` : laws.join("\n"),
     ``,
-    `REPORTING:`,
-    `  Write landing details as ledger notes:`,
-    `    bun dev/campaigns/ledger.ts <ledger> note ${item.id} "..."`,
-    `  Then send exactly one line: "${item.id} done — see ledger".`,
-    `  Long prose over the channel is the anti-pattern; the note IS the report.`,
+    `FINISH (global CLAUDE.md §16-17):`,
+    `  Scoped tests and the typecheck green, then:`,
+    `    bun dev/campaigns/ledger.ts <ledger> note ${item.id} "<command> exit=<n> <tests>"`,
+    `    bun dev/campaigns/ledger.ts <ledger> set-status ${item.id} done`,
+    `  Then ONE commit of the row's files and the ledger, by explicit path, message starting ${item.id}.`,
+    `  Send exactly one line: "${item.id} done — see ledger". The note IS the report.`,
     ``,
     `PREMISE CHECK:`,
     `  If anything in this packet contradicts the repo, REPORT it — do not obey it. A wrong`,
     `  premise from the orchestrator is still a wrong premise.`,
-    ``,
-    `DO NOT COMMIT. The orchestrator holds the single gated commit point.`,
   ].join("\n");
 }
 
@@ -283,9 +249,8 @@ async function main(): Promise<number> {
    * orchestrator sets verified" is the CAMPAIGN law, so the ledger is the plane where it matters
    * most and it was the plane without the gate. Any seat could close its own item as verified.
    *
-   *   done      a builder claims it landed
-   *   verified  the orchestrator independently re-ran the gates, read the diff, and confirmed
-   *             against the packet
+   *   done      a builder finished it: scoped tests green, noted, committed
+   *   verified  the orchestrator sets it once the milestone's PR has landed green
    *
    * Same honest limit as everywhere else: on a NOPASSWD host a builder that wants to set this can.
    * What the check buys is that doing so becomes deliberate and self-incriminating rather than the
@@ -299,9 +264,8 @@ async function main(): Promise<number> {
   if (claimsVerified && (process.env[ORCHESTRATOR_ENV] ?? "") !== "1") {
     throw new LedgerError(
       `"verified" is the orchestrator's word, not a builder's.\n\n` +
-        `  done      a builder claims it landed\n` +
-        `  verified  the orchestrator independently re-ran the gates, read the diff, and\n` +
-        `            confirmed against the packet\n\n` +
+        `  done      a builder finished it: scoped tests green, noted, committed\n` +
+        `  verified  the orchestrator sets it once the milestone's PR has landed green\n\n` +
         `Set it to "done" and report; the orchestrator verifies. If you ARE the orchestrator,\n` +
         `re-run with ${ORCHESTRATOR_ENV}=1 set inline.\n\n` +
         `Stated plainly: on a NOPASSWD host a builder that wants to set this can. What the check\n` +
@@ -355,9 +319,7 @@ async function main(): Promise<number> {
       const status = positional(rest, 1, `a status (${ITEM_STATUSES.join("|")})`);
       if (!isItemStatus(status)) throw new LedgerError(`"${status}" is not a status`);
       await mutate(ledgerPath, (current) => {
-        const block = findBlock(locateItems(current), id);
-        assertItemMandates(id, status, notesOf(current, block));
-        return withStatus(current, block, status);
+        return withStatus(current, findBlock(locateItems(current), id), status);
       });
       console.log(`${id} → ${status}`);
       return 0;
@@ -370,49 +332,6 @@ async function main(): Promise<number> {
         withNote(current, findBlock(locateItems(current), id), text),
       );
       console.log(`${id}: note appended`);
-      return 0;
-    }
-
-    case "claim": {
-      const id = positional(rest, 0, "an item id");
-      const seat = positional(rest, 1, "a seat name");
-      await mutate(ledgerPath, (current) => {
-        const block = findBlock(locateItems(current), id);
-        if (block.item.claimedBy !== undefined && block.item.claimedBy !== seat) {
-          throw new LedgerError(
-            `${id} is already claimed by ${block.item.claimedBy} since ${block.item.claimedAt} — ` +
-              `use release-stale if that seat is dead`,
-          );
-        }
-        const withSeat = withField(current, block, "claimed_by", seat);
-        const relocated = findBlock(locateItems(withSeat), id);
-        return withField(withSeat, relocated, "claimed_at", new Date().toISOString());
-      });
-      console.log(`${id} claimed by ${seat}`);
-      return 0;
-    }
-
-    case "release-stale": {
-      const minutes = Number.parseInt(flag(rest, "minutes") ?? "60", 10);
-      const cutoff = Date.now() - minutes * 60_000;
-      const stale = blocks.filter((block) => {
-        if (block.item.claimedAt === undefined) return false;
-        return Date.parse(block.item.claimedAt) < cutoff;
-      });
-
-      for (const block of stale) {
-        await mutate(ledgerPath, (current) => {
-          const located = findBlock(locateItems(current), block.item.id);
-          const cleared = withField(current, located, "claimed_by", null);
-          const relocated = findBlock(locateItems(cleared), block.item.id);
-          return withField(cleared, relocated, "claimed_at", null);
-        });
-      }
-      console.log(
-        stale.length === 0
-          ? `no claims older than ${minutes}m`
-          : `released ${stale.map((block) => block.item.id).join(", ")}`,
-      );
       return 0;
     }
 
@@ -606,7 +525,6 @@ async function selftest(): Promise<number> {
 
   await run("set-status", "H1", "in_flight");
   await run("note", "H1", "a note added by the selftest");
-  await run("claim", "H1", "builder-1");
 
   const afterWrites = await Bun.file(path).text();
 
@@ -619,10 +537,8 @@ async function selftest(): Promise<number> {
   check("the note is dated", new RegExp(`# ${today()} a note added`).test(afterWrites));
 
   check("set-status took effect", (await run("get", "H1")).includes("[in_flight]"));
-  check("claim recorded the seat", (await run("get", "H1")).includes("builder-1"));
-  check("a second claim by another seat is refused", (await run("claim", "H1", "builder-2")).includes("already claimed"));
-  check("release-stale spares a fresh claim", (await run("release-stale", "--minutes", "60")).includes("no claims older"));
-  check("release-stale releases an old one", (await run("release-stale", "--minutes", "0")).includes("H1"));
+  check("done needs no receipt or review", (await run("set-status", "H1", "done")).includes("H1 → done"));
+  check("packet tells the builder to commit its row", (await run("packet", "H1")).includes("ONE commit"));
 
   await run("add", "--id", "H3", "--phase", "harness", "--title", "third", "--verify", "bun run gate");
   check("add created the item", (await run("get", "H3")).includes("third"));
