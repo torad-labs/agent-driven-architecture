@@ -194,3 +194,12 @@ refuses a stored `verified` and a stray `target_proof` — same checkers at both
 
 This lands with the ratchet `retired` channel as one promotion unit to compose-flow and
 eli-operator per the divergence policy, with `selftest` run at each vendoring.
+
+## Removed after vendoring — THE SESSIONSTART LAW DUMP (operator ruling, 2026-09-22)
+
+**Laws reach seats in the packet, never in a SessionStart dump.** Retired 2026-10-03 on that
+ruling: `.claude/hooks/modules/10-law-injection.ts`, its registry entry, and its selftest checks.
+The ledger header stays the single source of the laws; `ledger.ts packet <ID>` renders them into
+every dispatch, and the ledger CLI's selftest asserts "packet carries the laws". The
+`11-inflight-reanchor` module stays: it restores the open work, not the laws. Splice retired its
+dump the same day the ruling was made.

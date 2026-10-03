@@ -26,7 +26,7 @@ export type HookPayload = {
 
 /**
  * `block` refuses the action and shows `reason` to the agent. `context` injects text into the
- * session without refusing anything — the mechanism the law-injection and re-anchor modules ride.
+ * session without refusing anything — the mechanism the re-anchor and digest modules ride.
  * `null` is the silent path and MUST cost zero bytes: a module with nothing to say says nothing,
  * because an always-on injection is a per-turn tax on every future turn.
  */

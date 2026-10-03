@@ -89,54 +89,16 @@ await allows(
 const repo = process.cwd();
 const live: HookPayload = { cwd: repo, session_id: "selftest" };
 
-// PORT NOTE (2026-08-07). Upstream these two named `make-drift-not-compile` and the no-python
-// law. Neither is in THIS ledger's header, so both were substituted for laws that are — the check
-// asserts "the text came from the ledger", and it is only meaningful when the string it looks for
-// is one no hook could plausibly hardcode.
-//
-// The three constants are not ceremony either: this host repo ships a `no-magic-strings` rule that
-// refuses a discriminant compared against a literal, and it BLOCKED the first two spellings of
-// this edit. Fixed rather than annotated past.
-const CONTEXT_KIND = "context";
-const LEDGER_ONLY_LAW = "the-verb-is-the-leverage-point";
-const ORIGINATING_LAW = "read-the-docs-not-the-types";
+// ── 10-law-injection — RETIRED 2026-10-03 ────────────────────────────────────────────────────
+// Operator ruling, 2026-09-22: laws reach seats in the ledger's `packet`, never in a SessionStart
+// dump. The module and its checks were deleted together; the packet carrying the laws is asserted
+// by the ledger CLI's own selftest (gate:ledger). Recorded in dev/campaigns/setup/VENDORED.md.
 
-const laws = await verdictOf("10-law-injection", live);
-check("law injection produces context", laws?.kind === CONTEXT_KIND);
-const lawText = laws !== null && laws.kind === CONTEXT_KIND ? laws.text : "";
+// SessionStart is the channel that ACTUALLY injects, and the one a compaction resumes through
+// (source "compact"); PreCompact stdout goes to the debug log.
 check(
-  "the laws it injects come FROM THE LEDGER, not from the hook",
-  lawText.includes(LEDGER_ONLY_LAW),
-  "a hardcoded copy in the module would drift the first time a law was amended",
-);
-check(
-  "law injection carries this campaign's originating law",
-  lawText.includes(ORIGINATING_LAW),
-);
-
-// HONESTY-RECONCILE, 2026-07-27. These two checks previously read "wired to PreCompact, SO THE
-// LAWS SURVIVE A COMPACTION". That asserted the wrong mechanism, and I reported a "simulated
-// compaction" as proof it worked when all it proved was that the MODULE works.
-//
-// Per Claude Code's documented behaviour, only UserPromptSubmit and SessionStart inject a hook's
-// stdout into the conversation. PreCompact stdout goes to the debug log. So the PreCompact
-// registration delivers nothing to the session.
-//
-// The laws DO survive compaction — via SessionStart with source "compact", which fires on the
-// resumed session. That is the mechanism, and it is what these now assert. The PreCompact
-// registration is kept because it is harmless and would become live if the channel ever injects,
-// but it is no longer described as the thing that carries the laws across.
-check(
-  "law injection is wired to SessionStart — the channel that ACTUALLY injects, and the one a compaction resumes through",
-  registry.find((entry) => entry.name === "10-law-injection")?.events.includes("SessionStart") === true,
-);
-check(
-  "re-anchor is wired to SessionStart too",
+  "re-anchor is wired to SessionStart",
   registry.find((entry) => entry.name === "11-inflight-reanchor")?.events.includes("SessionStart") === true,
-);
-check(
-  "PreCompact registration is retained but is NOT the delivery mechanism (documented, not load-bearing)",
-  registry.find((entry) => entry.name === "10-law-injection")?.events.includes("PreCompact") === true,
 );
 
 // R4 — THE SELFTEST MUST NOT CLOBBER LIVE RUNTIME STATE.
@@ -262,11 +224,12 @@ const names = registry.map((entry) => entry.name).join(",");
 check(
   "chain is exactly the declared walls plus lifecycle and audit modules",
   names ===
-    // agent-driven-architecture roster: 01-no-python and 04-ast-grep-walls never came across, and
-    // 03-grant-gate/20-grant-issue were deleted 2026-08-13 (operator ruling) — all four absences
-    // are recorded in dev/campaigns/setup/VENDORED.md. This literal is what keeps them DELIBERATE
-    // rather than a chain that quietly lost links.
-    "02-ledger-channel,10-law-injection,11-inflight-reanchor,12-delta-digest,13-stop-beacon,30-bash-audit",
+    // agent-driven-architecture roster: 01-no-python and 04-ast-grep-walls never came across,
+    // 03-grant-gate/20-grant-issue were deleted 2026-08-13 (operator ruling), and 10-law-injection
+    // was retired 2026-10-03 (operator ruling 2026-09-22) — all five absences are recorded in
+    // dev/campaigns/setup/VENDORED.md. This literal is what keeps them DELIBERATE rather than a
+    // chain that quietly lost links.
+    "02-ledger-channel,11-inflight-reanchor,12-delta-digest,13-stop-beacon,30-bash-audit",
   `got: ${names}`,
 );
 check(

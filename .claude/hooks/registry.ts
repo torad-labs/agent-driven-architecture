@@ -8,9 +8,10 @@
  * quietly lose a link.
  *
  * 01-09  WALLS      PreToolUse. Refuse writes that would put the tree in a shape it must not take.
- * 10-19  LIFECYCLE  Session boundaries. Carry the laws and the open work across a context that
- *                   does not survive — a seat that woke up without them is holding write access
- *                   to a tree shaped by rules it cannot recall.
+ * 10-19  LIFECYCLE  Session boundaries. Carry the open work across a context that does not
+ *                   survive. The laws are NOT carried here: 10-law-injection was retired
+ *                   2026-10-03 on the operator ruling of 2026-09-22 — laws reach seats in the
+ *                   ledger's `packet`, never in a SessionStart dump. See VENDORED.md.
  * (The 20-29 OPERATOR band is empty: the grant system it held was deleted 2026-08-13 on an
  *  operator ruling — "the grant system is dead". Its issuance channel was never even wired in
  *  this repo — no userpromptsubmit module exists to fire 20-grant-issue. See VENDORED.md.)
@@ -27,7 +28,6 @@
 // repo's .yml ruleDirs, while this tree's .rules are .yaml under a registry.json.
 // Both are PRODUCT decisions, not machinery, and travel no better than a decision book.
 import ledgerChannel from "./modules/02-ledger-channel.ts";
-import lawInjection from "./modules/10-law-injection.ts";
 import inflightReanchor from "./modules/11-inflight-reanchor.ts";
 import deltaDigest from "./modules/12-delta-digest.ts";
 import stopBeacon from "./modules/13-stop-beacon.ts";
@@ -36,7 +36,6 @@ import type { HookModule } from "./types.ts";
 
 export const registry: readonly HookModule[] = [
   ledgerChannel,
-  lawInjection,
   inflightReanchor,
   deltaDigest,
   stopBeacon,
