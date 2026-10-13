@@ -30,8 +30,8 @@
 # bare deletion is red on this machine and in CI.
 #
 # VENDORED from eli-operator 2026-07-27. The entries below cover the harness walls, which apply
-# here unchanged. compose-flow s OWN walls (W-01..W-07 in dev/campaigns/setup/06-WALLS.md) add
-# their entries as part of campaign item W-ALL — each proven red against the violation shipped
+# here unchanged. compose-flow s OWN walls add
+# their entries as they are vendored — each proven red against the violation shipped
 # beside its rule, BEFORE the module it protects exists.
 # ═══════════════════════════════════════════════════════════════════════════════════════════════
 
@@ -73,48 +73,17 @@ retired = [
   { id = "GRANT-grant-path-wall", wall = "03-grant-gate" },
   { id = "GRANT-ci-hygiene", wall = "03-grant-gate" },
   { id = "GRANT-manifest-cli", wall = "03-grant-gate" },
+
+  # 2026-10-10 OPERATOR RULING: "Remove the ledger machinery, we're done with that." The campaign
+  # ledger, its CLI, and its manifest and matrix planes were deleted, and the 02-ledger-channel wall
+  # that guarded them went with them. These five entries asserted refusals by that wall; the wall is
+  # gone, so the entries retire rather than fail forever.
+  { id = "LEDGER-campaign", wall = "02-ledger-channel" },
+  { id = "LEDGER-matrix", wall = "02-ledger-channel" },
+  { id = "LEDGER-manifest", wall = "02-ledger-channel" },
+  { id = "LEDGER-manifest-new", wall = "02-ledger-channel" },
+  { id = "LEDGER-second-campaign", wall = "02-ledger-channel" },
 ]
-
-# ── 02-ledger-channel ──────────────────────────────────────────────────────────────────────────
-
-[[violations]]
-id = "LEDGER-campaign"
-wall = "02-ledger-channel"
-path = "dev/campaigns/setup.toml"
-content = ""
-why = "a raw write would skip the lock, the rollback, and the comments that ARE the memory"
-
-[[violations]]
-id = "LEDGER-matrix"
-wall = "02-ledger-channel"
-path = "dev/matrix.toml"
-content = ""
-why = "a raw write could mint a status no proof supports"
-
-[[violations]]
-id = "LEDGER-manifest"
-wall = "02-ledger-channel"
-path = "dev/manifests/operator-agent.toml"
-content = ""
-why = "the future plane is CLI-only too"
-
-[[violations]]
-id = "LEDGER-manifest-new"
-wall = "02-ledger-channel"
-path = "dev/manifests/something-new.toml"
-content = ""
-why = "a manifest that does not exist yet is still ledger state"
-
-# ── holes found by external review, 2026-07-27 ─────────────────────────────────────────────────
-# Every entry below is a hole that was LIVE and reproduced before being closed. They are here so a
-# regression is loud rather than rediscovered.
-
-[[violations]]
-id = "LEDGER-second-campaign"
-wall = "02-ledger-channel"
-path = "dev/campaigns/some-other-campaign.toml"
-content = ""
-why = "the guard named bringup.toml specifically, so the second campaign anyone created was raw-editable and nothing said so"
 
 # ── W-ALL: compose-flow walls W-01..W-07 (2026-08-02) ─────────────────────────────────────────
 # Each entry is refused by 04-ast-grep-walls, which runs the same kotlin/yaml rule files the

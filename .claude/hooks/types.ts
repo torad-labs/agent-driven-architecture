@@ -45,9 +45,9 @@ export type HookVerdict =
  *   "write-time-only"   the wall judges HOW A SEAT MAY EDIT — the channel, the authorisation.
  *                       The resulting file is perfectly legitimate; only the manner of producing
  *                       it was in question. Re-running it at commit time would refuse the normal
- *                       state of the repo. The ledger is the clean example: it is checked in and
+ *                       state of the repo. A channel wall is the clean example: the file is checked in and
  *                       changes constantly, and the wall's whole point is that a SEAT must go
- *                       through the CLI — a committed ledger diff is not a violation of anything.
+ *                       through the channel — a committed diff is not a violation of anything.
  *
  * Required on every PreToolUse module, and dev/gates/staged.ts THROWS if it is missing rather
  * than guessing. Guessing wrong in the "recheck" direction blocks every legitimate commit;
@@ -123,7 +123,7 @@ export function pendingContent(payload: HookPayload): string | null {
  *
  * Walls used to match on the raw string, which is two bugs at once. A symlink hop
  * (`ln -s .claude/hooks l` then write `l/registry.ts`) walks straight through every pattern; and a
- * path merely CONTAINING `dev/campaigns/setup.toml` — say under /tmp — was refused although it
+ * path merely CONTAINING `dev/gates/ratchet.ts` — say under /tmp — was refused although it
  * is harmless. Resolving first and then requiring containment fixes both directions.
  *
  * Claude Code sends absolute paths today. That is a convention, not a guarantee, and these modules

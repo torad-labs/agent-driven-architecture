@@ -34,8 +34,7 @@
  * THE GUARDED LIST LIVES HERE NOW.
  *
  * Until 2026-08-13 it was `grant-store.ts`'s GUARDED array and the escape hatch was a live
- * operator grant. The grant system is dead (operator ruling, recorded in
- * dev/campaigns/setup/VENDORED.md), so the list is inlined and the escape is gone: the way to
+ * operator grant. The grant system is dead (operator ruling, 2026-08-13), so the list is inlined and the escape is gone: the way to
  * retire a guarded path is to remove it from this list IN THE SAME COMMIT as the deletion, so
  * the policy change and the deletion are one diff that anyone can read. The criterion for
  * membership is unchanged: a path is listed when weakening it is SILENT — nothing else goes red.
@@ -50,19 +49,12 @@ const GUARDED: readonly { readonly pattern: RegExp; readonly label: string }[] =
   // The gates directory is enumerated, not globbed: a glob cannot be shrunk in the same commit
   // as a legitimate retirement, and the same-commit list edit IS the visibility this guard
   // exists to force. Adding a gate means adding it here — one line, same commit, in the open.
-  { pattern: /(^|\/)dev\/gates\/beacon-check\.ts$/, label: "dev/gates/beacon-check.ts" },
   { pattern: /(^|\/)dev\/gates\/ci-hygiene\.ts$/, label: "dev/gates/ci-hygiene.ts" },
-  { pattern: /(^|\/)dev\/gates\/cli-selftest\.ts$/, label: "dev/gates/cli-selftest.ts" },
   { pattern: /(^|\/)dev\/gates\/deletion-guard\.ts$/, label: "dev/gates/deletion-guard.ts" },
   { pattern: /(^|\/)dev\/gates\/hookpath\.ts$/, label: "dev/gates/hookpath.ts" },
-  { pattern: /(^|\/)dev\/gates\/lattice\.ts$/, label: "dev/gates/lattice.ts" },
   { pattern: /(^|\/)dev\/gates\/ratchet\.ts$/, label: "dev/gates/ratchet.ts" },
   { pattern: /(^|\/)dev\/gates\/ratchet-selftest\.ts$/, label: "dev/gates/ratchet-selftest.ts" },
   { pattern: /(^|\/)dev\/gates\/staged\.ts$/, label: "dev/gates/staged.ts" },
-  { pattern: /(^|\/)dev\/matrix\.ts$/, label: "dev/matrix.ts" },
-  { pattern: /(^|\/)dev\/campaigns\/ledger\.ts$/, label: "dev/campaigns/ledger.ts" },
-  { pattern: /(^|\/)dev\/campaigns\/ledger-core\.ts$/, label: "dev/campaigns/ledger-core.ts" },
-  { pattern: /(^|\/)dev\/manifest\.ts$/, label: "dev/manifest.ts" },
   { pattern: /(^|\/)package\.json$/, label: "package.json (the gate chain)" },
   { pattern: /(^|\/)settings\.gradle\.kts$/, label: "settings.gradle.kts" },
   { pattern: /(^|\/)build\.gradle\.kts$/, label: "build.gradle.kts" },

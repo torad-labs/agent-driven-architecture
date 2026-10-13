@@ -1,8 +1,8 @@
 /**
  * DELTA DIGEST — zero bytes when nothing changed.
  *
- * Fires per prompt. Reports only what MOVED in the ledger and matrix since the last turn, so a
- * session running alongside other seats notices their landings without polling.
+ * Fires per prompt. Reports only what MOVED in the enforcement surface since the last turn, so a
+ * session running alongside other seats notices a change to the walls without polling.
  *
  * THE ZERO-BYTES-IDLE RULE IS THE WHOLE DESIGN. A digest that says "no changes" every turn is an
  * always-on tax: it costs tokens on every future turn forever, it trains the reader to skip the
@@ -13,8 +13,6 @@
  * when a lot changed — which is the turn the reader can least afford a wall of text.
  */
 
-import { locateItems, readLines } from "../../../dev/campaigns/ledger-core.ts";
-import { LEDGER, MATRIX } from "../repo.ts";
 import type { HookModule, HookPayload, HookVerdict } from "../types.ts";
 
 const MAX_LINES = 12;
@@ -59,10 +57,10 @@ type Snapshot = Record<string, string>;
 /**
  * THE ENFORCEMENT PLANE IS WATCHED TOO.
  *
- * Until 2026-07-27 this digest tracked only the campaign planes — ledger items and matrix rows.
- * That was the wrong scope, and an external review caught it the expensive way: the walls changed
- * across two review waves and roughly a dozen commits, and no delta ever fired. Every dependent
- * seat kept operating on a mental model of guards that had already moved underneath it.
+ * Until 2026-07-27 this digest tracked only ledger items and matrix rows. That was the wrong scope,
+ * and an external review caught it the expensive way: the walls changed across two review waves and
+ * roughly a dozen commits, and no delta ever fired. Every dependent seat kept operating on a mental
+ * model of guards that had already moved underneath it.
  *
  * A seat must be TOLD when the walls change. Otherwise "the harness got stronger" and "every seat
  * knows the harness got stronger" are different facts, and only the first one was ever true.
@@ -110,19 +108,6 @@ async function hashArea(root: string, cwd: string, glob: string): Promise<string
 
 async function snapshot(root: string): Promise<Snapshot> {
   const state: Snapshot = {};
-
-  const ledger = await readLines(`${root}/${LEDGER}`).catch(() => null);
-  if (ledger !== null) {
-    for (const block of locateItems(ledger)) state[`item:${block.item.id}`] = block.item.status;
-  }
-
-  const matrixText = await Bun.file(`${root}/${MATRIX}`).text().catch(() => null);
-  if (matrixText !== null) {
-    const parsed = Bun.TOML.parse(matrixText) as { rows?: readonly Record<string, unknown>[] };
-    for (const row of parsed.rows ?? []) {
-      state[`row:${String(row["id"] ?? "")}`] = String(row["status"] ?? "");
-    }
-  }
 
   for (const area of ENFORCEMENT_AREAS) {
     state[area.key] = await hashArea(root, area.cwd, area.glob);
@@ -192,7 +177,7 @@ export const module: HookModule = {
       kind: "context",
       text: [
         ...banner,
-        `LEDGER DELTA since your last turn`,
+        `DELTA since your last turn`,
         ...shown.map((line) => `  ${line}`),
         ...overflow,
       ].join("\n"),

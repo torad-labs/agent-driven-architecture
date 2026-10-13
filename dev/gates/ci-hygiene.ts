@@ -3,8 +3,8 @@
  * THE WORKFLOW FILES ARE THE ONLY UNLINTED SURFACE IN A LINTED REPOSITORY, AND THEY ARE THE
  * PRIVILEGED ONE.
  *
- * Everything else here is walled: ast-grep rules, the hook chain, the corpus ratchet, the ledger
- * CLIs. `.github/workflows/` had nothing — no typecheck, no lint, no gate — while being the file
+ * Everything else here is walled: ast-grep rules, the hook chain, the corpus ratchet.
+ * `.github/workflows/` had nothing — no typecheck, no lint, no gate — while being the file
  * that decides whether any of the others run at all.
  *
  * This encodes brain concept #1054 (professional-grade CI/CD recipe, Rev 2 — derived from a

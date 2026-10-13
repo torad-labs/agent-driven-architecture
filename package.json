@@ -5,14 +5,14 @@
   "$comment": [
     "THE HARNESS ROOT — not the reference implementation. The TypeScript port has its own",
     "package.json under examples/typescript with its own npm scripts; this one exists only to",
-    "carry the campaign machinery's gate chain, which is why it is named -harness.",
+    "carry the gate chain, which is why it is named -harness.",
     "",
-    "Vendored from compose-flow@df57074 on 2026-08-07. Lineage and every port decision are",
-    "recorded in dev/campaigns/setup/VENDORED.md. Load-bearing: this file IS the gate chain —",
-    "weakening it is silent everywhere else.",
-        "",
+    "Vendored from compose-flow@df57074 on 2026-08-07. The campaign ledger and its readiness matrix",
+    "and manifest planes were removed by operator ruling on 2026-10-10, with the gates that checked",
+    "them. Load-bearing: this file IS the gate chain — weakening it is silent everywhere else.",
+    "",
     "NOT IN THE CHAIN, deliberately: gate:walls (no-python + ast-grep scan) and gate:module-graph.",
-    "Both are compose-flow product laws rather than machinery — see VENDORED.md."
+    "Both are compose-flow product laws rather than machinery."
   ],
   "type": "module",
   "packageManager": "bun@1.3.14",
@@ -20,20 +20,11 @@
     "bun": ">=1.3.0"
   },
   "scripts": {
-    "ledger": "bun dev/campaigns/ledger.ts dev/campaigns/sdk.toml",
-    "matrix": "bun dev/matrix.ts dev/matrix.toml",
-    "manifest": "bun dev/manifest.ts dev/manifests/agent-driven-architecture.toml",
-    "gate": "bun run gate:ratchet-selftest && bun run gate:deletion-selftest && bun run gate:ratchet && bun run gate:hooks && bun run gate:cli-witness && bun run gate:ledger && bun run gate:matrix && bun run gate:manifest && bun run gate:lattice && bun run gate:review && bun run gate:ci-hygiene && bun run gate:hookpath",
+    "gate": "bun run gate:ratchet-selftest && bun run gate:deletion-selftest && bun run gate:ratchet && bun run gate:hooks && bun run gate:ci-hygiene && bun run gate:hookpath",
     "gate:ratchet": "bun dev/gates/ratchet.ts",
     "gate:ratchet-selftest": "bun dev/gates/ratchet-selftest.ts",
     "gate:deletion-selftest": "bun dev/gates/deletion-guard.ts --selftest",
     "gate:hooks": "bun .claude/hooks/selftest.ts",
-    "gate:cli-witness": "bun dev/gates/cli-selftest.ts",
-    "gate:ledger": "bun dev/campaigns/ledger.ts dev/campaigns/sdk.toml selftest && bun dev/campaigns/ledger.ts dev/campaigns/sdk.toml validate",
-    "gate:matrix": "bun dev/matrix.ts dev/matrix.toml selftest && bun dev/matrix.ts dev/matrix.toml validate",
-    "gate:manifest": "bun dev/manifest.ts x selftest && bun dev/manifest.ts dev/manifests/agent-driven-architecture.toml validate",
-    "gate:lattice": "bun dev/gates/lattice.ts .",
-    "gate:review": "bun dev/campaigns/review.ts selftest",
     "gate:ci-hygiene": "bun dev/gates/ci-hygiene.ts",
     "gate:staged": "bun dev/gates/staged.ts",
     "gate:hookpath": "bun dev/gates/hookpath.ts"

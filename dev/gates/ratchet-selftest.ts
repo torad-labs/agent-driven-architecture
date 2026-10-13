@@ -12,23 +12,23 @@
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 
-// PORT NOTE (2026-08-07). Upstream these fixtures used 01-no-python with `.py` paths. That wall
-// did not come across — see dev/campaigns/setup/VENDORED.md — so the probe corpus is expressed
-// against 02-ledger-channel instead. The ratchet does not care WHICH wall a fixture names, only
-// that the named wall is in the registry and still refuses; picking a vendored one is the whole
-// substitution. Each entry needs a DISTINCT guarded path, and the ledger channel guards three.
+// PROBE WALL (2026-10-12). These fixtures used to name 02-ledger-channel over ledger paths. That wall
+// went with the ledger, and the TypeScript chain has no refusing wall left, so the probe corpus now
+// names a wall the sandbox installs for itself (see below). The ratchet does not care WHICH wall a
+// fixture names, only that the named wall is registered and still refuses. Each entry needs a
+// DISTINCT path.
 const BASE = `# probe corpus
 [[violations]]
 id = "A"
-wall = "02-ledger-channel"
-path = "dev/campaigns/sdk.toml"
+wall = "99-selftest-probe"
+path = "probe/A.toml"
 content = "status = \\"verified\\"\\n"
 why = "a"
 
 [[violations]]
 id = "B"
-wall = "02-ledger-channel"
-path = "dev/matrix.toml"
+wall = "99-selftest-probe"
+path = "probe/B.toml"
 content = "status = \\"verified\\"\\n"
 why = "b"
 `;
@@ -46,7 +46,7 @@ const repo = (await Bun.$`git rev-parse --show-toplevel`.quiet().text()).trim();
 const dir = mkdtempSync(`${tmpdir()}/ratchet-selftest-`);
 
 // The sandbox is a FULL tracked-file copy, built once. The hook modules import across the tree —
-// 02-ledger-channel reaches .claude/hooks/repo.ts — so a hand-assembled partial repo fails for reasons
+// ratchet.ts reaches registry.ts and types.ts — so a hand-assembled partial repo fails for reasons
 // that have nothing to do with the ratchet, which is exactly the kind of false red that gets a
 // selftest deleted rather than fixed.
 await Bun.$`git init -q ${dir}`.quiet().nothrow();
@@ -54,6 +54,38 @@ await Bun.$`sh -c ${`cd '${repo}' && git ls-files -z | tar --null -T - -cf - | t
   .quiet()
   .nothrow();
 await Bun.$`mkdir -p ${dir}/dev/walls`.quiet();
+
+// THE PROBE WALL. The TypeScript chain has no refusing wall once the ledger wall is gone, and the
+// ratchet's clauses cannot be exercised without one. So the sandbox, and only the sandbox, gets a
+// test-only wall that refuses writes under probe/, and a registry that holds nothing else. Nothing
+// written here reaches the real chain.
+const PROBE_WALL = "99-selftest-probe";
+writeFileSync(
+  `${dir}/.claude/hooks/modules/${PROBE_WALL}.ts`,
+  `import type { HookModule, HookPayload, HookVerdict } from "../types.ts";
+
+export const module: HookModule = {
+  order: 1,
+  name: "${PROBE_WALL}",
+  events: ["PreToolUse"],
+  staged: "write-time-only",
+  run(payload: HookPayload): HookVerdict {
+    const path = String(payload.tool_input?.["file_path"] ?? "");
+    return /(^|\\/)probe\\/[^/]+$/.test(path) ? { kind: "block", reason: "selftest probe" } : null;
+  },
+};
+
+export default module;
+`,
+);
+writeFileSync(
+  `${dir}/.claude/hooks/registry.ts`,
+  `import probe from "./modules/${PROBE_WALL}.ts";
+import type { HookModule } from "./types.ts";
+
+export const registry: readonly HookModule[] = [probe];
+`,
+);
 
 async function verdict(
   corpus: string,
@@ -103,12 +135,12 @@ const shrunk = await verdict(BASE.split("[[violations]]").slice(0, 2).join("[[vi
 check("a pure deletion is caught", shrunk.exit === 1 && /SHRANK|DELETED/.test(shrunk.out));
 
 // ratchet-3: retarget at the same cardinality.
-const retargeted = await verdict(BASE.replace('path = "dev/matrix.toml"', 'path = "dev/manifests/agent-driven-architecture.toml"'));
+const retargeted = await verdict(BASE.replace('path = "probe/B.toml"', 'path = "probe/C.toml"'));
 check("a retarget at the same count is caught", retargeted.exit === 1 && /RETARGETED/.test(retargeted.out));
 
 // ratchet-3a: THE ROUND-3 HOLE — delete one, add another, count unchanged.
 const swapped = await verdict(
-  BASE.replace(/\[\[violations\]\]\nid = "B"[\s\S]*$/, '[[violations]]\nid = "C"\nwall = "02-ledger-channel"\npath = "dev/manifests/agent-driven-architecture.toml"\ncontent = "level = \\"x\\"\\n"\nwhy = "c"\n'),
+  BASE.replace(/\[\[violations\]\]\nid = "B"[\s\S]*$/, '[[violations]]\nid = "C"\nwall = "99-selftest-probe"\npath = "probe/C.toml"\ncontent = "level = \\"x\\"\\n"\nwhy = "c"\n'),
 );
 check(
   "delete+add at the same count is caught (the round-3 hole)",
@@ -117,7 +149,7 @@ check(
 );
 
 // Additions alone must stay legal, or the ratchet blocks its own maintenance.
-const grown = await verdict(`${BASE}\n[[violations]]\nid = "D"\nwall = "02-ledger-channel"\npath = "dev/manifests/agent-driven-architecture.toml"\ncontent = "level = \\"x\\"\\n"\nwhy = "d"\n`);
+const grown = await verdict(`${BASE}\n[[violations]]\nid = "D"\nwall = "99-selftest-probe"\npath = "probe/C.toml"\ncontent = "level = \\"x\\"\\n"\nwhy = "d"\n`);
 check("a pure addition is allowed", grown.exit === 0, grown.out.slice(0, 200));
 
 /**
@@ -131,7 +163,7 @@ const withRetired = (corpus: string, retired: string): string =>
   corpus.replace("[[violations]]", `${retired}\n\n[[violations]]`);
 
 const retiredOk = await verdict(
-  withRetired(MINUS_B, 'retired = [ { id = "B", wall = "02-ledger-channel" } ]'),
+  withRetired(MINUS_B, 'retired = [ { id = "B", wall = "99-selftest-probe" } ]'),
 );
 check("a deletion recorded as retired passes", retiredOk.exit === 0, retiredOk.out.slice(0, 300));
 
@@ -145,7 +177,7 @@ check(
 );
 
 const retiredStillPresent = await verdict(
-  withRetired(BASE, 'retired = [ { id = "B", wall = "02-ledger-channel" } ]'),
+  withRetired(BASE, 'retired = [ { id = "B", wall = "99-selftest-probe" } ]'),
 );
 check(
   "a retired id still present in the corpus fails",
@@ -154,7 +186,7 @@ check(
 );
 
 const retiredUnknown = await verdict(
-  withRetired(BASE, 'retired = [ { id = "ZZZ", wall = "02-ledger-channel" } ]'),
+  withRetired(BASE, 'retired = [ { id = "ZZZ", wall = "99-selftest-probe" } ]'),
 );
 check(
   "a retired entry that retires nothing fails",
@@ -162,7 +194,7 @@ check(
   retiredUnknown.out.slice(0, 300),
 );
 
-const RETIRED_B = 'retired = [ { id = "B", wall = "02-ledger-channel" } ]';
+const RETIRED_B = 'retired = [ { id = "B", wall = "99-selftest-probe" } ]';
 const steadyBaseline = withRetired(MINUS_B, RETIRED_B);
 const steady = await verdict(steadyBaseline, steadyBaseline);
 check(

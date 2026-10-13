@@ -8,36 +8,26 @@
  * quietly lose a link.
  *
  * 01-09  WALLS      PreToolUse. Refuse writes that would put the tree in a shape it must not take.
- * 10-19  LIFECYCLE  Session boundaries. Carry the open work across a context that does not
- *                   survive. The laws are NOT carried here: 10-law-injection was retired
- *                   2026-10-03 on the operator ruling of 2026-09-22 — laws reach seats in the
- *                   ledger's `packet`, never in a SessionStart dump. See VENDORED.md.
+ *                   None registered: the ledger channel was the only one, and it went with the
+ *                   ledger (operator ruling, 2026-10-10).
+ * 10-19  LIFECYCLE  Session boundaries. Only the enforcement-surface digest remains. The re-anchor
+ *                   and the stop beacon read the ledger, so they went with it.
  * (The 20-29 OPERATOR band is empty: the grant system it held was deleted 2026-08-13 on an
  *  operator ruling — "the grant system is dead". Its issuance channel was never even wired in
- *  this repo — no userpromptsubmit module exists to fire 20-grant-issue. See VENDORED.md.)
+ *  this repo — no userpromptsubmit module exists to fire 20-grant-issue.)
  * 30-39  AUDIT      PostToolUse records. They refuse nothing and inject nothing; they exist so
  *                   that a route around a wall is conspicuous afterwards rather than invisible.
  *                   On a NOPASSWD host this is corroboration, never evidence — root can delete
  *                   the log. The load-bearing defence is dev/gates/ratchet.ts.
  */
 
-// 01-no-python and 04-ast-grep-walls did NOT come across from compose-flow — see
-// dev/campaigns/setup/VENDORED.md. The first is compose-flow's own operator law
-// ("no python in this codebase at all"), and this repository's enforcement layer is
-// currently Python; the second is hardwired to compose-flow-core/ paths and that
-// repo's .yml ruleDirs, while this tree's .rules are .yaml under a registry.json.
+// 01-no-python and 04-ast-grep-walls did NOT come across from compose-flow. The first is
+// compose-flow's own operator law ("no python in this codebase at all"), and this repository's
+// enforcement layer is currently Python; the second is hardwired to compose-flow-core/ paths and
+// that repo's .yml ruleDirs, while this tree's .rules are .yaml under a registry.json.
 // Both are PRODUCT decisions, not machinery, and travel no better than a decision book.
-import ledgerChannel from "./modules/02-ledger-channel.ts";
-import inflightReanchor from "./modules/11-inflight-reanchor.ts";
 import deltaDigest from "./modules/12-delta-digest.ts";
-import stopBeacon from "./modules/13-stop-beacon.ts";
 import bashAudit from "./modules/30-bash-audit.ts";
 import type { HookModule } from "./types.ts";
 
-export const registry: readonly HookModule[] = [
-  ledgerChannel,
-  inflightReanchor,
-  deltaDigest,
-  stopBeacon,
-  bashAudit,
-];
+export const registry: readonly HookModule[] = [deltaDigest, bashAudit];
